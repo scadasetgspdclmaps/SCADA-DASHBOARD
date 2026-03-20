@@ -183,6 +183,8 @@ tbody td{padding:7px 11px;vertical-align:middle;color:var(--tx2)}
 
 
 /* ══ MAP SECTION INNER ═══════════════════════════════════════════════════ */
+/* Map fixed elements hidden by default, shown only when map section is active */
+#panel,#ptab,#legend,#botbar,#loader{visibility:hidden}
 /* Map CSS scoped - position:fixed elements work because #sec-map is full viewport */
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -985,14 +987,6 @@ function toast(msg,dur){
 <div class="shell-section" id="sec-dash">
   <div class="wrap">
 
-  <div class="tb-sep"></div>
-  <div class="tb-title">SCADA Dashboard &mdash; Analytics &amp; Infrastructure Data</div>
-  <div class="tb-r">
-    <div class="pill-live">LIVE</div>
-    <div class="pill-date">As on 23.12.2025</div>
-  </div>
-</div>
-
 <div class="dnav">
   <button class="dtab active"  onclick="showTab('overview')">&#128202; Overview</button>
   <button class="dtab"         onclick="showTab('ptr')">&#9889; PTR Analytics</button>
@@ -1470,18 +1464,35 @@ function switchSection(id) {
   document.getElementById('sec-' + id).classList.add('active');
   document.getElementById('sntab-' + id).classList.add('active');
 
-  if (id === 'map' && !mapInited) {
-    mapInited = true;
-    // Trigger map to recalculate its size after becoming visible
-    setTimeout(function(){ try{map.invalidateSize();}catch(e){} }, 100);
-    setTimeout(function(){ try{map.invalidateSize();}catch(e){} }, 500);
+  // Map fixed elements (panel, ptab, legend, botbar, loader) use position:fixed
+  // so they appear on ALL sections unless explicitly hidden
+  var mapEls = ['panel','ptab','legend','botbar','loader'];
+  mapEls.forEach(function(elId){
+    var el = document.getElementById(elId);
+    if(el) el.style.visibility = (id === 'map') ? 'visible' : 'hidden';
+  });
+
+  if (id === 'map') {
+    if (!mapInited) {
+      mapInited = true;
+    }
+    setTimeout(function(){ try{map.invalidateSize();}catch(e){} }, 150);
   }
-  if (id === 'dash' && typeof window.addEventListener === 'function') {
-    // Trigger dashboard charts to render if needed
+
+  if (id === 'dash') {
     setTimeout(function(){
       try{ animateDonut(); }catch(e){}
+      try{
+        var bars = ['len-bars','feed-split','ptr-count-bars','ptr-mva-bars',
+                    'ptr-div-bars','ptr-cap-bars','net-len-bars','cb-bars'];
+        bars.forEach(function(b){
+          var el=document.getElementById(b);
+          if(el && el.children.length===0){ }
+        });
+      }catch(e){}
     }, 100);
   }
+
   if (id === 'ss' && !ssLoaded) {
     ssLoaded = true;
     document.getElementById('ss-frame').src = 'https://scadasetgspdclmaps.github.io/SUBSTATIONMASTERDATA/';
