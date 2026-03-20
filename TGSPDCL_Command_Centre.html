@@ -117,7 +117,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .home-card:hover .hc-arrow{color:#1565C0;transform:translateX(4px)}
 
 /* grid of network stats at bottom */
-.home-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;max-width:900px;width:100%}
+.home-stats{display:grid;grid-template-columns:repeat(9,1fr);gap:10px;max-width:1100px;width:100%}
 .hs{background:#FFFFFF;border:.5px solid #C8D8E8;border-radius:10px;padding:12px 14px;text-align:center;box-shadow:0 1px 4px rgba(21,101,192,.06)}
 .hs-v{font-family:var(--mono);font-size:20px;font-weight:700;color:#1A2E40}
 .hs-l{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:#7A95AD;margin-top:3px}
@@ -173,7 +173,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
   <div class="top-status">
     <div class="stat-chip chip-live">&#9679; SYSTEM LIVE</div>
-    <div class="stat-chip chip-info">369 FEEDERS</div>
+    <div class="stat-chip chip-info">324 FEEDERS · 1327 KM</div>
     <div class="top-clock" id="clock">—</div>
   </div>
 </div>
@@ -196,8 +196,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
           <div class="hc-title">33KV GRID MAP</div>
           <div class="hc-desc">Interactive feeder map across all 4 divisions. Filter by division, section, feeder. Mark breakdowns and overloaded substations.</div>
           <div class="hc-tags">
-            <span class="hc-tag">1048 POINTS</span>
-            <span class="hc-tag">369 FEEDERS</span>
+            <span class="hc-tag">324 FEEDERS</span>
+            <span class="hc-tag">1327 KM</span>
             <span class="hc-tag">LIVE BLINK</span>
             <span class="hc-tag">FILTER</span>
           </div>
@@ -208,8 +208,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
           <div class="hc-title">ANALYTICS DASHBOARD</div>
           <div class="hc-desc">Network-wide statistics, division breakdowns, SS master data, EHT substation directory, feeder directory with search.</div>
           <div class="hc-tags">
-            <span class="hc-tag">136 SS RECORDS</span>
-            <span class="hc-tag">25 EHT SS</span>
+            <span class="hc-tag">136 SS · 199 PTRs</span>
+            <span class="hc-tag">3744 MVA</span>
             <span class="hc-tag">CHARTS</span>
             <span class="hc-tag">SEARCH</span>
           </div>
@@ -230,12 +230,24 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
       </div>
 
       <div class="home-stats">
-        <div class="hs"><div class="hs-v">1048</div><div class="hs-l">POINTS</div></div>
-        <div class="hs"><div class="hs-v">369</div><div class="hs-l">FEEDERS</div></div>
         <div class="hs"><div class="hs-v">136</div><div class="hs-l">33/11KV SS</div></div>
+        <div class="hs"><div class="hs-v">339</div><div class="hs-l">PTRs</div></div>
+        <div class="hs"><div class="hs-v">3,744</div><div class="hs-l">MVA CAPACITY</div></div>
+        <div class="hs"><div class="hs-v">324</div><div class="hs-l">FEEDERS</div></div>
+        <div class="hs"><div class="hs-v">1,327</div><div class="hs-l">KM LENGTH</div></div>
         <div class="hs"><div class="hs-v">25</div><div class="hs-l">EHT SS</div></div>
+        <div class="hs"><div class="hs-v">992</div><div class="hs-l">11kV BREAKERS</div></div>
+        <div class="hs"><div class="hs-v">18</div><div class="hs-l">SECTIONS</div></div>
         <div class="hs"><div class="hs-v">4</div><div class="hs-l">DIVISIONS</div></div>
-        <div class="hs"><div class="hs-v">88%</div><div class="hs-l">UG CABLE</div></div>
+      </div><div class="hs-l">33/11KV SS</div></div>
+        <div class="hs"><div class="hs-v">339</div><div class="hs-l">PTRs</div></div>
+        <div class="hs"><div class="hs-v">3744</div><div class="hs-l">MVA CAPACITY</div></div>
+        <div class="hs"><div class="hs-v">324</div><div class="hs-l">FEEDERS</div></div>
+        <div class="hs"><div class="hs-v">1327</div><div class="hs-l">KM LENGTH</div></div>
+        <div class="hs"><div class="hs-v">25</div><div class="hs-l">EHT SS</div></div>
+        <div class="hs"><div class="hs-v">339</div><div class="hs-l">BREAKERS</div></div>
+        <div class="hs"><div class="hs-v">18</div><div class="hs-l">SECTIONS</div></div>
+        <div class="hs"><div class="hs-v">4</div><div class="hs-l">DIVISIONS</div></div>
       </div>
 
     </div>
