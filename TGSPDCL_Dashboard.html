@@ -14,6 +14,7 @@
   --gn:#0B7A5C;--gnb:#D4F0E8;--gnf:#065A42;
   --am:#D07A00;--amb:#FFF3CD;--amf:#7A4800;
   --pk:#9C2780;--pkb:#F9E8F6;--pkf:#6A1458;
+  --rd:#C0392B;--rdb:#FDECEA;--rdf:#7B1A1A;
   --f:system-ui,-apple-system,"Segoe UI",sans-serif;
   --m:"SF Mono","Consolas","Courier New",monospace;
 }
@@ -33,30 +34,27 @@ html,body{width:100%;min-height:100vh;background:var(--bg);color:var(--tx);font-
 .nav-tab:hover:not(.active){color:var(--bl)}
 .tab-pane{display:none}.tab-pane.active{display:block}
 .wrap{max-width:1280px;margin:0 auto;padding:20px 18px 48px}
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:20px}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
 .kpi{background:var(--sf);border:.5px solid var(--bd);border-radius:10px;padding:13px 15px;box-shadow:0 1px 6px rgba(21,101,192,.07);border-left:3px solid}
-.kpi.bl{border-left-color:#1565C0}.kpi.gn{border-left-color:#0B7A5C}.kpi.am{border-left-color:#D07A00}.kpi.pk{border-left-color:#9C2780}.kpi.rd{border-left-color:#C0392B}
+.kpi.bl{border-left-color:var(--bl)}.kpi.gn{border-left-color:var(--gn)}.kpi.am{border-left-color:var(--am)}.kpi.pk{border-left-color:var(--pk)}.kpi.rd{border-left-color:var(--rd)}
 .kl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);margin-bottom:4px}
 .kv{font-size:24px;font-weight:700;color:var(--tx);font-family:var(--m);line-height:1}
 .ks{font-size:11px;color:var(--tx3);margin-top:3px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:18px}
-.gAB{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;margin-bottom:18px}
-.gBA{display:grid;grid-template-columns:1fr 1.7fr;gap:16px;margin-bottom:18px}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
+.gAB{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:18px}
 .card{background:var(--sf);border:.5px solid var(--bd);border-radius:10px;padding:16px 18px;box-shadow:0 1px 6px rgba(21,101,192,.06)}
 .card-hd{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-bottom:12px;padding-bottom:8px;border-bottom:.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center}
 .badge{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--blb);color:var(--blf);font-family:var(--m);border:.5px solid var(--bd2)}
 .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-.bar-lbl{font-size:11px;color:var(--tx2);width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.bar-lbl{font-size:11px;color:var(--tx2);width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
 .bar-track{flex:1;height:7px;background:var(--sf3);border-radius:4px;overflow:hidden}
 .bar-fill{height:100%;border-radius:4px;transition:width .9s cubic-bezier(.4,0,.2,1);width:0}
-.bar-val{font-size:10px;font-weight:600;font-family:var(--m);color:var(--bl);width:50px;text-align:right;flex-shrink:0}
+.bar-val{font-size:10px;font-weight:600;font-family:var(--m);color:var(--bl);width:55px;text-align:right;flex-shrink:0}
 .dl-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
 .dl-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .dl-lbl{font-size:11px;color:var(--tx2);flex:1}
 .dl-val{font-family:var(--m);font-size:11px;color:var(--tx);font-weight:600}
-.dl-sub{font-size:10px;color:var(--tx3);margin-left:4px}
 .tbl-wrap{overflow-x:auto}
 .scroll-list{max-height:400px;overflow-y:auto}
 .scroll-list::-webkit-scrollbar{width:4px}
@@ -67,10 +65,8 @@ tbody tr{border-bottom:.5px solid var(--bd);transition:background .12s}
 tbody tr:hover td{background:var(--sf2)}
 tbody td{padding:7px 11px;vertical-align:middle;color:var(--tx2)}
 .tag{display:inline-block;font-size:9px;font-weight:600;padding:2px 7px;border-radius:4px;font-family:var(--m)}
-.tag-bl{background:var(--blb);color:var(--blf)}
-.tag-gn{background:var(--gnb);color:var(--gnf)}
-.tag-am{background:var(--amb);color:var(--amf)}
-.tag-pk{background:var(--pkb);color:var(--pkf)}
+.tag-bl{background:var(--blb);color:var(--blf)}.tag-gn{background:var(--gnb);color:var(--gnf)}
+.tag-am{background:var(--amb);color:var(--amf)}.tag-pk{background:var(--pkb);color:var(--pkf)}
 .chip{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 6px;border-radius:11px;font-family:var(--m);font-size:10px;font-weight:700}
 .srch{width:100%;background:var(--sf2);border:.5px solid var(--bd2);border-radius:8px;padding:8px 12px;color:var(--tx);font-family:var(--f);font-size:12px;outline:none;margin-bottom:12px;transition:border-color .2s}
 .srch:focus{border-color:var(--bl);box-shadow:0 0 0 3px var(--blb)}
@@ -82,14 +78,14 @@ tbody td{padding:7px 11px;vertical-align:middle;color:var(--tx2)}
 .div-stat .k{font-size:10px;color:var(--tx3)}
 .div-stat .v{font-family:var(--m);font-size:11px;font-weight:600;color:var(--tx)}
 .div-bar{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:8px}
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:.5px solid var(--bd);border-radius:8px;overflow:hidden;margin-top:12px}
-.sg-item{padding:10px 12px;border-right:.5px solid var(--bd);border-bottom:.5px solid var(--bd)}
-.sg-item:nth-child(3n){border-right:none}
-.sg-item:nth-last-child(-n+3){border-bottom:none}
-.sg-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:3px}
-.sg-val{font-family:var(--m);font-size:14px;font-weight:700;color:var(--tx)}
-.sg-unit{font-size:9px;color:var(--tx3);font-family:var(--f)}
-@media(max-width:800px){.g2,.g3,.gAB,.gBA,.g4{grid-template-columns:1fr}.div-grid{grid-template-columns:1fr}}
+/* PTR capacity color chips */
+.ptr-chip{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:5px;font-family:var(--m);font-size:10px;font-weight:700;white-space:nowrap}
+.ptr-16{background:#1565C020;color:#1565C0;border:1px solid #1565C040}
+.ptr-12{background:#0B7A5C20;color:#0B7A5C;border:1px solid #0B7A5C40}
+.ptr-8{background:#D07A0020;color:#D07A00;border:1px solid #D07A0040}
+.ptr-5{background:#9C278020;color:#9C2780;border:1px solid #9C278040}
+.ptr-3{background:#C0392B20;color:#C0392B;border:1px solid #C0392B40}
+@media(max-width:800px){.g2,.g3,.gAB{grid-template-columns:1fr}.div-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -104,44 +100,38 @@ tbody td{padding:7px 11px;vertical-align:middle;color:var(--tx2)}
 </div>
 
 <div class="nav-tabs">
-  <button class="nav-tab active" onclick="showTab('overview')">&#128202; Overview</button>
-  <button class="nav-tab" onclick="showTab('divisions')">&#9783; Division Details</button>
-  <button class="nav-tab" onclick="showTab('sections')">&#9783; Section Directory</button>
-  <button class="nav-tab" onclick="showTab('network')">&#9889; Network Assets</button>
+  <button class="nav-tab active"  onclick="showTab('overview')">&#128202; Overview</button>
+  <button class="nav-tab"         onclick="showTab('ptr')">&#9889; PTR Analytics</button>
+  <button class="nav-tab"         onclick="showTab('divisions')">&#9783; Divisions</button>
+  <button class="nav-tab"         onclick="showTab('sections')">&#9783; Sections</button>
+  <button class="nav-tab"         onclick="showTab('network')">&#128279; Network Assets</button>
 </div>
 
 <div class="wrap">
 
 <!-- ═══ OVERVIEW ═══ -->
 <div class="tab-pane active" id="tab-overview">
-
-  <!-- KPIs row 1 -->
   <div class="kpi-row">
-    <div class="kpi bl"><div class="kl">33/11kV SS</div><div class="kv" id="k-ss">136</div><div class="ks">Indoor + Outdoor</div></div>
-    <div class="kpi gn"><div class="kl">Power Transformers</div><div class="kv" id="k-ptrs">199</div><div class="ks">PTR Count</div></div>
-    <div class="kpi am"><div class="kl">PTR Capacity</div><div class="kv" id="k-cap">3743</div><div class="ks">MVA total</div></div>
-    <div class="kpi pk"><div class="kl">Total Feeders</div><div class="kv" id="k-feed">324</div><div class="ks">Incl. link lines</div></div>
-    <div class="kpi bl"><div class="kl">Feeder Length</div><div class="kv" id="k-len">1327</div><div class="ks">km total</div></div>
-    <div class="kpi rd"><div class="kl">Circuit Breakers</div><div class="kv" id="k-cbs">339</div><div class="ks">All voltages</div></div>
+    <div class="kpi bl"><div class="kl">33/11kV SS</div><div class="kv">136</div><div class="ks">Indoor + Outdoor</div></div>
+    <div class="kpi gn"><div class="kl">Total PTRs</div><div class="kv">339</div><div class="ks">All capacities</div></div>
+    <div class="kpi am"><div class="kl">PTR Capacity</div><div class="kv">3,744</div><div class="ks">MVA total</div></div>
+    <div class="kpi pk"><div class="kl">Total Feeders</div><div class="kv">324</div><div class="ks">Incl. link lines</div></div>
+    <div class="kpi bl"><div class="kl">Feeder Length</div><div class="kv">1,327</div><div class="ks">km total</div></div>
+    <div class="kpi rd"><div class="kl">Circuit Breakers</div><div class="kv">339</div><div class="ks">11kV + 33kV CBs</div></div>
   </div>
-
-  <!-- KPIs row 2 -->
   <div class="kpi-row">
-    <div class="kpi bl"><div class="kl">Indoor SS</div><div class="kv" id="k-indoor">64</div><div class="ks">Substations</div></div>
-    <div class="kpi gn"><div class="kl">Outdoor SS</div><div class="kv" id="k-outdoor">65</div><div class="ks">Substations</div></div>
-    <div class="kpi am"><div class="kl">Indoor &amp; Outdoor</div><div class="kv" id="k-io">7</div><div class="ks">Substations</div></div>
-    <div class="kpi pk"><div class="kl">11kV Breakers</div><div class="kv" id="k-bk11">992</div><div class="ks">Total</div></div>
-    <div class="kpi bl"><div class="kl">33kV Breakers</div><div class="kv" id="k-bk33">337</div><div class="ks">Total</div></div>
-    <div class="kpi rd"><div class="kl">Link Line Feeders</div><div class="kv" id="k-link">68</div><div class="ks">Numbers</div></div>
+    <div class="kpi bl"><div class="kl">Indoor SS</div><div class="kv">64</div><div class="ks">Substations</div></div>
+    <div class="kpi gn"><div class="kl">Outdoor SS</div><div class="kv">65</div><div class="ks">Substations</div></div>
+    <div class="kpi am"><div class="kl">Indoor &amp; Outdoor</div><div class="kv">7</div><div class="ks">Substations</div></div>
+    <div class="kpi pk"><div class="kl">11kV Breakers</div><div class="kv">992</div><div class="ks">Total</div></div>
+    <div class="kpi bl"><div class="kl">33kV Breakers</div><div class="kv">337</div><div class="ks">Total</div></div>
+    <div class="kpi rd"><div class="kl">Link Line Feeders</div><div class="kv">68</div><div class="ks">Numbers</div></div>
   </div>
-
   <div class="gAB">
-    <!-- Division breakdown -->
     <div class="card">
-      <div class="card-hd">Division-wise Summary <span class="badge">4 Divisions</span></div>
+      <div class="card-hd">Division-wise Summary</div>
       <div class="div-grid" id="div-cards"></div>
     </div>
-    <!-- SS Type split -->
     <div class="card">
       <div class="card-hd">SS Type Distribution</div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
@@ -150,93 +140,134 @@ tbody td{padding:7px 11px;vertical-align:middle;color:var(--tx2)}
           <circle id="d-in"  cx="65" cy="65" r="48" fill="none" stroke="#1565C0" stroke-width="18" stroke-dasharray="0 302" transform="rotate(-90 65 65)" style="transition:stroke-dasharray 1s ease"/>
           <circle id="d-out" cx="65" cy="65" r="48" fill="none" stroke="#0B7A5C" stroke-width="18" stroke-dasharray="0 302" transform="rotate(-90 65 65)" style="transition:stroke-dasharray 1s ease"/>
           <circle id="d-io"  cx="65" cy="65" r="48" fill="none" stroke="#D07A00" stroke-width="18" stroke-dasharray="0 302" transform="rotate(-90 65 65)" style="transition:stroke-dasharray 1s ease"/>
-          <text x="65" y="60" text-anchor="middle" font-family="Consolas,monospace" font-size="17" font-weight="700" fill="#1A2E40" id="d-total">136</text>
+          <text x="65" y="61" text-anchor="middle" font-family="Consolas,monospace" font-size="17" font-weight="700" fill="#1A2E40">136</text>
           <text x="65" y="75" text-anchor="middle" font-family="Segoe UI,sans-serif" font-size="10" fill="#7A95AD">33/11kV SS</text>
         </svg>
         <div style="width:100%">
-          <div class="dl-row"><div class="dl-dot" style="background:#1565C0"></div><span class="dl-lbl">Indoor SS</span><span class="dl-val" id="dl-in">64</span></div>
-          <div class="dl-row"><div class="dl-dot" style="background:#0B7A5C"></div><span class="dl-lbl">Outdoor SS</span><span class="dl-val" id="dl-out">65</span></div>
-          <div class="dl-row"><div class="dl-dot" style="background:#D07A00"></div><span class="dl-lbl">Indoor &amp; Outdoor</span><span class="dl-val" id="dl-io">7</span></div>
+          <div class="dl-row"><div class="dl-dot" style="background:#1565C0"></div><span class="dl-lbl">Indoor SS</span><span class="dl-val">64</span></div>
+          <div class="dl-row"><div class="dl-dot" style="background:#0B7A5C"></div><span class="dl-lbl">Outdoor SS</span><span class="dl-val">65</span></div>
+          <div class="dl-row"><div class="dl-dot" style="background:#D07A00"></div><span class="dl-lbl">Indoor &amp; Outdoor</span><span class="dl-val">7</span></div>
         </div>
       </div>
     </div>
   </div>
+  <div class="g2">
+    <div class="card"><div class="card-hd">Feeder Length by Division (km)</div><div id="len-bars"></div></div>
+    <div class="card"><div class="card-hd">OH vs UG Feeders by Division</div><div id="feed-split"></div></div>
+  </div>
+</div>
+
+<!-- ═══ PTR ANALYTICS ═══ -->
+<div class="tab-pane" id="tab-ptr">
+  <div class="kpi-row">
+    <div class="kpi bl"><div class="kl">Total PTRs</div><div class="kv">339</div><div class="ks">All divisions</div></div>
+    <div class="kpi gn"><div class="kl">Total Capacity</div><div class="kv">3,743.5</div><div class="ks">MVA installed</div></div>
+    <div class="kpi am"><div class="kl">12.5 MVA PTRs</div><div class="kv">199</div><div class="ks">Most common — 58.7%</div></div>
+    <div class="kpi pk"><div class="kl">8 MVA PTRs</div><div class="kv">120</div><div class="ks">Second largest — 35.4%</div></div>
+    <div class="kpi bl"><div class="kl">16 MVA PTRs</div><div class="kv">16</div><div class="ks">Highest rated — 4.7%</div></div>
+    <div class="kpi rd"><div class="kl">15 + 5 MVA PTRs</div><div class="kv">4</div><div class="ks">Special capacity</div></div>
+  </div>
 
   <div class="g2">
-    <!-- Feeder length by division -->
+    <!-- PTR count by capacity -->
     <div class="card">
-      <div class="card-hd">Feeder Length by Division (km)</div>
-      <div id="len-bars"></div>
+      <div class="card-hd">PTR Count by Capacity Rating <span class="badge">339 Total</span></div>
+      <div id="ptr-count-bars"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:.5px solid var(--bd)">
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <span class="ptr-chip ptr-16">16 MVA — 16 PTRs</span>
+          <span class="ptr-chip ptr-12">12.5 MVA — 199 PTRs</span>
+          <span class="ptr-chip ptr-8">8 MVA — 120 PTRs</span>
+          <span class="ptr-chip ptr-5">15 MVA — 2 PTRs</span>
+          <span class="ptr-chip ptr-3">5 MVA — 2 PTRs</span>
+        </div>
+      </div>
+    </div>
+    <!-- PTR capacity contribution (MVA) -->
+    <div class="card">
+      <div class="card-hd">Installed Capacity by Rating (MVA) <span class="badge">3,743.5 MVA Total</span></div>
+      <div id="ptr-mva-bars"></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <!-- PTR count by division -->
+    <div class="card">
+      <div class="card-hd">PTR Count by Division</div>
+      <div id="ptr-div-bars"></div>
     </div>
     <!-- PTR capacity by division -->
     <div class="card">
       <div class="card-hd">PTR Capacity by Division (MVA)</div>
-      <div id="cap-bars"></div>
+      <div id="ptr-cap-bars"></div>
     </div>
   </div>
 
-  <!-- Feeder OH/UG split -->
-  <div class="g2">
-    <div class="card">
-      <div class="card-hd">33kV Feeders — OH vs UG by Division</div>
-      <div id="feed-bars"></div>
+  <!-- PTR capacity breakdown per division table -->
+  <div class="card">
+    <div class="card-hd">PTR Capacity Rating — Division-wise Breakdown</div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th>Division</th>
+        <th>Total PTRs</th><th>Total MVA</th>
+        <th>16 MVA</th><th>15 MVA</th><th>12.5 MVA</th><th>8 MVA</th><th>7.5 MVA</th><th>5 MVA</th><th>3 MVA</th>
+        <th>Avg MVA/PTR</th>
+      </tr></thead>
+      <tbody id="ptr-table-body"></tbody>
+      </table>
     </div>
-    <div class="card">
-      <div class="card-hd">Network Summary</div>
-      <div class="stat-grid" id="summary-grid"></div>
-    </div>
+  </div>
+
+  <!-- Stacked bar — PTR mix per division -->
+  <div class="card" style="margin-top:18px">
+    <div class="card-hd">PTR Capacity Mix per Division (stacked)</div>
+    <div id="ptr-stacked" style="display:flex;flex-direction:column;gap:14px;margin-top:4px"></div>
   </div>
 </div>
 
-<!-- ═══ DIVISION DETAILS ═══ -->
+<!-- ═══ DIVISIONS ═══ -->
 <div class="tab-pane" id="tab-divisions">
   <div id="div-detail-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:18px"></div>
 </div>
 
-<!-- ═══ SECTION DIRECTORY ═══ -->
+<!-- ═══ SECTIONS ═══ -->
 <div class="tab-pane" id="tab-sections">
   <div class="card">
-    <div class="card-hd">Section-wise Abstract <span class="badge" id="sec-badge">18 sections</span></div>
+    <div class="card-hd">Section-wise Abstract <span class="badge">18 sections</span></div>
     <input class="srch" id="sec-srch" placeholder="Search section, sub-division, division..." oninput="filterSections()"/>
     <div class="tbl-wrap scroll-list">
       <table><thead><tr>
         <th>S.No</th><th>Division</th><th>Sub-Division</th><th>Section</th>
-        <th>Indoor SS</th><th>Outdoor SS</th><th>I&amp;O SS</th><th>Total SS</th>
-        <th>PTRs</th><th>PTR Cap (MVA)</th><th>CBs</th>
-        <th>11kV BKs</th><th>33kV BKs</th>
+        <th>Indoor SS</th><th>Outdoor SS</th><th>I&O SS</th><th>Total SS</th>
+        <th>PTRs</th><th>PTR Cap (MVA)</th>
+        <th>12.5MVA</th><th>8MVA</th><th>16MVA</th>
+        <th>CBs</th><th>11kV BKs</th><th>33kV BKs</th>
         <th>OH Feeders</th><th>UG Feeders</th><th>Total Feeders</th>
-        <th>Feed Len OH</th><th>Feed Len UG</th>
+        <th>OH Len (km)</th><th>UG Len (km)</th>
       </tr></thead><tbody id="sec-tbody"></tbody></table>
     </div>
   </div>
 </div>
 
-<!-- ═══ NETWORK ASSETS ═══ -->
+<!-- ═══ NETWORK ═══ -->
 <div class="tab-pane" id="tab-network">
   <div class="kpi-row">
-    <div class="kpi bl"><div class="kl">Link Line Feeders</div><div class="kv">68</div><div class="ks">OH+UG combined</div></div>
+    <div class="kpi bl"><div class="kl">Link Line Feeders</div><div class="kv">68</div><div class="ks">OH + UG</div></div>
     <div class="kpi gn"><div class="kl">Link Line Length</div><div class="kv">145</div><div class="ks">km total</div></div>
-    <div class="kpi am"><div class="kl">Feeder Length OH</div><div class="kv">563</div><div class="ks">km</div></div>
-    <div class="kpi pk"><div class="kl">Feeder Length UG</div><div class="kv">763</div><div class="ks">km</div></div>
-    <div class="kpi bl"><div class="kl">Total Line Length</div><div class="kv">1327</div><div class="ks">km (all feeders)</div></div>
-    <div class="kpi rd"><div class="kl">CBs (all)</div><div class="kv">339</div><div class="ks">11kV+33kV CBs</div></div>
+    <div class="kpi am"><div class="kl">OH Feeder Length</div><div class="kv">563</div><div class="ks">km</div></div>
+    <div class="kpi pk"><div class="kl">UG Feeder Length</div><div class="kv">763</div><div class="ks">km</div></div>
+    <div class="kpi bl"><div class="kl">Total Line Length</div><div class="kv">1,327</div><div class="ks">km all feeders</div></div>
+    <div class="kpi rd"><div class="kl">All Breakers (CBs)</div><div class="kv">339</div><div class="ks">11kV + 33kV</div></div>
   </div>
   <div class="g2">
-    <div class="card">
-      <div class="card-hd">Feeder Length — OH vs UG (km)</div>
-      <div id="net-len-bars"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd">Circuit Breakers by Division</div>
-      <div id="cb-bars"></div>
-    </div>
+    <div class="card"><div class="card-hd">Feeder Length — OH vs UG (km)</div><div id="net-len-bars"></div></div>
+    <div class="card"><div class="card-hd">Breakers by Division</div><div id="cb-bars"></div></div>
   </div>
   <div class="card">
     <div class="card-hd">Complete Network Asset Table</div>
     <div class="tbl-wrap">
       <table><thead><tr>
-        <th>Division</th>
-        <th>33/11kV SS</th><th>PTRs</th><th>PTR Cap (MVA)</th>
+        <th>Division</th><th>33/11kV SS</th><th>PTRs</th><th>PTR Cap (MVA)</th>
         <th>CBs</th><th>11kV BKs</th><th>33kV BKs</th>
         <th>Link Feeders</th><th>OH Feeders</th><th>UG Feeders</th><th>Total Feeders</th>
         <th>Link Len (km)</th><th>OH Len (km)</th><th>UG Len (km)</th><th>Total Len (km)</th>
@@ -247,25 +278,22 @@ tbody td{padding:7px 11px;vertical-align:middle;color:var(--tx2)}
 
 </div>
 <script>
-var DIV  = {"Banjara Hills": {"color": "#0B7A5C", "indoor_ss": 23, "outdoor_ss": 14, "io_ss": 1, "total_ss": 38, "ptrs": 65, "ptr_cap": 1078.5, "cbs": 94, "bk11": 386, "bk33": 140, "link_feeders": 23, "oh_feeders": 11, "ug_feeders": 51, "feed_total": 91, "total_feeders": 114, "link_len": 40.61, "feed_len_oh": 159.65, "feed_len_ug": 189.44, "feed_len": 349.09}, "Secunderabad": {"color": "#9C2780", "indoor_ss": 7, "outdoor_ss": 14, "io_ss": 2, "total_ss": 23, "ptrs": 29, "ptr_cap": 578.5, "cbs": 56, "bk11": 145, "bk33": 50, "link_feeders": 13, "oh_feeders": 3, "ug_feeders": 16, "feed_total": 33, "total_feeders": 46, "link_len": 31.33, "feed_len_oh": 76.81, "feed_len_ug": 94.5, "feed_len": 171.31}, "South": {"color": "#D07A00", "indoor_ss": 17, "outdoor_ss": 26, "io_ss": 0, "total_ss": 43, "ptrs": 65, "ptr_cap": 1188.5, "cbs": 108, "bk11": 391, "bk33": 120, "link_feeders": 18, "oh_feeders": 7, "ug_feeders": 48, "feed_total": 78, "total_feeders": 96, "link_len": 49.9, "feed_len_oh": 249.86, "feed_len_ug": 257.32, "feed_len": 507.18}, "Central": {"color": "#1565C0", "indoor_ss": 17, "outdoor_ss": 11, "io_ss": 4, "total_ss": 32, "ptrs": 40, "ptr_cap": 898.0, "cbs": 81, "bk11": 70, "bk33": 27, "link_feeders": 14, "oh_feeders": 1, "ug_feeders": 36, "feed_total": 54, "total_feeders": 68, "link_len": 23.2, "feed_len_oh": 77.07, "feed_len_ug": 221.92, "feed_len": 298.99}};
-var GRAND= {"indoor_ss": 64, "outdoor_ss": 65, "io_ss": 7, "total_ss": 136, "ptrs": 199, "ptr_cap": 3743.5, "cbs": 339, "bk11": 992, "bk33": 337, "link_feeders": 68, "oh_feeders": 22, "ug_feeders": 151, "feed_total": 256, "total_feeders": 324, "link_len_oh": 43.97, "link_len_ug": 101.07, "link_len": 145.04, "feed_len_oh": 563.39, "feed_len_ug": 763.18, "feed_len": 1326.58};
-var SECT = [{"sno": "1", "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn", "indoor_ss": 7, "outdoor_ss": 3, "io_ss": 0, "total_ss": 10, "ptrs": 15, "ptr_cap": 248.5, "cbs": 23, "bk11": 111, "bk33": 37, "link_feeders": 8, "oh_feeders": 3, "ug_feeders": 10, "feed_total": 20, "total_feeders": 28, "link_len": 7.8, "feed_len_oh": 33.1, "feed_len_ug": 34.0, "feed_len": 67.1}, {"sno": "2", "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL", "indoor_ss": 2, "outdoor_ss": 5, "io_ss": 0, "total_ss": 7, "ptrs": 15, "ptr_cap": 232.5, "cbs": 20, "bk11": 82, "bk33": 35, "link_feeders": 5, "oh_feeders": 6, "ug_feeders": 3, "feed_total": 13, "total_feeders": 18, "link_len": 2.55, "feed_len_oh": 52.4, "feed_len_ug": 9.45, "feed_len": 61.85}, {"sno": "3", "division": "Banjara Hills", "sub_div": "Kalyan Nagar", "section": "Kalyan Nagar", "indoor_ss": 7, "outdoor_ss": 2, "io_ss": 0, "total_ss": 9, "ptrs": 11, "ptr_cap": 225.5, "cbs": 21, "bk11": 71, "bk33": 26, "link_feeders": 6, "oh_feeders": 1, "ug_feeders": 6, "feed_total": 14, "total_feeders": 20, "link_len": 10.16, "feed_len_oh": 27.25, "feed_len_ug": 25.1, "feed_len": 52.35}, {"sno": "4", "division": "Banjara Hills", "sub_div": "Kalyan Nagar", "section": "NIMS", "indoor_ss": 5, "outdoor_ss": 1, "io_ss": 1, "total_ss": 7, "ptrs": 15, "ptr_cap": 203.5, "cbs": 17, "bk11": 59, "bk33": 21, "link_feeders": 1, "oh_feeders": 1, "ug_feeders": 7, "feed_total": 13, "total_feeders": 14, "link_len": 5.5, "feed_len_oh": 32.5, "feed_len_ug": 35.48, "feed_len": 67.98}, {"sno": "5", "division": "Banjara Hills", "sub_div": "Kalyan Nagar", "section": "Madhapur", "indoor_ss": 2, "outdoor_ss": 3, "io_ss": 0, "total_ss": 5, "ptrs": 9, "ptr_cap": 168.5, "cbs": 13, "bk11": 63, "bk33": 21, "link_feeders": 3, "oh_feeders": 0, "ug_feeders": 25, "feed_total": 31, "total_feeders": 34, "link_len": 14.6, "feed_len_oh": 14.4, "feed_len_ug": 85.41, "feed_len": 99.81}, {"sno": "6", "division": "Secunderabad", "sub_div": "Nehru Nagar", "section": "James Street", "indoor_ss": 2, "outdoor_ss": 4, "io_ss": 1, "total_ss": 7, "ptrs": 5, "ptr_cap": 158.5, "cbs": 17, "bk11": 74, "bk33": 25, "link_feeders": 3, "oh_feeders": 0, "ug_feeders": 8, "feed_total": 11, "total_feeders": 14, "link_len": 3.0, "feed_len_oh": 10.3, "feed_len_ug": 33.35, "feed_len": 43.65}, {"sno": "7", "division": "Secunderabad", "sub_div": "Nehru Nagar", "section": "Bowenpally", "indoor_ss": 3, "outdoor_ss": 5, "io_ss": 1, "total_ss": 9, "ptrs": 13, "ptr_cap": 226.5, "cbs": 21, "bk11": 0, "bk33": 0, "link_feeders": 1, "oh_feeders": 2, "ug_feeders": 4, "feed_total": 12, "total_feeders": 13, "link_len": 0.05, "feed_len_oh": 43.01, "feed_len_ug": 19.95, "feed_len": 62.96}, {"sno": "8", "division": "Secunderabad", "sub_div": "Nehru Nagar", "section": "R.P.Nilayam", "indoor_ss": 2, "outdoor_ss": 5, "io_ss": 0, "total_ss": 7, "ptrs": 11, "ptr_cap": 193.5, "cbs": 18, "bk11": 71, "bk33": 25, "link_feeders": 9, "oh_feeders": 1, "ug_feeders": 4, "feed_total": 10, "total_feeders": 19, "link_len": 28.28, "feed_len_oh": 23.5, "feed_len_ug": 41.2, "feed_len": 64.7}, {"sno": "9", "division": "South", "sub_div": "Chilakalguda", "section": "Chilkalguda", "indoor_ss": 2, "outdoor_ss": 5, "io_ss": 0, "total_ss": 7, "ptrs": 8, "ptr_cap": 180.0, "cbs": 16, "bk11": 76, "bk33": 26, "link_feeders": 4, "oh_feeders": 0, "ug_feeders": 9, "feed_total": 10, "total_feeders": 14, "link_len": 14.7, "feed_len_oh": 6.3, "feed_len_ug": 24.2, "feed_len": 30.5}, {"sno": "10", "division": "South", "sub_div": "Chilakalguda", "section": "Industrial Area", "indoor_ss": 2, "outdoor_ss": 6, "io_ss": 0, "total_ss": 8, "ptrs": 9, "ptr_cap": 208.5, "cbs": 21, "bk11": 90, "bk33": 25, "link_feeders": 8, "oh_feeders": 0, "ug_feeders": 9, "feed_total": 16, "total_feeders": 24, "link_len": 17.2, "feed_len_oh": 72.25, "feed_len_ug": 33.11, "feed_len": 105.36}, {"sno": "11", "division": "South", "sub_div": "Malakpet", "section": "Malakpet", "indoor_ss": 4, "outdoor_ss": 3, "io_ss": 0, "total_ss": 7, "ptrs": 10, "ptr_cap": 197.0, "cbs": 18, "bk11": 80, "bk33": 27, "link_feeders": 1, "oh_feeders": 0, "ug_feeders": 8, "feed_total": 14, "total_feeders": 15, "link_len": 3.0, "feed_len_oh": 44.12, "feed_len_ug": 48.6, "feed_len": 92.72}, {"sno": "12", "division": "South", "sub_div": "Malakpet", "section": "Santhosh Nagar", "indoor_ss": 4, "outdoor_ss": 3, "io_ss": 0, "total_ss": 7, "ptrs": 13, "ptr_cap": 178.5, "cbs": 15, "bk11": 67, "bk33": 25, "link_feeders": 1, "oh_feeders": 2, "ug_feeders": 10, "feed_total": 15, "total_feeders": 16, "link_len": 3.0, "feed_len_oh": 20.74, "feed_len_ug": 54.7, "feed_len": 75.44}, {"sno": "13", "division": "South", "sub_div": "Falaknuma", "section": "Salarjung", "indoor_ss": 3, "outdoor_ss": 4, "io_ss": 0, "total_ss": 7, "ptrs": 14, "ptr_cap": 207.0, "cbs": 18, "bk11": 0, "bk33": 0, "link_feeders": 3, "oh_feeders": 2, "ug_feeders": 6, "feed_total": 11, "total_feeders": 14, "link_len": 9.0, "feed_len_oh": 21.0, "feed_len_ug": 40.66, "feed_len": 61.66}, {"sno": "14", "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma", "indoor_ss": 2, "outdoor_ss": 5, "io_ss": 0, "total_ss": 7, "ptrs": 11, "ptr_cap": 217.5, "cbs": 20, "bk11": 78, "bk33": 17, "link_feeders": 1, "oh_feeders": 3, "ug_feeders": 6, "feed_total": 12, "total_feeders": 13, "link_len": 3.0, "feed_len_oh": 85.45, "feed_len_ug": 56.05, "feed_len": 141.5}, {"sno": "15", "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar", "indoor_ss": 3, "outdoor_ss": 4, "io_ss": 0, "total_ss": 7, "ptrs": 11, "ptr_cap": 225.5, "cbs": 18, "bk11": 0, "bk33": 0, "link_feeders": 2, "oh_feeders": 0, "ug_feeders": 8, "feed_total": 13, "total_feeders": 15, "link_len": 3.3, "feed_len_oh": 22.48, "feed_len_ug": 64.11, "feed_len": 86.59}, {"sno": "16", "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital", "indoor_ss": 4, "outdoor_ss": 2, "io_ss": 2, "total_ss": 8, "ptrs": 5, "ptr_cap": 190.5, "cbs": 19, "bk11": 0, "bk33": 0, "link_feeders": 6, "oh_feeders": 1, "ug_feeders": 8, "feed_total": 11, "total_feeders": 17, "link_len": 8.6, "feed_len_oh": 3.6, "feed_len_ug": 35.6, "feed_len": 39.2}, {"sno": "17", "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur", "indoor_ss": 3, "outdoor_ss": 4, "io_ss": 0, "total_ss": 7, "ptrs": 9, "ptr_cap": 176.5, "cbs": 16, "bk11": 70, "bk33": 27, "link_feeders": 3, "oh_feeders": 0, "ug_feeders": 5, "feed_total": 10, "total_feeders": 13, "link_len": 6.5, "feed_len_oh": 39.25, "feed_len_ug": 36.01, "feed_len": 75.26}, {"sno": "18", "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar", "indoor_ss": 7, "outdoor_ss": 1, "io_ss": 2, "total_ss": 10, "ptrs": 15, "ptr_cap": 305.5, "cbs": 28, "bk11": 0, "bk33": 0, "link_feeders": 3, "oh_feeders": 0, "ug_feeders": 15, "feed_total": 20, "total_feeders": 23, "link_len": 4.8, "feed_len_oh": 11.74, "feed_len_ug": 86.2, "feed_len": 97.94}];
-
+var DIV  = {"Banjara Hills": {"color": "#0B7A5C", "indoor_ss": 23, "outdoor_ss": 14, "io_ss": 1, "total_ss": 38, "ptr_16": 5, "ptr_15": 0, "ptr_12": 65, "ptr_8": 22, "ptr_7": 0, "ptr_5": 2, "ptr_3": 0, "ptrs": 94, "ptr_cap": 1078.5, "cbs": 21, "bk11": 386, "bk33": 140, "link_feeders": 23, "oh_feeders": 11, "ug_feeders": 51, "feed_total": 91, "total_feeders": 114, "link_len": 40.61, "feed_len_oh": 159.65, "feed_len_ug": 189.44, "feed_len": 349.09}, "Secunderabad": {"color": "#9C2780", "indoor_ss": 7, "outdoor_ss": 14, "io_ss": 2, "total_ss": 23, "ptr_16": 0, "ptr_15": 0, "ptr_12": 29, "ptr_8": 27, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 56, "ptr_cap": 578.5, "cbs": 24, "bk11": 145, "bk33": 50, "link_feeders": 13, "oh_feeders": 3, "ug_feeders": 16, "feed_total": 33, "total_feeders": 46, "link_len": 31.33, "feed_len_oh": 76.81, "feed_len_ug": 94.5, "feed_len": 171.31}, "South": {"color": "#D07A00", "indoor_ss": 17, "outdoor_ss": 26, "io_ss": 0, "total_ss": 43, "ptr_16": 4, "ptr_15": 0, "ptr_12": 65, "ptr_8": 39, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 108, "ptr_cap": 1188.5, "cbs": 39, "bk11": 391, "bk33": 120, "link_feeders": 18, "oh_feeders": 7, "ug_feeders": 48, "feed_total": 78, "total_feeders": 96, "link_len": 49.9, "feed_len_oh": 249.86, "feed_len_ug": 257.32, "feed_len": 507.18}, "Central": {"color": "#1565C0", "indoor_ss": 17, "outdoor_ss": 11, "io_ss": 4, "total_ss": 32, "ptr_16": 7, "ptr_15": 2, "ptr_12": 40, "ptr_8": 32, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 81, "ptr_cap": 898.0, "cbs": 19, "bk11": 70, "bk33": 27, "link_feeders": 14, "oh_feeders": 1, "ug_feeders": 36, "feed_total": 54, "total_feeders": 68, "link_len": 23.2, "feed_len_oh": 77.07, "feed_len_ug": 221.92, "feed_len": 298.99}};
+var GRAND= {"indoor_ss": 64, "outdoor_ss": 65, "io_ss": 7, "total_ss": 136, "ptr_16": 16, "ptr_15": 2, "ptr_12": 199, "ptr_8": 120, "ptr_7": 0, "ptr_5": 2, "ptr_3": 0, "ptrs": 339, "ptr_cap": 3743.5, "cbs": 103, "bk11": 992, "bk33": 337, "link_feeders": 68, "oh_feeders": 22, "ug_feeders": 151, "feed_total": 256, "total_feeders": 324, "link_len_oh": 43.97, "link_len_ug": 101.07, "link_len": 145.04, "feed_len_oh": 563.39, "feed_len_ug": 763.18, "feed_len": 1326.58};
+var SECT = [{"sno": "1", "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn", "indoor_ss": 7, "outdoor_ss": 3, "io_ss": 0, "total_ss": 10, "ptr_16": 0, "ptr_15": 0, "ptr_12": 15, "ptr_8": 7, "ptr_7": 0, "ptr_5": 1, "ptr_3": 0, "ptrs": 23, "ptr_cap": 248.5, "cbs": 3, "bk11": 111, "bk33": 37, "link_feeders": 8, "oh_feeders": 3, "ug_feeders": 10, "feed_total": 20, "total_feeders": 28, "link_len": 7.8, "feed_len_oh": 33.1, "feed_len_ug": 34.0}, {"sno": "2", "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL", "indoor_ss": 2, "outdoor_ss": 5, "io_ss": 0, "total_ss": 7, "ptr_16": 1, "ptr_15": 0, "ptr_12": 15, "ptr_8": 3, "ptr_7": 0, "ptr_5": 1, "ptr_3": 0, "ptrs": 20, "ptr_cap": 232.5, "cbs": 8, "bk11": 82, "bk33": 35, "link_feeders": 5, "oh_feeders": 6, "ug_feeders": 3, "feed_total": 13, "total_feeders": 18, "link_len": 2.55, "feed_len_oh": 52.4, "feed_len_ug": 9.45}, {"sno": "3", "division": "Banjara Hills", "sub_div": "Kalyan Nagar", "section": "Kalyan Nagar", "indoor_ss": 7, "outdoor_ss": 2, "io_ss": 0, "total_ss": 9, "ptr_16": 1, "ptr_15": 0, "ptr_12": 11, "ptr_8": 9, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 21, "ptr_cap": 225.5, "cbs": 5, "bk11": 71, "bk33": 26, "link_feeders": 6, "oh_feeders": 1, "ug_feeders": 6, "feed_total": 14, "total_feeders": 20, "link_len": 10.16, "feed_len_oh": 27.25, "feed_len_ug": 25.1}, {"sno": "4", "division": "Banjara Hills", "sub_div": "Kalyan Nagar", "section": "NIMS", "indoor_ss": 5, "outdoor_ss": 1, "io_ss": 1, "total_ss": 7, "ptr_16": 0, "ptr_15": 0, "ptr_12": 15, "ptr_8": 2, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 17, "ptr_cap": 203.5, "cbs": 1, "bk11": 59, "bk33": 21, "link_feeders": 1, "oh_feeders": 1, "ug_feeders": 7, "feed_total": 13, "total_feeders": 14, "link_len": 5.5, "feed_len_oh": 32.5, "feed_len_ug": 35.48}, {"sno": "5", "division": "Banjara Hills", "sub_div": "Kalyan Nagar", "section": "Madhapur", "indoor_ss": 2, "outdoor_ss": 3, "io_ss": 0, "total_ss": 5, "ptr_16": 3, "ptr_15": 0, "ptr_12": 9, "ptr_8": 1, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 13, "ptr_cap": 168.5, "cbs": 4, "bk11": 63, "bk33": 21, "link_feeders": 3, "oh_feeders": 0, "ug_feeders": 25, "feed_total": 31, "total_feeders": 34, "link_len": 14.6, "feed_len_oh": 14.4, "feed_len_ug": 85.41}, {"sno": "6", "division": "Secunderabad", "sub_div": "Nehru Nagar", "section": "James Street", "indoor_ss": 2, "outdoor_ss": 4, "io_ss": 1, "total_ss": 7, "ptr_16": 0, "ptr_15": 0, "ptr_12": 5, "ptr_8": 12, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 17, "ptr_cap": 158.5, "cbs": 5, "bk11": 74, "bk33": 25, "link_feeders": 3, "oh_feeders": 0, "ug_feeders": 8, "feed_total": 11, "total_feeders": 14, "link_len": 3.0, "feed_len_oh": 10.3, "feed_len_ug": 33.35}, {"sno": "7", "division": "Secunderabad", "sub_div": "Nehru Nagar", "section": "Bowenpally", "indoor_ss": 3, "outdoor_ss": 5, "io_ss": 1, "total_ss": 9, "ptr_16": 0, "ptr_15": 0, "ptr_12": 13, "ptr_8": 8, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 21, "ptr_cap": 226.5, "cbs": 8, "bk11": 0, "bk33": 0, "link_feeders": 1, "oh_feeders": 2, "ug_feeders": 4, "feed_total": 12, "total_feeders": 13, "link_len": 0.05, "feed_len_oh": 43.01, "feed_len_ug": 19.95}, {"sno": "8", "division": "Secunderabad", "sub_div": "Nehru Nagar", "section": "R.P.Nilayam", "indoor_ss": 2, "outdoor_ss": 5, "io_ss": 0, "total_ss": 7, "ptr_16": 0, "ptr_15": 0, "ptr_12": 11, "ptr_8": 7, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 18, "ptr_cap": 193.5, "cbs": 11, "bk11": 71, "bk33": 25, "link_feeders": 9, "oh_feeders": 1, "ug_feeders": 4, "feed_total": 10, "total_feeders": 19, "link_len": 28.28, "feed_len_oh": 23.5, "feed_len_ug": 41.2}, {"sno": "9", "division": "South", "sub_div": "Chilakalguda", "section": "Chilkalguda", "indoor_ss": 2, "outdoor_ss": 5, "io_ss": 0, "total_ss": 7, "ptr_16": 2, "ptr_15": 0, "ptr_12": 8, "ptr_8": 6, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 16, "ptr_cap": 180.0, "cbs": 6, "bk11": 76, "bk33": 26, "link_feeders": 4, "oh_feeders": 0, "ug_feeders": 9, "feed_total": 10, "total_feeders": 14, "link_len": 14.7, "feed_len_oh": 6.3, "feed_len_ug": 24.2}, {"sno": "10", "division": "South", "sub_div": "Chilakalguda", "section": "Industrial Area", "indoor_ss": 2, "outdoor_ss": 6, "io_ss": 0, "total_ss": 8, "ptr_16": 0, "ptr_15": 0, "ptr_12": 9, "ptr_8": 12, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 21, "ptr_cap": 208.5, "cbs": 7, "bk11": 90, "bk33": 25, "link_feeders": 8, "oh_feeders": 0, "ug_feeders": 9, "feed_total": 16, "total_feeders": 24, "link_len": 17.2, "feed_len_oh": 72.25, "feed_len_ug": 33.11}, {"sno": "11", "division": "South", "sub_div": "Malakpet", "section": "Malakpet", "indoor_ss": 4, "outdoor_ss": 3, "io_ss": 0, "total_ss": 7, "ptr_16": 1, "ptr_15": 0, "ptr_12": 10, "ptr_8": 7, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 18, "ptr_cap": 197.0, "cbs": 7, "bk11": 80, "bk33": 27, "link_feeders": 1, "oh_feeders": 0, "ug_feeders": 8, "feed_total": 14, "total_feeders": 15, "link_len": 3.0, "feed_len_oh": 44.12, "feed_len_ug": 48.6}, {"sno": "12", "division": "South", "sub_div": "Malakpet", "section": "Santhosh Nagar", "indoor_ss": 4, "outdoor_ss": 3, "io_ss": 0, "total_ss": 7, "ptr_16": 0, "ptr_15": 0, "ptr_12": 13, "ptr_8": 2, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 15, "ptr_cap": 178.5, "cbs": 7, "bk11": 67, "bk33": 25, "link_feeders": 1, "oh_feeders": 2, "ug_feeders": 10, "feed_total": 15, "total_feeders": 16, "link_len": 3.0, "feed_len_oh": 20.74, "feed_len_ug": 54.7}, {"sno": "13", "division": "South", "sub_div": "Falaknuma", "section": "Salarjung", "indoor_ss": 3, "outdoor_ss": 4, "io_ss": 0, "total_ss": 7, "ptr_16": 0, "ptr_15": 0, "ptr_12": 14, "ptr_8": 4, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 18, "ptr_cap": 207.0, "cbs": 5, "bk11": 0, "bk33": 0, "link_feeders": 3, "oh_feeders": 2, "ug_feeders": 6, "feed_total": 11, "total_feeders": 14, "link_len": 9.0, "feed_len_oh": 21.0, "feed_len_ug": 40.66}, {"sno": "14", "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma", "indoor_ss": 2, "outdoor_ss": 5, "io_ss": 0, "total_ss": 7, "ptr_16": 1, "ptr_15": 0, "ptr_12": 11, "ptr_8": 8, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 20, "ptr_cap": 217.5, "cbs": 7, "bk11": 78, "bk33": 17, "link_feeders": 1, "oh_feeders": 3, "ug_feeders": 6, "feed_total": 12, "total_feeders": 13, "link_len": 3.0, "feed_len_oh": 85.45, "feed_len_ug": 56.05}, {"sno": "15", "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar", "indoor_ss": 3, "outdoor_ss": 4, "io_ss": 0, "total_ss": 7, "ptr_16": 4, "ptr_15": 0, "ptr_12": 11, "ptr_8": 3, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 18, "ptr_cap": 225.5, "cbs": 4, "bk11": 0, "bk33": 0, "link_feeders": 2, "oh_feeders": 0, "ug_feeders": 8, "feed_total": 13, "total_feeders": 15, "link_len": 3.3, "feed_len_oh": 22.48, "feed_len_ug": 64.11}, {"sno": "16", "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital", "indoor_ss": 4, "outdoor_ss": 2, "io_ss": 2, "total_ss": 8, "ptr_16": 2, "ptr_15": 0, "ptr_12": 5, "ptr_8": 12, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 19, "ptr_cap": 190.5, "cbs": 4, "bk11": 0, "bk33": 0, "link_feeders": 6, "oh_feeders": 1, "ug_feeders": 8, "feed_total": 11, "total_feeders": 17, "link_len": 8.6, "feed_len_oh": 3.6, "feed_len_ug": 35.6}, {"sno": "17", "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur", "indoor_ss": 3, "outdoor_ss": 4, "io_ss": 0, "total_ss": 7, "ptr_16": 1, "ptr_15": 0, "ptr_12": 9, "ptr_8": 6, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 16, "ptr_cap": 176.5, "cbs": 4, "bk11": 70, "bk33": 27, "link_feeders": 3, "oh_feeders": 0, "ug_feeders": 5, "feed_total": 10, "total_feeders": 13, "link_len": 6.5, "feed_len_oh": 39.25, "feed_len_ug": 36.01}, {"sno": "18", "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar", "indoor_ss": 7, "outdoor_ss": 1, "io_ss": 2, "total_ss": 10, "ptr_16": 0, "ptr_15": 2, "ptr_12": 15, "ptr_8": 11, "ptr_7": 0, "ptr_5": 0, "ptr_3": 0, "ptrs": 28, "ptr_cap": 305.5, "cbs": 7, "bk11": 0, "bk33": 0, "link_feeders": 3, "oh_feeders": 0, "ug_feeders": 15, "feed_total": 20, "total_feeders": 23, "link_len": 4.8, "feed_len_oh": 11.74, "feed_len_ug": 86.2}];
 var DIV_ORDER = ['Banjara Hills','Secunderabad','South','Central'];
+var TAG_MAP   = {'Banjara Hills':'tag-gn','Secunderabad':'tag-pk','South':'tag-am','Central':'tag-bl'};
 
-// ── Tab switching ────────────────────────────────────────────────────────
 function showTab(id){
   document.querySelectorAll('.tab-pane').forEach(function(t){t.classList.remove('active');});
   document.querySelectorAll('.nav-tab').forEach(function(b){b.classList.remove('active');});
   document.getElementById('tab-'+id).classList.add('active');
-  var tabs=['overview','divisions','sections','network'];
+  var tabs=['overview','ptr','divisions','sections','network'];
   document.querySelectorAll('.nav-tab')[tabs.indexOf(id)].classList.add('active');
 }
 
-// ── Bar chart helper ─────────────────────────────────────────────────────
-function makeBars(cid, data, colorFn, fmt){
+function makeBars(cid, entries, colorFn, fmtFn){
   var c=document.getElementById(cid); if(!c)return; c.innerHTML='';
-  var entries=Object.entries(data).sort(function(a,b){return b[1]-a[1];});
   var mx=Math.max.apply(null,entries.map(function(e){return e[1];}));
   entries.forEach(function(e){
     var row=document.createElement('div'); row.className='bar-row';
@@ -275,50 +303,24 @@ function makeBars(cid, data, colorFn, fmt){
     fill.style.background=typeof colorFn==='function'?colorFn(e[0]):colorFn;
     trk.appendChild(fill);
     var val=document.createElement('div'); val.className='bar-val';
-    val.textContent=fmt?fmt(e[1]):e[1];
+    val.textContent=fmtFn?fmtFn(e[1]):e[1];
     row.appendChild(lbl); row.appendChild(trk); row.appendChild(val); c.appendChild(row);
     setTimeout(function(){fill.style.width=Math.round(e[1]/mx*100)+'%';},80);
   });
 }
 
-// ── Donut animation ──────────────────────────────────────────────────────
 function animateDonut(){
-  var total=GRAND.total_ss, circ=Math.PI*2*48;
-  var segs=[
-    {id:'d-in', v:GRAND.indoor_ss},
-    {id:'d-out',v:GRAND.outdoor_ss},
-    {id:'d-io', v:GRAND.io_ss}
-  ];
+  var total=136,circ=Math.PI*2*48;
+  var segs=[{id:'d-in',v:64},{id:'d-out',v:65},{id:'d-io',v:7}];
   var off=0;
   segs.forEach(function(s){
-    var arc=circ*s.v/total, el=document.getElementById(s.id); if(!el)return;
+    var arc=circ*s.v/total,el=document.getElementById(s.id); if(!el)return;
     el.setAttribute('stroke-dashoffset',-off);
     setTimeout(function(){el.setAttribute('stroke-dasharray',arc+' '+(circ-arc));},100);
     off+=arc;
   });
-  var dt=document.getElementById('d-total'); if(dt)dt.textContent=total;
-  var di=document.getElementById('dl-in'); if(di)di.textContent=GRAND.indoor_ss;
-  var dout=document.getElementById('dl-out'); if(dout)dout.textContent=GRAND.outdoor_ss;
-  var dio=document.getElementById('dl-io'); if(dio)dio.textContent=GRAND.io_ss;
 }
 
-// ── KPI updates ──────────────────────────────────────────────────────────
-function updateKPIs(){
-  document.getElementById('k-ss').textContent=GRAND.total_ss;
-  document.getElementById('k-ptrs').textContent=GRAND.ptrs;
-  document.getElementById('k-cap').textContent=Math.round(GRAND.ptr_cap);
-  document.getElementById('k-feed').textContent=GRAND.total_feeders;
-  document.getElementById('k-len').textContent=Math.round(GRAND.feed_len);
-  document.getElementById('k-cbs').textContent=GRAND.cbs;
-  document.getElementById('k-indoor').textContent=GRAND.indoor_ss;
-  document.getElementById('k-outdoor').textContent=GRAND.outdoor_ss;
-  document.getElementById('k-io').textContent=GRAND.io_ss;
-  document.getElementById('k-bk11').textContent=GRAND.bk11;
-  document.getElementById('k-bk33').textContent=GRAND.bk33;
-  document.getElementById('k-link').textContent=GRAND.link_feeders;
-}
-
-// ── Division cards ───────────────────────────────────────────────────────
 function buildDivCards(){
   var c=document.getElementById('div-cards'); if(!c)return; c.innerHTML='';
   DIV_ORDER.forEach(function(name){
@@ -327,106 +329,202 @@ function buildDivCards(){
     card.innerHTML='<div class="div-name">'+name+'</div>'+
       '<div class="div-stat"><span class="k">33/11kV SS</span><span class="v">'+d.total_ss+'</span></div>'+
       '<div class="div-stat"><span class="k">PTRs</span><span class="v">'+d.ptrs+'</span></div>'+
+      '<div class="div-stat"><span class="k">PTR Capacity</span><span class="v">'+d.ptr_cap+' MVA</span></div>'+
       '<div class="div-stat"><span class="k">Total Feeders</span><span class="v">'+d.total_feeders+'</span></div>'+
       '<div class="div-stat"><span class="k">Feed Length</span><span class="v">'+d.feed_len+' km</span></div>'+
       '<div class="div-bar">'+
-        '<div style="flex:'+d.oh_feeders+';background:#C0392B;height:100%" title="OH:'+d.oh_feeders+'"></div>'+
-        '<div style="flex:'+d.ug_feeders+';background:#1565C0;height:100%" title="UG:'+d.ug_feeders+'"></div>'+
+        '<div style="flex:'+d.oh_feeders+';background:#C0392B;height:100%"></div>'+
+        '<div style="flex:'+d.ug_feeders+';background:#1565C0;height:100%"></div>'+
       '</div>';
     c.appendChild(card);
   });
 }
 
-// ── Summary grid ─────────────────────────────────────────────────────────
-function buildSummaryGrid(){
-  var c=document.getElementById('summary-grid'); if(!c)return; c.innerHTML='';
-  var items=[
-    {l:'OH Feeders',v:GRAND.oh_feeders,u:''},{l:'UG Feeders',v:GRAND.ug_feeders,u:''},
-    {l:'Link Feeders',v:GRAND.link_feeders,u:''},
-    {l:'Link Length',v:GRAND.link_len,u:'km'},{l:'OH Length',v:GRAND.feed_len_oh,u:'km'},{l:'UG Length',v:GRAND.feed_len_ug,u:'km'},
-    {l:'Indoor SS',v:GRAND.indoor_ss,u:''},{l:'Outdoor SS',v:GRAND.outdoor_ss,u:''},{l:'I&O SS',v:GRAND.io_ss,u:''},
-  ];
-  items.forEach(function(it){
-    var div=document.createElement('div'); div.className='sg-item';
-    div.innerHTML='<div class="sg-lbl">'+it.l+'</div><div class="sg-val">'+it.v+'<span class="sg-unit"> '+it.u+'</span></div>';
-    c.appendChild(div);
+function buildFeedSplit(){
+  var c=document.getElementById('feed-split'); if(!c)return; c.innerHTML='';
+  DIV_ORDER.forEach(function(name){
+    var d=DIV[name];
+    var row=document.createElement('div'); row.style.marginBottom='12px';
+    row.innerHTML='<div style="font-size:11px;color:var(--tx2);margin-bottom:4px;font-weight:500">'+name+'</div>'+
+      '<div style="display:flex;height:14px;border-radius:4px;overflow:hidden;margin-bottom:3px">'+
+        '<div style="flex:'+d.oh_feeders+';background:#C0392B"></div>'+
+        '<div style="flex:'+d.ug_feeders+';background:#1565C0"></div>'+
+      '</div>'+
+      '<div style="display:flex;gap:12px;font-size:10px">'+
+        '<span style="color:#C0392B;font-family:var(--m)">OH: '+d.oh_feeders+'</span>'+
+        '<span style="color:#1565C0;font-family:var(--m)">UG: '+d.ug_feeders+'</span>'+
+        '<span style="color:var(--tx3);font-family:var(--m)">Total: '+d.feed_total+'</span>'+
+      '</div>';
+    c.appendChild(row);
   });
 }
 
-// ── Division detail cards (Divisions tab) ─────────────────────────────────
+function buildPTRAnalytics(){
+  // Count bars
+  var cntEntries=[
+    ['12.5 MVA',GRAND.ptr_12],['8 MVA',GRAND.ptr_8],['16 MVA',GRAND.ptr_16],['15 MVA',GRAND.ptr_15],['5 MVA',GRAND.ptr_5]
+  ].filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];});
+  var cColors={'12.5 MVA':'#0B7A5C','8 MVA':'#D07A00','16 MVA':'#1565C0','15 MVA':'#9C2780','5 MVA':'#C0392B'};
+  makeBars('ptr-count-bars',cntEntries,function(n){return cColors[n]||'#1565C0';});
+
+  // MVA contribution bars
+  var mvaEntries=[
+    ['12.5 MVA × 199', 199*12.5],['8 MVA × 120', 120*8],['16 MVA × 16', 16*16],['15 MVA × 2', 2*15],['5 MVA × 2', 2*5]
+  ].filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];});
+  makeBars('ptr-mva-bars',mvaEntries,function(n){
+    if(n.indexOf('12.5')>=0)return '#0B7A5C';
+    if(n.indexOf('8 M')>=0) return '#D07A00';
+    if(n.indexOf('16')>=0)  return '#1565C0';
+    return '#9C2780';
+  },function(v){return v.toFixed(0)+' MVA';});
+
+  // Division PTR count
+  var divCnt=DIV_ORDER.map(function(n){return [n,DIV[n].ptrs];}).sort(function(a,b){return b[1]-a[1];});
+  makeBars('ptr-div-bars',divCnt,function(n){return DIV[n].color;});
+
+  // Division PTR capacity
+  var divCap=DIV_ORDER.map(function(n){return [n,DIV[n].ptr_cap];}).sort(function(a,b){return b[1]-a[1];});
+  makeBars('ptr-cap-bars',divCap,function(n){return DIV[n].color;},function(v){return v+' MVA';});
+
+  // PTR table
+  var tb=document.getElementById('ptr-table-body'); if(!tb)return; tb.innerHTML='';
+  DIV_ORDER.forEach(function(name){
+    var d=DIV[name];
+    var avg=d.ptrs>0?Math.round(d.ptr_cap/d.ptrs*10)/10:0;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td><span class="tag '+(TAG_MAP[name]||'tag-bl')+'">'+name+'</span></td>'+
+      '<td style="text-align:center;font-family:var(--m);font-weight:700">'+d.ptrs+'</td>'+
+      '<td style="text-align:center;font-family:var(--m);color:var(--am)">'+d.ptr_cap+' MVA</td>'+
+      '<td style="text-align:center"><span class="ptr-chip ptr-16">'+d.ptr_16+'</span></td>'+
+      '<td style="text-align:center"><span class="ptr-chip ptr-5">'+d.ptr_15+'</span></td>'+
+      '<td style="text-align:center"><span class="ptr-chip ptr-12">'+d.ptr_12+'</span></td>'+
+      '<td style="text-align:center"><span class="ptr-chip ptr-8">'+d.ptr_8+'</span></td>'+
+      '<td style="text-align:center;color:var(--tx3);font-family:var(--m)">'+d.ptr_7+'</td>'+
+      '<td style="text-align:center;color:var(--tx3);font-family:var(--m)">'+d.ptr_5+'</td>'+
+      '<td style="text-align:center;color:var(--tx3);font-family:var(--m)">'+d.ptr_3+'</td>'+
+      '<td style="text-align:center;font-family:var(--m);color:var(--bl)">'+avg+' MVA</td>';
+    tb.appendChild(tr);
+  });
+  // Grand total row
+  var avgG=Math.round(GRAND.ptr_cap/GRAND.ptrs*10)/10;
+  var trg=document.createElement('tr'); trg.style.cssText='background:var(--sf2);font-weight:700;border-top:1px solid var(--bd2)';
+  trg.innerHTML='<td style="font-weight:700">SCADA TOTAL</td>'+
+    '<td style="text-align:center;font-family:var(--m);color:var(--bl)">'+GRAND.ptrs+'</td>'+
+    '<td style="text-align:center;font-family:var(--m);color:var(--am)">'+GRAND.ptr_cap+' MVA</td>'+
+    '<td style="text-align:center;font-family:var(--m);color:#1565C0">'+GRAND.ptr_16+'</td>'+
+    '<td style="text-align:center;font-family:var(--m);color:#9C2780">'+GRAND.ptr_15+'</td>'+
+    '<td style="text-align:center;font-family:var(--m);color:#0B7A5C">'+GRAND.ptr_12+'</td>'+
+    '<td style="text-align:center;font-family:var(--m);color:#D07A00">'+GRAND.ptr_8+'</td>'+
+    '<td style="text-align:center;font-family:var(--m);color:var(--tx3)">'+GRAND.ptr_7+'</td>'+
+    '<td style="text-align:center;font-family:var(--m);color:var(--tx3)">'+GRAND.ptr_5+'</td>'+
+    '<td style="text-align:center;font-family:var(--m);color:var(--tx3)">'+GRAND.ptr_3+'</td>'+
+    '<td style="text-align:center;font-family:var(--m);color:var(--bl)">'+avgG+' MVA</td>';
+  tb.appendChild(trg);
+
+  // Stacked bars
+  var sc=document.getElementById('ptr-stacked'); if(!sc)return; sc.innerHTML='';
+  var caps=['ptr_16','ptr_15','ptr_12','ptr_8','ptr_5','ptr_3'];
+  var capColors={'ptr_16':'#1565C0','ptr_15':'#9C2780','ptr_12':'#0B7A5C','ptr_8':'#D07A00','ptr_5':'#C0392B','ptr_3':'#7A95AD'};
+  var capLabels={'ptr_16':'16MVA','ptr_15':'15MVA','ptr_12':'12.5MVA','ptr_8':'8MVA','ptr_5':'5MVA','ptr_3':'3MVA'};
+  DIV_ORDER.forEach(function(name){
+    var d=DIV[name];
+    var total=d.ptrs; if(!total)return;
+    var row=document.createElement('div'); row.style.marginBottom='4px';
+    var bar='<div style="display:flex;align-items:center;gap:10px">'+
+      '<div style="width:130px;font-size:11px;color:var(--tx2);font-weight:500;flex-shrink:0">'+name+'</div>'+
+      '<div style="flex:1;display:flex;height:20px;border-radius:4px;overflow:hidden">';
+    caps.forEach(function(cap){
+      var v=d[cap]; if(!v)return;
+      var pct=Math.round(v/total*100);
+      bar+='<div style="flex:'+v+';background:'+capColors[cap]+'" title="'+capLabels[cap]+': '+v+' PTRs"></div>';
+    });
+    bar+='</div><div style="font-family:var(--m);font-size:11px;font-weight:700;color:var(--tx);width:30px;text-align:right;flex-shrink:0">'+total+'</div></div>';
+    // Legend row
+    bar+='<div style="display:flex;gap:10px;margin-top:3px;margin-left:140px;flex-wrap:wrap">';
+    caps.forEach(function(cap){
+      var v=d[cap]; if(!v)return;
+      bar+='<span style="font-size:9px;font-family:var(--m);color:'+capColors[cap]+'">'+capLabels[cap]+':'+v+'</span>';
+    });
+    bar+='</div>';
+    row.innerHTML=bar;
+    sc.appendChild(row);
+  });
+}
+
 function buildDivDetails(){
   var c=document.getElementById('div-detail-grid'); if(!c)return; c.innerHTML='';
   DIV_ORDER.forEach(function(name){
-    var d=DIV[name]; if(!d)return;
+    var d=DIV[name];
+    var avg=d.ptrs>0?Math.round(d.ptr_cap/d.ptrs*10)/10:0;
     var wrap=document.createElement('div'); wrap.className='card';
-    wrap.innerHTML='<div class="card-hd" style="color:'+d.color+';border-bottom-color:'+d.color+'22">'+name.toUpperCase()+' DIVISION</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">'+
-        '<div class="kpi bl" style="padding:10px 12px"><div class="kl">SS</div><div class="kv" style="font-size:20px">'+d.total_ss+'</div></div>'+
-        '<div class="kpi gn" style="padding:10px 12px"><div class="kl">PTRs</div><div class="kv" style="font-size:20px">'+d.ptrs+'</div></div>'+
-        '<div class="kpi am" style="padding:10px 12px"><div class="kl">PTR Cap</div><div class="kv" style="font-size:20px">'+d.ptr_cap+'<span style="font-size:11px"> MVA</span></div></div>'+
-        '<div class="kpi pk" style="padding:10px 12px"><div class="kl">Feeders</div><div class="kv" style="font-size:20px">'+d.total_feeders+'</div></div>'+
-        '<div class="kpi bl" style="padding:10px 12px"><div class="kl">Feed Len</div><div class="kv" style="font-size:20px">'+d.feed_len+'<span style="font-size:11px"> km</span></div></div>'+
-        '<div class="kpi rd" style="padding:10px 12px"><div class="kl">CBs</div><div class="kv" style="font-size:20px">'+d.cbs+'</div></div>'+
+    wrap.innerHTML='<div class="card-hd" style="color:'+d.color+';border-bottom-color:'+d.color+'33">'+name.toUpperCase()+' DIVISION</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">'+
+        ['total_ss:SS:bl','ptrs:PTRs:gn','ptr_cap:MVA:am','total_feeders:Feeders:pk','feed_len:Feed Len km:bl','cbs:CBs:rd'].map(function(spec){
+          var p=spec.split(':'); var val=p[0]==='ptr_cap'?d.ptr_cap+' MVA':p[0]==='feed_len'?d.feed_len+' km':d[p[0]];
+          return '<div class="kpi '+p[2]+'" style="padding:10px 12px"><div class="kl">'+p[1]+'</div><div class="kv" style="font-size:18px">'+val+'</div></div>';
+        }).join('')+
+      '</div>'+
+      '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);margin-bottom:8px">PTR Breakdown</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+
+        (d.ptr_16?'<span class="ptr-chip ptr-16">16MVA × '+d.ptr_16+'</span>':'')+
+        (d.ptr_15?'<span class="ptr-chip ptr-5">15MVA × '+d.ptr_15+'</span>':'')+
+        (d.ptr_12?'<span class="ptr-chip ptr-12">12.5MVA × '+d.ptr_12+'</span>':'')+
+        (d.ptr_8 ?'<span class="ptr-chip ptr-8">8MVA × '+d.ptr_8+'</span>':'')+
+        (d.ptr_5 ?'<span class="ptr-chip ptr-3">5MVA × '+d.ptr_5+'</span>':'')+
+        '<span style="font-size:10px;color:var(--tx3);font-family:var(--m);align-self:center;margin-left:4px">Avg '+avg+' MVA/PTR</span>'+
       '</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">'+
-        '<div style="background:var(--sf2);padding:8px 10px;border-radius:7px;border:.5px solid var(--bd)"><span style="color:var(--tx3)">Indoor SS</span><span style="float:right;font-family:var(--m);font-weight:600">'+d.indoor_ss+'</span></div>'+
-        '<div style="background:var(--sf2);padding:8px 10px;border-radius:7px;border:.5px solid var(--bd)"><span style="color:var(--tx3)">Outdoor SS</span><span style="float:right;font-family:var(--m);font-weight:600">'+d.outdoor_ss+'</span></div>'+
-        '<div style="background:var(--sf2);padding:8px 10px;border-radius:7px;border:.5px solid var(--bd)"><span style="color:var(--tx3)">OH Feeders</span><span style="float:right;font-family:var(--m);font-weight:600;color:#C0392B">'+d.oh_feeders+'</span></div>'+
-        '<div style="background:var(--sf2);padding:8px 10px;border-radius:7px;border:.5px solid var(--bd)"><span style="color:var(--tx3)">UG Feeders</span><span style="float:right;font-family:var(--m);font-weight:600;color:#1565C0">'+d.ug_feeders+'</span></div>'+
-        '<div style="background:var(--sf2);padding:8px 10px;border-radius:7px;border:.5px solid var(--bd)"><span style="color:var(--tx3)">11kV Breakers</span><span style="float:right;font-family:var(--m);font-weight:600">'+d.bk11+'</span></div>'+
-        '<div style="background:var(--sf2);padding:8px 10px;border-radius:7px;border:.5px solid var(--bd)"><span style="color:var(--tx3)">33kV Breakers</span><span style="float:right;font-family:var(--m);font-weight:600">'+d.bk33+'</span></div>'+
-        '<div style="background:var(--sf2);padding:8px 10px;border-radius:7px;border:.5px solid var(--bd)"><span style="color:var(--tx3)">Link Feeders</span><span style="float:right;font-family:var(--m);font-weight:600">'+d.link_feeders+'</span></div>'+
-        '<div style="background:var(--sf2);padding:8px 10px;border-radius:7px;border:.5px solid var(--bd)"><span style="color:var(--tx3)">OH Length</span><span style="float:right;font-family:var(--m);font-weight:600">'+d.feed_len_oh+' km</span></div>'+
+        [['Indoor SS',d.indoor_ss],['Outdoor SS',d.outdoor_ss],['11kV BKs',d.bk11],['33kV BKs',d.bk33],
+         ['OH Feeders',d.oh_feeders],['UG Feeders',d.ug_feeders]].map(function(it){
+          return '<div style="background:var(--sf2);padding:7px 10px;border-radius:7px;border:.5px solid var(--bd)">'+
+            '<span style="color:var(--tx3)">'+it[0]+'</span>'+
+            '<span style="float:right;font-family:var(--m);font-weight:600">'+it[1]+'</span></div>';
+        }).join('')+
       '</div>';
     c.appendChild(wrap);
   });
 }
 
-// ── Section table ─────────────────────────────────────────────────────────
 function buildSectionTable(data){
   var tb=document.getElementById('sec-tbody'); if(!tb)return; tb.innerHTML='';
-  var tagMap={'Banjara Hills':'tag-gn','Secunderabad':'tag-pk','South':'tag-am','Central':'tag-bl'};
   data.forEach(function(s){
     var tr=document.createElement('tr');
-    var tc=tagMap[s.division]||'tag-bl';
     tr.innerHTML='<td style="font-family:var(--m);color:var(--tx3)">'+s.sno+'</td>'+
-      '<td><span class="tag '+tc+'">'+s.division+'</span></td>'+
+      '<td><span class="tag '+(TAG_MAP[s.division]||'tag-bl')+'">'+s.division+'</span></td>'+
       '<td style="font-weight:500">'+s.sub_div+'</td>'+
       '<td style="font-weight:600;color:var(--tx)">'+s.section+'</td>'+
       '<td style="text-align:center;font-family:var(--m)">'+s.indoor_ss+'</td>'+
       '<td style="text-align:center;font-family:var(--m)">'+s.outdoor_ss+'</td>'+
       '<td style="text-align:center;font-family:var(--m)">'+s.io_ss+'</td>'+
       '<td style="text-align:center"><span class="chip" style="background:var(--blb);color:var(--blf)">'+s.total_ss+'</span></td>'+
-      '<td style="text-align:center;font-family:var(--m)">'+s.ptrs+'</td>'+
+      '<td style="text-align:center;font-family:var(--m);font-weight:700">'+s.ptrs+'</td>'+
       '<td style="text-align:center;font-family:var(--m);color:var(--am)">'+s.ptr_cap+'</td>'+
+      '<td style="text-align:center"><span class="ptr-chip ptr-12">'+s.ptr_12+'</span></td>'+
+      '<td style="text-align:center"><span class="ptr-chip ptr-8">'+s.ptr_8+'</span></td>'+
+      '<td style="text-align:center"><span class="ptr-chip ptr-16">'+s.ptr_16+'</span></td>'+
       '<td style="text-align:center;font-family:var(--m)">'+s.cbs+'</td>'+
       '<td style="text-align:center;font-family:var(--m)">'+s.bk11+'</td>'+
       '<td style="text-align:center;font-family:var(--m)">'+s.bk33+'</td>'+
       '<td style="text-align:center;font-family:var(--m);color:#C0392B;font-weight:600">'+s.oh_feeders+'</td>'+
       '<td style="text-align:center;font-family:var(--m);color:#1565C0;font-weight:600">'+s.ug_feeders+'</td>'+
       '<td style="text-align:center"><span class="chip" style="background:var(--gnb);color:var(--gnf)">'+s.total_feeders+'</span></td>'+
-      '<td style="font-family:var(--m);text-align:right">'+s.feed_len_oh+' km</td>'+
-      '<td style="font-family:var(--m);text-align:right">'+s.feed_len_ug+' km</td>';
+      '<td style="font-family:var(--m);text-align:right">'+s.feed_len_oh+'</td>'+
+      '<td style="font-family:var(--m);text-align:right">'+s.feed_len_ug+'</td>';
     tb.appendChild(tr);
   });
-  var b=document.getElementById('sec-badge'); if(b)b.textContent=data.length+' sections';
 }
 function filterSections(){
-  var q=(document.getElementById('sec-srch').value||'').toLowerCase().trim();
-  buildSectionTable(q?SECT.filter(function(s){
-    return s.division.toLowerCase().indexOf(q)>=0||s.sub_div.toLowerCase().indexOf(q)>=0||s.section.toLowerCase().indexOf(q)>=0;
-  }):SECT);
+  var q=(document.getElementById('sec-srch').value||'').toLowerCase();
+  buildSectionTable(q?SECT.filter(function(s){return s.division.toLowerCase().indexOf(q)>=0||s.sub_div.toLowerCase().indexOf(q)>=0||s.section.toLowerCase().indexOf(q)>=0;}):SECT);
 }
 
-// ── Network asset table ───────────────────────────────────────────────────
 function buildNetTable(){
   var tb=document.getElementById('net-tbody'); if(!tb)return; tb.innerHTML='';
-  var tagMap={'Banjara Hills':'tag-gn','Secunderabad':'tag-pk','South':'tag-am','Central':'tag-bl'};
   DIV_ORDER.forEach(function(name){
-    var d=DIV[name]; if(!d)return;
+    var d=DIV[name];
     var tr=document.createElement('tr');
-    tr.innerHTML='<td><span class="tag '+(tagMap[name]||'tag-bl')+'">'+name+'</span></td>'+
-      '<td style="text-align:center;font-weight:700;font-family:var(--m)">'+d.total_ss+'</td>'+
+    tr.innerHTML='<td><span class="tag '+(TAG_MAP[name]||'tag-bl')+'">'+name+'</span></td>'+
+      '<td style="text-align:center;font-family:var(--m);font-weight:700">'+d.total_ss+'</td>'+
       '<td style="text-align:center;font-family:var(--m)">'+d.ptrs+'</td>'+
       '<td style="text-align:center;font-family:var(--m);color:var(--am)">'+d.ptr_cap+'</td>'+
       '<td style="text-align:center;font-family:var(--m)">'+d.cbs+'</td>'+
@@ -435,82 +533,27 @@ function buildNetTable(){
       '<td style="text-align:center;font-family:var(--m)">'+d.link_feeders+'</td>'+
       '<td style="text-align:center;font-family:var(--m);color:#C0392B">'+d.oh_feeders+'</td>'+
       '<td style="text-align:center;font-family:var(--m);color:#1565C0">'+d.ug_feeders+'</td>'+
-      '<td style="text-align:center;font-weight:700;font-family:var(--m)">'+d.total_feeders+'</td>'+
+      '<td style="text-align:center;font-family:var(--m);font-weight:700">'+d.total_feeders+'</td>'+
       '<td style="text-align:right;font-family:var(--m)">'+d.link_len+'</td>'+
       '<td style="text-align:right;font-family:var(--m);color:#C0392B">'+d.feed_len_oh+'</td>'+
       '<td style="text-align:right;font-family:var(--m);color:#1565C0">'+d.feed_len_ug+'</td>'+
-      '<td style="text-align:right;font-weight:700;font-family:var(--m)">'+d.feed_len+'</td>';
+      '<td style="text-align:right;font-family:var(--m);font-weight:700">'+d.feed_len+'</td>';
     tb.appendChild(tr);
   });
-  // Grand total row
-  var tr=document.createElement('tr'); tr.style.cssText='background:var(--sf2);font-weight:700;border-top:1px solid var(--bd2)';
-  tr.innerHTML='<td style="font-weight:700">SCADA TOTAL</td>'+
-    '<td style="text-align:center;font-family:var(--m);color:var(--bl)">'+GRAND.total_ss+'</td>'+
-    '<td style="text-align:center;font-family:var(--m);color:var(--bl)">'+GRAND.ptrs+'</td>'+
-    '<td style="text-align:center;font-family:var(--m);color:var(--am)">'+GRAND.ptr_cap+'</td>'+
-    '<td style="text-align:center;font-family:var(--m)">'+GRAND.cbs+'</td>'+
-    '<td style="text-align:center;font-family:var(--m)">'+GRAND.bk11+'</td>'+
-    '<td style="text-align:center;font-family:var(--m)">'+GRAND.bk33+'</td>'+
-    '<td style="text-align:center;font-family:var(--m)">'+GRAND.link_feeders+'</td>'+
-    '<td style="text-align:center;font-family:var(--m);color:#C0392B">'+GRAND.oh_feeders+'</td>'+
-    '<td style="text-align:center;font-family:var(--m);color:#1565C0">'+GRAND.ug_feeders+'</td>'+
-    '<td style="text-align:center;font-family:var(--m);color:var(--gn)">'+GRAND.total_feeders+'</td>'+
-    '<td style="text-align:right;font-family:var(--m)">'+GRAND.link_len+'</td>'+
-    '<td style="text-align:right;font-family:var(--m);color:#C0392B">'+GRAND.feed_len_oh+'</td>'+
-    '<td style="text-align:right;font-family:var(--m);color:#1565C0">'+GRAND.feed_len_ug+'</td>'+
-    '<td style="text-align:right;font-family:var(--m);color:var(--gn)">'+GRAND.feed_len+'</td>';
-  tb.appendChild(tr);
+  var trg=document.createElement('tr'); trg.style.cssText='background:var(--sf2);border-top:1px solid var(--bd2)';
+  trg.innerHTML='<td style="font-weight:700">SCADA TOTAL</td>'+
+    ['total_ss','ptrs','ptr_cap','cbs','bk11','bk33','link_feeders','oh_feeders','ug_feeders','total_feeders','link_len','feed_len_oh','feed_len_ug','feed_len']
+    .map(function(k){return '<td style="text-align:center;font-family:var(--m);font-weight:700;color:var(--bl)">'+GRAND[k]+'</td>';}).join('');
+  tb.appendChild(trg);
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', function(){
-  updateKPIs();
-  animateDonut();
-  buildDivCards();
-  buildSummaryGrid();
-  buildDivDetails();
-  buildSectionTable(SECT);
-  buildNetTable();
-
-  // Feeder length bars
-  var lenData={};
-  DIV_ORDER.forEach(function(n){lenData[n]=DIV[n].feed_len;});
-  makeBars('len-bars',lenData,function(n){return DIV[n].color;},function(v){return v+' km';});
-
-  // PTR capacity bars
-  var capData={};
-  DIV_ORDER.forEach(function(n){capData[n]=DIV[n].ptr_cap;});
-  makeBars('cap-bars',capData,function(n){return DIV[n].color;},function(v){return v+' MVA';});
-
-  // OH/UG feeder bars
-  var feedBars=document.getElementById('feed-bars'); if(feedBars){
-    feedBars.innerHTML='';
-    DIV_ORDER.forEach(function(name){
-      var d=DIV[name];
-      var total=d.oh_feeders+d.ug_feeders; if(!total)return;
-      var row=document.createElement('div'); row.style.cssText='margin-bottom:12px';
-      row.innerHTML='<div style="font-size:11px;color:var(--tx2);margin-bottom:4px;font-weight:500">'+name+'</div>'+
-        '<div style="display:flex;height:14px;border-radius:4px;overflow:hidden;margin-bottom:3px">'+
-          '<div style="flex:'+d.oh_feeders+';background:#C0392B" title="OH:'+d.oh_feeders+'"></div>'+
-          '<div style="flex:'+d.ug_feeders+';background:#1565C0" title="UG:'+d.ug_feeders+'"></div>'+
-        '</div>'+
-        '<div style="display:flex;gap:12px;font-size:10px">'+
-          '<span style="color:#C0392B;font-family:var(--m)">OH: '+d.oh_feeders+'</span>'+
-          '<span style="color:#1565C0;font-family:var(--m)">UG: '+d.ug_feeders+'</span>'+
-          '<span style="color:var(--tx3);font-family:var(--m)">Total: '+d.feed_total+'</span>'+
-        '</div>';
-      feedBars.appendChild(row);
-    });
-  }
-
-  // Network length bars
-  var nlData={'OH Feeder':GRAND.feed_len_oh,'UG Feeder':GRAND.feed_len_ug,'Link Line':GRAND.link_len};
-  makeBars('net-len-bars',nlData,function(n){return n.indexOf('OH')>=0?'#C0392B':n.indexOf('UG')>=0?'#1565C0':'#D07A00';},function(v){return v+' km';});
-
-  // CB bars
-  var cbData={};
-  DIV_ORDER.forEach(function(n){cbData[n]=DIV[n].cbs;});
-  makeBars('cb-bars',cbData,function(n){return DIV[n].color;});
+window.addEventListener('DOMContentLoaded',function(){
+  animateDonut(); buildDivCards(); buildFeedSplit(); buildPTRAnalytics();
+  buildDivDetails(); buildSectionTable(SECT); buildNetTable();
+  makeBars('len-bars',DIV_ORDER.map(function(n){return [n,DIV[n].feed_len];}),function(n){return DIV[n].color;},function(v){return v+' km';});
+  makeBars('net-len-bars',[['OH Feeder',GRAND.feed_len_oh],['UG Feeder',GRAND.feed_len_ug],['Link Line',GRAND.link_len]],
+    function(n){return n[0]==='O'?'#C0392B':n[0]==='U'?'#1565C0':'#D07A00';},function(v){return v+' km';});
+  makeBars('cb-bars',DIV_ORDER.map(function(n){return [n,DIV[n].cbs];}),function(n){return DIV[n].color;});
 });
 </script>
 </body>
