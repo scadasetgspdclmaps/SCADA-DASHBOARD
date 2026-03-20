@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TGSPDCL — Command Centre</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@600;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#05101a;--navy:#0a1828;--panel:#0d1f33;
+  --live:#00c8ff;--ok:#00e676;--warn:#ffab00;--fault:#ff1744;
+  --border:rgba(0,200,255,.14);--text:#8fb8d0;--bright:#c8e6f5;
+  --mono:"Share Tech Mono",monospace;--sans:"Rajdhani",sans-serif;
+  --title:"Orbitron",monospace;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--sans)}
+
+/* ── TOP BAR ── */
+#topbar{
+  position:fixed;top:0;left:0;right:0;height:54px;z-index:1000;
+  background:linear-gradient(90deg,#060f1c,#0a1828,#060f1c);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:0;
+  box-shadow:0 2px 24px rgba(0,0,0,.6);
+}
+
+/* Logo zone */
+.top-brand{display:flex;align-items:center;gap:12px;padding:0 22px;flex-shrink:0;border-right:1px solid var(--border)}
+.top-logo{font-family:var(--title);font-size:14px;font-weight:600;color:var(--live);letter-spacing:3px}
+.top-sep{width:1px;height:20px;background:var(--border)}
+.top-title{font-family:var(--sans);font-size:12px;font-weight:500;color:var(--text)}
+
+/* NAV TABS */
+.top-nav{display:flex;align-items:stretch;flex:1;height:100%}
+.nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:0 22px;cursor:pointer;
+  border-right:1px solid var(--border);
+  border-bottom:3px solid transparent;
+  font-family:var(--sans);font-size:12px;font-weight:600;
+  color:var(--text);transition:all .2s;white-space:nowrap;
+  position:relative;
+}
+.nav-item:hover{color:var(--bright);background:rgba(0,200,255,.05)}
+.nav-item.active{
+  color:var(--live);
+  border-bottom-color:var(--live);
+  background:rgba(0,200,255,.07);
+}
+.nav-icon{font-size:16px;flex-shrink:0}
+.nav-label{display:flex;flex-direction:column;gap:1px}
+.nav-label span:first-child{font-size:12px;font-weight:700;color:inherit}
+.nav-label span:last-child{font-size:9px;font-family:var(--mono);letter-spacing:1px;color:rgba(176,204,224,.4);font-weight:400}
+.nav-item.active .nav-label span:last-child{color:rgba(0,200,255,.5)}
+
+/* Status zone */
+.top-status{display:flex;align-items:center;gap:12px;padding:0 18px;margin-left:auto;border-left:1px solid var(--border);flex-shrink:0}
+.stat-chip{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;padding:4px 11px;border-radius:20px;border:1px solid;white-space:nowrap}
+.chip-live{color:var(--ok);border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.07)}
+.chip-info{color:var(--live);border-color:rgba(0,200,255,.25);background:rgba(0,200,255,.06)}
+.top-clock{font-family:var(--mono);font-size:11px;color:var(--text);min-width:130px;text-align:right}
+
+/* ── CONTENT AREA ── */
+#content{
+  position:fixed;
+  top:54px;left:0;right:0;bottom:0;
+  z-index:1;
+}
+
+/* Each view */
+.view{
+  position:absolute;inset:0;
+  display:none;
+  background:var(--bg);
+}
+.view.active{display:block}
+
+/* iFrame */
+.view iframe{
+  width:100%;height:100%;
+  border:none;display:block;
+}
+
+/* ── WELCOME / HOME view ── */
+#view-home{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:32px;padding:32px;
+  background:radial-gradient(ellipse at 30% 40%,rgba(0,200,255,.06) 0%,transparent 60%),
+             radial-gradient(ellipse at 70% 60%,rgba(0,230,118,.04) 0%,transparent 60%),
+             var(--bg);
+}
+.home-logo{font-family:var(--title);font-size:36px;font-weight:900;color:var(--live);letter-spacing:6px;text-align:center}
+.home-sub{font-family:var(--sans);font-size:15px;color:var(--text);text-align:center;max-width:560px;line-height:1.6}
+.home-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px;width:100%}
+.home-card{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:26px 22px;cursor:pointer;
+  transition:all .25s;position:relative;overflow:hidden;
+}
+.home-card::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  border-radius:14px 14px 0 0;
+}
+.home-card.c1::before{background:var(--live)}
+.home-card.c2::before{background:var(--ok)}
+.home-card.c3::before{background:var(--warn)}
+.home-card:hover{transform:translateY(-4px);border-color:rgba(0,200,255,.3);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.hc-icon{font-size:32px;margin-bottom:14px}
+.hc-title{font-family:var(--title);font-size:13px;font-weight:600;color:var(--bright);margin-bottom:6px;letter-spacing:1px}
+.hc-desc{font-family:var(--sans);font-size:11px;color:var(--text);line-height:1.5}
+.hc-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.hc-tag{font-family:var(--mono);font-size:8px;padding:2px 7px;border-radius:10px;border:1px solid rgba(0,200,255,.2);color:rgba(0,200,255,.5)}
+.hc-arrow{position:absolute;bottom:16px;right:18px;font-size:18px;color:rgba(0,200,255,.25);transition:all .2s}
+.home-card:hover .hc-arrow{color:var(--live);transform:translateX(4px)}
+
+/* grid of network stats at bottom */
+.home-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;max-width:900px;width:100%}
+.hs{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center}
+.hs-v{font-family:var(--title);font-size:20px;font-weight:700;color:var(--bright)}
+.hs-l{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:rgba(176,204,224,.4);margin-top:3px}
+
+/* ── LOADING OVERLAY ── */
+.frame-loader{
+  position:absolute;inset:0;z-index:10;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  transition:opacity .4s;
+}
+.frame-loader.done{opacity:0;pointer-events:none}
+.fl-title{font-family:var(--mono);font-size:12px;color:var(--live);letter-spacing:2px}
+.fl-bar{width:160px;height:2px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.fl-fill{height:100%;width:0;background:var(--live);border-radius:2px;animation:flprog 1.2s ease forwards}
+@keyframes flprog{to{width:100%}}
+
+@media(max-width:700px){
+  .home-cards{grid-template-columns:1fr}
+  .home-stats{grid-template-columns:repeat(3,1fr)}
+  .nav-item .nav-label span:last-child{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="top-brand">
+    <div class="top-logo">TGSPDCL</div>
+    <div class="top-sep"></div>
+    <div class="top-title">Command Centre</div>
+  </div>
+
+  <div class="top-nav">
+    <div class="nav-item active" onclick="switchView('home')" id="nav-home">
+      <div class="nav-icon">&#127968;</div>
+      <div class="nav-label"><span>Home</span><span>OVERVIEW</span></div>
+    </div>
+    <div class="nav-item" onclick="switchView('map')" id="nav-map">
+      <div class="nav-icon">&#127760;</div>
+      <div class="nav-label"><span>33KV Grid Map</span><span>LIVE FEEDER MAP</span></div>
+    </div>
+    <div class="nav-item" onclick="switchView('dashboard')" id="nav-dashboard">
+      <div class="nav-icon">&#128202;</div>
+      <div class="nav-label"><span>Analytics Dashboard</span><span>STATS &amp; MASTER DATA</span></div>
+    </div>
+    <div class="nav-item" onclick="switchView('ssmaster')" id="nav-ssmaster">
+      <div class="nav-icon">&#9889;</div>
+      <div class="nav-label"><span>SS Master Data</span><span>GOLCONDA 33/11KV</span></div>
+    </div>
+  </div>
+
+  <div class="top-status">
+    <div class="stat-chip chip-live">&#9679; SYSTEM LIVE</div>
+    <div class="stat-chip chip-info">369 FEEDERS</div>
+    <div class="top-clock" id="clock">—</div>
+  </div>
+</div>
+
+<!-- CONTENT AREA -->
+<div id="content">
+
+  <!-- HOME -->
+  <div class="view active" id="view-home">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:28px;padding:28px;background:radial-gradient(ellipse at 30% 40%,rgba(0,200,255,.06) 0%,transparent 60%),radial-gradient(ellipse at 70% 60%,rgba(0,230,118,.04) 0%,transparent 60%),var(--bg)">
+
+      <div style="text-align:center">
+        <div class="home-logo">TGSPDCL</div>
+        <div style="font-family:var(--sans);font-size:13px;color:var(--text);margin-top:6px;letter-spacing:2px">33KV DISTRIBUTION NETWORK &mdash; COMMAND CENTRE</div>
+      </div>
+
+      <div class="home-cards">
+        <div class="home-card c1" onclick="switchView('map')">
+          <div class="hc-icon">&#127760;</div>
+          <div class="hc-title">33KV GRID MAP</div>
+          <div class="hc-desc">Interactive feeder map across all 4 divisions. Filter by division, section, feeder. Mark breakdowns and overloaded substations.</div>
+          <div class="hc-tags">
+            <span class="hc-tag">1048 POINTS</span>
+            <span class="hc-tag">369 FEEDERS</span>
+            <span class="hc-tag">LIVE BLINK</span>
+            <span class="hc-tag">FILTER</span>
+          </div>
+          <div class="hc-arrow">&#8594;</div>
+        </div>
+        <div class="home-card c2" onclick="switchView('dashboard')">
+          <div class="hc-icon">&#128202;</div>
+          <div class="hc-title">ANALYTICS DASHBOARD</div>
+          <div class="hc-desc">Network-wide statistics, division breakdowns, SS master data, EHT substation directory, feeder directory with search.</div>
+          <div class="hc-tags">
+            <span class="hc-tag">136 SS RECORDS</span>
+            <span class="hc-tag">25 EHT SS</span>
+            <span class="hc-tag">CHARTS</span>
+            <span class="hc-tag">SEARCH</span>
+          </div>
+          <div class="hc-arrow">&#8594;</div>
+        </div>
+        <div class="home-card c3" onclick="switchView('ssmaster')">
+          <div class="hc-icon">&#9889;</div>
+          <div class="hc-title">SS MASTER DATA</div>
+          <div class="hc-desc">Detailed 33/11KV substation record — equipment hierarchy, PTR data, feeder load, maintenance logs, and inventory.</div>
+          <div class="hc-tags">
+            <span class="hc-tag">GOLCONDA SS</span>
+            <span class="hc-tag">HIERARCHY</span>
+            <span class="hc-tag">PTR DATA</span>
+            <span class="hc-tag">MAINTENANCE</span>
+          </div>
+          <div class="hc-arrow">&#8594;</div>
+        </div>
+      </div>
+
+      <div class="home-stats">
+        <div class="hs"><div class="hs-v">1048</div><div class="hs-l">POINTS</div></div>
+        <div class="hs"><div class="hs-v">369</div><div class="hs-l">FEEDERS</div></div>
+        <div class="hs"><div class="hs-v">136</div><div class="hs-l">33/11KV SS</div></div>
+        <div class="hs"><div class="hs-v">25</div><div class="hs-l">EHT SS</div></div>
+        <div class="hs"><div class="hs-v">4</div><div class="hs-l">DIVISIONS</div></div>
+        <div class="hs"><div class="hs-v">88%</div><div class="hs-l">UG CABLE</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 33KV GRID MAP -->
+  <div class="view" id="view-map">
+    <div class="frame-loader" id="loader-map">
+      <div class="fl-title">LOADING 33KV GRID MAP</div>
+      <div class="fl-bar"><div class="fl-fill"></div></div>
+    </div>
+    <iframe id="frame-map" src="" title="TGSPDCL 33KV Grid Map"></iframe>
+  </div>
+
+  <!-- ANALYTICS DASHBOARD -->
+  <div class="view" id="view-dashboard">
+    <div class="frame-loader" id="loader-dashboard">
+      <div class="fl-title">LOADING ANALYTICS DASHBOARD</div>
+      <div class="fl-bar"><div class="fl-fill"></div></div>
+    </div>
+    <iframe id="frame-dashboard" src="" title="TGSPDCL Analytics Dashboard"></iframe>
+  </div>
+
+  <!-- SS MASTER DATA -->
+  <div class="view" id="view-ssmaster">
+    <div class="frame-loader" id="loader-ssmaster">
+      <div class="fl-title">LOADING SS MASTER DATA</div>
+      <div class="fl-bar"><div class="fl-fill"></div></div>
+    </div>
+    <iframe id="frame-ssmaster" src="" title="SS Master Data"></iframe>
+  </div>
+
+</div>
+
+<script>
+// ── NAV URLS ──────────────────────────────────────────────────────────────
+// When this file is opened locally, sibling files are loaded
+// When hosted on GitHub Pages, update these paths accordingly
+var VIEWS = {
+  map:      { frame:'frame-map',      loader:'loader-map',      src:'TGSPDCL_33KV_Grid_Map.html' },
+  dashboard:{ frame:'frame-dashboard',loader:'loader-dashboard',src:'TGSPDCL_Dashboard.html' },
+  ssmaster: { frame:'frame-ssmaster', loader:'loader-ssmaster', src:'https://scadasetgspdclmaps.github.io/SUBSTATIONMASTERDATA/' }
+};
+
+var loaded = {};
+var current = 'home';
+
+function switchView(id) {
+  // Update nav
+  document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('active'); });
+  var navEl = document.getElementById('nav-'+id);
+  if(navEl) navEl.classList.add('active');
+
+  // Hide all views
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  var view = document.getElementById('view-'+id);
+  if(view) view.classList.add('active');
+
+  current = id;
+
+  // Load iframe lazily on first visit
+  if(id !== 'home' && VIEWS[id] && !loaded[id]) {
+    loaded[id] = true;
+    var frame  = document.getElementById(VIEWS[id].frame);
+    var loader = document.getElementById(VIEWS[id].loader);
+    frame.src  = VIEWS[id].src;
+    frame.onload = function() {
+      if(loader) loader.classList.add('done');
+    };
+    // Fallback dismiss after 8s
+    setTimeout(function(){
+      if(loader) loader.classList.add('done');
+    }, 8000);
+  }
+}
+
+// ── CLOCK ────────────────────────────────────────────────────────────────
+function updateClock() {
+  var now = new Date();
+  var pad = function(n){ return n.toString().padStart(2,'0'); };
+  document.getElementById('clock').textContent =
+    pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear()+
+    '  '+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+}
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
