@@ -39,7 +39,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#F0F4F8;font-family:
 #sec-dash{overflow-y:auto}
 #sec-ss iframe{width:100%;height:100%;border:none;display:block}
 /* Map fixed elements hidden until map tab active */
-#panel,#ptab,#legend,#botbar,#loader{visibility:hidden}
+#map,#panel,#ptab,#legend,#botbar,#loader{display:none}
 
 /* ── HOME ──────────────────────────────────────────────────────────────── */
 .hw{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:28px 20px;background:linear-gradient(135deg,#F0F4F8,#E8EFF6)}
@@ -153,7 +153,7 @@ tbody td{padding:7px 11px;vertical-align:middle;color:var(--tx2)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--navy:#0d1b2a;--panel:#0a1828f5;--live:#00c8ff;--ok:#00e676;--fault:#ff1744;--trip:#ffab00;--border:rgba(0,200,255,.18);--text:#b0cce0;--mono:"Share Tech Mono",monospace;--sans:"Rajdhani",sans-serif;}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
-#map{position:fixed;inset:52px 0 36px 0;z-index:1;cursor:grab}
+#map{position:fixed;inset:52px 0 36px 0;z-index:1;cursor:grab;display:none}
 #map:active{cursor:grabbing}
 #topbar{position:fixed;top:0;left:0;right:0;height:52px;z-index:1000;background:linear-gradient(135deg,#0a1520f2,#0f2236f2);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:12px;box-shadow:0 2px 20px rgba(0,0,0,.4)}
 .tb-logo{font-family:var(--mono);font-size:13px;color:var(--live);letter-spacing:2px}
@@ -1429,35 +1429,42 @@ function toast(msg,dur){
 var _ssLoaded = false;
 
 function switchSection(id) {
-  /* 1. Show/hide sections */
   document.querySelectorAll('.shell-section').forEach(function(s) {
     s.classList.remove('active');
   });
+
   document.querySelectorAll('.sn-tab').forEach(function(t) {
     t.classList.remove('active');
   });
-  document.getElementById('sec-' + id).classList.add('active');
-  document.getElementById('sntab-' + id).classList.add('active');
 
-  /* 2. Map fixed elements (position:fixed) bleed across sections — hide/show */
-  ['panel','ptab','legend','botbar','loader'].forEach(function(eid) {
+  var targetSection = document.getElementById('sec-' + id);
+  var targetTab = document.getElementById('sntab-' + id);
+
+  if (targetSection) targetSection.classList.add('active');
+  if (targetTab) targetTab.classList.add('active');
+
+  var isMap = (id === 'map');
+
+  ['map','panel','ptab','legend','botbar','loader'].forEach(function(eid) {
     var el = document.getElementById(eid);
-    if (el) el.style.visibility = (id === 'map') ? 'visible' : 'hidden';
+    if (el) {
+      el.style.display = isMap ? 'block' : 'none';
+    }
   });
 
-  /* 3. Lazy map init — L.map() crashes on hidden div, so defer until visible */
   if (id === 'map') {
     setTimeout(function() {
       initMapNow();
       try { map.invalidateSize(); } catch(e) {}
-    }, 50);
+    }, 80);
   }
 
-  /* 4. Lazy SS iframe load */
   if (id === 'ss' && !_ssLoaded) {
     _ssLoaded = true;
-    document.getElementById('ss-frame').src =
-      'https://scadasetgspdclmaps.github.io/SUBSTATIONMASTERDATA/';
+    var frame = document.getElementById('ss-frame');
+    if (frame) {
+      frame.src = 'https://scadasetgspdclmaps.github.io/SUBSTATIONMASTERDATA/';
+    }
   }
 }
 
