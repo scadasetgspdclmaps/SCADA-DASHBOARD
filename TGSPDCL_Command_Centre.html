@@ -45,10 +45,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#F0F4F8;font-family:
 .hw{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:28px 20px;background:linear-gradient(135deg,#F0F4F8,#E8EFF6)}
 .hh h1{font-size:30px;font-weight:700;color:#1565C0;letter-spacing:3px;font-family:monospace;text-align:center}
 .hh p{font-size:12px;color:#4A6580;margin-top:6px;letter-spacing:1.5px;text-align:center}
-.hcards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:960px;width:100%}
+.hcards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:960px;width:100%}
 .hcard{background:#fff;border:.5px solid #C8D8E8;border-radius:12px;padding:22px 18px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(21,101,192,.07);border-top:3px solid}
 .hcard:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(21,101,192,.15)}
-.hcard.c1{border-top-color:#1565C0}.hcard.c2{border-top-color:#0B7A5C}.hcard.c3{border-top-color:#D07A00}
+.hcard.c1{border-top-color:#1565C0}.hcard.c2{border-top-color:#0B7A5C}.hcard.c3{border-top-color:#D07A00}.hcard.c4{border-top-color:#B71C1C}
 .hcard-icon{font-size:26px;margin-bottom:10px}
 .hcard-title{font-size:13px;font-weight:700;color:#1A2E40;margin-bottom:5px}
 .hcard-desc{font-size:11px;color:#4A6580;line-height:1.6}
@@ -279,6 +279,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
     <button class="sn-tab" onclick="switchSection('ss')" id="sntab-ss">
       <span class="ti">&#9889;</span><div class="tl"><b>SS Master Data</b><small>GOLCONDA 33/11KV</small></div>
     </button>
+    <button class="sn-tab" onclick="window.open('https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html','_blank')" id="sntab-scada33">
+      <span class="ti">&#128268;</span><div class="tl"><b>33KV SCADA</b><small>JAMES STREET</small></div>
+    </button>
   </div>
   <div class="sn-right">
     <div class="snc snc-live">LIVE</div>
@@ -314,6 +317,23 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
         <div class="hcard-title">SS MASTER DATA</div>
         <div class="hcard-desc">Detailed 33/11KV substation record — equipment hierarchy, PTR data, feeder load bars, maintenance logs, and inventory for Golconda SS.</div>
         <div class="hcard-tags"><span class="hcard-tag">GOLCONDA SS</span><span class="hcard-tag">PTR DATA</span><span class="hcard-tag">MAINTENANCE</span></div>
+        <div class="hcard-arrow">&#8594;</div>
+      </div>
+      <div class="hcard c4" onclick="window.open('https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html','_blank')">
+        <div class="hcard-icon">&#128268;</div>
+        <div class="hcard-title">33KV NETWORK SCADA</div>
+        <div class="hcard-desc">James Street Sub-Division live network command — 18 sections, substation feeder status (live / breakdown / idle), breakdown log entry, and GIS feeder map with animated flow overlay.</div>
+        <div class="hcard-tags">
+          <span class="hcard-tag">18 SECTIONS</span>
+          <span class="hcard-tag">LIVE STATUS</span>
+          <span class="hcard-tag">BREAKDOWN LOG</span>
+          <span class="hcard-tag">JAMES STREET</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:12px;padding-top:10px;border-top:.5px solid #E8EEF4;">
+          <a href="https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html" target="_blank" onclick="event.stopPropagation()" style="flex:1;text-align:center;font-size:9px;font-weight:700;color:#B71C1C;background:#FFF5F5;border:.5px solid #FFCDD2;border-radius:5px;padding:5px 2px;text-decoration:none;font-family:monospace;">&#128203; Section Status</a>
+          <a href="https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/" target="_blank" onclick="event.stopPropagation()" style="flex:1;text-align:center;font-size:9px;font-weight:700;color:#1565C0;background:#E3F2FD;border:.5px solid #BBDEFB;border-radius:5px;padding:5px 2px;text-decoration:none;font-family:monospace;">&#128506; GIS Map</a>
+          <a href="https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/entry.html" target="_blank" onclick="event.stopPropagation()" style="flex:1;text-align:center;font-size:9px;font-weight:700;color:#E65100;background:#FFF3E0;border:.5px solid #FFE0B2;border-radius:5px;padding:5px 2px;text-decoration:none;font-family:monospace;">&#9889; Log Breakdown</a>
+        </div>
         <div class="hcard-arrow">&#8594;</div>
       </div>
     </div>
