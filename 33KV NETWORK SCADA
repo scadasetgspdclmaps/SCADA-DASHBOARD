@@ -1,0 +1,75 @@
+<!-- ══════════════════════════════════════════════
+     TILE 4: 33KV NETWORK SCADA — JAMES STREET
+══════════════════════════════════════════════ -->
+<div onclick="window.location.href='https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html'"
+  style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:16px;
+         overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.07);position:relative;
+         cursor:pointer;transition:box-shadow 0.2s,transform 0.15s;"
+  onmouseover="this.style.boxShadow='0 4px 16px rgba(229,57,53,0.15)';this.style.transform='translateY(-2px)'"
+  onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.07)';this.style.transform='translateY(0)'">
+
+  <!-- Red top border strip -->
+  <div style="height:3px;background:linear-gradient(90deg,#e53935,#ff6f00);"></div>
+
+  <div style="padding:20px 20px 18px;">
+
+    <!-- Icon + Title row -->
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;">
+      <span style="font-size:26px;line-height:1;flex-shrink:0;">🔌</span>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a202c;letter-spacing:0.3px;margin-bottom:4px;">
+          33KV NETWORK SCADA
+        </div>
+        <div style="font-size:13px;color:#4a5568;line-height:1.55;">
+          James Street Sub-Division live network command — 18 sections, substation feeder status
+          (live / breakdown / idle), breakdown log entry with full outage fields, and GIS feeder map
+          with animated flow overlay.
+        </div>
+      </div>
+    </div>
+
+    <!-- Tag pills + arrow -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px;">
+      <span style="font-size:11px;color:#555;border:1px solid #d1d5db;border-radius:20px;padding:2px 10px;background:#fafafa;">18 SECTIONS</span>
+      <span style="font-size:11px;color:#555;border:1px solid #d1d5db;border-radius:20px;padding:2px 10px;background:#fafafa;">LIVE STATUS</span>
+      <span style="font-size:11px;color:#555;border:1px solid #d1d5db;border-radius:20px;padding:2px 10px;background:#fafafa;">BREAKDOWN LOG</span>
+      <span style="font-size:11px;color:#555;border:1px solid #d1d5db;border-radius:20px;padding:2px 10px;background:#fafafa;">JAMES STREET</span>
+      <span style="margin-left:auto;font-size:16px;color:#b0b8c4;">→</span>
+    </div>
+
+    <!-- 3 sub-action buttons -->
+    <div style="display:flex;gap:8px;border-top:1px solid #f1f5f9;padding-top:14px;">
+      <a href="https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html"
+         onclick="event.stopPropagation()"
+         style="flex:1;text-align:center;font-size:11px;font-weight:600;
+                color:#c62828;background:#fff5f5;border:1px solid #ffcdd2;
+                border-radius:7px;padding:8px 4px;text-decoration:none;
+                transition:background 0.15s;"
+         onmouseover="this.style.background='#ffebee'"
+         onmouseout="this.style.background='#fff5f5'">
+        📋 Section Status
+      </a>
+      <a href="https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/"
+         onclick="event.stopPropagation()"
+         style="flex:1;text-align:center;font-size:11px;font-weight:600;
+                color:#1565c0;background:#e3f2fd;border:1px solid #bbdefb;
+                border-radius:7px;padding:8px 4px;text-decoration:none;
+                transition:background 0.15s;"
+         onmouseover="this.style.background='#c8e6f9'"
+         onmouseout="this.style.background='#e3f2fd'">
+        🗺 GIS Feeder Map
+      </a>
+      <a href="https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/entry.html"
+         onclick="event.stopPropagation()"
+         style="flex:1;text-align:center;font-size:11px;font-weight:600;
+                color:#e65100;background:#fff3e0;border:1px solid #ffe0b2;
+                border-radius:7px;padding:8px 4px;text-decoration:none;
+                transition:background 0.15s;"
+         onmouseover="this.style.background='#ffe8c8'"
+         onmouseout="this.style.background='#fff3e0'">
+        ⚡ Log Breakdown
+      </a>
+    </div>
+
+  </div>
+</div>
