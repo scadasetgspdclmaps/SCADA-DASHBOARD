@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>TGSPDCL — Breakdown Entry Form</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;800&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#040d18;
+  --panel:rgba(8,22,42,0.95);
+  --live:#00e5ff;
+  --ok:#00e676;
+  --fault:#ff1744;
+  --idle:#78909c;
+  --trip:#ffab00;
+  --border:rgba(0,229,255,0.15);
+  --mono:'Share Tech Mono',monospace;
+  --head:'Orbitron',sans-serif;
+  --body:'Rajdhani',sans-serif;
+}
+html,body{width:100%;min-height:100vh;background:var(--bg);color:#c8dff0;font-family:var(--body);overflow-x:hidden}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;
+}
+
+/* HEADER */
+#header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(4,13,24,0.97);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(20px);padding:0 28px;height:60px;
+  display:flex;align-items:center;gap:20px;
+}
+.hd-logo{font-family:var(--head);font-size:14px;font-weight:800;color:var(--live);letter-spacing:3px}
+.hd-sep{width:1px;height:32px;background:var(--border)}
+.hd-title{font-family:var(--body);font-weight:600;font-size:13px;color:#7aadcc;letter-spacing:1px;flex:1}
+.back-btn{
+  font-family:var(--mono);font-size:10px;letter-spacing:1.5px;padding:6px 16px;
+  border-radius:4px;cursor:pointer;border:1px solid var(--border);
+  background:rgba(0,229,255,0.05);color:var(--live);text-decoration:none;
+  display:flex;align-items:center;gap:6px;transition:all 0.2s;
+}
+.back-btn:hover{background:rgba(0,229,255,0.12);border-color:rgba(0,229,255,0.4)}
+
+/* FORM WRAPPER */
+#form-wrap{
+  position:relative;z-index:1;
+  max-width:900px;margin:28px auto;padding:0 20px 60px;
+}
+
+/* FORM SECTIONS */
+.fsec{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;margin-bottom:18px;overflow:hidden;
+}
+.fsec-hd{
+  padding:12px 20px;background:rgba(0,229,255,0.04);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.fsec-num{
+  font-family:var(--mono);font-size:9px;color:rgba(0,229,255,0.4);
+  background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.15);
+  padding:2px 8px;border-radius:4px;letter-spacing:1px;
+}
+.fsec-title{font-family:var(--head);font-size:11px;font-weight:600;color:var(--live);letter-spacing:2px}
+.fsec-body{padding:18px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.fsec-body.full{grid-template-columns:1fr}
+
+/* FIELD */
+.field{display:flex;flex-direction:column;gap:5px}
+.field.span2{grid-column:span 2}
+.field label{
+  font-family:var(--mono);font-size:8px;letter-spacing:2px;
+  color:rgba(0,229,255,0.5);
+}
+.field label span.req{color:var(--fault);margin-left:2px}
+.field input,.field select,.field textarea{
+  background:rgba(0,229,255,0.04);
+  border:1px solid rgba(0,229,255,0.15);
+  border-radius:5px;padding:9px 12px;
+  color:#d0e8f8;font-family:var(--body);font-size:13px;
+  outline:none;transition:all 0.2s;width:100%;
+}
+.field textarea{resize:vertical;min-height:80px}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--live);background:rgba(0,229,255,0.08);
+  box-shadow:0 0 0 2px rgba(0,229,255,0.08);
+}
+.field select option{background:#061020;color:#d0e8f8}
+.field input[type="datetime-local"]{color-scheme:dark}
+
+/* RADIO GROUP */
+.radio-group{display:flex;flex-wrap:wrap;gap:8px}
+.radio-opt{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:5px;cursor:pointer;
+  border:1px solid rgba(0,229,255,0.12);background:rgba(0,229,255,0.03);
+  transition:all 0.18s;
+}
+.radio-opt:hover{border-color:rgba(0,229,255,0.3);background:rgba(0,229,255,0.07)}
+.radio-opt input[type=radio]{accent-color:var(--live);width:14px;height:14px}
+.radio-opt span{font-family:var(--body);font-size:12px;color:#9fbdd8}
+.radio-opt.selected{border-color:var(--live);background:rgba(0,229,255,0.1)}
+.radio-opt.selected span{color:var(--live);font-weight:600}
+
+/* OUTAGE TYPE COLOURS */
+.radio-opt.opt-planned.selected{border-color:var(--ok);background:rgba(0,230,118,0.08)}
+.radio-opt.opt-planned.selected span{color:var(--ok)}
+.radio-opt.opt-breakdown.selected{border-color:var(--fault);background:rgba(255,23,68,0.08)}
+.radio-opt.opt-breakdown.selected span{color:var(--fault)}
+.radio-opt.opt-emergency.selected{border-color:var(--trip);background:rgba(255,171,0,0.08)}
+.radio-opt.opt-emergency.selected span{color:var(--trip)}
+
+/* SUBMIT */
+#submit-bar{
+  display:flex;gap:12px;padding:20px;
+  border-top:1px solid var(--border);
+  background:rgba(0,229,255,0.02);
+}
+.btn-submit{
+  flex:1;padding:13px;border-radius:6px;
+  font-family:var(--head);font-size:11px;font-weight:600;letter-spacing:2px;
+  cursor:pointer;border:none;transition:all 0.2s;
+  background:linear-gradient(135deg,#0a3a5a,#0d5278);
+  color:var(--live);border:1px solid rgba(0,229,255,0.3);
+}
+.btn-submit:hover{background:linear-gradient(135deg,#0d5278,#1070a0);box-shadow:0 0 20px rgba(0,229,255,0.15)}
+.btn-clear{
+  padding:13px 24px;border-radius:6px;
+  font-family:var(--mono);font-size:10px;letter-spacing:1px;
+  cursor:pointer;border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.03);color:rgba(200,223,240,0.4);
+  transition:all 0.2s;
+}
+.btn-clear:hover{background:rgba(255,23,68,0.08);border-color:rgba(255,23,68,0.3);color:var(--fault)}
+
+/* LOG TABLE */
+#log-wrap{
+  position:relative;z-index:1;max-width:900px;margin:0 auto 28px;padding:0 20px;
+}
+.log-hd{
+  display:flex;align-items:center;gap:12px;margin-bottom:12px;
+}
+.log-hd-title{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:rgba(0,229,255,0.45)}
+.log-hd-cnt{font-family:var(--mono);font-size:9px;color:var(--live);background:rgba(0,229,255,0.1);padding:2px 8px;border-radius:10px}
+.log-clear-btn{
+  font-family:var(--mono);font-size:8px;letter-spacing:1px;color:rgba(255,23,68,0.4);
+  cursor:pointer;padding:3px 8px;border-radius:4px;border:1px solid rgba(255,23,68,0.15);
+  background:transparent;transition:all 0.2s;margin-left:auto;
+}
+.log-clear-btn:hover{color:var(--fault);border-color:rgba(255,23,68,0.4);background:rgba(255,23,68,0.06)}
+.log-table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead tr{background:rgba(0,229,255,0.06);border-bottom:1px solid var(--border)}
+thead th{
+  padding:9px 12px;text-align:left;
+  font-family:var(--mono);font-size:8px;letter-spacing:1.5px;
+  color:rgba(0,229,255,0.5);white-space:nowrap;font-weight:400;
+}
+tbody tr{border-bottom:1px solid rgba(0,229,255,0.05);transition:background 0.15s}
+tbody tr:hover{background:rgba(0,229,255,0.03)}
+tbody td{padding:8px 12px;font-family:var(--body);font-size:12px;color:#8fb8d8;vertical-align:top}
+tbody td.td-ss{font-weight:600;color:#c8dff0}
+.badge{font-family:var(--mono);font-size:8px;letter-spacing:1px;padding:2px 7px;border-radius:10px;font-weight:700}
+.badge-breakdown{color:var(--fault);background:rgba(255,23,68,0.12);border:1px solid rgba(255,23,68,0.25)}
+.badge-planned{color:var(--ok);background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.2)}
+.badge-emergency{color:var(--trip);background:rgba(255,171,0,0.1);border:1px solid rgba(255,171,0,0.2)}
+.del-btn{cursor:pointer;color:rgba(255,23,68,0.35);font-size:14px;transition:color 0.15s;background:none;border:none;padding:0}
+.del-btn:hover{color:var(--fault)}
+
+/* SUCCESS FLASH */
+@keyframes successFlash{0%{opacity:0;transform:scale(0.95)}30%{opacity:1;transform:scale(1)}100%{opacity:0}}
+#success-msg{
+  position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:500;
+  background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.4);
+  border-radius:8px;padding:12px 28px;font-family:var(--mono);font-size:12px;
+  color:var(--ok);display:none;letter-spacing:1px;
+}
+#success-msg.show{display:block;animation:successFlash 2.5s ease forwards}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="hd-logo">TGSPDCL</div>
+  <div class="hd-sep"></div>
+  <div class="hd-title">33KV BREAKDOWN / OUTAGE ENTRY — JAMES STREET SUB-DIVISION</div>
+  <a href="dashboard.html" class="back-btn">← DASHBOARD</a>
+</div>
+
+<div id="success-msg" id="success-msg">✓ ENTRY LOGGED SUCCESSFULLY</div>
+
+<div id="form-wrap">
+
+  <!-- SECTION 1: LOCATION DETAILS -->
+  <div class="fsec">
+    <div class="fsec-hd">
+      <div class="fsec-num">01</div>
+      <div class="fsec-title">LOCATION DETAILS</div>
+    </div>
+    <div class="fsec-body">
+      <div class="field">
+        <label>NAME OF SUBSTATION <span class="req">*</span></label>
+        <select id="f-ss" required>
+          <option value="">— Select Substation —</option>
+          <optgroup label="James Street Section">
+            <option>33/11 KV JAMES STREET SS</option>
+            <option>33/11 KV PATIGADDA SS</option>
+            <option>33/11 KV SANJEEVAIAH PARK SS</option>
+            <option>33/11 KV KIMS SS</option>
+            <option>33/11 KV BANSILALPET SS</option>
+          </optgroup>
+          <optgroup label="Clock Tower / Nehrunagar">
+            <option>33/11 KV CLOCK TOWER SS</option>
+            <option>33/11 KV MONDA MARKET SS</option>
+            <option>33/11 KV NEHRU NAGAR SS</option>
+            <option>33/11 KV MARREDPALLY SS</option>
+            <option>33/11 KV GYMKHANA SS</option>
+          </optgroup>
+          <optgroup label="Bowenpally / Gunrock">
+            <option>33/11 KV GUNROCK SS</option>
+            <option>33/11 KV BOWENPALLY SS</option>
+            <option>33/11 KV CHINNA THOKATTA SS</option>
+            <option>33/11 KV NEW BOWENPALLY SS</option>
+            <option>33/11 KV THIRUMALAGIRI SS</option>
+          </optgroup>
+          <optgroup label="Chilkalguda">
+            <option>33/11 KV CHILKALGUDA SS</option>
+            <option>33/11 KV SEETHAPHALMANDI SS</option>
+            <option>33/11 KV OSMANIA UNIVERSITY SS</option>
+            <option>33/11 KV IICT SS</option>
+            <option>33/11 KV LALAGUDA SS</option>
+            <option>33/11 KV ADDAGUTTA SS</option>
+          </optgroup>
+          <optgroup label="IDPL / Prashanth Nagar">
+            <option>33/11 KV IDPL SS</option>
+            <option>33/11 KV HAL SS</option>
+            <option>33/11 KV PRASHANTH NAGAR SS</option>
+            <option>33/11 KV PRAGA TOOLS SS</option>
+          </optgroup>
+          <optgroup label="Prakashnagar / R.P.Nilayam">
+            <option>33/11 KV PRAKASHNAGAR SS</option>
+            <option>33/11 KV R.P.NILAYAM SS</option>
+            <option>33/11 KV HAKIMPET SS</option>
+            <option>33/11 KV MACHA BOLLARAM SS</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>OPERATION CIRCLE</label>
+        <select id="f-opcircle">
+          <option>Secunderabad</option>
+          <option>Banjara Hills</option>
+          <option>Hyderabad Central</option>
+          <option>Hyderabad South</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>LINES CIRCLE</label>
+        <select id="f-linecircle">
+          <option>Secunderabad</option>
+          <option>Banjara Hills</option>
+          <option>Central</option>
+          <option>South</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>LINES DIVISION</label>
+        <select id="f-division">
+          <option>Nehrunagar</option>
+          <option>Chilkalguda</option>
+          <option>Allwyn</option>
+          <option>Banjara Hills</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>LINES SUB-DIVISION</label>
+        <select id="f-subdivision">
+          <option>James Street</option>
+          <option>Bowenpally</option>
+          <option>R.P.Nilayam</option>
+          <option>Chilkalguda</option>
+          <option>IDPL</option>
+          <option>Allwyn</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>LINES SECTION</label>
+        <select id="f-section">
+          <option>James Street</option>
+          <option>Bansilalpet</option>
+          <option>Clock Tower</option>
+          <option>Nehrunagar</option>
+          <option>Bowenpally</option>
+          <option>Tirumalagiri</option>
+          <option>Seethaphalmandi</option>
+          <option>Chilkalguda</option>
+          <option>Lalaguda</option>
+          <option>Monda Market</option>
+          <option>Patigadda</option>
+          <option>KIMS</option>
+          <option>Sanjeevaiah Park</option>
+          <option>Prakashnagar</option>
+          <option>R.P.Nilayam</option>
+          <option>IDPL</option>
+          <option>Prashanth Nagar</option>
+          <option>Addagutta</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: OUTAGE DETAILS -->
+  <div class="fsec">
+    <div class="fsec-hd">
+      <div class="fsec-num">02</div>
+      <div class="fsec-title">OUTAGE DETAILS</div>
+    </div>
+    <div class="fsec-body">
+      <div class="field">
+        <label>FAILURE DATE & TIME <span class="req">*</span></label>
+        <input type="datetime-local" id="f-failtime"/>
+      </div>
+      <div class="field">
+        <label>EHT SUBSTATION (SOURCE) <span class="req">*</span></label>
+        <select id="f-eht">
+          <option value="">— Select EHT SS —</option>
+          <option>132 KV GUNROCK SS</option>
+          <option>132 KV PATIGADDA SS</option>
+          <option>132 KV CHILKALGUDA SS</option>
+          <option>132 KV IDPL SS</option>
+          <option>132 KV ERRAGADDA SS</option>
+          <option>132 KV HUSSAINSAGAR SS</option>
+          <option>132 KV BALKAMPET SS</option>
+          <option>132 KV NIMS SS</option>
+          <option>132 KV FEVER HOSPITAL SS</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>33KV SOURCE FEEDER <span class="req">*</span></label>
+        <select id="f-feeder">
+          <option value="">— Select Feeder —</option>
+          <option>GUNROCK → JAMESSTREET</option>
+          <option>GUNROCK → KIMS</option>
+          <option>PATIGADDA → JAMES STREET</option>
+          <option>PATIGADDA → KIMS</option>
+          <option>PATIGADDA → MONDAMARKET</option>
+          <option>PATIGADDA → PATIGADDA</option>
+          <option>PATIGADDA → BANSILALPET</option>
+          <option>PATIGADDA → PRAKASHNAGAR</option>
+          <option>PATIGADDA → SANJEEVAIAH PARK</option>
+          <option>CHILKALGUDA → PATIGADDA</option>
+          <option>CHILKALGUDA → CLOCK TOWER</option>
+          <option>KIMS → JAMESSTREET</option>
+          <option>MONDAMARKET → CLOCKTOWER</option>
+          <option>CLOCKTOWER → NEHRUNAGAR</option>
+          <option>SEETHAPHALMANDI → MONDAMARKET</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>AGENCY WHO TRIGGERED OUTAGE</label>
+        <select id="f-agency">
+          <option>TRANSCO</option>
+          <option>33KV Substation</option>
+          <option>Lines Section</option>
+          <option>DISCOM Control Room</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TYPE OF OUTAGE -->
+    <div style="padding:0 20px 16px">
+      <div class="field">
+        <label>TYPE OF OUTAGE <span class="req">*</span></label>
+        <div class="radio-group" id="outage-type-group">
+          <label class="radio-opt opt-breakdown" onclick="selectRadio(this,'outage-type-group')">
+            <input type="radio" name="outage-type" value="Breakdown"> <span>🔴 Breakdown</span>
+          </label>
+          <label class="radio-opt opt-planned" onclick="selectRadio(this,'outage-type-group')">
+            <input type="radio" name="outage-type" value="Planned"> <span>⚡ Planned Maintenance</span>
+          </label>
+          <label class="radio-opt opt-emergency" onclick="selectRadio(this,'outage-type-group')">
+            <input type="radio" name="outage-type" value="Emergency"> <span>⚠ Emergency</span>
+          </label>
+          <label class="radio-opt" onclick="selectRadio(this,'outage-type-group')">
+            <input type="radio" name="outage-type" value="Tripping"> <span>Tripping</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="fsec-body">
+      <div class="field">
+        <label>RELAY INDICATION</label>
+        <select id="f-relay">
+          <option value="">— None / Not Known —</option>
+          <option>OC (Over Current)</option>
+          <option>EF (Earth Fault)</option>
+          <option>OC + EF</option>
+          <option>Distance Relay</option>
+          <option>Differential Relay</option>
+          <option>Under Voltage</option>
+          <option>Over Voltage</option>
+          <option>Buchholz</option>
+          <option>No Relay</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>IDENTIFIED FAULT</label>
+        <select id="f-fault">
+          <option value="">— Select —</option>
+          <option>Cable Fault</option>
+          <option>Overhead Line Fault</option>
+          <option>Equipment Failure</option>
+          <option>Tree Falling</option>
+          <option>Bird / Animal Contact</option>
+          <option>Transformer Failure</option>
+          <option>AB Switch Failure</option>
+          <option>Insulator Failure</option>
+          <option>No Fault Found</option>
+          <option>Under Investigation</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>NATURE OF FAULT</label>
+        <div class="radio-group" id="fault-nature-group">
+          <label class="radio-opt" onclick="selectRadio(this,'fault-nature-group')">
+            <input type="radio" name="fault-nature" value="Temporary"> <span>Temporary</span>
+          </label>
+          <label class="radio-opt" onclick="selectRadio(this,'fault-nature-group')">
+            <input type="radio" name="fault-nature" value="Permanent"> <span>Permanent</span>
+          </label>
+        </div>
+      </div>
+      <div class="field">
+        <label>WEATHER CONDITION</label>
+        <select id="f-weather">
+          <option>Clear</option>
+          <option>Rainy</option>
+          <option>Thunderstorm</option>
+          <option>High Wind</option>
+          <option>Foggy</option>
+          <option>Hot / Dry</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>PERSON RESPONSIBLE FOR OUTAGE</label>
+        <input type="text" id="f-person" placeholder="Name / Designation"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: ALTERNATIVE SOURCE -->
+  <div class="fsec">
+    <div class="fsec-hd">
+      <div class="fsec-num">03</div>
+      <div class="fsec-title">ALTERNATIVE SOURCE & RESTORATION</div>
+    </div>
+    <div class="fsec-body">
+      <div class="field">
+        <label>ALTERNATIVE EHT SOURCE</label>
+        <select id="f-alteht">
+          <option value="">— None —</option>
+          <option>132 KV GUNROCK SS</option>
+          <option>132 KV PATIGADDA SS</option>
+          <option>132 KV CHILKALGUDA SS</option>
+          <option>132 KV IDPL SS</option>
+          <option>132 KV ERRAGADDA SS</option>
+          <option>132 KV HUSSAINSAGAR SS</option>
+          <option>132 KV BALKAMPET SS</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>ALTERNATIVE FEEDER</label>
+        <select id="f-altfeeder">
+          <option value="">— None —</option>
+          <option>GUNROCK → JAMESSTREET</option>
+          <option>GUNROCK → KIMS</option>
+          <option>PATIGADDA → JAMES STREET</option>
+          <option>PATIGADDA → KIMS</option>
+          <option>CHILKALGUDA → PATIGADDA</option>
+          <option>CHILKALGUDA → CLOCK TOWER</option>
+          <option>KIMS → JAMESSTREET</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>RESTORATION DATE & TIME</label>
+        <input type="datetime-local" id="f-restoretime"/>
+      </div>
+      <div class="field">
+        <label>DURATION (auto-calculated)</label>
+        <input type="text" id="f-duration" readonly placeholder="Auto from failure/restore times" style="opacity:0.6"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: ROOT CAUSE & RECTIFICATION -->
+  <div class="fsec">
+    <div class="fsec-hd">
+      <div class="fsec-num">04</div>
+      <div class="fsec-title">ROOT CAUSE & RECTIFICATION</div>
+    </div>
+    <div class="fsec-body full">
+      <div class="field">
+        <label>ROOT CAUSE FOR IDENTIFIED FAULT</label>
+        <textarea id="f-rootcause" placeholder="Describe root cause in detail..."></textarea>
+      </div>
+      <div class="field">
+        <label>RECTIFICATION WORK DETAILS</label>
+        <textarea id="f-rectdetails" placeholder="Work carried out to restore supply..."></textarea>
+      </div>
+    </div>
+    <div class="fsec-body">
+      <div class="field">
+        <label>RECTIFIED DATE & TIME</label>
+        <input type="datetime-local" id="f-recttime"/>
+      </div>
+      <div class="field">
+        <label>FPI ACTED LOCATION & NUMBER</label>
+        <input type="text" id="f-fpi" placeholder="e.g. Pole No. 42, FPI-3"/>
+      </div>
+      <div class="field">
+        <label>LC TAKEN FROM</label>
+        <input type="text" id="f-lctaken" placeholder="Control Room / Field Engineer"/>
+      </div>
+      <div class="field">
+        <label>LC COMPLETED</label>
+        <input type="datetime-local" id="f-lccompleted"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMIT -->
+  <div class="fsec" style="margin-bottom:0">
+    <div id="submit-bar">
+      <button class="btn-clear" onclick="clearForm()">✕ CLEAR FORM</button>
+      <button class="btn-submit" onclick="submitEntry()">⚡ LOG BREAKDOWN ENTRY</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- LOG TABLE -->
+<div id="log-wrap">
+  <div class="log-hd">
+    <div class="log-hd-title">// RECENT ENTRIES</div>
+    <div class="log-hd-cnt" id="log-cnt">0</div>
+    <button class="log-clear-btn" onclick="clearAllLogs()">✕ CLEAR ALL</button>
+  </div>
+  <div class="log-table-wrap">
+    <table id="log-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>SUBSTATION</th>
+          <th>FEEDER</th>
+          <th>TYPE</th>
+          <th>FAULT</th>
+          <th>FAILURE TIME</th>
+          <th>DURATION</th>
+          <th>WEATHER</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="log-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ── Auto-calc duration ──
+function calcDuration(){
+  const ft = document.getElementById('f-failtime').value;
+  const rt = document.getElementById('f-restoretime').value;
+  if(ft && rt){
+    const diff = Math.round((new Date(rt)-new Date(ft))/60000);
+    if(diff > 0){
+      const h = Math.floor(diff/60), m = diff%60;
+      document.getElementById('f-duration').value = `${h}h ${m}m`;
+    } else {
+      document.getElementById('f-duration').value = 'Invalid (restore before failure)';
+    }
+  }
+}
+document.getElementById('f-failtime').addEventListener('change', calcDuration);
+document.getElementById('f-restoretime').addEventListener('change', calcDuration);
+
+// ── Radio selector ──
+function selectRadio(el, groupId){
+  document.querySelectorAll('#'+groupId+' .radio-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── Set default datetime ──
+function setDefaultTime(){
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset()*60000);
+  const str = local.toISOString().slice(0,16);
+  document.getElementById('f-failtime').value = str;
+}
+setDefaultTime();
+
+// ── Submit entry ──
+function submitEntry(){
+  const ss = document.getElementById('f-ss').value;
+  const feeder = document.getElementById('f-feeder').value;
+  const failtime = document.getElementById('f-failtime').value;
+  const outageType = document.querySelector('input[name="outage-type"]:checked')?.value || '';
+
+  if(!ss){ alert('Please select a Substation'); return; }
+  if(!feeder){ alert('Please select a Feeder'); return; }
+  if(!failtime){ alert('Please enter Failure Date & Time'); return; }
+  if(!outageType){ alert('Please select Type of Outage'); return; }
+
+  const entry = {
+    id: Date.now(),
+    ss, feeder,
+    eht: document.getElementById('f-eht').value,
+    division: document.getElementById('f-division').value,
+    subdivision: document.getElementById('f-subdivision').value,
+    section: document.getElementById('f-section').value,
+    outageType,
+    relay: document.getElementById('f-relay').value,
+    fault: document.getElementById('f-fault').value,
+    faultNature: document.querySelector('input[name="fault-nature"]:checked')?.value || '',
+    weather: document.getElementById('f-weather').value,
+    person: document.getElementById('f-person').value,
+    altEHT: document.getElementById('f-alteht').value,
+    altFeeder: document.getElementById('f-altfeeder').value,
+    failtime,
+    restoretime: document.getElementById('f-restoretime').value,
+    duration: document.getElementById('f-duration').value,
+    rootcause: document.getElementById('f-rootcause').value,
+    rectdetails: document.getElementById('f-rectdetails').value,
+    recttime: document.getElementById('f-recttime').value,
+    fpi: document.getElementById('f-fpi').value,
+    lctaken: document.getElementById('f-lctaken').value,
+    lccompleted: document.getElementById('f-lccompleted').value,
+  };
+
+  // Save to localStorage
+  const logs = JSON.parse(localStorage.getItem('breakdown_logs') || '[]');
+  logs.unshift(entry);
+  localStorage.setItem('breakdown_logs', JSON.stringify(logs));
+
+  // Update feeder status on dashboard
+  localStorage.setItem('feeder_status_'+feeder, 'breakdown');
+
+  // Show success
+  const msg = document.getElementById('success-msg');
+  msg.classList.add('show');
+  setTimeout(()=>msg.classList.remove('show'), 2500);
+
+  clearForm();
+  renderLogs();
+}
+
+function clearForm(){
+  document.getElementById('f-ss').value = '';
+  document.getElementById('f-feeder').value = '';
+  document.getElementById('f-eht').value = '';
+  document.getElementById('f-relay').value = '';
+  document.getElementById('f-fault').value = '';
+  document.getElementById('f-person').value = '';
+  document.getElementById('f-alteht').value = '';
+  document.getElementById('f-altfeeder').value = '';
+  document.getElementById('f-restoretime').value = '';
+  document.getElementById('f-duration').value = '';
+  document.getElementById('f-rootcause').value = '';
+  document.getElementById('f-rectdetails').value = '';
+  document.getElementById('f-recttime').value = '';
+  document.getElementById('f-fpi').value = '';
+  document.getElementById('f-lctaken').value = '';
+  document.getElementById('f-lccompleted').value = '';
+  document.querySelectorAll('.radio-opt').forEach(o=>o.classList.remove('selected'));
+  document.querySelectorAll('input[type=radio]').forEach(r=>r.checked=false);
+  setDefaultTime();
+}
+
+function clearAllLogs(){
+  if(confirm('Clear all log entries?')){
+    localStorage.removeItem('breakdown_logs');
+    renderLogs();
+  }
+}
+
+function deleteEntry(id){
+  let logs = JSON.parse(localStorage.getItem('breakdown_logs') || '[]');
+  logs = logs.filter(l => l.id !== id);
+  localStorage.setItem('breakdown_logs', JSON.stringify(logs));
+  renderLogs();
+}
+
+function renderLogs(){
+  const logs = JSON.parse(localStorage.getItem('breakdown_logs') || '[]');
+  const body = document.getElementById('log-body');
+  document.getElementById('log-cnt').textContent = logs.length;
+
+  if(logs.length === 0){
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:20px;color:rgba(200,223,240,0.2);font-family:var(--mono);font-size:10px">NO ENTRIES YET</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = logs.map((l,i) => {
+    const ft = l.failtime ? new Date(l.failtime).toLocaleString('en-IN',{hour12:false}) : '—';
+    const typeClass = l.outageType==='Breakdown'?'breakdown':l.outageType==='Planned'?'planned':'emergency';
+    return `<tr>
+      <td style="font-family:var(--mono);color:rgba(200,223,240,0.3)">${logs.length-i}</td>
+      <td class="td-ss">${l.ss.replace('33/11 KV ','').replace('33/11KV ','')}</td>
+      <td style="font-family:var(--mono);font-size:10px;color:rgba(0,229,255,0.6)">${l.feeder}</td>
+      <td><span class="badge badge-${typeClass}">${l.outageType||'—'}</span></td>
+      <td>${l.fault||'—'}</td>
+      <td style="font-family:var(--mono);font-size:10px">${ft}</td>
+      <td style="font-family:var(--mono);font-size:10px;color:${l.duration?'var(--trip)':'rgba(200,223,240,0.3)'}">${l.duration||'—'}</td>
+      <td>${l.weather||'—'}</td>
+      <td><button class="del-btn" onclick="deleteEntry(${l.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+renderLogs();
+</script>
+</body>
+</html>
