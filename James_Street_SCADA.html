@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>TGSPDCL — James Street Network SCADA</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06101e;--navy:#0d1b2a;--panel:rgba(10,24,42,0.96);
+  --live:#00e5ff;--ok:#00e676;--fault:#ff1744;--idle:#607d8b;--trip:#ffab00;
+  --border:rgba(0,229,255,0.14);--text:#b0cce0;
+  --mono:'Share Tech Mono',monospace;--head:'Orbitron',sans-serif;--body:'Rajdhani',sans-serif;
+}
+html,body{width:100%;min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--body);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);
+  background-size:44px 44px;pointer-events:none}
+
+/* NAV */
+#nav{position:sticky;top:0;z-index:1000;height:54px;
+  background:rgba(6,16,30,0.98);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(20px);display:flex;align-items:stretch;
+  box-shadow:0 2px 20px rgba(0,0,0,.5)}
+.nav-brand{display:flex;align-items:center;gap:10px;padding:0 20px;
+  border-right:1px solid var(--border);flex-shrink:0}
+.nav-logo{font-family:var(--head);font-size:13px;font-weight:900;color:var(--live);letter-spacing:3px}
+.nav-sub{font-size:9px;color:rgba(176,204,224,.35);font-family:var(--mono);letter-spacing:1px}
+.nav-tabs{display:flex;flex:1;align-items:stretch}
+.nav-tab{display:flex;align-items:center;gap:8px;padding:0 22px;
+  font-family:var(--body);font-size:12px;font-weight:600;
+  color:rgba(176,204,224,.5);cursor:pointer;border:none;background:none;
+  border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
+.nav-tab:hover{color:var(--live);background:rgba(0,229,255,.04)}
+.nav-tab.active{color:var(--live);border-bottom-color:var(--live)}
+.nav-tab .ti{font-size:16px}
+.nav-right{display:flex;align-items:center;gap:10px;padding:0 16px;margin-left:auto;border-left:1px solid var(--border)}
+.nav-clock{font-family:var(--mono);font-size:11px;color:var(--live)}
+.nav-chip{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;
+  padding:3px 10px;border-radius:20px;border:1px solid;display:flex;align-items:center;gap:5px}
+.chip-live{color:var(--ok);border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.08)}
+.chip-fault{color:var(--fault);border-color:rgba(255,23,68,.3);background:rgba(255,23,68,.08);animation:blink .7s infinite}
+@keyframes blink{50%{opacity:.25}}
+
+/* SECTIONS */
+.sec{display:none;position:relative;z-index:1}
+.sec.active{display:block}
+#sec-map.active{display:flex;height:calc(100vh - 54px)}
+
+/* ── LIVE DASHBOARD ── */
+#sec-live{padding:20px 24px 48px}
+.sum-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;max-width:920px}
+.sum-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px 18px;position:relative;overflow:hidden}
+.sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.s-total::before{background:var(--live)}.s-live::before{background:var(--ok)}
+.s-fault::before{background:var(--fault)}.s-idle::before{background:var(--idle)}
+.sum-lbl{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:rgba(176,204,224,.35);margin-bottom:4px}
+.sum-val{font-family:var(--head);font-size:28px;font-weight:900;line-height:1}
+.s-total .sum-val{color:var(--live)}.s-live .sum-val{color:var(--ok)}
+.s-fault .sum-val{color:var(--fault)}.s-idle .sum-val{color:var(--idle)}
+.sum-sub{font-size:9px;color:rgba(176,204,224,.25);font-family:var(--mono);margin-top:2px}
+.sec-lbl{font-family:var(--mono);font-size:8px;letter-spacing:3px;color:rgba(0,229,255,.35);
+  display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
+.feeder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;max-width:1400px}
+.fc{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:all .2s}
+.fc:hover{border-color:rgba(0,229,255,.28);box-shadow:0 0 14px rgba(0,229,255,.06)}
+.fc-top{padding:10px 12px 8px;border-bottom:1px solid rgba(0,229,255,.05)}
+.fc-head{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.fc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+.fc-dot.live{color:var(--ok);background:var(--ok)}
+.fc-dot.breakdown{color:var(--fault);background:var(--fault);animation:blink .7s infinite}
+.fc-dot.idle{color:var(--idle);background:var(--idle)}
+.fc-name{font-size:11px;font-weight:700;color:#d0e8f8;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fc-badge{font-family:var(--mono);font-size:7px;letter-spacing:.8px;padding:1px 6px;border-radius:9px;font-weight:700;flex-shrink:0}
+.fc-badge.live{color:var(--ok);background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.22)}
+.fc-badge.breakdown{color:var(--fault);background:rgba(255,23,68,.1);border:1px solid rgba(255,23,68,.22);animation:blink .7s infinite}
+.fc-badge.idle{color:var(--idle);background:rgba(96,125,139,.1);border:1px solid rgba(96,125,139,.22)}
+.fc-meta{font-family:var(--mono);font-size:8px;color:rgba(176,204,224,.28);padding-left:16px}
+.fc-body{padding:8px 12px}
+.fc-row{display:flex;justify-content:space-between;margin-bottom:3px}
+.fc-k{font-size:9px;color:rgba(176,204,224,.3)}
+.fc-v{font-size:9px;color:rgba(176,204,224,.65);font-family:var(--mono)}
+.fc-bar{height:3px;border-radius:2px;margin-top:6px;transition:all .4s}
+.fc-bar.live{background:linear-gradient(90deg,var(--ok),rgba(0,230,118,.2))}
+.fc-bar.breakdown{background:var(--fault);animation:blink .7s infinite}
+.fc-bar.idle{background:var(--idle);opacity:.35}
+
+/* Log table (shared) */
+.log-tbl-wrap{overflow-x:auto;margin-top:8px}
+.ltbl{width:100%;border-collapse:collapse;font-size:11px}
+.ltbl thead tr{background:rgba(0,229,255,.04);border-bottom:1px solid var(--border)}
+.ltbl th{padding:7px 10px;text-align:left;font-family:var(--mono);font-size:7px;letter-spacing:1.5px;color:rgba(0,229,255,.4);font-weight:400;white-space:nowrap}
+.ltbl tbody tr{border-bottom:1px solid rgba(0,229,255,.04);transition:background .15s}
+.ltbl tbody tr:hover{background:rgba(0,229,255,.025)}
+.ltbl td{padding:7px 10px;color:#8fb8d8;vertical-align:top}
+.td-fn{font-weight:700;color:#c8dff0;font-family:var(--mono);font-size:9px}
+.lbg{font-family:var(--mono);font-size:7px;letter-spacing:.8px;padding:1px 6px;border-radius:8px;font-weight:700}
+.lbg-bd{color:var(--fault);background:rgba(255,23,68,.1);border:1px solid rgba(255,23,68,.22)}
+.lbg-pl{color:var(--ok);background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.18)}
+.lbg-em{color:var(--trip);background:rgba(255,171,0,.08);border:1px solid rgba(255,171,0,.18)}
+.log-strip-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px;margin-top:26px}
+.map-link-btn{display:inline-flex;align-items:center;gap:5px;margin-left:auto;
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;
+  padding:5px 13px;border-radius:5px;border:1px solid var(--border);
+  background:rgba(0,229,255,.05);color:var(--live);text-decoration:none;transition:all .2s}
+.map-link-btn:hover{background:rgba(0,229,255,.12);border-color:rgba(0,229,255,.35)}
+.log-cnt{font-family:var(--mono);font-size:8px;color:var(--live);background:rgba(0,229,255,.1);padding:1px 8px;border-radius:10px}
+
+/* ── ENTRY FORM ── */
+#sec-entry{max-width:860px;margin:0 auto;padding:22px 24px 60px}
+.fsec{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:15px;overflow:hidden}
+.fsec-hd{padding:10px 18px;background:rgba(0,229,255,.025);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px}
+.fsec-num{font-family:var(--mono);font-size:7px;color:rgba(0,229,255,.35);background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.12);padding:2px 7px;border-radius:3px;letter-spacing:1px}
+.fsec-title{font-family:var(--head);font-size:10px;font-weight:700;color:var(--live);letter-spacing:2px}
+.fsec-body{padding:15px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:11px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-family:var(--mono);font-size:7px;letter-spacing:2px;color:rgba(0,229,255,.42)}
+.req{color:var(--fault);margin-left:2px}
+.field input,.field select,.field textarea{
+  background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.13);
+  border-radius:5px;padding:8px 10px;color:#d0e8f8;font-family:var(--body);font-size:13px;
+  outline:none;transition:all .2s;width:100%}
+.field input[type=datetime-local]{color-scheme:dark}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--live);background:rgba(0,229,255,.07)}
+.field select option{background:#06101e;color:#d0e8f8}
+.field textarea{resize:vertical;min-height:68px}
+.radio-grp{display:flex;flex-wrap:wrap;gap:7px;padding:0 18px 15px}
+.ro{display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:5px;cursor:pointer;
+  border:1px solid rgba(0,229,255,.11);background:rgba(0,229,255,.025);transition:all .18s}
+.ro:hover{border-color:rgba(0,229,255,.26)}
+.ro input{accent-color:var(--live);width:13px;height:13px}
+.ro span{font-family:var(--body);font-size:12px;color:#9fbdd8}
+.ro.sel{border-color:var(--live);background:rgba(0,229,255,.1)}
+.ro.sel span{color:var(--live);font-weight:600}
+.ro.sel-fault{border-color:var(--fault);background:rgba(255,23,68,.07)}
+.ro.sel-fault span{color:var(--fault);font-weight:600}
+.ro.sel-trip{border-color:var(--trip);background:rgba(255,171,0,.07)}
+.ro.sel-trip span{color:var(--trip);font-weight:600}
+.sub-bar{display:flex;gap:9px;padding:14px 18px;border-top:1px solid var(--border)}
+.btn-sub{flex:1;padding:11px;border-radius:6px;font-family:var(--head);font-size:10px;font-weight:700;
+  letter-spacing:2px;cursor:pointer;border:1px solid rgba(0,229,255,.28);
+  background:linear-gradient(135deg,rgba(0,90,150,.5),rgba(0,130,190,.3));color:var(--live);transition:all .2s}
+.btn-sub:hover{background:linear-gradient(135deg,rgba(0,130,190,.5),rgba(0,170,220,.3))}
+.btn-rst{padding:11px 18px;border-radius:6px;font-family:var(--mono);font-size:9px;letter-spacing:1px;
+  cursor:pointer;border:1px solid rgba(0,230,118,.22);background:rgba(0,230,118,.05);color:var(--ok);transition:all .2s}
+.btn-rst:hover{background:rgba(0,230,118,.12)}
+.btn-clr{padding:11px 16px;border-radius:6px;font-family:var(--mono);font-size:9px;
+  cursor:pointer;border:1px solid rgba(255,255,255,.07);background:transparent;color:rgba(176,204,224,.3);transition:all .2s}
+.btn-clr:hover{color:var(--fault);border-color:rgba(255,23,68,.22)}
+.rl-hd{display:flex;align-items:center;gap:8px;margin:20px 0 10px}
+.rl-lbl{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:rgba(0,229,255,.35)}
+.rl-clr{font-family:var(--mono);font-size:7px;color:rgba(255,23,68,.35);cursor:pointer;
+  padding:2px 7px;border-radius:3px;border:1px solid rgba(255,23,68,.14);background:none;
+  margin-left:auto;transition:all .2s}
+.rl-clr:hover{color:var(--fault);border-color:rgba(255,23,68,.4)}
+.sf{position:fixed;top:70px;left:50%;transform:translateX(-50%);
+  background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.32);
+  border-radius:7px;padding:11px 24px;font-family:var(--mono);font-size:11px;
+  color:var(--ok);z-index:9999;display:none;letter-spacing:1px}
+.sf.show{display:block}
+
+/* ── MAP ── */
+#sec-map{position:relative}
+#map-frame{flex:1;border:none;display:block;min-height:calc(100vh - 54px)}
+.mo{position:absolute;top:10px;left:10px;z-index:100;
+  background:rgba(6,16,30,.93);border:1px solid var(--border);
+  border-radius:8px;padding:11px 14px;backdrop-filter:blur(14px);
+  max-height:calc(100vh - 120px);overflow-y:auto;min-width:210px}
+.mo::-webkit-scrollbar{width:3px}
+.mo::-webkit-scrollbar-thumb{background:rgba(0,229,255,.2);border-radius:2px}
+.mo-lbl{font-family:var(--mono);font-size:7px;letter-spacing:2px;color:rgba(0,229,255,.4);margin-bottom:8px}
+.mo-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid rgba(0,229,255,.05);font-size:10px}
+.mo-row:last-child{border-bottom:none}
+.mo-d{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.mo-d.live{background:var(--ok)}.mo-d.breakdown{background:var(--fault);animation:blink .7s infinite}.mo-d.idle{background:var(--idle)}
+.mo-n{color:#8fb8d8;flex:1;font-family:var(--mono);font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo-s{font-family:var(--mono);font-size:7px;font-weight:700}
+.mo-s.live{color:var(--ok)}.mo-s.breakdown{color:var(--fault)}.mo-s.idle{color:var(--idle)}
+
+/* Toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);z-index:9999;
+  background:rgba(6,16,30,.97);border:1px solid var(--border);border-radius:7px;
+  padding:9px 20px;font-family:var(--mono);font-size:10px;color:var(--live);
+  opacity:0;pointer-events:none;transition:all .28s;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:rgba(0,229,255,.18);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="sf" id="sf">✓ BREAKDOWN LOGGED — Feeder status updated on dashboard & map</div>
+
+<div id="nav">
+  <div class="nav-brand">
+    <div>
+      <div class="nav-logo">TGSPDCL</div>
+      <div class="nav-sub">JAMES STREET · 33KV NETWORK SCADA</div>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-live" onclick="showTab('live')">
+      <span class="ti">📡</span>
+      <div><b>Live Status</b><br><small style="font-size:9px;opacity:.45;font-family:var(--mono)">NETWORK DASHBOARD</small></div>
+    </button>
+    <button class="nav-tab" id="tab-entry" onclick="showTab('entry')">
+      <span class="ti">⚡</span>
+      <div><b>Log Breakdown</b><br><small style="font-size:9px;opacity:.45;font-family:var(--mono)">OUTAGE ENTRY FORM</small></div>
+    </button>
+    <button class="nav-tab" id="tab-map" onclick="showTab('map')">
+      <span class="ti">🗺</span>
+      <div><b>GIS Feeder Map</b><br><small style="font-size:9px;opacity:.45;font-family:var(--mono)">LIVE FEEDER MAP</small></div>
+    </button>
+  </div>
+  <div class="nav-right">
+    <div class="nav-clock" id="nav-clock"></div>
+    <div class="nav-chip chip-live" id="sys-chip">● ALL LIVE</div>
+  </div>
+</div>
+
+<!-- ══ LIVE DASHBOARD ══ -->
+<div class="sec active" id="sec-live">
+  <div style="padding:20px 24px 48px">
+    <div class="sum-bar">
+      <div class="sum-card s-total"><div class="sum-lbl">TOTAL FEEDERS</div><div class="sum-val">15</div><div class="sum-sub">James Street Sub-Div</div></div>
+      <div class="sum-card s-live"><div class="sum-lbl">LIVE</div><div class="sum-val" id="sum-live">—</div><div class="sum-sub">Normal operation</div></div>
+      <div class="sum-card s-fault"><div class="sum-lbl">BREAKDOWN</div><div class="sum-val" id="sum-fault">—</div><div class="sum-sub">Requires attention</div></div>
+      <div class="sum-card s-idle"><div class="sum-lbl">IDLE</div><div class="sum-val" id="sum-idle">—</div><div class="sum-sub">Offline / Scheduled</div></div>
+    </div>
+    <div class="sec-lbl">// 33KV FEEDER STATUS — JAMES STREET SECTION</div>
+    <div class="feeder-grid" id="feeder-grid"></div>
+    <div class="log-strip-hd">
+      <div class="sec-lbl" style="margin:0">// RECENT BREAKDOWN LOG</div>
+      <div class="log-cnt" id="dash-log-cnt">0</div>
+      <a href="index.html" target="_blank" class="map-link-btn">🗺 Open Full GIS Map →</a>
+    </div>
+    <div class="log-tbl-wrap">
+      <table class="ltbl">
+        <thead><tr><th>#</th><th>FEEDER</th><th>SUBSTATION</th><th>TYPE</th><th>EHT SOURCE</th><th>FAILURE TIME</th><th>DURATION</th><th>CURRENT STATUS</th></tr></thead>
+        <tbody id="dash-log-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ENTRY FORM ══ -->
+<div class="sec" id="sec-entry">
+  <!-- 01 FEEDER SELECTION -->
+  <div class="fsec">
+    <div class="fsec-hd"><div class="fsec-num">01</div><div class="fsec-title">FEEDER & LOCATION</div></div>
+    <div class="fsec-body">
+      <div class="field">
+        <label>33KV FEEDER <span class="req">*</span></label>
+        <select id="f-feeder" onchange="autoFill()">
+          <option value="">— Select Feeder —</option>
+          <optgroup label="GUNROCK Source">
+            <option>GUNROCK → JAMESSTREET</option>
+            <option>GUNROCK → KIMS</option>
+          </optgroup>
+          <optgroup label="PATIGADDA Source">
+            <option>PATIGADDA → JAMES STREET</option>
+            <option>PATIGADDA → KIMS</option>
+            <option>PATIGADDA → MONDAMARKET</option>
+            <option>PATIGADDA → PATIGADDA</option>
+            <option>PATIGADDA → BANSILALPET</option>
+            <option>PATIGADDA → PRAKASHNAGAR</option>
+            <option>PATIGADDA → SANJEEVAIAH PARK</option>
+          </optgroup>
+          <optgroup label="CHILKALGUDA Source">
+            <option>CHILKALGUDA → PATIGADDA</option>
+            <option>CHILKALGUDA → CLOCK TOWER</option>
+          </optgroup>
+          <optgroup label="Others">
+            <option>KIMS → JAMESSTREET</option>
+            <option>MONDAMARKET → CLOCKTOWER</option>
+            <option>CLOCKTOWER → NEHRUNAGAR</option>
+            <option>SEETHAPHALMANDI → MONDAMARKET</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>AFFECTED SUBSTATION</label>
+        <select id="f-ss">
+          <option value="">— Auto-filled —</option>
+          <option>33/11KV JAMES STREET SS</option><option>33/11KV PATIGADDA SS</option>
+          <option>33/11KV SANJEEVAIAH PARK SS</option><option>33/11KV KIMS SS</option>
+          <option>33/11KV BANSILALPET SS</option><option>33/11KV CLOCK TOWER SS</option>
+          <option>33/11KV MONDA MARKET SS</option><option>33/11KV NEHRU NAGAR SS</option>
+          <option>33/11KV MARREDPALLY SS</option><option>33/11KV GYMKHANA SS</option>
+          <option>33/11KV GUNROCK SS</option><option>33/11KV BOWENPALLY SS</option>
+          <option>33/11KV CHILKALGUDA SS</option><option>33/11KV SEETHAPHALMANDI SS</option>
+          <option>33/11KV PRAKASHNAGAR SS</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>EHT SOURCE SUBSTATION <span class="req">*</span></label>
+        <select id="f-eht">
+          <option value="">— Auto-filled —</option>
+          <option>132 KV GUNROCK SS</option><option>132 KV PATIGADDA SS</option>
+          <option>132 KV CHILKALGUDA SS</option><option>132 KV IDPL SS</option>
+          <option>132 KV ERRAGADDA SS</option><option>132 KV HUSSAINSAGAR SS</option>
+          <option>132 KV BALKAMPET SS</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>LINES SECTION</label>
+        <select id="f-section">
+          <option>James Street</option><option>Bansilalpet</option>
+          <option>Clock Tower</option><option>Nehrunagar</option>
+          <option>Bowenpally</option><option>Seethaphalmandi</option>
+          <option>Chilkalguda</option><option>Lalaguda</option>
+          <option>Monda Market</option><option>Patigadda</option>
+          <option>KIMS</option><option>Sanjeevaiah Park</option>
+          <option>Prakashnagar</option><option>Tirumalagiri</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 OUTAGE DETAILS -->
+  <div class="fsec">
+    <div class="fsec-hd"><div class="fsec-num">02</div><div class="fsec-title">OUTAGE DETAILS</div></div>
+    <div class="radio-grp" id="rg-type">
+      <label class="ro" onclick="selR(this,'rg-type','sel-fault')"><input type="radio" name="otype" value="Breakdown"><span>🔴 Breakdown</span></label>
+      <label class="ro" onclick="selR(this,'rg-type','sel')"><input type="radio" name="otype" value="Planned"><span>✅ Planned</span></label>
+      <label class="ro" onclick="selR(this,'rg-type','sel-trip')"><input type="radio" name="otype" value="Emergency"><span>⚠ Emergency</span></label>
+      <label class="ro" onclick="selR(this,'rg-type','sel')"><input type="radio" name="otype" value="Tripping"><span>Tripping</span></label>
+    </div>
+    <div class="fsec-body">
+      <div class="field"><label>FAILURE DATE & TIME <span class="req">*</span></label><input type="datetime-local" id="f-ft" onchange="calcDur()"/></div>
+      <div class="field"><label>AGENCY</label>
+        <select id="f-agency"><option>TRANSCO</option><option>33KV Substation</option><option>Lines Section</option><option>DISCOM Control Room</option></select></div>
+      <div class="field"><label>RELAY INDICATION</label>
+        <select id="f-relay"><option value="">— None —</option><option>OC (Over Current)</option><option>EF (Earth Fault)</option><option>OC + EF</option><option>Distance Relay</option><option>Under Voltage</option><option>Over Voltage</option><option>Buchholz</option><option>No Relay</option></select></div>
+      <div class="field"><label>IDENTIFIED FAULT</label>
+        <select id="f-fault"><option value="">— Select —</option><option>Cable Fault</option><option>Overhead Line Fault</option><option>Equipment Failure</option><option>Tree Falling</option><option>Bird / Animal Contact</option><option>Transformer Failure</option><option>AB Switch Failure</option><option>No Fault Found</option><option>Under Investigation</option></select></div>
+      <div class="field"><label>WEATHER</label>
+        <select id="f-weather"><option>Clear</option><option>Rainy</option><option>Thunderstorm</option><option>High Wind</option><option>Foggy</option><option>Hot / Dry</option></select></div>
+      <div class="field"><label>FPI LOCATION & NUMBER</label><input type="text" id="f-fpi" placeholder="e.g. Pole No. 42, FPI-3"/></div>
+    </div>
+  </div>
+
+  <!-- 03 RESTORATION -->
+  <div class="fsec">
+    <div class="fsec-hd"><div class="fsec-num">03</div><div class="fsec-title">RESTORATION & ROOT CAUSE</div></div>
+    <div class="fsec-body">
+      <div class="field"><label>RESTORATION DATE & TIME</label><input type="datetime-local" id="f-rt" onchange="calcDur()"/></div>
+      <div class="field"><label>DURATION (auto)</label><input type="text" id="f-dur" readonly style="opacity:.55"/></div>
+      <div class="field"><label>ALTERNATIVE FEEDER</label>
+        <select id="f-alt"><option value="">— None —</option><option>GUNROCK → JAMESSTREET</option><option>GUNROCK → KIMS</option><option>PATIGADDA → JAMES STREET</option><option>CHILKALGUDA → PATIGADDA</option><option>CHILKALGUDA → CLOCK TOWER</option><option>KIMS → JAMESSTREET</option></select></div>
+      <div class="field"><label>ROOT CAUSE</label><input type="text" id="f-rc" placeholder="Brief root cause..."/></div>
+    </div>
+    <div class="sub-bar">
+      <button class="btn-clr" onclick="clearForm()">✕ Clear</button>
+      <button class="btn-rst" onclick="submitRestore()">✓ Mark Restored</button>
+      <button class="btn-sub" onclick="submitBreakdown()">⚡ LOG BREAKDOWN</button>
+    </div>
+  </div>
+
+  <!-- RECENT ENTRIES -->
+  <div class="rl-hd">
+    <div class="rl-lbl">// RECENT ENTRIES</div>
+    <div class="log-cnt" id="rl-cnt">0</div>
+    <button class="rl-clr" onclick="clearLogs()">✕ Clear All</button>
+  </div>
+  <div class="log-tbl-wrap">
+    <table class="ltbl">
+      <thead><tr><th>#</th><th>FEEDER</th><th>TYPE</th><th>EHT</th><th>FAILURE TIME</th><th>DURATION</th><th>STATUS</th><th></th></tr></thead>
+      <tbody id="rl-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ MAP ══ -->
+<div class="sec" id="sec-map">
+  <div class="mo" id="mo">
+    <div class="mo-lbl">// FEEDER STATUS</div>
+    <div id="mo-list"></div>
+  </div>
+  <iframe id="map-frame" src="" title="James Street GIS Map" style="flex:1;border:none"></iframe>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── FEEDER DATA ──
+const FD = [
+  {n:'GUNROCK → JAMESSTREET',      e:'132 KV GUNROCK SS',     c:'UG', s:'33/11KV JAMES STREET SS'},
+  {n:'GUNROCK → KIMS',             e:'132 KV GUNROCK SS',     c:'UG', s:'33/11KV KIMS SS'},
+  {n:'PATIGADDA → JAMES STREET',   e:'132 KV PATIGADDA SS',   c:'UG', s:'33/11KV JAMES STREET SS'},
+  {n:'PATIGADDA → KIMS',           e:'132 KV PATIGADDA SS',   c:'UG', s:'33/11KV KIMS SS'},
+  {n:'PATIGADDA → MONDAMARKET',    e:'132 KV PATIGADDA SS',   c:'OH', s:'33/11KV MONDA MARKET SS'},
+  {n:'PATIGADDA → PATIGADDA',      e:'132 KV PATIGADDA SS',   c:'UG', s:'33/11KV PATIGADDA SS'},
+  {n:'PATIGADDA → BANSILALPET',    e:'132 KV PATIGADDA SS',   c:'UG', s:'33/11KV BANSILALPET SS'},
+  {n:'PATIGADDA → PRAKASHNAGAR',   e:'132 KV PATIGADDA SS',   c:'UG', s:'33/11KV PRAKASHNAGAR SS'},
+  {n:'PATIGADDA → SANJEEVAIAH PARK',e:'132 KV PATIGADDA SS',  c:'OH', s:'33/11KV SANJEEVAIAH PARK SS'},
+  {n:'CHILKALGUDA → PATIGADDA',    e:'132 KV CHILKALGUDA SS', c:'UG', s:'33/11KV PATIGADDA SS'},
+  {n:'CHILKALGUDA → CLOCK TOWER',  e:'132 KV CHILKALGUDA SS', c:'UG', s:'33/11KV CLOCK TOWER SS'},
+  {n:'KIMS → JAMESSTREET',         e:'132 KV GUNROCK SS',     c:'UG', s:'33/11KV JAMES STREET SS'},
+  {n:'MONDAMARKET → CLOCKTOWER',   e:'132 KV PATIGADDA SS',   c:'OH', s:'33/11KV CLOCK TOWER SS'},
+  {n:'CLOCKTOWER → NEHRUNAGAR',    e:'132 KV CHILKALGUDA SS', c:'OH', s:'33/11KV NEHRU NAGAR SS'},
+  {n:'SEETHAPHALMANDI → MONDAMARKET',e:'132 KV CHILKALGUDA SS',c:'OH',s:'33/11KV MONDA MARKET SS'},
+];
+
+const KEY = n => 'jss_f_'+n;
+function getS(n){ return localStorage.getItem(KEY(n))||'live'; }
+function setS(n,v){ localStorage.setItem(KEY(n),v); }
+function getLogs(){ return JSON.parse(localStorage.getItem('jss_logs')||'[]'); }
+function saveLogs(l){ localStorage.setItem('jss_logs',JSON.stringify(l)); }
+
+// ── TABS ──
+let mapLoaded=false;
+function showTab(id){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='live') renderDash();
+  if(id==='map'){ renderMO(); if(!mapLoaded){ document.getElementById('map-frame').src='index.html'; mapLoaded=true; } }
+  if(id==='entry') renderRL();
+}
+
+// ── DASHBOARD ──
+function renderDash(){
+  let live=0,fault=0,idle=0;
+  document.getElementById('feeder-grid').innerHTML = FD.map(f=>{
+    const st=getS(f.n);
+    if(st==='breakdown') fault++; else if(st==='idle') idle++; else live++;
+    const logs=getLogs().filter(l=>l.f===f.n);
+    const last=logs[0];
+    return `<div class="fc">
+      <div class="fc-top">
+        <div class="fc-head">
+          <div class="fc-dot ${st}"></div>
+          <div class="fc-name">${f.n}</div>
+          <div class="fc-badge ${st}">${st.toUpperCase()}</div>
+        </div>
+        <div class="fc-meta">${f.e} · ${f.c}</div>
+      </div>
+      <div class="fc-body">
+        <div class="fc-row"><span class="fc-k">SS</span><span class="fc-v">${f.s.replace('33/11KV ','')}</span></div>
+        ${last?`<div class="fc-row"><span class="fc-k">Last Event</span><span class="fc-v">${new Date(last.ft).toLocaleDateString('en-IN')}</span></div>
+        <div class="fc-row"><span class="fc-k">Fault</span><span class="fc-v">${last.fault||'—'}</span></div>
+        `:`<div class="fc-row"><span class="fc-k">No events logged</span><span class="fc-v"></span></div>`}
+        <div class="fc-bar ${st}"></div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('sum-live').textContent=live;
+  document.getElementById('sum-fault').textContent=fault;
+  document.getElementById('sum-idle').textContent=idle;
+  const chip=document.getElementById('sys-chip');
+  if(fault>0){chip.className='nav-chip chip-fault';chip.textContent=`⚠ ${fault} BREAKDOWN${fault>1?'S':''}`;}
+  else{chip.className='nav-chip chip-live';chip.textContent='● ALL LIVE';}
+  renderDashLog();
+}
+
+function renderDashLog(){
+  const logs=getLogs();
+  document.getElementById('dash-log-cnt').textContent=logs.length;
+  const body=document.getElementById('dash-log-body');
+  if(!logs.length){body.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:16px;font-family:var(--mono);font-size:9px;color:rgba(176,204,224,.18)">NO ENTRIES YET — Log a breakdown to see it here</td></tr>`;return;}
+  body.innerHTML=logs.slice(0,12).map((l,i)=>{
+    const st=getS(l.f);
+    const ft=l.ft?new Date(l.ft).toLocaleString('en-IN',{hour12:false,day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    const tc=l.ot==='Breakdown'?'lbg-bd':l.ot==='Planned'?'lbg-pl':'lbg-em';
+    const sc=st==='live'?'color:var(--ok)':st==='breakdown'?'color:var(--fault)':'color:var(--idle)';
+    return `<tr>
+      <td style="font-family:var(--mono);color:rgba(176,204,224,.25);font-size:8px">${logs.length-i}</td>
+      <td class="td-fn">${l.f}</td>
+      <td style="font-size:10px;color:#8fb8d8">${l.ss||'—'}</td>
+      <td><span class="lbg ${tc}">${l.ot||'—'}</span></td>
+      <td style="font-family:var(--mono);font-size:8px;color:rgba(0,229,255,.45)">${l.e||'—'}</td>
+      <td style="font-family:var(--mono);font-size:8px">${ft}</td>
+      <td style="font-family:var(--mono);font-size:8px;color:var(--trip)">${l.dur||'—'}</td>
+      <td style="font-family:var(--mono);font-size:8px;${sc}">${st.toUpperCase()}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── FORM ──
+function autoFill(){
+  const fn=document.getElementById('f-feeder').value;
+  const f=FD.find(x=>x.n===fn);
+  if(f){ document.getElementById('f-eht').value=f.e; document.getElementById('f-ss').value=f.s; }
+}
+function selR(el,grp,cls){
+  document.querySelectorAll('#'+grp+' .ro').forEach(o=>o.classList.remove('sel','sel-fault','sel-trip'));
+  el.classList.add(cls);
+}
+function calcDur(){
+  const ft=document.getElementById('f-ft').value, rt=document.getElementById('f-rt').value;
+  if(ft&&rt){ const d=Math.round((new Date(rt)-new Date(ft))/60000);
+    if(d>0) document.getElementById('f-dur').value=`${Math.floor(d/60)}h ${d%60}m`; }
+}
+function setDefTime(){
+  const now=new Date(), l=new Date(now-now.getTimezoneOffset()*60000);
+  document.getElementById('f-ft').value=l.toISOString().slice(0,16);
+}
+setDefTime();
+
+function submitBreakdown(){
+  const fn=document.getElementById('f-feeder').value;
+  const ft=document.getElementById('f-ft').value;
+  const ot=document.querySelector('input[name="otype"]:checked')?.value||'';
+  if(!fn){toast('⚠ Select a Feeder');return;}
+  if(!ft){toast('⚠ Enter Failure Date & Time');return;}
+  if(!ot){toast('⚠ Select Type of Outage');return;}
+  const entry={
+    id:Date.now(),f:fn,ss:document.getElementById('f-ss').value,
+    e:document.getElementById('f-eht').value,
+    section:document.getElementById('f-section').value,
+    agency:document.getElementById('f-agency').value,
+    relay:document.getElementById('f-relay').value,
+    fault:document.getElementById('f-fault').value,
+    weather:document.getElementById('f-weather').value,
+    fpi:document.getElementById('f-fpi').value,
+    ot,ft,rt:document.getElementById('f-rt').value,
+    dur:document.getElementById('f-dur').value,
+    alt:document.getElementById('f-alt').value,
+    rc:document.getElementById('f-rc').value,
+    status:'breakdown'
+  };
+  const logs=getLogs(); logs.unshift(entry); saveLogs(logs);
+  setS(fn,'breakdown');
+  const sf=document.getElementById('sf'); sf.classList.add('show');
+  setTimeout(()=>sf.classList.remove('show'),3000);
+  renderRL(); clearForm();
+  // Refresh map overlay if visible
+  if(document.getElementById('sec-map').classList.contains('active')) renderMO();
+}
+
+function submitRestore(){
+  const fn=document.getElementById('f-feeder').value;
+  if(!fn){toast('⚠ Select a Feeder to restore');return;}
+  setS(fn,'live');
+  const logs=getLogs();
+  const idx=logs.findIndex(l=>l.f===fn&&l.status==='breakdown');
+  if(idx>=0){
+    logs[idx].status='restored';
+    const rtVal=document.getElementById('f-rt').value;
+    if(rtVal) logs[idx].rt=rtVal;
+    calcDur(); logs[idx].dur=document.getElementById('f-dur').value;
+    saveLogs(logs);
+  }
+  toast(`✓ ${fn.split('→')[1]?.trim()||fn} — Restored to LIVE`);
+  renderRL();
+  if(document.getElementById('sec-live').classList.contains('active')) renderDash();
+  if(document.getElementById('sec-map').classList.contains('active')) renderMO();
+}
+
+function clearForm(){
+  ['f-feeder','f-ss','f-eht','f-relay','f-fault','f-fpi','f-rt','f-dur','f-alt','f-rc'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.querySelectorAll('#rg-type .ro').forEach(o=>o.classList.remove('sel','sel-fault','sel-trip'));
+  document.querySelectorAll('input[type=radio]').forEach(r=>r.checked=false);
+  setDefTime();
+}
+
+function clearLogs(){
+  if(!confirm('Clear all log entries? Feeder statuses will reset to LIVE.'))return;
+  localStorage.removeItem('jss_logs');
+  FD.forEach(f=>localStorage.removeItem(KEY(f.n)));
+  renderRL(); renderDash();
+  toast('All logs cleared — all feeders reset to LIVE');
+}
+
+function deleteLog(id){
+  saveLogs(getLogs().filter(l=>l.id!==id));
+  renderRL();
+}
+
+function renderRL(){
+  const logs=getLogs();
+  document.getElementById('rl-cnt').textContent=logs.length;
+  const body=document.getElementById('rl-body');
+  if(!logs.length){body.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:14px;font-family:var(--mono);font-size:9px;color:rgba(176,204,224,.18)">NO ENTRIES YET</td></tr>`;return;}
+  body.innerHTML=logs.map((l,i)=>{
+    const ft=l.ft?new Date(l.ft).toLocaleString('en-IN',{hour12:false,day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    const tc=l.ot==='Breakdown'?'lbg-bd':l.ot==='Planned'?'lbg-pl':'lbg-em';
+    const sc=l.status==='restored'?'color:var(--ok)':l.status==='breakdown'?'color:var(--fault)':'color:var(--idle)';
+    return `<tr>
+      <td style="font-family:var(--mono);color:rgba(176,204,224,.22);font-size:8px">${logs.length-i}</td>
+      <td class="td-fn">${l.f}</td>
+      <td><span class="lbg ${tc}">${l.ot||'—'}</span></td>
+      <td style="font-family:var(--mono);font-size:8px;color:rgba(0,229,255,.4)">${l.e||'—'}</td>
+      <td style="font-family:var(--mono);font-size:8px">${ft}</td>
+      <td style="font-family:var(--mono);font-size:8px;color:var(--trip)">${l.dur||'—'}</td>
+      <td style="font-family:var(--mono);font-size:8px;${sc}">${(l.status||'breakdown').toUpperCase()}</td>
+      <td><button onclick="deleteLog(${l.id})" style="background:none;border:none;color:rgba(255,23,68,.3);cursor:pointer;font-size:12px" title="Delete">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── MAP OVERLAY ──
+function renderMO(){
+  document.getElementById('mo-list').innerHTML=FD.map(f=>{
+    const st=getS(f.n);
+    const short=f.n.split('→')[1]?.trim()||f.n;
+    return `<div class="mo-row">
+      <div class="mo-d ${st}"></div>
+      <div class="mo-n">${short}</div>
+      <div class="mo-s ${st}">${st.toUpperCase()}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── CLOCK ──
+function clock(){
+  const n=new Date(),p=x=>String(x).padStart(2,'0');
+  document.getElementById('nav-clock').textContent=
+    p(n.getDate())+'/'+p(n.getMonth()+1)+'/'+n.getFullYear()+' '+p(n.getHours())+':'+p(n.getMinutes())+':'+p(n.getSeconds());
+}
+clock(); setInterval(clock,1000);
+
+// ── TOAST ──
+let _tt;
+function toast(msg){ const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2500); }
+
+// ── INIT ──
+renderDash(); renderRL();
+setInterval(()=>{ if(document.getElementById('sec-live').classList.contains('active')) renderDash(); },15000);
+</script>
+</body>
+</html>
