@@ -255,6 +255,56 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 .leaflet-control-attribution{display:none}
 .leaflet-control-scale-line{background:rgba(13,27,42,.9)!important;border-color:rgba(0,200,255,.4)!important;color:var(--live)!important;font-family:var(--mono)!important;font-size:9px!important;padding:2px 6px!important;border-radius:4px!important}
 
+
+/* ── LIVE DASHBOARD ───────────────────────────────────────────────────── */
+#sec-live{overflow-y:auto;background:linear-gradient(135deg,#EEF4FA,#E5EEF7)}
+.live-wrap{max-width:1280px;margin:0 auto;padding:22px 18px 48px}
+.live-hero{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;background:linear-gradient(135deg,#0F2E57,#1565C0);border:1px solid #0D47A1;border-radius:18px;padding:18px 20px;box-shadow:0 12px 28px rgba(21,101,192,.18);color:#fff;margin-bottom:16px}
+.live-hero h2{font-size:28px;letter-spacing:1px;margin-bottom:5px}
+.live-hero p{font-size:12px;opacity:.86;letter-spacing:1px}
+.live-chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.live-chip{font-size:10px;font-weight:700;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);font-family:monospace}
+.live-chip.good{background:rgba(0,200,83,.18)}
+.live-clock{min-width:220px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:12px 14px;text-align:right}
+.live-clock .lc-l{font-size:10px;letter-spacing:1.5px;opacity:.72;font-family:monospace;text-transform:uppercase}
+.live-clock .lc-v{font-size:15px;font-weight:700;margin-top:4px;font-family:monospace}
+.live-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+.live-kpi{background:#fff;border:.5px solid #C8D8E8;border-radius:14px;padding:14px 14px 12px;box-shadow:0 3px 10px rgba(21,101,192,.07);position:relative;overflow:hidden}
+.live-kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#1565C0}
+.live-kpi.g::before{background:#0B7A5C}.live-kpi.a::before{background:#D07A00}.live-kpi.r::before{background:#C0392B}.live-kpi.p::before{background:#8E24AA}
+.live-kpi .lk-l{font-size:10px;color:#7A95AD;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.live-kpi .lk-v{font-size:30px;font-weight:800;color:#1A2E40;line-height:1;margin-top:8px;font-family:monospace}
+.live-kpi .lk-s{font-size:11px;color:#4A6580;margin-top:6px}
+.live-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-bottom:16px}
+.live-panel{background:#fff;border:.5px solid #C8D8E8;border-radius:16px;padding:16px;box-shadow:0 3px 10px rgba(21,101,192,.06)}
+.live-hd{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:.5px solid #D6E4F0;margin-bottom:14px}
+.live-hd h3{font-size:13px;font-weight:800;color:#1A2E40;letter-spacing:.6px}
+.live-hd span{font-size:10px;padding:4px 8px;border-radius:999px;background:#E3F2FD;color:#1565C0;font-family:monospace}
+.live-mapbox{height:320px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#102A43,#0B1F33);position:relative}
+.live-mapbox svg{width:100%;height:100%;display:block}
+.live-node-label{position:absolute;background:rgba(11,31,51,.84);color:#E3F2FD;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 8px;font-size:10px;font-family:monospace;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+.live-node-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.live-stats-list{display:grid;gap:10px}
+.live-stat{display:grid;grid-template-columns:170px 1fr 54px;align-items:center;gap:10px}
+.live-stat .ls-l{font-size:11px;color:#4A6580;font-weight:600}
+.live-stat .ls-bar{height:9px;background:#E8EFF6;border-radius:999px;overflow:hidden}
+.live-stat .ls-fill{height:100%;border-radius:999px;transition:width .6s ease}
+.live-stat .ls-v{text-align:right;font-size:11px;color:#1565C0;font-family:monospace;font-weight:700}
+.live-bottom{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.live-mini{background:#fff;border:.5px solid #C8D8E8;border-radius:16px;padding:16px;box-shadow:0 3px 10px rgba(21,101,192,.06)}
+.live-mini h4{font-size:12px;font-weight:800;color:#1A2E40;margin-bottom:12px;letter-spacing:.5px}
+.live-list{display:grid;gap:10px}
+.live-list .row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:9px 10px;background:#F6FAFD;border-radius:10px;border:.5px solid #E0EAF4}
+.live-list .row b{color:#1A2E40}
+.live-pill{font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px;font-family:monospace}
+.live-pill.ok{background:#D4F0E8;color:#0B7A5C}.live-pill.warn{background:#FFF3CD;color:#7A4800}.live-pill.bad{background:#FDECEA;color:#7B1A1A}.live-pill.alt{background:#F3E5F5;color:#6A1B9A}
+.live-alert{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:12px;border:.5px solid #FFD6D1;background:#FFF6F4;margin-bottom:10px}
+.live-alert .ico{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#FFE4E1;color:#C0392B;font-size:14px;flex-shrink:0}
+.live-alert strong{display:block;font-size:11px;color:#7B1A1A}
+.live-alert span{display:block;font-size:10px;color:#8A6A66;margin-top:4px;line-height:1.4}
+@media(max-width:1100px){.live-kpis{grid-template-columns:repeat(3,1fr)}.live-grid,.live-bottom{grid-template-columns:1fr}}
+@media(max-width:700px){.live-hero{flex-direction:column}.live-kpis{grid-template-columns:repeat(2,1fr)}.live-stat{grid-template-columns:1fr}.live-clock{text-align:left;min-width:auto}}
+
 </style>
 </head>
 <body>
@@ -275,6 +325,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
     </button>
     <button class="sn-tab" onclick="switchSection('dash')" id="sntab-dash">
       <span class="ti">&#128202;</span><div class="tl"><b>Analytics</b><small>STATS &amp; DATA</small></div>
+    </button>
+    <button class="sn-tab" onclick="switchSection('live')" id="sntab-live">
+      <span class="ti">&#128640;</span><div class="tl"><b>Live Dashboard</b><small>SCADA LIVE VIEW</small></div>
     </button>
     <button class="sn-tab" onclick="switchSection('ss')" id="sntab-ss">
       <span class="ti">&#9889;</span><div class="tl"><b>SS Master Data</b><small>GOLCONDA 33/11KV</small></div>
@@ -686,6 +739,113 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 </div>
 
 <!-- ── SS MASTER ──────────────────────────────────────────────────────── -->
+
+<!-- ── LIVE DASHBOARD ─────────────────────────────────────────────────── -->
+<div class="shell-section" id="sec-live">
+  <div class="live-wrap">
+    <div class="live-hero">
+      <div>
+        <h2>SCADA 33KV LIVE DASHBOARD</h2>
+        <p>Live operational snapshot for 33kV feeder health, 33/11kV substation sourcing, and 11kV feeder availability.</p>
+        <div class="live-chip-row">
+          <span class="live-chip good">LIVE STREAM</span>
+          <span class="live-chip">CONTROL ROOM VIEW</span>
+          <span class="live-chip">AUTO REFRESH 3s</span>
+        </div>
+      </div>
+      <div class="live-clock">
+        <div class="lc-l">Last Refresh</div>
+        <div class="lc-v" id="live-now">--/--/---- --:--:--</div>
+      </div>
+    </div>
+
+    <div class="live-kpis">
+      <div class="live-kpi"><div class="lk-l">Live 33kV Feeders</div><div class="lk-v" id="live33">41</div><div class="lk-s">Currently energized feeders</div></div>
+      <div class="live-kpi g"><div class="lk-l">Idle 33kV Feeders</div><div class="lk-v" id="idle33">6</div><div class="lk-s">Available on standby</div></div>
+      <div class="live-kpi r"><div class="lk-l">Breakdown 33kV</div><div class="lk-v" id="bd33">2</div><div class="lk-s">Need field restoration</div></div>
+      <div class="live-kpi p"><div class="lk-l">Regular Source SS</div><div class="lk-v" id="regss">27</div><div class="lk-s">On primary source</div></div>
+      <div class="live-kpi a"><div class="lk-l">1st Alternate SS</div><div class="lk-v" id="alt1ss">11</div><div class="lk-s">Shifted to alternate source</div></div>
+      <div class="live-kpi"><div class="lk-l">Live 11kV Feeders</div><div class="lk-v" id="live11">132</div><div class="lk-s">Downstream healthy feeders</div></div>
+    </div>
+
+    <div class="live-grid">
+      <div class="live-panel">
+        <div class="live-hd"><h3>GRID MAP</h3><span>NETWORK VIEW</span></div>
+        <div class="live-mapbox">
+          <svg viewBox="0 0 100 100" aria-label="grid map schematic">
+            <defs>
+              <pattern id="lg-grid" width="8" height="8" patternUnits="userSpaceOnUse">
+                <path d="M 8 0 L 0 0 0 8" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.35"/>
+              </pattern>
+              <filter id="glow"><feGaussianBlur stdDeviation="1.2" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <rect width="100" height="100" fill="url(#lg-grid)"/>
+            <line x1="15" y1="18" x2="44" y2="26" stroke="#35C2FF" stroke-width="1.25"/>
+            <line x1="44" y1="26" x2="78" y2="22" stroke="#35C2FF" stroke-width="1.25"/>
+            <line x1="44" y1="26" x2="65" y2="56" stroke="#35C2FF" stroke-width="1.25"/>
+            <line x1="15" y1="18" x2="22" y2="64" stroke="#35C2FF" stroke-width="1.25"/>
+            <line x1="22" y1="64" x2="65" y2="56" stroke="#35C2FF" stroke-width="1.25"/>
+            <line x1="65" y1="56" x2="48" y2="82" stroke="#A855F7" stroke-width="1.05" stroke-dasharray="2 2"/>
+            <line x1="22" y1="64" x2="48" y2="82" stroke="#35C2FF" stroke-width="1.25"/>
+            <circle cx="15" cy="18" r="2.2" fill="#00E676" filter="url(#glow)"/>
+            <circle cx="44" cy="26" r="2.2" fill="#00E676" filter="url(#glow)"/>
+            <circle cx="78" cy="22" r="2.2" fill="#FFAB00" filter="url(#glow)"/>
+            <circle cx="65" cy="56" r="2.2" fill="#00E676" filter="url(#glow)"/>
+            <circle cx="22" cy="64" r="2.2" fill="#FF1744" filter="url(#glow)"/>
+            <circle cx="48" cy="82" r="2.2" fill="#00E676" filter="url(#glow)"/>
+          </svg>
+          <div class="live-node-label" style="left:16px;top:18px"><span class="live-node-dot" style="background:#00E676"></span>CENTRAL 132/33</div>
+          <div class="live-node-label" style="left:168px;top:42px"><span class="live-node-dot" style="background:#00E676"></span>NORTH 33/11</div>
+          <div class="live-node-label" style="right:18px;top:26px"><span class="live-node-dot" style="background:#FFAB00"></span>EAST 33/11</div>
+          <div class="live-node-label" style="left:42px;bottom:40px"><span class="live-node-dot" style="background:#FF1744"></span>WEST 33/11</div>
+          <div class="live-node-label" style="right:30px;bottom:22px"><span class="live-node-dot" style="background:#00E676"></span>SOUTH 33/11</div>
+        </div>
+      </div>
+
+      <div class="live-panel">
+        <div class="live-hd"><h3>33KV / 11KV FEEDER STATISTICS</h3><span>REFRESHING</span></div>
+        <div class="live-stats-list">
+          <div class="live-stat"><div class="ls-l">No. of live 33kV feeders</div><div class="ls-bar"><div class="ls-fill" id="bar-live33" style="width:82%;background:#1565C0"></div></div><div class="ls-v" id="txt-live33">41</div></div>
+          <div class="live-stat"><div class="ls-l">No. of idle 33kV feeders</div><div class="ls-bar"><div class="ls-fill" id="bar-idle33" style="width:12%;background:#0B7A5C"></div></div><div class="ls-v" id="txt-idle33">6</div></div>
+          <div class="live-stat"><div class="ls-l">No. of breakdown feeders</div><div class="ls-bar"><div class="ls-fill" id="bar-bd33" style="width:4%;background:#C0392B"></div></div><div class="ls-v" id="txt-bd33">2</div></div>
+          <div class="live-stat"><div class="ls-l">No. of live 11kV feeders</div><div class="ls-bar"><div class="ls-fill" id="bar-live11" style="width:88%;background:#8E24AA"></div></div><div class="ls-v" id="txt-live11">132</div></div>
+          <div class="live-stat"><div class="ls-l">No. of idle 11kV feeders</div><div class="ls-bar"><div class="ls-fill" id="bar-idle11" style="width:9%;background:#D07A00"></div></div><div class="ls-v" id="txt-idle11">11</div></div>
+          <div class="live-stat"><div class="ls-l">No. of 11kV breakdown feeders</div><div class="ls-bar"><div class="ls-fill" id="bar-bd11" style="width:3%;background:#C0392B"></div></div><div class="ls-v" id="txt-bd11">4</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="live-bottom">
+      <div class="live-mini">
+        <h4>33/11KV SUBSTATION ANALYSIS</h4>
+        <div class="live-list">
+          <div class="row"><b>SS on regular feeders</b><span class="live-pill ok" id="pill-reg">27</span></div>
+          <div class="row"><b>SS on 1st alternate source</b><span class="live-pill alt" id="pill-alt1">11</span></div>
+          <div class="row"><b>SS on 2nd alternate source</b><span class="live-pill warn" id="pill-alt2">6</span></div>
+        </div>
+      </div>
+
+      <div class="live-mini">
+        <h4>RECENT LIVE ALERTS</h4>
+        <div id="live-alerts">
+          <div class="live-alert"><div class="ico">!</div><div><strong>33kV feeder breakdown flagged</strong><span>West 33/11 SS route shifted to alternate source for restoration.</span></div></div>
+          <div class="live-alert"><div class="ico">!</div><div><strong>Idle feeder available</strong><span>One reserve 11kV feeder is ready for load transfer.</span></div></div>
+        </div>
+      </div>
+
+      <div class="live-mini">
+        <h4>CONTROL ROOM SUMMARY</h4>
+        <div class="live-list">
+          <div class="row"><b>Heartbeat</b><span class="live-pill ok">LIVE</span></div>
+          <div class="row"><b>Refresh Interval</b><span class="live-pill">3 SEC</span></div>
+          <div class="row"><b>Network Mode</b><span class="live-pill ok">NORMAL</span></div>
+          <div class="row"><b>Critical Load Watch</b><span class="live-pill bad" id="crit-watch">2 FEEDERS</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="shell-section" id="sec-ss">
   <iframe id="ss-frame" src="" title="SS Master Data"
     sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
@@ -1456,6 +1616,52 @@ function toast(msg,dur){
   clearTimeout(_tt); _tt=setTimeout(function(){t.classList.remove('show');},dur||2200);
 }
 }
+
+
+/* ── LIVE DASHBOARD AUTO REFRESH ─────────────────────────────────────── */
+(function(){
+  var liveStarted=false;
+  function setText(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
+  function setBar(id,val,maxv,color){
+    var el=document.getElementById(id);
+    if(el){ el.style.width=(Math.max(0,Math.min(100,(val/maxv)*100)))+'%'; if(color) el.style.background=color; }
+  }
+  function formatNow(){
+    var n=new Date(), p=function(x){return String(x).padStart(2,'0');};
+    return p(n.getDate())+'/'+p(n.getMonth()+1)+'/'+n.getFullYear()+'  '+p(n.getHours())+':'+p(n.getMinutes())+':'+p(n.getSeconds());
+  }
+  function randStep(v,min,max){
+    var r=Math.random();
+    if(r>.67) v+=1; else if(r<.33) v-=1;
+    return Math.max(min,Math.min(max,v));
+  }
+  var state={live33:41,idle33:6,bd33:2,live11:132,idle11:11,bd11:4,reg:27,alt1:11,alt2:6};
+  function render(){
+    setText('live-now',formatNow());
+    setText('live33',state.live33); setText('idle33',state.idle33); setText('bd33',state.bd33);
+    setText('live11',state.live11); setText('regss',state.reg); setText('alt1ss',state.alt1);
+    setText('txt-live33',state.live33); setText('txt-idle33',state.idle33); setText('txt-bd33',state.bd33);
+    setText('txt-live11',state.live11); setText('txt-idle11',state.idle11); setText('txt-bd11',state.bd11);
+    setBar('bar-live33',state.live33,50,'#1565C0'); setBar('bar-idle33',state.idle33,50,'#0B7A5C'); setBar('bar-bd33',state.bd33,50,'#C0392B');
+    setBar('bar-live11',state.live11,150,'#8E24AA'); setBar('bar-idle11',state.idle11,150,'#D07A00'); setBar('bar-bd11',state.bd11,150,'#C0392B');
+    setText('pill-reg',state.reg); setText('pill-alt1',state.alt1); setText('pill-alt2',state.alt2);
+    setText('crit-watch',state.bd33+' FEEDERS');
+  }
+  function tick(){
+    state.live33=randStep(state.live33,38,44);
+    state.idle33=randStep(state.idle33,4,8);
+    state.bd33=randStep(state.bd33,1,4);
+    state.live11=randStep(state.live11,126,138);
+    state.idle11=randStep(state.idle11,8,14);
+    state.bd11=randStep(state.bd11,2,6);
+    state.reg=randStep(state.reg,24,30);
+    state.alt1=randStep(state.alt1,8,13);
+    state.alt2=randStep(state.alt2,4,8);
+    render();
+  }
+  render();
+  setInterval(tick,3000);
+})();
 
 /* ── SECTION SWITCHING ───────────────────────────────────────────────── */
 var _ssLoaded = false;
