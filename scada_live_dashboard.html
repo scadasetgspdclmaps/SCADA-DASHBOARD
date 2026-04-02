@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SCADA Live Dashboard</title>
+
+<style>
+body {background:#000;color:#fff;font-family:Arial;margin:0;}
+.header {background:#0b3d91;padding:10px;display:flex;gap:20px;}
+.header a {color:white;text-decoration:none;font-weight:bold;}
+.container {display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:20px;}
+.box {border:1px solid #444;padding:20px;border-radius:10px;background:#111;}
+h2 {color:cyan;}
+
+.blink {animation: blink 1s infinite;}
+@keyframes blink {50% {opacity:0.3;}}
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+<a href="TGSPDCL_Command_Centre.html">🏠 Home</a>
+<a href="33KV_Grid_Map.html">🌐 Grid Map</a>
+<a href="scada_live_dashboard.html">⚡ Live SCADA</a>
+</div>
+
+<h1 style="text-align:center;">⚡ SCADA 33kV LIVE DASHBOARD</h1>
+
+<div class="container">
+
+<div class="box">
+<h2>GRID MAP</h2>
+<p>Integrate QGIS here</p>
+</div>
+
+<div class="box">
+<h2>33kV Feeder Statistics</h2>
+<p>Live: <span id="live33">40</span></p>
+<p>Idle: <span id="idle33">5</span></p>
+<p>Breakdown: <span id="bd33" class="blink">2</span></p>
+</div>
+
+<div class="box">
+<h2>Data Analytics</h2>
+<p>Live load trend (coming next)</p>
+</div>
+
+<div class="box">
+<h2>33/11kV Substation</h2>
+<p>Regular: 25</p>
+<p>1st Alternate: 10</p>
+<p>2nd Alternate: 5</p>
+</div>
+
+<div class="box">
+<h2>11kV Feeder</h2>
+<p>Live: <span id="live11">120</span></p>
+<p>Idle: <span id="idle11">10</span></p>
+<p>Breakdown: <span id="bd11">3</span></p>
+</div>
+
+</div>
+
+<script>
+setInterval(()=>{
+document.getElementById("live33").innerText = 38 + Math.floor(Math.random()*5);
+document.getElementById("idle33").innerText = 4 + Math.floor(Math.random()*3);
+document.getElementById("bd33").innerText = 1 + Math.floor(Math.random()*3);
+
+document.getElementById("live11").innerText = 115 + Math.floor(Math.random()*10);
+document.getElementById("idle11").innerText = 8 + Math.floor(Math.random()*5);
+document.getElementById("bd11").innerText = 2 + Math.floor(Math.random()*3);
+},3000);
+</script>
+
+</body>
+</html>
