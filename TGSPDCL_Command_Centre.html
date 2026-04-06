@@ -38,6 +38,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#F0F4F8;font-family:
 #sec-home{overflow-y:auto}
 #sec-dash{overflow-y:auto}
 #sec-ss iframe{width:100%;height:100%;border:none;display:block}
+#sec-map-frame{width:100%;height:100%;border:none;display:block;background:#0b1220}
 /* Map fixed elements hidden until map tab active */
 #map,#panel,#ptab,#legend,#botbar,#loader{display:none}
 
@@ -418,138 +419,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 
 <!-- ── MAP ────────────────────────────────────────────────────────────── -->
 <div class="shell-section" id="sec-map">
-<div id="loader" onclick="dismissLoader()">
-  <div class="ld-logo">TGSPDCL</div>
-  <div class="ld-sub">33KV FEEDER GRID MAP</div>
-  <div class="ld-bar"><div class="ld-fill"></div></div>
-</div>
-
-  <div class="tb-sep"></div>
-  <div class="tb-title">33KV Distribution Feeder Grid &mdash; All Divisions</div>
-  <div id="srchWrap">
-    <input id="srchInput" placeholder="Search feeder, section, pole..." autocomplete="off"/>
-    <span class="srch-ic">&#9906;</span>
-  </div>
-</div>
-
-<div id="ptab" onclick="togglePanel()">&#9664;</div>
-
-<div id="panel"><div id="pb">
-
-  <!-- FILTER -->
-  <div class="psec">
-    <div class="psec-t">// FILTER</div>
-    <div class="dg"><div class="dl">DIVISION</div>
-      <select class="ds" id="f-div" onchange="cDiv()"><option value="">All Divisions</option></select></div>
-    <div class="dg"><div class="dl">SUB DIVISION</div>
-      <select class="ds" id="f-sub" onchange="cSub()" disabled><option value="">All Sub Divisions</option></select></div>
-    <div class="dg"><div class="dl">SECTION</div>
-      <select class="ds" id="f-sec" onchange="cSec()" disabled><option value="">All Sections</option></select></div>
-    <div class="dg"><div class="dl">FEEDER</div>
-      <select class="ds" id="f-feed" disabled><option value="">All Feeders</option></select></div>
-    <div class="fbtns">
-      <div class="fb on" onclick="applyFilter()">&#9889; Apply</div>
-      <div class="fb" onclick="resetFilter()">&#10005; Reset</div>
-    </div>
-    <div id="fbadge"><div id="fbpath"></div><div id="fbcnt"></div></div>
-  </div>
-
-  <!-- LAYERS -->
-  <div class="psec">
-    <div class="psec-t">// LAYERS</div>
-    <div class="lrow" id="lyr-start" onclick="toggleLyr('start')">
-      <div class="lsw dot" style="background:#00e676;border-color:#00e676"></div>
-      <div class="lnm">Start Points (EHT SS)</div><div class="lcnt" id="cnt-start">0</div><div class="tog"></div></div>
-    <div class="lrow" id="lyr-end" onclick="toggleLyr('end')">
-      <div class="lsw dot" style="background:#ff1744;border-color:#ff1744"></div>
-      <div class="lnm">End Points (33/11KV SS)</div><div class="lcnt" id="cnt-end">0</div><div class="tog"></div></div>
-    <div class="lrow" id="lyr-ab" onclick="toggleLyr('ab')">
-      <div class="lsw dot" style="background:#ff9800;border-color:#ff9800"></div>
-      <div class="lnm">AB Switch Points</div><div class="lcnt" id="cnt-ab">0</div><div class="tog"></div></div>
-    <div class="lrow" id="lyr-route" onclick="toggleLyr('route')">
-      <div class="lsw dot" style="background:#78909c;border-color:#78909c"></div>
-      <div class="lnm">Route Points</div><div class="lcnt" id="cnt-route">0</div><div class="tog"></div></div>
-    <div class="lrow" id="lyr-lines" onclick="toggleLyr('lines')">
-      <div class="lsw" style="background:linear-gradient(90deg,#2196f3,#f44336)"></div>
-      <div class="lnm">Feeder Lines</div><div class="lcnt" id="cnt-lines">0</div><div class="tog"></div></div>
-    <div class="lrow" id="lyr-ss33" onclick="toggleLyr('ss33')">
-      <div class="lsw dot" style="background:#ff1744;border-color:#fff;border-radius:2px"></div>
-      <div class="lnm">33/11KV Substations</div><div class="lcnt">136</div><div class="tog"></div></div>
-  </div>
-
-  <!-- CABLE TYPE -->
-  <div class="psec">
-    <div class="psec-t">// CABLE TYPE</div>
-    <div style="display:flex;gap:5px">
-      <div id="ct-all" onclick="setCable('all')" class="fb on" style="flex:0;padding:4px 11px;font-size:10px">ALL</div>
-      <div id="ct-ug"  onclick="setCable('ug')"  class="fb"    style="flex:0;padding:4px 11px;font-size:10px;color:#2196f3;border-color:rgba(33,150,243,.3)">UG</div>
-      <div id="ct-oh"  onclick="setCable('oh')"  class="fb"    style="flex:0;padding:4px 11px;font-size:10px;color:#f44336;border-color:rgba(244,67,54,.3)">OH</div>
-    </div>
-  </div>
-
-  <!-- FEEDER STATUS -->
-  <div class="psec">
-    <div class="psec-t">// FEEDER STATUS
-      <div class="aa">
-        <span onclick="setAllStatus('live')">All Live</span>
-        <span onclick="setAllStatus('bdown')">All Down</span>
-      </div>
-    </div>
-    <div id="status-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:3px">
-      <div style="font-family:var(--sans);font-size:10px;color:rgba(176,204,224,.3);padding:4px">Apply filter to see feeders</div>
-    </div>
-  </div>
-
-  <!-- SS OVERLOAD -->
-  <div class="psec">
-    <div class="psec-t">// SS OVERLOAD &rarr; FEEDER BLINK
-      <div class="aa"><span onclick="clearAllOverload()">Clear All</span></div>
-    </div>
-    <div id="ol-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
-  </div>
-
-  <!-- BASEMAP -->
-  <div class="psec">
-    <div class="psec-t">// BASEMAP</div>
-    <div class="bmgrid">
-      <div class="bmbtn active" id="bm-dark"      onclick="setBM('dark')"><span class="bi">&#127769;</span>Dark</div>
-      <div class="bmbtn"        id="bm-satellite" onclick="setBM('satellite')"><span class="bi">&#128752;</span>Satellite</div>
-      <div class="bmbtn"        id="bm-street"    onclick="setBM('street')"><span class="bi">&#128506;</span>Street</div>
-      <div class="bmbtn"        id="bm-hybrid"    onclick="setBM('hybrid')"><span class="bi">&#127981;</span>Hybrid</div>
-    </div>
-  </div>
-
-  <!-- STATS -->
-  <div class="psec">
-    <div class="psec-t">// STATISTICS</div>
-    <div class="strow"><span class="stlbl">Total Points</span><span class="stval">1048</span></div>
-    <div class="strow"><span class="stlbl">Total Feeders</span><span class="stval">369</span></div>
-    <div class="strow"><span class="stlbl">33/11KV SS</span><span class="stval">136</span></div>
-    <div class="strow"><span class="stlbl">Divisions</span><span class="stval">4</span></div>
-  </div>
-
-</div><div id="pr"></div></div>
-
-<div id="map"></div>
-
-<div id="botbar">
-  <span>LAT/LNG: <span id="coords">&#8212;</span></span>
-  <span>ZOOM: <span id="zlvl">&#8212;</span></span>
-  <span style="margin-left:auto;opacity:.3">TGSPDCL 33KV FEEDER GRID</span>
-</div>
-
-<div id="legend">
-  <div class="leg"><div class="leg-d" style="background:#00e676"></div>START</div>
-  <div class="leg"><div class="leg-d" style="background:#ff1744"></div>END</div>
-  <div class="leg"><div class="leg-d" style="background:#ff9800"></div>AB SW</div>
-  <div class="leg"><div class="leg-l" style="background:#2196f3"></div>UG</div>
-  <div class="leg"><div class="leg-l" style="background:#f44336"></div>OH</div>
-  <div class="leg"><div class="leg-l" style="background:#ff9800"></div>UG&#8594;OH</div>
-  <div class="leg"><div class="leg-l" style="background:#ab47bc"></div>OH&#8594;UG</div>
-  <div class="leg"><div class="leg-d" style="background:#ff1744;border-radius:2px"></div>33/11SS</div>
-</div>
-
-<div id="toast"></div>
+  <iframe id="sec-map-frame" title="33KV Grid Map" loading="lazy"
+    src="TGSPDCL_33KV_Grid_Map.html?v=20260406"></iframe>
 </div>
 
 <!-- ── ANALYTICS ──────────────────────────────────────────────────────── -->
@@ -1681,20 +1552,17 @@ function switchSection(id) {
   if (targetSection) targetSection.classList.add('active');
   if (targetTab) targetTab.classList.add('active');
 
-  var isMap = (id === 'map');
-
-  ['map','panel','ptab','legend','botbar','loader'].forEach(function(eid) {
+  ['map','panel','ptab','legend','botbar','loader','topbar'].forEach(function(eid) {
     var el = document.getElementById(eid);
-    if (el) {
-      el.style.display = isMap ? 'block' : 'none';
-    }
+    if (el) el.style.display = 'none';
   });
 
   if (id === 'map') {
-    setTimeout(function() {
-      initMapNow();
-      try { map.invalidateSize(); } catch(e) {}
-    }, 80);
+    var frame = document.getElementById('sec-map-frame');
+    if (frame && !frame.dataset.loaded) {
+      frame.dataset.loaded = '1';
+      frame.src = 'TGSPDCL_33KV_Grid_Map.html?v=20260406';
+    }
   }
 
   if (id === 'ss' && !_ssLoaded) {
