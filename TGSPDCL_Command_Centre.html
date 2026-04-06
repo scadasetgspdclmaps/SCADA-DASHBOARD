@@ -320,7 +320,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
     <button class="sn-tab active" onclick="switchSection('home')" id="sntab-home">
       <span class="ti">&#127968;</span><div class="tl"><b>Home</b><small>OVERVIEW</small></div>
     </button>
-    <button class="sn-tab" onclick="switchSection('map')" id="sntab-map">
+    <button class="sn-tab" onclick="window.location.href='33KV_Grid_Map.html'" id="sntab-map">
       <span class="ti">&#127760;</span><div class="tl"><b>33KV Grid Map</b><small>LIVE FEEDER MAP</small></div>
     </button>
     <button class="sn-tab" onclick="switchSection('dash')" id="sntab-dash">
@@ -351,7 +351,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
       <p>SCADA DASHBOARD &mdash; 33KV DISTRIBUTION NETWORK COMMAND CENTRE</p>
     </div>
     <div class="hcards">
-      <div class="hcard c1" onclick="switchSection('map')">
+      <div class="hcard c1" onclick="window.location.href='33KV_Grid_Map.html'">
         <div class="hcard-icon">&#127760;</div>
         <div class="hcard-title">33KV GRID MAP</div>
         <div class="hcard-desc">Interactive feeder map across all 4 divisions. Cascade filter by division, section, feeder. Mark breakdowns and overloaded substations with live blink.</div>
@@ -1197,37 +1197,15 @@ function ptType(r){
   return 'route';
 }
 function ptColor(t){ return t==='start'?'#00e676':t==='end'?'#ff1744':t==='ab'?'#ff9800':'#78909c'; }
-function normalizeFeederType(v){
-  return String(v||'').trim().toUpperCase().replace(/\s+/g,' ');
-}
-function pointCableColor(v){
-  var t=normalizeFeederType(v);
-  return t==='UG'?'#2196f3':t==='OH'?'#f44336':(t==='UG TO OH'||t==='OH TO UG'||t==='UG-OH'||t==='OH-UG')?'#ff9800':'#78909c';
-}
-function classifyFeederFromPoints(pts){
-  var oh=0, ug=0, transition=0;
-  pts.forEach(function(r){
-    var t=normalizeFeederType(r.type_of_feeder||r.cable_type||'');
-    if(t==='OH'||t==='OVERHEAD') oh++;
-    else if(t==='UG'||t==='UNDERGROUND') ug++;
-    else if(t==='OH TO UG'||t==='UG TO OH'||t==='OH-UG'||t==='UG-OH') transition++;
-  });
-  var effectiveTotal=oh+ug;
-  var ohPct=effectiveTotal?((oh/effectiveTotal)*100):0;
-  var ugPct=effectiveTotal?((ug/effectiveTotal)*100):0;
-  var type='MIXED', color='#ff9800';
-  if(ohPct>=80){ type='OH'; color='#f44336'; }
-  else if(ugPct>=80){ type='UG'; color='#2196f3'; }
-  return {type:type,color:color,ohCount:oh,ugCount:ug,transitionCount:transition,ohPct:ohPct,ugPct:ugPct};
-}
 function lineColor(r){
-  return pointCableColor(r.type_of_feeder||r.cable_type||'');
+  var t=(r.type_of_feeder||'').trim();
+  return t==='UG'?'#2196f3':t==='OH'?'#f44336':t==='UG to OH'?'#ff9800':t==='OH to UG'?'#ab47bc':'#78909c';
 }
 function ptRadius(t){ return (t==='start'||t==='end')?7:t==='ab'?5:4; }
 
 function makePopup(r){
   var t=ptType(r), lc=lineColor(r), fc=(r.type_of_feeder||'');
-  var fc2=pointCableColor(fc);
+  var fc2=fc==='UG'?'#2196f3':fc==='OH'?'#f44336':fc==='UG to OH'?'#ff9800':'#ab47bc';
   var tag={start:'START POINT (EHT SS)',end:'END POINT (33/11KV SS)',ab:'AB SWITCH',route:'ROUTE POINT'}[t]||'POINT';
   return '<div class="pc-bar" style="background:'+lc+'"></div>'+
     '<div class="pc-hd"><div class="pc-tag">'+tag+'</div><div class="pc-ttl">Pole '+r.pole_number+'</div></div>'+
@@ -1281,12 +1259,9 @@ sortedFeeders.forEach(function(fn){
     if(t==='start')cS++; else if(t==='end')cE++; else if(t==='ab')cA++; else cR++;
   });
   if(coords.length>1){
-    var feederClass=classifyFeederFromPoints(pts);
-    var lc=feederClass.color;
+    var lc=lineColor(pts[0]);
     var glow=L.polyline(coords,{color:lc,weight:9,opacity:.1});
     var main=L.polyline(coords,{color:lc,weight:2.5,opacity:.85});
-    glow._feederClass=feederClass;
-    main._feederClass=feederClass;
     main.bindPopup(makePopup(pts[0]),{maxWidth:300});
     main.on('mouseover',function(e){if(feederStatus[fn]!=='bdown')e.target.setStyle({weight:5,opacity:1});e.target.bringToFront();});
     main.on('mouseout', function(e){if(feederStatus[fn]!=='bdown')e.target.setStyle({weight:2.5,opacity:.85});});
@@ -1435,8 +1410,8 @@ function setCable(t){
   });
   sortedFeeders.forEach(function(fn){
     if(!feederVisible[fn])return;
-    var feederClass=classifyFeederFromPoints(feederData[fn]);
-    var show=t==='all'||(t==='ug'&&feederClass.type==='UG')||(t==='oh'&&feederClass.type==='OH');
+    var ft=(feederData[fn][0].type_of_feeder||'').trim();
+    var show=t==='all'||(t==='ug'&&(ft==='UG'||ft==='UG to OH'))||(t==='oh'&&(ft==='OH'||ft==='OH to UG'));
     feederMarkers[fn].forEach(function(m){try{m.setStyle({opacity:show?.9:0,fillOpacity:show?.9:0});}catch(e){}});
     feederLines[fn].forEach(function(l){try{l.setStyle({opacity:show?(feederStatus[fn]==='bdown'?.85:.85):0});}catch(e){}});
   });
