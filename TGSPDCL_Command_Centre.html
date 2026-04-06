@@ -1197,34 +1197,37 @@ function ptType(r){
   return 'route';
 }
 function ptColor(t){ return t==='start'?'#00e676':t==='end'?'#ff1744':t==='ab'?'#ff9800':'#78909c'; }
-function lineColor(r){
-  var t=(r.type_of_feeder||'').trim().toUpperCase();
-  return t==='UG'?'#2196f3':t==='OH'?'#f44336':(t==='UG TO OH'||t==='OH TO UG')?'#ff9800':'#78909c';
-}
-function normCableType(v){
+function normalizeFeederType(v){
   return String(v||'').trim().toUpperCase().replace(/\s+/g,' ');
 }
+function pointCableColor(v){
+  var t=normalizeFeederType(v);
+  return t==='UG'?'#2196f3':t==='OH'?'#f44336':(t==='UG TO OH'||t==='OH TO UG'||t==='UG-OH'||t==='OH-UG')?'#ff9800':'#78909c';
+}
 function classifyFeederFromPoints(pts){
-  var oh=0, ug=0;
+  var oh=0, ug=0, transition=0;
   pts.forEach(function(r){
-    var t=normCableType(r.type_of_feeder||r.cable_type||'');
-    if(t==='OH' || t==='OVERHEAD') oh++;
-    else if(t==='UG' || t==='UNDERGROUND') ug++;
-    else if(t.indexOf('OH')>=0 && t.indexOf('UG')>=0){ oh++; ug++; }
+    var t=normalizeFeederType(r.type_of_feeder||r.cable_type||'');
+    if(t==='OH'||t==='OVERHEAD') oh++;
+    else if(t==='UG'||t==='UNDERGROUND') ug++;
+    else if(t==='OH TO UG'||t==='UG TO OH'||t==='OH-UG'||t==='UG-OH') transition++;
   });
-  var total=oh+ug;
-  if(!total) return {type:'MIXED', color:'#ff9800', ohPct:0, ugPct:0, ohCount:0, ugCount:0};
-  var ohPct=(oh/total)*100;
-  var ugPct=(ug/total)*100;
-  if(ohPct>=80) return {type:'OH', color:'#f44336', ohPct:ohPct, ugPct:ugPct, ohCount:oh, ugCount:ug};
-  if(ugPct>=80) return {type:'UG', color:'#2196f3', ohPct:ohPct, ugPct:ugPct, ohCount:oh, ugCount:ug};
-  return {type:'MIXED', color:'#ff9800', ohPct:ohPct, ugPct:ugPct, ohCount:oh, ugCount:ug};
+  var effectiveTotal=oh+ug;
+  var ohPct=effectiveTotal?((oh/effectiveTotal)*100):0;
+  var ugPct=effectiveTotal?((ug/effectiveTotal)*100):0;
+  var type='MIXED', color='#ff9800';
+  if(ohPct>=80){ type='OH'; color='#f44336'; }
+  else if(ugPct>=80){ type='UG'; color='#2196f3'; }
+  return {type:type,color:color,ohCount:oh,ugCount:ug,transitionCount:transition,ohPct:ohPct,ugPct:ugPct};
+}
+function lineColor(r){
+  return pointCableColor(r.type_of_feeder||r.cable_type||'');
 }
 function ptRadius(t){ return (t==='start'||t==='end')?7:t==='ab'?5:4; }
 
 function makePopup(r){
   var t=ptType(r), lc=lineColor(r), fc=(r.type_of_feeder||'');
-  var fc2=fc==='UG'?'#2196f3':fc==='OH'?'#f44336':fc==='UG to OH'?'#ff9800':'#ab47bc';
+  var fc2=pointCableColor(fc);
   var tag={start:'START POINT (EHT SS)',end:'END POINT (33/11KV SS)',ab:'AB SWITCH',route:'ROUTE POINT'}[t]||'POINT';
   return '<div class="pc-bar" style="background:'+lc+'"></div>'+
     '<div class="pc-hd"><div class="pc-tag">'+tag+'</div><div class="pc-ttl">Pole '+r.pole_number+'</div></div>'+
@@ -1264,8 +1267,6 @@ sortedFeeders.forEach(function(fn){
   feederVisible[fn]=true; feederStatus[fn]='live';
   feederMarkers[fn]=[]; feederLines[fn]=[];
   var pts=feederData[fn].slice().sort(function(a,b){return (parseInt(a.pole_number)||0)-(parseInt(b.pole_number)||0);});
-  var feederClass=classifyFeederFromPoints(pts);
-  feederData[fn]._class=feederClass;
   var coords=[];
   pts.forEach(function(r){
     var lat=parseFloat(r.latitude), lon=parseFloat(r.longitude);
@@ -1280,6 +1281,7 @@ sortedFeeders.forEach(function(fn){
     if(t==='start')cS++; else if(t==='end')cE++; else if(t==='ab')cA++; else cR++;
   });
   if(coords.length>1){
+    var feederClass=classifyFeederFromPoints(pts);
     var lc=feederClass.color;
     var glow=L.polyline(coords,{color:lc,weight:9,opacity:.1});
     var main=L.polyline(coords,{color:lc,weight:2.5,opacity:.85});
@@ -1433,8 +1435,8 @@ function setCable(t){
   });
   sortedFeeders.forEach(function(fn){
     if(!feederVisible[fn])return;
-    var ft=((feederData[fn]._class||{}).type)||'MIXED';
-    var show=t==='all'||(t==='ug'&&ft==='UG')||(t==='oh'&&ft==='OH');
+    var feederClass=classifyFeederFromPoints(feederData[fn]);
+    var show=t==='all'||(t==='ug'&&feederClass.type==='UG')||(t==='oh'&&feederClass.type==='OH');
     feederMarkers[fn].forEach(function(m){try{m.setStyle({opacity:show?.9:0,fillOpacity:show?.9:0});}catch(e){}});
     feederLines[fn].forEach(function(l){try{l.setStyle({opacity:show?(feederStatus[fn]==='bdown'?.85:.85):0});}catch(e){}});
   });
