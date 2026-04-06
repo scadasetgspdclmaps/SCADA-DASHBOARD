@@ -224,24 +224,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 .leg{display:flex;align-items:center;gap:4px;color:var(--text)}
 .leg-l{width:16px;height:3px;border-radius:2px}
 .leg-d{width:8px;height:8px;border-radius:50%}
-.leaflet-popup-content-wrapper{background:#1b2432!important;border:1px solid rgba(255,255,255,.10)!important;border-radius:14px!important;padding:0!important;overflow:hidden;min-width:320px;box-shadow:0 10px 32px rgba(0,0,0,.45)!important}
-.leaflet-popup-tip{background:#1b2432!important}
-.leaflet-popup-close-button{color:rgba(255,255,255,.65)!important;top:10px!important;right:10px!important;font-size:18px!important}
-.leaflet-popup-close-button:hover{color:#fff!important}
+.leaflet-popup-content-wrapper{background:#0c1d2e!important;border:1px solid rgba(0,200,255,.25)!important;border-radius:12px!important;padding:0!important;overflow:hidden;min-width:240px;box-shadow:0 8px 32px rgba(0,0,0,.6)!important}
+.leaflet-popup-tip-container{display:none}
+.leaflet-popup-close-button{color:rgba(176,204,224,.5)!important;top:9px!important;right:10px!important;font-size:16px!important}
+.leaflet-popup-close-button:hover{color:var(--live)!important}
 .leaflet-popup-content{margin:0!important}
-.pc-bar{height:4px;background:linear-gradient(90deg,#ff5a4f,#ff7b72)}
-.pc-hd{padding:14px 40px 10px 14px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02)}
-.pc-tag{font-family:var(--mono);font-size:9px;letter-spacing:1.4px;color:#ff8a80;margin-bottom:4px;text-transform:uppercase}
-.pc-ttl{font-family:var(--sans);font-size:20px;font-weight:800;line-height:1.15;color:#ffffff}
-.pc-bd{padding:10px 14px 12px}
-.pc-row{display:grid;grid-template-columns:140px 1fr;align-items:start;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);gap:10px}
+.pc-bar{height:4px}.pc-hd{padding:10px 34px 8px 12px;border-bottom:1px solid rgba(0,200,255,.1)}
+.pc-tag{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:rgba(0,200,255,.5);margin-bottom:2px}
+.pc-ttl{font-family:var(--sans);font-size:14px;font-weight:700;color:#e8f4ff}
+.pc-bd{padding:7px 12px 10px}
+.pc-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);gap:8px}
 .pc-row:last-child{border:none}
-.pc-k{font-family:var(--sans);font-size:12px;font-weight:600;color:#a7b4c8;white-space:normal;line-height:1.35}
-.pc-v{font-family:var(--sans);font-size:12.5px;font-weight:700;color:#ffffff;text-align:right;line-height:1.35;word-break:break-word}
-.pc-v.mono{font-family:var(--mono);font-size:12px}
-.pc-v.soft{color:#dbe7f5;font-weight:600}
-.pc-row.stack{grid-template-columns:1fr}
-.pc-row.stack .pc-v{text-align:left;margin-top:4px}
+.pc-k{font-family:var(--sans);font-size:10px;color:rgba(176,204,224,.4);white-space:nowrap}
+.pc-v{font-family:var(--mono);font-size:10px;color:#e0eeff;text-align:right}
 .ss-tip{background:rgba(9,22,37,.92)!important;border:1px solid rgba(255,82,82,.5)!important;border-radius:4px!important;color:#ff5252!important;font-family:var(--mono)!important;font-size:9px!important;padding:2px 6px!important;white-space:nowrap!important;box-shadow:0 2px 8px rgba(0,0,0,.5)!important;font-weight:600!important}
 .ss-tip::before{display:none!important}
 #toast{position:fixed;top:60px;left:50%;z-index:1500;transform:translateX(-50%) translateY(-10px);background:rgba(13,27,42,.95);border:1px solid var(--border);border-radius:9px;padding:7px 15px;font-family:var(--sans);font-size:12px;color:var(--text);opacity:0;pointer-events:none;transition:all .25s;white-space:nowrap}
@@ -1203,8 +1198,27 @@ function ptType(r){
 }
 function ptColor(t){ return t==='start'?'#00e676':t==='end'?'#ff1744':t==='ab'?'#ff9800':'#78909c'; }
 function lineColor(r){
-  var t=(r.type_of_feeder||'').trim();
-  return t==='UG'?'#2196f3':t==='OH'?'#f44336':t==='UG to OH'?'#ff9800':t==='OH to UG'?'#ab47bc':'#78909c';
+  var t=(r.type_of_feeder||'').trim().toUpperCase();
+  return t==='UG'?'#2196f3':t==='OH'?'#f44336':(t==='UG TO OH'||t==='OH TO UG')?'#ff9800':'#78909c';
+}
+function normCableType(v){
+  return String(v||'').trim().toUpperCase().replace(/\s+/g,' ');
+}
+function classifyFeederFromPoints(pts){
+  var oh=0, ug=0;
+  pts.forEach(function(r){
+    var t=normCableType(r.type_of_feeder||r.cable_type||'');
+    if(t==='OH' || t==='OVERHEAD') oh++;
+    else if(t==='UG' || t==='UNDERGROUND') ug++;
+    else if(t.indexOf('OH')>=0 && t.indexOf('UG')>=0){ oh++; ug++; }
+  });
+  var total=oh+ug;
+  if(!total) return {type:'MIXED', color:'#ff9800', ohPct:0, ugPct:0, ohCount:0, ugCount:0};
+  var ohPct=(oh/total)*100;
+  var ugPct=(ug/total)*100;
+  if(ohPct>=80) return {type:'OH', color:'#f44336', ohPct:ohPct, ugPct:ugPct, ohCount:oh, ugCount:ug};
+  if(ugPct>=80) return {type:'UG', color:'#2196f3', ohPct:ohPct, ugPct:ugPct, ohCount:oh, ugCount:ug};
+  return {type:'MIXED', color:'#ff9800', ohPct:ohPct, ugPct:ugPct, ohCount:oh, ugCount:ug};
 }
 function ptRadius(t){ return (t==='start'||t==='end')?7:t==='ab'?5:4; }
 
@@ -1250,6 +1264,8 @@ sortedFeeders.forEach(function(fn){
   feederVisible[fn]=true; feederStatus[fn]='live';
   feederMarkers[fn]=[]; feederLines[fn]=[];
   var pts=feederData[fn].slice().sort(function(a,b){return (parseInt(a.pole_number)||0)-(parseInt(b.pole_number)||0);});
+  var feederClass=classifyFeederFromPoints(pts);
+  feederData[fn]._class=feederClass;
   var coords=[];
   pts.forEach(function(r){
     var lat=parseFloat(r.latitude), lon=parseFloat(r.longitude);
@@ -1264,9 +1280,11 @@ sortedFeeders.forEach(function(fn){
     if(t==='start')cS++; else if(t==='end')cE++; else if(t==='ab')cA++; else cR++;
   });
   if(coords.length>1){
-    var lc=lineColor(pts[0]);
+    var lc=feederClass.color;
     var glow=L.polyline(coords,{color:lc,weight:9,opacity:.1});
     var main=L.polyline(coords,{color:lc,weight:2.5,opacity:.85});
+    glow._feederClass=feederClass;
+    main._feederClass=feederClass;
     main.bindPopup(makePopup(pts[0]),{maxWidth:300});
     main.on('mouseover',function(e){if(feederStatus[fn]!=='bdown')e.target.setStyle({weight:5,opacity:1});e.target.bringToFront();});
     main.on('mouseout', function(e){if(feederStatus[fn]!=='bdown')e.target.setStyle({weight:2.5,opacity:.85});});
@@ -1295,24 +1313,22 @@ SS33.forEach(function(ss){
     iconSize:[28,28],iconAnchor:[14,14]});
   var mk=L.marker([ss.lat,ss.lon],{icon:icon,zIndexOffset:500});
   mk.bindTooltip(ss.name.replace('33/11KV ','').replace(' SS',''),{permanent:true,direction:'top',offset:[0,-12],className:'ss-tip'});
-  var pop='<div class="pc-bar"></div>'+
+  var pop='<div class="pc-bar" style="background:#ff1744"></div>'+
     '<div class="pc-hd"><div class="pc-tag">33/11KV SUBSTATION</div><div class="pc-ttl">'+ss.name+'</div></div>'+
     '<div class="pc-bd">'+
-    '<div class="pc-row"><span class="pc-k">Substation Code</span><span class="pc-v mono">'+ss.code+'</span></div>'+
-    '<div class="pc-row"><span class="pc-k">PTR Capacity (MVA)</span><span class="pc-v" style="color:#ffd166">'+ss.ptr+'</span></div>'+
-    '<div class="pc-row"><span class="pc-k">PTR Count</span><span class="pc-v mono">'+ss.ptr_qty+'</span></div>'+
-    '<div class="pc-row"><span class="pc-k">33kV Source Feeders</span><span class="pc-v mono">'+ss.sources+'</span></div>'+
-    '<div class="pc-row"><span class="pc-k">Dedicated Feeders</span><span class="pc-v mono">'+ss.dedicated+'</span></div>'+
-    '<div class="pc-row stack"><span class="pc-k">Source Feeder Names</span>'+
-    '<span class="pc-v soft">'+ss.source_names+'</span></div>'+
+    '<div class="pc-row"><span class="pc-k">SS Code</span><span class="pc-v">'+ss.code+'</span></div>'+
+    '<div class="pc-row"><span class="pc-k">PTR Capacity</span><span class="pc-v" style="color:#ff9800">'+ss.ptr+' MVA</span></div>'+
+    '<div class="pc-row"><span class="pc-k">No. of PTRs</span><span class="pc-v">'+ss.ptr_qty+'</span></div>'+
+    '<div class="pc-row"><span class="pc-k">33KV Sources</span><span class="pc-v">'+ss.sources+'</span></div>'+
+    '<div class="pc-row"><span class="pc-k">Dedicated</span><span class="pc-v">'+ss.dedicated+'</span></div>'+
+    '<div class="pc-row" style="flex-direction:column;align-items:flex-start"><span class="pc-k" style="margin-bottom:2px">Source Feeders</span>'+
+    '<span class="pc-v" style="text-align:left;font-size:9px;color:rgba(176,204,224,.65);white-space:normal">'+ss.source_names+'</span></div>'+
     '<div class="pc-row"><span class="pc-k">Division</span><span class="pc-v">'+ss.division+'</span></div>'+
-    '<div class="pc-row"><span class="pc-k">Sub-Division</span><span class="pc-v">'+(ss.sub_div||'')+'</span></div>'+
-    '<div class="pc-row"><span class="pc-k">Section</span><span class="pc-v">'+(ss.section||'')+'</span></div>'+
-    '<div class="pc-row"><span class="pc-k">Coordinates</span><span class="pc-v mono">'+ss.lat.toFixed(5)+', '+ss.lon.toFixed(5)+'</span></div>'+
-    '<div class="pc-row"><span class="pc-k">Status</span>'+
-    '<span class="pc-v"><span class="fs-badge overload" style="cursor:pointer;display:inline-flex" onclick="toggleSSOverload(\''+ss.code+'\');" id="ol-badge-'+ss.code+'">&#128307; NORMAL</span></span></div>'+
+    '<div class="pc-row"><span class="pc-k">Coords</span><span class="pc-v">'+ss.lat.toFixed(5)+', '+ss.lon.toFixed(5)+'</span></div>'+
+    '<div class="pc-row" style="margin-top:4px"><span class="pc-k"></span>'+
+    '<div class="fs-badge overload" style="cursor:pointer" onclick="toggleSSOverload(\''+ss.code+'\');" id="ol-badge-'+ss.code+'">&#128307; NORMAL</div></div>'+
     '</div>';
-  mk.bindPopup(pop,{maxWidth:380});
+  mk.bindPopup(pop,{maxWidth:320});
   mk._ssCode=ss.code; mk._ssName=ss.name; mk._ssSources=ss.source_names;
   mk.addTo(LG.ss33);
 });
@@ -1417,8 +1433,8 @@ function setCable(t){
   });
   sortedFeeders.forEach(function(fn){
     if(!feederVisible[fn])return;
-    var ft=(feederData[fn][0].type_of_feeder||'').trim();
-    var show=t==='all'||(t==='ug'&&(ft==='UG'||ft==='UG to OH'))||(t==='oh'&&(ft==='OH'||ft==='OH to UG'));
+    var ft=((feederData[fn]._class||{}).type)||'MIXED';
+    var show=t==='all'||(t==='ug'&&ft==='UG')||(t==='oh'&&ft==='OH');
     feederMarkers[fn].forEach(function(m){try{m.setStyle({opacity:show?.9:0,fillOpacity:show?.9:0});}catch(e){}});
     feederLines[fn].forEach(function(l){try{l.setStyle({opacity:show?(feederStatus[fn]==='bdown'?.85:.85):0});}catch(e){}});
   });
