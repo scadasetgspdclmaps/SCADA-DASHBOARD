@@ -806,8 +806,235 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 </div>
 
 <!-- ── LIVE DASHBOARD ─────────────────────────────────────────────────── -->
-<div class="shell-section" id="sec-live" style="overflow:hidden">
-  <iframe id="live-frame" src="" style="width:100%;height:100%;border:none;display:block;" title="Live Dashboard"></iframe>
+<div class="shell-section" id="sec-live">
+<div class="live-wrap">
+
+<!-- HERO -->
+<div class="live-hero">
+  <div>
+    <h2>⚡ SCADA 33KV LIVE DASHBOARD</h2>
+    <p>TGSPDCL · 33KV DISTRIBUTION NETWORK · REAL-TIME BREAKDOWN MONITOR</p>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(0,200,83,.18);border:1px solid rgba(0,200,83,.3);color:#90EE90;font-family:monospace">● LIVE STREAM</span>
+      <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#cde;font-family:monospace" id="ld-entry-chip">0 LOG ENTRIES</span>
+      <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(192,57,43,.25);border:1px solid rgba(192,57,43,.5);color:#ffaaaa;font-family:monospace;animation:blp 1.5s infinite;display:none" id="ld-alert-chip">⚠ ACTIVE BREAKDOWN</span>
+    </div>
+  </div>
+  <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:10px 16px;text-align:right;min-width:200px">
+    <div style="font-size:9px;letter-spacing:1.5px;opacity:.7;font-family:monospace;text-transform:uppercase">Last Refresh</div>
+    <div style="font-size:13px;font-weight:700;margin-top:4px;font-family:monospace" id="ld-now">--/--/---- --:--:--</div>
+  </div>
+</div>
+
+<!-- KPI ROW -->
+<div class="live-kpis">
+  <div class="live-kpi r"><div class="lk-l">Active Breakdowns</div><div class="lk-v" id="ld-active">0</div><div class="lk-s">Awaiting restoration</div></div>
+  <div class="live-kpi g"><div class="lk-l">Restored</div><div class="lk-v" id="ld-restored">0</div><div class="lk-s">Restoration logged</div></div>
+  <div class="live-kpi a"><div class="lk-l">Avg Duration</div><div class="lk-v" id="ld-avg" style="font-size:18px;margin-top:6px">—</div><div class="lk-s">Minutes (restored only)</div></div>
+  <div class="live-kpi p"><div class="lk-l">Divisions Affected</div><div class="lk-v" id="ld-divs">0</div><div class="lk-s">Lines divisions in log</div></div>
+  <div class="live-kpi"><div class="lk-l">Total Entries</div><div class="lk-v" id="ld-total">0</div><div class="lk-s">All sessions</div></div>
+  <div class="live-kpi"><div class="lk-l">Sections Affected</div><div class="lk-v" id="ld-secs">0</div><div class="lk-s">Unique sections</div></div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="live-grid">
+  <!-- Log Table -->
+  <div class="live-panel" style="overflow:hidden;padding:0">
+    <div class="live-hd" style="padding:12px 16px;margin:0;border-radius:0;border-bottom:1px solid rgba(255,255,255,.1)">
+      <h3>📋 RECENT BREAKDOWN LOG</h3>
+      <span id="ld-log-badge">0 entries</span>
+    </div>
+    <div style="overflow-x:auto;max-height:320px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead>
+          <tr style="background:#1565C0">
+            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">#</th>
+            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Substation</th>
+            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Division</th>
+            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">33KV Feeder</th>
+            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Type</th>
+            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Failure Time</th>
+            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Duration</th>
+            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Status</th>
+          </tr>
+        </thead>
+        <tbody id="ld-log-tbody">
+          <tr><td colspan="8" style="text-align:center;padding:28px 20px;color:#7A95AD;font-size:12px">No breakdown entries yet.<br><span style="font-size:10px">Log entries in the Breakdown Entry tab — they appear here automatically.</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Fault Analysis -->
+  <div class="live-panel">
+    <div class="live-hd"><h3>🔍 IDENTIFIED FAULTS</h3><span id="ld-fault-badge">0</span></div>
+    <div id="ld-fault-bars" style="padding:4px 0">
+      <div style="text-align:center;padding:20px;color:#7A95AD;font-size:11px">Log breakdown entries to see fault analysis</div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM ROW -->
+<div class="live-bottom">
+  <!-- Outage type -->
+  <div class="live-mini">
+    <h4>⚡ OUTAGE TYPE</h4>
+    <div class="live-list">
+      <div class="row"><b>🔴 Breakdown</b><span class="live-pill bad" id="ld-cnt-bd">0</span></div>
+      <div class="row"><b>✅ Planned</b><span class="live-pill ok" id="ld-cnt-pl">0</span></div>
+      <div class="row"><b>⚠ Emergency</b><span class="live-pill warn" id="ld-cnt-em">0</span></div>
+      <div class="row"><b>⚡ Tripping</b><span class="live-pill" id="ld-cnt-tr">0</span></div>
+    </div>
+  </div>
+  <!-- Division summary -->
+  <div class="live-mini">
+    <h4>🗺 DIVISION SUMMARY</h4>
+    <div class="live-list">
+      <div class="row"><b>Banjara Hills</b><span class="live-pill ok" id="ld-div-bh">0</span></div>
+      <div class="row"><b>Secunderabad</b><span class="live-pill alt" id="ld-div-sc">0</span></div>
+      <div class="row"><b>South</b><span class="live-pill warn" id="ld-div-so">0</span></div>
+      <div class="row"><b>Central</b><span class="live-pill" id="ld-div-ce">0</span></div>
+    </div>
+  </div>
+  <!-- Relay & status -->
+  <div class="live-mini">
+    <h4>🔌 RELAY / CONTROL ROOM</h4>
+    <div class="live-list" id="ld-relay-list">
+      <div class="row"><b>Heartbeat</b><span class="live-pill ok">LIVE</span></div>
+      <div class="row"><b>Refresh</b><span class="live-pill">5 SEC</span></div>
+      <div class="row"><b>Data Source</b><span class="live-pill ok">LOCAL LOG</span></div>
+      <div class="row"><b>Active Alerts</b><span class="live-pill bad" id="ld-alerts">0</span></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /live-wrap -->
+
+<script>
+(function(){
+  var LS_KEY = 'tgspdcl_bd_log';
+  var FAULT_COLORS = ['#C0392B','#D07A00','#1565C0','#0B7A5C','#8E24AA','#2980B9'];
+  var TYPE_COLOR = {Breakdown:'#C0392B',Planned:'#0B7A5C',Emergency:'#D07A00',Tripping:'#1565C0'};
+  var TYPE_BG    = {Breakdown:'rgba(192,57,43,.15)',Planned:'rgba(11,122,92,.15)',Emergency:'rgba(208,122,0,.15)',Tripping:'rgba(21,101,192,.15)'};
+
+  function set(id, v){ var e=document.getElementById(id); if(e) e.textContent=v; }
+  function timeNow(){
+    var n=new Date(), p=function(x){return String(x).padStart(2,'0');};
+    return p(n.getDate())+'/'+p(n.getMonth()+1)+'/'+n.getFullYear()+' '+p(n.getHours())+':'+p(n.getMinutes())+':'+p(n.getSeconds());
+  }
+
+  function loadEntries(){
+    try{ var r=localStorage.getItem(LS_KEY); return r?JSON.parse(r):[]; }catch(e){ return []; }
+  }
+
+  function renderLive(){
+    set('ld-now', timeNow());
+    var entries = loadEntries();
+    var total = entries.length;
+    var restored = entries.filter(function(e){ return !!e.restoration_time; }).length;
+    var active = total - restored;
+    var durs = entries.filter(function(e){ return e.duration_min && +e.duration_min > 0; });
+    var avg = durs.length ? Math.round(durs.reduce(function(s,e){return s+(+e.duration_min);},0)/durs.length) : 0;
+    var divSet={}, secSet={};
+    entries.forEach(function(e){ if(e.lines_division) divSet[e.lines_division]=1; if(e.section) secSet[e.section]=1; });
+
+    set('ld-active', active);
+    set('ld-restored', restored);
+    set('ld-avg', avg ? avg+' min' : '—');
+    set('ld-divs', Object.keys(divSet).length);
+    set('ld-total', total);
+    set('ld-secs', Object.keys(secSet).length);
+    set('ld-alerts', active);
+    set('ld-entry-chip', total + ' LOG ENTR'+(total===1?'Y':'IES'));
+    set('ld-log-badge', total + ' entr'+(total===1?'y':'ies'));
+
+    var alertChip = document.getElementById('ld-alert-chip');
+    if(alertChip) alertChip.style.display = active > 0 ? 'inline-block' : 'none';
+
+    // Outage type counts
+    var types = {Breakdown:0,Planned:0,Emergency:0,Tripping:0};
+    var faultMap = {}, relayMap = {};
+    var divCount = {'Banjara Hills':0,'Secunderabad':0,'South':0,'Central':0};
+    entries.forEach(function(e){
+      if(types.hasOwnProperty(e.outage_type)) types[e.outage_type]++;
+      if(e.identified_fault && e.identified_fault!=='—') faultMap[e.identified_fault]=(faultMap[e.identified_fault]||0)+1;
+      if(e.relay && e.relay!=='—' && e.relay!=='None') relayMap[e.relay]=(relayMap[e.relay]||0)+1;
+      if(e.lines_division && divCount.hasOwnProperty(e.lines_division)) divCount[e.lines_division]++;
+    });
+    set('ld-cnt-bd', types.Breakdown);
+    set('ld-cnt-pl', types.Planned);
+    set('ld-cnt-em', types.Emergency);
+    set('ld-cnt-tr', types.Tripping);
+    set('ld-div-bh', divCount['Banjara Hills']);
+    set('ld-div-sc', divCount['Secunderabad']);
+    set('ld-div-so', divCount['South']);
+    set('ld-div-ce', divCount['Central']);
+
+    // Fault bars
+    var barsEl = document.getElementById('ld-fault-bars');
+    if(barsEl){
+      var fArr = Object.entries(faultMap).sort(function(a,b){return b[1]-a[1];}).slice(0,6);
+      set('ld-fault-badge', fArr.reduce(function(s,e){return s+e[1];},0));
+      if(!fArr.length){
+        barsEl.innerHTML='<div style="text-align:center;padding:20px;color:#7A95AD;font-size:11px">Log breakdown entries to see fault analysis</div>';
+      } else {
+        var mx = Math.max.apply(null, fArr.map(function(e){return e[1];}));
+        barsEl.innerHTML = fArr.map(function(e,i){
+          var pct = Math.round(e[1]/mx*100);
+          var col = FAULT_COLORS[i%FAULT_COLORS.length];
+          return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+
+            '<div style="font-size:10px;color:#cde;width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="'+e[0]+'">'+e[0].slice(0,18)+'</div>'+
+            '<div style="flex:1;height:7px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden"><div style="height:100%;border-radius:4px;background:'+col+';width:'+pct+'%"></div></div>'+
+            '<div style="font-size:10px;font-weight:700;font-family:monospace;color:'+col+';width:28px;text-align:right;flex-shrink:0">'+e[1]+'</div>'+
+            '</div>';
+        }).join('');
+      }
+    }
+
+    // Log table
+    var tbody = document.getElementById('ld-log-tbody');
+    if(tbody){
+      if(!entries.length){
+        tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:28px 20px;color:#7A95AD;font-size:12px">No breakdown entries yet.<br><span style="font-size:10px">Log entries in the Breakdown Entry tab — they appear here automatically.</span></td></tr>';
+      } else {
+        var divPillColor = {'Banjara Hills':'#0B7A5C','Secunderabad':'#8E24AA','South':'#D07A00','Central':'#1565C0'};
+        tbody.innerHTML = entries.slice().reverse().map(function(e,i){
+          var tc = TYPE_COLOR[e.outage_type]||'#1565C0';
+          var tb2 = TYPE_BG[e.outage_type]||'rgba(21,101,192,.15)';
+          var isRest = !!e.restoration_time;
+          var statusHtml = isRest
+            ? '<span style="background:rgba(11,122,92,.2);color:#90EE90;font-size:8px;font-weight:700;padding:2px 7px;border-radius:8px;border:1px solid rgba(11,122,92,.4)">RESTORED</span>'
+            : '<span style="background:rgba(192,57,43,.2);color:#ffaaaa;font-size:8px;font-weight:700;padding:2px 7px;border-radius:8px;border:1px solid rgba(192,57,43,.5);animation:blp 1.5s infinite">ACTIVE ●</span>';
+          var dc = divPillColor[e.lines_division]||'#1565C0';
+          var ft = e.failure_time ? e.failure_time.replace('T',' ') : '—';
+          var dur = e.duration || (isRest ? '—' : 'Ongoing');
+          return '<tr style="border-bottom:1px solid rgba(255,255,255,.06)">'+
+            '<td style="padding:7px 10px;color:rgba(200,220,255,.5);font-family:monospace;font-size:10px">'+(i+1)+'</td>'+
+            '<td style="padding:7px 10px;font-weight:700;color:#E8F4FF;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e.ss_name+'</td>'+
+            '<td style="padding:7px 10px"><span style="background:rgba(0,0,0,.25);border:1px solid '+dc+'55;color:'+dc+';font-size:8px;font-weight:700;padding:2px 8px;border-radius:8px;white-space:nowrap">'+(e.lines_division||'—')+'</span></td>'+
+            '<td style="padding:7px 10px;font-size:10px;color:#aac8e8;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(e.feeder_33kv||'')+'">'+(e.feeder_33kv||'—')+'</td>'+
+            '<td style="padding:7px 10px"><span style="background:'+tb2+';color:'+tc+';border:1px solid '+tc+'55;font-size:8px;font-weight:700;padding:2px 7px;border-radius:8px">'+(e.outage_type||'—')+'</span></td>'+
+            '<td style="padding:7px 10px;white-space:nowrap;font-family:monospace;font-size:10px;color:#cde">'+ft+'</td>'+
+            '<td style="padding:7px 10px;font-family:monospace;font-weight:700;color:#93c5fd;font-size:10px">'+dur+'</td>'+
+            '<td style="padding:7px 10px">'+statusHtml+'</td>'+
+            '</tr>';
+        }).join('');
+      }
+    }
+  }
+
+  // Listen for postMessage from Breakdown Entry iframe
+  window.addEventListener('message', function(ev){
+    if(ev.data && ev.data.type === 'BD_LOG_UPDATE'){
+      try{ if(ev.data.entries) localStorage.setItem(LS_KEY, JSON.stringify(ev.data.entries)); }catch(e){}
+      renderLive();
+    }
+  });
+
+  renderLive();
+  setInterval(renderLive, 5000);
+})();
+</script>
 </div>
 <div class="shell-section" id="sec-ss">
   <iframe id="ss-frame" src="" title="SS Master Data"
@@ -1721,7 +1948,6 @@ function toast(msg,dur){
 /* ── SECTION SWITCHING ───────────────────────────────────────────────── */
 var _ssLoaded = false;
 var _entryLoaded = false;
-var _liveLoaded = false;
 
 function switchSection(id) {
   document.querySelectorAll('.shell-section').forEach(function(s) {
@@ -1767,14 +1993,6 @@ function switchSection(id) {
     var entryFrame = document.getElementById('entry-frame');
     if (entryFrame) {
       entryFrame.src = 'Breakdown_Entry.html';
-    }
-  }
-
-  if (id === 'live' && !_liveLoaded) {
-    _liveLoaded = true;
-    var liveFrame = document.getElementById('live-frame');
-    if (liveFrame) {
-      liveFrame.src = 'Live_Dashboard.html';
     }
   }
 }
