@@ -806,106 +806,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 </div>
 
 <!-- ── LIVE DASHBOARD ─────────────────────────────────────────────────── -->
-<div class="shell-section" id="sec-live">
-  <div class="live-wrap">
-    <div class="live-hero">
-      <div>
-        <h2>SCADA 33KV LIVE DASHBOARD</h2>
-        <p>Live operational snapshot — breakdown entries, feeder health &amp; 33/11kV substation sourcing.</p>
-        <div class="live-chip-row">
-          <span class="live-chip good" id="live-stream-chip">● LIVE STREAM</span>
-          <span class="live-chip">AUTO REFRESH 5s</span>
-          <span class="live-chip" id="live-entry-count-chip">0 LOG ENTRIES</span>
-        </div>
-      </div>
-      <div class="live-clock">
-        <div class="lc-l">Last Refresh</div>
-        <div class="lc-v" id="live-now">--/--/---- --:--:--</div>
-      </div>
-    </div>
-
-    <!-- KPI row — real counts from breakdown log + simulated network -->
-    <div class="live-kpis">
-      <div class="live-kpi r"><div class="lk-l">Active Breakdowns</div><div class="lk-v" id="bd33">0</div><div class="lk-s">From breakdown log</div></div>
-      <div class="live-kpi g"><div class="lk-l">Restored Today</div><div class="lk-v" id="live-restored">0</div><div class="lk-s">Entries with restoration time</div></div>
-      <div class="live-kpi a"><div class="lk-l">Pending Restoration</div><div class="lk-v" id="live-pending">0</div><div class="lk-s">No restoration time yet</div></div>
-      <div class="live-kpi p"><div class="lk-l">Divisions Affected</div><div class="lk-v" id="live-divs">0</div><div class="lk-s">Unique divisions in log</div></div>
-      <div class="live-kpi"><div class="lk-l">Avg Duration</div><div class="lk-v" id="live-avg-dur" style="font-size:20px;margin-top:10px">—</div><div class="lk-s">Minutes (restored entries)</div></div>
-      <div class="live-kpi"><div class="lk-l">Total Log Entries</div><div class="lk-v" id="live-total">0</div><div class="lk-s">All sessions combined</div></div>
-    </div>
-
-    <div class="live-grid">
-      <!-- Left: Breakdown log table -->
-      <div class="live-panel" style="overflow:hidden">
-        <div class="live-hd">
-          <h3>📋 RECENT BREAKDOWN LOG</h3>
-          <span id="log-live-count">0 entries</span>
-        </div>
-        <div style="overflow-x:auto;max-height:300px;overflow-y:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:11px">
-            <thead>
-              <tr style="background:#1565C0">
-                <th style="color:#fff;padding:7px 10px;font-size:9px;font-weight:700;letter-spacing:.05em;text-align:left;white-space:nowrap">Substation</th>
-                <th style="color:#fff;padding:7px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Section</th>
-                <th style="color:#fff;padding:7px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Type</th>
-                <th style="color:#fff;padding:7px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Failure Time</th>
-                <th style="color:#fff;padding:7px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Duration</th>
-                <th style="color:#fff;padding:7px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Status</th>
-              </tr>
-            </thead>
-            <tbody id="live-log-tbody">
-              <tr><td colspan="6" style="text-align:center;padding:20px;color:#7A95AD;font-size:12px">No breakdown entries yet.<br><span style="font-size:10px">Log entries in the Breakdown Entry tab — they appear here automatically.</span></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Right: Stats bars + fault breakdown -->
-      <div class="live-panel">
-        <div class="live-hd"><h3>📊 FAULT ANALYSIS</h3><span>FROM LOG</span></div>
-        <div class="live-stats-list" id="live-fault-bars">
-          <div style="text-align:center;padding:20px;color:#7A95AD;font-size:11px">Log breakdown entries to see analysis</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="live-bottom">
-      <!-- Outage type breakdown -->
-      <div class="live-mini">
-        <h4>⚡ OUTAGE TYPE BREAKDOWN</h4>
-        <div class="live-list" id="live-type-list">
-          <div class="row"><b>Breakdown</b><span class="live-pill bad" id="cnt-breakdown">0</span></div>
-          <div class="row"><b>Planned</b><span class="live-pill ok" id="cnt-planned">0</span></div>
-          <div class="row"><b>Emergency</b><span class="live-pill warn" id="cnt-emergency">0</span></div>
-          <div class="row"><b>Tripping</b><span class="live-pill" id="cnt-tripping">0</span></div>
-        </div>
-      </div>
-
-      <!-- Nature of fault -->
-      <div class="live-mini">
-        <h4>🔴 FAULT NATURE</h4>
-        <div class="live-list">
-          <div class="row"><b>Temporary Faults</b><span class="live-pill warn" id="cnt-temp">0</span></div>
-          <div class="row"><b>Permanent Faults</b><span class="live-pill bad" id="cnt-perm">0</span></div>
-          <div class="row"><b>Restored</b><span class="live-pill ok" id="cnt-rest2">0</span></div>
-          <div class="row"><b>Pending</b><span class="live-pill alt" id="cnt-pend2">0</span></div>
-        </div>
-      </div>
-
-      <!-- Control room status -->
-      <div class="live-mini">
-        <h4>🖥 CONTROL ROOM</h4>
-        <div class="live-list">
-          <div class="row"><b>Heartbeat</b><span class="live-pill ok">LIVE</span></div>
-          <div class="row"><b>Refresh Interval</b><span class="live-pill">5 SEC</span></div>
-          <div class="row"><b>Data Source</b><span class="live-pill ok">BREAKDOWN LOG</span></div>
-          <div class="row"><b>Active Alerts</b><span class="live-pill bad" id="crit-watch">0</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="shell-section" id="sec-live" style="overflow:hidden">
+  <iframe id="live-frame" src="" style="width:100%;height:100%;border:none;display:block;" title="Live Dashboard"></iframe>
 </div>
-
 <div class="shell-section" id="sec-ss">
   <iframe id="ss-frame" src="" title="SS Master Data"
     sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
@@ -1818,6 +1721,7 @@ function toast(msg,dur){
 /* ── SECTION SWITCHING ───────────────────────────────────────────────── */
 var _ssLoaded = false;
 var _entryLoaded = false;
+var _liveLoaded = false;
 
 function switchSection(id) {
   document.querySelectorAll('.shell-section').forEach(function(s) {
@@ -1863,6 +1767,14 @@ function switchSection(id) {
     var entryFrame = document.getElementById('entry-frame');
     if (entryFrame) {
       entryFrame.src = 'Breakdown_Entry.html';
+    }
+  }
+
+  if (id === 'live' && !_liveLoaded) {
+    _liveLoaded = true;
+    var liveFrame = document.getElementById('live-frame');
+    if (liveFrame) {
+      liveFrame.src = 'Live_Dashboard.html';
     }
   }
 }
