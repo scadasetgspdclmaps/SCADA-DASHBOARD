@@ -206,39 +206,9 @@
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <span class="nav-brand">TGSPDCL</span>
-  <span class="nav-label">SCADA Dashboard</span>
-  <div class="nav-links">
-    <a href="https://scadasetgspdclmaps.github.io/SCADA-DASHBOARD/TGSPDCL_Command_Centre.html">🏠 <strong>Home</strong><span class="nav-sub">OVERVIEW</span></a>
-    <a href="https://scadasetgspdclmaps.github.io/SCADA-DASHBOARD/TGSPDCL_Command_Centre.html#grid">🌐 <strong>33KV Grid Map</strong><span class="nav-sub">LIVE FEEDER MAP</span></a>
-    <a href="https://scadasetgspdclmaps.github.io/SCADA-DASHBOARD/TGSPDCL_Command_Centre.html#analytics">📊 <strong>Analytics</strong><span class="nav-sub">STATS & DATA</span></a>
-    <a href="https://scadasetgspdclmaps.github.io/SCADA-DASHBOARD/TGSPDCL_Command_Centre.html#live">🚀 <strong>Live Dashboard</strong><span class="nav-sub">SCADA LIVE VIEW</span></a>
-    <a href="https://scadasetgspdclmaps.github.io/SCADA-DASHBOARD/TGSPDCL_Command_Centre.html#ss">⚡ <strong>SS Master Data</strong><span class="nav-sub">GOLCONDA 33/11KV</span></a>
-    <a href="https://scadasetgspdclmaps.github.io/SCADA-DASHBOARD/TGSPDCL_Command_Centre.html#scada">🔌 <strong>33KV SCADA</strong><span class="nav-sub">JAMES STREET</span></a>
-    <a href="#" class="active">📋 <strong>Breakdown Entry</strong><span class="nav-sub">OUTAGE LOG FORM</span></a>
-  </div>
-  <div class="nav-right">
-    <span class="live-badge">● LIVE</span>
-    <span style="color:#93c5fd;font-size:11px;font-weight:600;" id="navClock">--:--:--</span>
-  </div>
-</nav>
-
-<!-- PAGE HEADER -->
-<div class="page-header">
-  <h1>⚡ BREAKDOWN ENTRY — OUTAGE LOG FORM</h1>
-  <p>TGSPDCL · 33KV DISTRIBUTION NETWORK · AUTOMATED PMI REGISTER</p>
-  <div class="header-meta">
-    <span class="header-chip">136 SUBSTATIONS</span>
-    <span class="header-chip">4 OPERATION CIRCLES</span>
-    <span class="header-chip">18 SECTIONS</span>
-    <span class="header-chip red">🔴 LIVE ENTRY MODE</span>
-  </div>
-</div>
 
 <!-- MAIN CONTENT -->
-<div class="content">
+<div class="content" style="padding-top:16px">
 
   <!-- SECTION 1: SS IDENTIFICATION -->
   <div class="section-card">
@@ -645,11 +615,7 @@ function init() {
   const circleSelect = document.getElementById('op_circle');
   circles.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; circleSelect.appendChild(o); });
 
-  // Clock
-  setInterval(() => {
-    document.getElementById('navClock').textContent = new Date().toLocaleTimeString('en-IN');
-  }, 1000);
-  document.getElementById('navClock').textContent = new Date().toLocaleTimeString('en-IN');
+  // Clock removed (running inside iframe — parent nav has the clock)
   loadFromStorage();
 }
 
