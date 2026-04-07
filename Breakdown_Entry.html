@@ -650,6 +650,29 @@ function init() {
     document.getElementById('navClock').textContent = new Date().toLocaleTimeString('en-IN');
   }, 1000);
   document.getElementById('navClock').textContent = new Date().toLocaleTimeString('en-IN');
+  loadFromStorage();
+}
+
+// ─── STORAGE BRIDGE ──────────────────────────────────────────
+var LS_KEY = 'tgspdcl_bd_log';
+
+function saveToStorage() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(entries)); } catch(e) {}
+  try { window.parent.postMessage({ type: 'BD_LOG_UPDATE', entries: entries }, '*'); } catch(e) {}
+}
+
+function loadFromStorage() {
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      var saved = JSON.parse(raw);
+      if (Array.isArray(saved) && saved.length) {
+        entries = saved;
+        entryCounter = saved.reduce(function(mx, e) { return Math.max(mx, e.id || 0); }, 0);
+        renderLog();
+      }
+    }
+  } catch(e) {}
 }
 
 // ─── CASCADE: Circle → Division → SubDiv → Section ──────────
@@ -908,6 +931,7 @@ function logBreakdown() {
     remarks: getVal('remarks')
   };
   entries.push(entry);
+  saveToStorage();
   renderLog();
   showToast();
   clearForm();
@@ -961,6 +985,7 @@ function renderLog() {
 
 function deleteEntry(i) {
   entries.splice(i, 1);
+  saveToStorage();
   renderLog();
 }
 
@@ -968,6 +993,7 @@ function clearLog() {
   if (entries.length && !confirm('Clear all logged entries?')) return;
   entries = [];
   entryCounter = 0;
+  saveToStorage();
   renderLog();
 }
 
