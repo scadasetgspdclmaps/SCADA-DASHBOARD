@@ -335,6 +335,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
     <button class="sn-tab" onclick="window.open('https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html','_blank')" id="sntab-scada33">
       <span class="ti">&#128268;</span><div class="tl"><b>33KV SCADA</b><small>JAMES STREET</small></div>
     </button>
+    <button class="sn-tab" onclick="switchSection('entry')" id="sntab-entry">
+      <span class="ti">&#128203;</span><div class="tl"><b>Breakdown Entry</b><small>OUTAGE LOG FORM</small></div>
+    </button>
   </div>
   <div class="sn-right">
     <div class="snc snc-live">LIVE</div>
@@ -401,6 +404,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
         </div>
         <div class="hcard-arrow">&#8594;</div>
       </div>
+      <div class="hcard" style="border-top-color:#7B1FA2;grid-column:span 2;display:flex;align-items:flex-start;gap:20px;" onclick="switchSection('entry')">
+        <div style="flex-shrink:0">
+          <div class="hcard-icon" style="font-size:32px;margin-bottom:0">&#128203;</div>
+        </div>
+        <div style="flex:1">
+          <div class="hcard-title" style="color:#7B1FA2;">BREAKDOWN ENTRY — OUTAGE LOG FORM</div>
+          <div class="hcard-desc">Log 33/11KV substation outages against the full PMI register — cascading SS selection across 136 substations, all 27 data columns (Col 1–27), relay indication, nature of fault, weather, LC details, auto-calculated durations, and one-click CSV export.</div>
+          <div class="hcard-tags">
+            <span class="hcard-tag">136 SS</span><span class="hcard-tag">4 OP CIRCLES</span><span class="hcard-tag">PMI REGISTER</span><span class="hcard-tag">AUTO DURATION</span><span class="hcard-tag">CSV EXPORT</span>
+          </div>
+        </div>
+        <div class="hcard-arrow" style="position:static;color:#CE93D8">&#8594;</div>
+      </div>
     </div>
     <div class="hstats">
       <div class="hs"><div class="hs-v">136</div><div class="hs-l">33/11KV SS</div></div>
@@ -414,6 +430,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
       <div class="hs"><div class="hs-v">4</div><div class="hs-l">DIVISIONS</div></div>
     </div>
   </div>
+</div>
+
+<!-- ── BREAKDOWN ENTRY ────────────────────────────────────────────────── -->
+<div class="shell-section" id="sec-entry" style="overflow:hidden;">
+  <iframe id="entry-frame" src="" style="width:100%;height:100%;border:none;display:block;" allowfullscreen></iframe>
 </div>
 
 <!-- ── MAP ────────────────────────────────────────────────────────────── -->
@@ -1665,6 +1686,7 @@ function toast(msg,dur){
 
 /* ── SECTION SWITCHING ───────────────────────────────────────────────── */
 var _ssLoaded = false;
+var _entryLoaded = false;
 
 function switchSection(id) {
   document.querySelectorAll('.shell-section').forEach(function(s) {
@@ -1702,6 +1724,14 @@ function switchSection(id) {
     var frame = document.getElementById('ss-frame');
     if (frame) {
       frame.src = 'https://scadasetgspdclmaps.github.io/SUBSTATIONMASTERDATA/';
+    }
+  }
+
+  if (id === 'entry' && !_entryLoaded) {
+    _entryLoaded = true;
+    var entryFrame = document.getElementById('entry-frame');
+    if (entryFrame) {
+      entryFrame.src = 'Breakdown_Entry.html';
     }
   }
 }
