@@ -2,349 +2,1035 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>TGSPDCL — Live Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TGSPDCL — Breakdown Entry</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#EEF4FA;--card:#fff;--bd:#D6E4F0;--bd2:#C8D8E8;
-  --bl:#1565C0;--blb:#DDEEFF;
-  --gn:#0B7A5C;--gnb:#D4F0E8;
-  --am:#D07A00;--amb:#FFF3CD;
-  --rd:#C0392B;--rdb:#FDECEA;
-  --pk:#8E24AA;--pkb:#F3E5F5;
-  --tx:#1A2E40;--tx2:#4A6580;--tx3:#7A95AD;
-  --m:monospace;
-}
-body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding:16px 20px 40px}
+  :root {
+    --blue: #1a3a6b;
+    --blue-mid: #1e4d8c;
+    --blue-light: #2d6cc0;
+    --accent: #f59e0b;
+    --red: #dc2626;
+    --green: #16a34a;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --border: #d1d9e6;
+    --text: #1e293b;
+    --muted: #64748b;
+    --nav-h: 64px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-/* KPI STRIP */
-.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
-.kpi{background:var(--card);border:.5px solid var(--bd2);border-radius:10px;padding:12px 14px;box-shadow:0 1px 6px rgba(21,101,192,.07);border-left:3px solid var(--bl)}
-.kpi.r{border-left-color:var(--rd)}.kpi.g{border-left-color:var(--gn)}.kpi.a{border-left-color:var(--am)}.kpi.p{border-left-color:var(--pk)}
-.kl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);margin-bottom:3px}
-.kv{font-size:26px;font-weight:800;color:var(--tx);font-family:var(--m);line-height:1}
-.ks{font-size:10px;color:var(--tx3);margin-top:3px}
+  /* NAV */
+  nav {
+    background: var(--blue);
+    height: var(--nav-h);
+    display: flex; align-items: center;
+    padding: 0 20px;
+    position: sticky; top: 0; z-index: 999;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+  .nav-brand { color: #fff; font-size: 18px; font-weight: 800; letter-spacing: 1px; margin-right: 16px; white-space: nowrap; }
+  .nav-label { color: #93c5fd; font-size: 10px; font-weight: 600; letter-spacing: 1px; margin-right: 32px; white-space: nowrap; }
+  .nav-links { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+  .nav-links a {
+    color: #cbd5e1; text-decoration: none; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; padding: 6px 12px; border-radius: 6px;
+    white-space: nowrap; text-align: center; line-height: 1.3;
+    transition: background 0.15s, color 0.15s;
+  }
+  .nav-links a:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .nav-links a.active { background: rgba(255,255,255,0.15); color: #fff; border-bottom: 2px solid var(--accent); }
+  .nav-links a .nav-sub { display: block; font-size: 9px; color: #93c5fd; letter-spacing: 0.8px; font-weight: 400; }
+  .nav-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .live-badge { background: #16a34a; color: #fff; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 12px; letter-spacing: 0.5px; }
 
-/* HERO BAR */
-.hero{background:linear-gradient(135deg,#0F2E57,#1565C0);border-radius:14px;padding:14px 20px;color:#fff;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;box-shadow:0 6px 20px rgba(21,101,192,.2)}
-.hero-left h2{font-size:16px;font-weight:800;letter-spacing:.5px;margin-bottom:3px}
-.hero-left p{font-size:10px;opacity:.75;letter-spacing:.8px}
-.chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-.chip{font-size:9px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);font-family:var(--m)}
-.chip.ok{background:rgba(0,200,83,.2);border-color:rgba(0,200,83,.3)}
-.chip.bad{background:rgba(192,57,43,.3);border-color:rgba(192,57,43,.5);animation:blp 1.5s infinite}
-@keyframes blp{0%,100%{opacity:1}50%{opacity:.5}}
-.clock-box{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:10px 14px;text-align:right;min-width:200px}
-.cl-l{font-size:9px;letter-spacing:1.5px;opacity:.7;font-family:var(--m);text-transform:uppercase}
-.cl-v{font-size:14px;font-weight:700;margin-top:3px;font-family:var(--m)}
+  /* PAGE HEADER */
+  .page-header {
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-mid) 60%, #1e4080 100%);
+    color: #fff; padding: 28px 32px 24px; border-bottom: 3px solid var(--accent);
+  }
+  .page-header h1 { font-size: 22px; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px; }
+  .page-header p { font-size: 12px; color: #93c5fd; letter-spacing: 0.8px; }
+  .header-meta { display: flex; gap: 16px; margin-top: 12px; }
+  .header-chip { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #e2e8f0; font-size: 10px; font-weight: 600; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.5px; }
+  .header-chip.red { background: rgba(220,38,38,0.25); border-color: rgba(220,38,38,0.5); color: #fca5a5; }
 
-/* TWO-COL GRID */
-.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:14px}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+  /* CONTENT */
+  .content { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
 
-/* CARD */
-.card{background:var(--card);border:.5px solid var(--bd2);border-radius:12px;padding:14px 16px;box-shadow:0 1px 8px rgba(21,101,192,.06)}
-.card-hd{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);margin-bottom:12px;padding-bottom:8px;border-bottom:.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center}
-.card-hd span{font-size:10px;padding:2px 8px;border-radius:8px;background:var(--blb);color:var(--bl);font-family:var(--m)}
+  /* SECTION CARD */
+  .section-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .section-header {
+    background: linear-gradient(90deg, var(--blue) 0%, var(--blue-mid) 100%);
+    color: #fff; padding: 12px 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-num {
+    background: var(--accent); color: #7c2d12;
+    font-size: 11px; font-weight: 800; width: 24px; height: 24px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  }
+  .section-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+  .section-body { padding: 20px; }
 
-/* LOG TABLE */
-.tbl-wrap{overflow-x:auto;max-height:320px;overflow-y:auto}
-table{width:100%;border-collapse:collapse;font-size:11px}
-thead th{background:#1565C0;color:#fff;font-size:9px;font-weight:700;letter-spacing:.05em;text-align:left;padding:8px 10px;white-space:nowrap;position:sticky;top:0}
-tbody tr{border-bottom:.5px solid #EEF4FA;transition:background .1s}
-tbody tr:hover td{background:#F6FAFD}
-tbody td{padding:7px 10px;color:var(--tx2);vertical-align:middle}
+  /* GRID */
+  .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .form-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .form-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .col-span-2 { grid-column: span 2; }
+  .col-span-3 { grid-column: span 3; }
+  .col-span-4 { grid-column: span 4; }
 
-/* BARS */
-.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.bar-lbl{font-size:10px;color:var(--tx2);width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
-.bar-track{flex:1;height:8px;background:#E8EFF6;border-radius:4px;overflow:hidden}
-.bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
-.bar-val{font-size:10px;font-weight:700;font-family:var(--m);color:var(--bl);width:40px;text-align:right;flex-shrink:0}
+  /* FIELD */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 10px; font-weight: 700; color: var(--muted);
+    letter-spacing: 0.6px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .field label .req { color: var(--red); font-size: 12px; }
+  .field label .col-num { color: #93c5fd; font-weight: 600; font-size: 9px; }
+  .field input, .field select, .field textarea {
+    border: 1px solid var(--border); border-radius: 7px;
+    padding: 9px 12px; font-size: 13px; color: var(--text);
+    background: #f8fafc; transition: border 0.15s, box-shadow 0.15s;
+    width: 100%; font-family: inherit;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--blue-light);
+    box-shadow: 0 0 0 3px rgba(45,108,192,0.12);
+    background: #fff;
+  }
+  .field input.auto-fill { background: #f0f9ff; border-color: #bae6fd; color: #0369a1; font-weight: 600; }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .field .hint { font-size: 10px; color: #94a3b8; font-style: italic; }
 
-/* STAT ROWS */
-.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#F6FAFD;border-radius:8px;border:.5px solid var(--bd);margin-bottom:6px;font-size:11px}
-.stat-row b{color:var(--tx)}
-.pill{font-size:9px;font-weight:700;padding:2px 8px;border-radius:999px;font-family:var(--m)}
-.pill-rd{background:var(--rdb);color:var(--rd)}.pill-gn{background:var(--gnb);color:var(--gn)}
-.pill-am{background:var(--amb);color:var(--am)}.pill-bl{background:var(--blb);color:var(--bl)}
-.pill-pk{background:var(--pkb);color:var(--pk)}
+  /* RADIO GROUP */
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .radio-btn {
+    display: flex; align-items: center; gap: 6px;
+    cursor: pointer; padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid var(--border); font-size: 12px; font-weight: 600;
+    transition: all 0.15s; background: #f8fafc; color: var(--muted);
+  }
+  .radio-btn input[type=radio] { display: none; }
+  .radio-btn.selected { border-color: var(--blue-light); background: rgba(45,108,192,0.08); color: var(--blue); }
+  .radio-btn.red.selected { border-color: var(--red); background: rgba(220,38,38,0.08); color: var(--red); }
+  .radio-btn.green.selected { border-color: var(--green); background: rgba(22,163,74,0.08); color: var(--green); }
+  .radio-btn.amber.selected { border-color: #d97706; background: rgba(217,119,6,0.08); color: #d97706; }
 
-/* STATUS BADGES */
-.badge-active{background:var(--rdb);color:var(--rd);font-size:8px;font-weight:700;padding:2px 7px;border-radius:8px;border:1px solid #FFCDD2;animation:blp 1.5s infinite}
-.badge-rest{background:var(--gnb);color:var(--gn);font-size:8px;font-weight:700;padding:2px 7px;border-radius:8px}
-.type-badge{font-size:8px;font-weight:700;padding:2px 7px;border-radius:8px;border-width:1px;border-style:solid}
+  /* ACTION BAR */
+  .action-bar {
+    display: flex; gap: 12px; align-items: center;
+    padding: 20px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .btn {
+    padding: 10px 22px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.5px; border: none; cursor: pointer;
+    transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: var(--blue-mid); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,58,107,0.3); }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-success:hover { background: #15803d; transform: translateY(-1px); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-outline { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+  .btn-outline:hover { border-color: var(--blue-light); color: var(--blue); background: rgba(45,108,192,0.05); }
+  .btn-amber { background: var(--accent); color: #7c2d12; }
+  .btn-amber:hover { background: #d97706; }
 
-.empty-msg{text-align:center;padding:30px 20px;color:var(--tx3)}
-.empty-msg strong{display:block;font-size:13px;margin-bottom:6px;color:var(--tx2)}
-.empty-msg span{font-size:11px}
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: var(--green); color: #fff; padding: 14px 22px;
+    border-radius: 10px; font-size: 13px; font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2); transform: translateY(80px);
+    transition: transform 0.3s ease; display: flex; align-items: center; gap: 8px;
+  }
+  #toast.show { transform: translateY(0); }
 
-/* FEEDER STATUS */
-.feeder-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.f-cell{background:var(--gnb);border:1px solid rgba(11,122,92,.2);border-radius:7px;padding:6px 8px;text-align:center}
-.f-cell.bd{background:var(--rdb);border-color:rgba(192,57,43,.3)}
-.f-cell.idle{background:#F6FAFD;border-color:var(--bd)}
-.f-cell .fn{font-size:9px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.f-cell .fs{font-size:8px;margin-top:2px;font-weight:600}
-.f-cell.bd .fs{color:var(--rd)}.f-cell .fs{color:var(--gn)}.f-cell.idle .fs{color:var(--tx3)}
+  /* LOG TABLE */
+  .log-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .log-header { background: var(--blue); color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .log-header-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+  .log-count { background: var(--accent); color: #7c2d12; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 10px; }
+  .log-table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th {
+    background: #f1f5f9; color: var(--muted); font-weight: 700; letter-spacing: 0.5px;
+    font-size: 10px; text-transform: uppercase; padding: 10px 12px;
+    border-bottom: 2px solid var(--border); text-align: left; white-space: nowrap;
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: var(--text); vertical-align: top; }
+  tr:hover td { background: #f8fafc; }
+  .status-badge {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-amber { background: #fef3c7; color: #92400e; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .del-btn { background: none; border: 1px solid #fecaca; color: #dc2626; border-radius: 5px; padding: 3px 8px; cursor: pointer; font-size: 10px; }
+  .del-btn:hover { background: #fee2e2; }
+  .empty-log { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; }
 
-@media(max-width:900px){.kpi-row{grid-template-columns:repeat(3,1fr)}.grid2,.grid3{grid-template-columns:1fr}}
+  /* EXPORT BAR */
+  .export-bar { display: flex; gap: 8px; padding: 12px 20px; background: #f8fafc; border-top: 1px solid var(--border); }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  @media (max-width: 900px) {
+    .form-grid { grid-template-columns: repeat(2, 1fr); }
+    .form-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+    .col-span-3, .col-span-4 { grid-column: span 2; }
+    .content { padding: 16px; }
+  }
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .col-span-2, .col-span-3, .col-span-4 { grid-column: span 1; }
+  }
 </style>
 </head>
 <body>
 
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-left">
-    <h2>⚡ SCADA 33KV LIVE DASHBOARD</h2>
-    <p>TGSPDCL · 33KV DISTRIBUTION NETWORK · REAL-TIME BREAKDOWN MONITOR</p>
-    <div class="chips">
-      <span class="chip ok" id="chip-stream">● LIVE STREAM</span>
-      <span class="chip" id="chip-count">0 LOG ENTRIES</span>
-      <span class="chip" id="chip-active">0 ACTIVE</span>
-      <span class="chip bad" id="chip-alert" style="display:none">⚠ ACTIVE BREAKDOWN</span>
+
+<!-- MAIN CONTENT -->
+<div class="content" style="padding-top:16px">
+
+  <!-- SECTION 1: SS IDENTIFICATION -->
+  <div class="section-card">
+    <div class="section-header">
+      <span class="section-num">1</span>
+      <span class="section-title">SUBSTATION IDENTIFICATION</span>
+    </div>
+    <div class="section-body">
+      <div class="form-grid cols-4">
+
+        <div class="field">
+          <label>Name of Substation <span class="req">*</span> <span class="col-num">(1)</span></label>
+          <select id="ss_name" onchange="onSSChange()">
+            <option value="">— Select Substation —</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>SS Code <span class="col-num">(auto)</span></label>
+          <input type="text" id="ss_code" class="auto-fill" readonly placeholder="Auto-filled"/>
+        </div>
+
+        <div class="field">
+          <label>Operation Circle <span class="req">*</span> <span class="col-num">(2)</span></label>
+          <select id="op_circle" onchange="filterByCircle()">
+            <option value="">— Select Circle —</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Lines Circle <span class="col-num">(3)</span></label>
+          <input type="text" id="lines_circle" class="auto-fill" readonly placeholder="Auto-filled"/>
+        </div>
+
+        <div class="field">
+          <label>Lines Division <span class="req">*</span> <span class="col-num">(4)</span></label>
+          <select id="lines_division" onchange="filterByDivision()">
+            <option value="">— Select Division —</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Lines Sub-Division <span class="req">*</span> <span class="col-num">(5)</span></label>
+          <select id="sub_division" onchange="filterBySubDiv()">
+            <option value="">— Select Sub-Division —</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Lines Section <span class="req">*</span> <span class="col-num">(6)</span></label>
+          <select id="section" onchange="filterBySection()">
+            <option value="">— Select Section —</option>
+          </select>
+        </div>
+
+      </div>
     </div>
   </div>
-  <div class="clock-box">
-    <div class="cl-l">Last Refresh</div>
-    <div class="cl-v" id="live-now">--/--/---- --:--:--</div>
-  </div>
-</div>
 
-<!-- KPI ROW -->
-<div class="kpi-row">
-  <div class="kpi r"><div class="kl">Active Breakdowns</div><div class="kv" id="kpi-active">0</div><div class="ks">Awaiting restoration</div></div>
-  <div class="kpi g"><div class="kl">Restored</div><div class="kv" id="kpi-restored">0</div><div class="ks">Restoration time logged</div></div>
-  <div class="kpi a"><div class="kl">Avg Duration</div><div class="kv" id="kpi-avg" style="font-size:18px;margin-top:4px">—</div><div class="ks">Minutes (restored only)</div></div>
-  <div class="kpi p"><div class="kl">Divisions Affected</div><div class="kv" id="kpi-divs">0</div><div class="ks">Lines divisions in log</div></div>
-  <div class="kpi"><div class="kl">Total Entries</div><div class="kv" id="kpi-total">0</div><div class="ks">All sessions combined</div></div>
-  <div class="kpi"><div class="kl">Sections Affected</div><div class="kv" id="kpi-secs">0</div><div class="ks">Unique sections in log</div></div>
-</div>
-
-<!-- MAIN GRID: log table + fault bars -->
-<div class="grid2">
-  <!-- Log table -->
-  <div class="card" style="padding:0;overflow:hidden">
-    <div class="card-hd" style="padding:12px 16px;margin:0;border-radius:0">
-      📋 RECENT BREAKDOWN LOG
-      <span id="log-count-badge">0 entries</span>
+  <!-- SECTION 2: FAILURE DETAILS -->
+  <div class="section-card">
+    <div class="section-header">
+      <span class="section-num">2</span>
+      <span class="section-title">FAILURE DETAILS</span>
     </div>
-    <div class="tbl-wrap">
-      <table>
+    <div class="section-body">
+      <div class="form-grid cols-4">
+
+        <div class="field col-span-2">
+          <label>Failure Date & Time <span class="req">*</span> <span class="col-num">(7)</span></label>
+          <input type="datetime-local" id="failure_time" oninput="calcDuration()"/>
+        </div>
+
+        <div class="field col-span-2">
+          <label>Name of Source EHT Substation <span class="req">*</span> <span class="col-num">(8)</span></label>
+          <select id="eht_substation">
+            <option value="">— Select EHT Source —</option>
+            <option>132 KV GUNROCK SS</option>
+            <option>132 KV PATIGADDA SS</option>
+            <option>132 KV CHILKALGUDA SS</option>
+            <option>132 KV IDPL SS</option>
+            <option>132 KV ERRAGADDA SS</option>
+            <option>132 KV HUSSAINSAGAR SS</option>
+            <option>132 KV BALKAMPET SS</option>
+            <option>132 KV HITECH CITY SS</option>
+            <option>132 KV HYDERABAD SS</option>
+            <option>132 KV SHAMIRPET SS</option>
+            <option>132 KV RAMACHANDRAPURAM SS</option>
+            <option>132 KV FALAKNUMA SS</option>
+            <option>132 KV MALAKPET SS</option>
+            <option>132 KV ASIFNAGAR SS</option>
+            <option>132 KV GOLCONDA SS</option>
+          </select>
+        </div>
+
+        <div class="field col-span-4">
+          <label>Name of 33KV Source (Feeder) <span class="req">*</span> <span class="col-num">(9)</span></label>
+          <input type="text" id="feeder_33kv" placeholder="e.g. GUNROCK → JAMES STREET FEEDER 1"/>
+        </div>
+
+        <div class="field col-span-4">
+          <label>Agency Who Triggered Outage <span class="col-num">(10)</span></label>
+          <div class="radio-group" id="agency_group">
+            <label class="radio-btn" onclick="selectRadio('agency','TRANSCO',this)"><input type="radio" name="agency" value="TRANSCO"/>TRANSCO</label>
+            <label class="radio-btn" onclick="selectRadio('agency','33KV Substation',this)"><input type="radio" name="agency" value="33KV Substation"/>33KV Substation</label>
+            <label class="radio-btn" onclick="selectRadio('agency','Lines Section',this)"><input type="radio" name="agency" value="Lines Section"/>Lines Section</label>
+            <label class="radio-btn" onclick="selectRadio('agency','DISCOM Control Room',this)"><input type="radio" name="agency" value="DISCOM Control Room"/>DISCOM Control Room</label>
+          </div>
+        </div>
+
+        <div class="field col-span-2">
+          <label>Type of Outage <span class="req">*</span> <span class="col-num">(11)</span></label>
+          <div class="radio-group">
+            <label class="radio-btn red" onclick="selectRadio('outage_type','Breakdown',this)"><input type="radio" name="outage_type" value="Breakdown"/>🔴 Breakdown</label>
+            <label class="radio-btn green" onclick="selectRadio('outage_type','Planned',this)"><input type="radio" name="outage_type" value="Planned"/>✅ Planned</label>
+            <label class="radio-btn amber" onclick="selectRadio('outage_type','Emergency',this)"><input type="radio" name="outage_type" value="Emergency"/>⚠ Emergency</label>
+            <label class="radio-btn" onclick="selectRadio('outage_type','Tripping',this)"><input type="radio" name="outage_type" value="Tripping"/>⚡ Tripping</label>
+          </div>
+        </div>
+
+        <div class="field col-span-2">
+          <label>Types of Operations <span class="col-num">(11)</span></label>
+          <select id="ops_type">
+            <option value="">— Select —</option>
+            <option>Auto Reclosing</option>
+            <option>Manual Switching</option>
+            <option>Remote Operation (SCADA)</option>
+            <option>Local Operation</option>
+            <option>Protection Trip</option>
+            <option>Manual Trip</option>
+          </select>
+        </div>
+
+        <div class="field col-span-2">
+          <label>Relay Indication <span class="col-num">(12)</span></label>
+          <select id="relay">
+            <option value="">— None —</option>
+            <option>OC (Over Current)</option>
+            <option>EF (Earth Fault)</option>
+            <option>OC + EF</option>
+            <option>Distance Relay</option>
+            <option>Under Voltage</option>
+            <option>Over Voltage</option>
+            <option>Buchholz</option>
+            <option>No Relay</option>
+            <option>IDMT</option>
+            <option>Differential</option>
+          </select>
+        </div>
+
+        <div class="field col-span-2">
+          <label>Identified Fault <span class="col-num">(13)</span></label>
+          <select id="identified_fault">
+            <option value="">— Select —</option>
+            <option>Cable Fault</option>
+            <option>Overhead Line Fault</option>
+            <option>Equipment Failure</option>
+            <option>Tree Falling</option>
+            <option>Bird / Animal Contact</option>
+            <option>Transformer Failure</option>
+            <option>AB Switch Failure</option>
+            <option>Insulator Failure</option>
+            <option>Jumper Wire Break</option>
+            <option>HT Fuse Blown</option>
+            <option>No Fault Found</option>
+            <option>Under Investigation</option>
+          </select>
+        </div>
+
+        <div class="field col-span-2">
+          <label>Nature of Fault <span class="col-num">(14)</span></label>
+          <div class="radio-group">
+            <label class="radio-btn amber" onclick="selectRadio('fault_nature','Temporary',this)"><input type="radio" name="fault_nature" value="Temporary"/>⏱ Temporary</label>
+            <label class="radio-btn red" onclick="selectRadio('fault_nature','Permanent',this)"><input type="radio" name="fault_nature" value="Permanent"/>🔴 Permanent</label>
+          </div>
+        </div>
+
+        <div class="field col-span-2">
+          <label>Weather Condition <span class="col-num">(15)</span></label>
+          <select id="weather">
+            <option value="">— Select —</option>
+            <option>Clear</option>
+            <option>Rainy</option>
+            <option>Thunderstorm</option>
+            <option>High Wind</option>
+            <option>Foggy</option>
+            <option>Hot / Dry</option>
+            <option>Cloudy</option>
+          </select>
+        </div>
+
+        <div class="field col-span-2">
+          <label>Person Responsible for Outage <span class="col-num">(15)</span></label>
+          <input type="text" id="person_responsible" placeholder="Name / Designation"/>
+        </div>
+
+        <div class="field col-span-2">
+          <label>FPI Acted — Location & Number <span class="col-num">(24)</span></label>
+          <input type="text" id="fpi_location" placeholder="e.g. Pole No. 45, Near XYZ Junction"/>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: SOURCE & ALTERNATE -->
+  <div class="section-card">
+    <div class="section-header">
+      <span class="section-num">3</span>
+      <span class="section-title">EHT & ALTERNATIVE SOURCE</span>
+    </div>
+    <div class="section-body">
+      <div class="form-grid cols-4">
+
+        <div class="field col-span-2">
+          <label>Name of EHT <span class="col-num">(18)</span></label>
+          <input type="text" id="name_eht" placeholder="e.g. 132/33 KV GUNROCK SS Feeder-2"/>
+        </div>
+
+        <div class="field col-span-2">
+          <label>Name of Alternative Source <span class="col-num">(19)</span></label>
+          <select id="alt_source">
+            <option value="">— None —</option>
+            <option>GUNROCK → JAMES STREET</option>
+            <option>GUNROCK → KIMS</option>
+            <option>PATIGADDA → JAMES STREET</option>
+            <option>CHILKALGUDA → PATIGADDA</option>
+            <option>CHILKALGUDA → CLOCK TOWER</option>
+            <option>KIMS → JAMES STREET</option>
+            <option>MONDAMARKET → CLOCKTOWER</option>
+            <option>CLOCKTOWER → NEHRUNAGAR</option>
+            <option>SEETHAPHALMANDI → MONDAMARKET</option>
+            <option>Other (specify in notes)</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: RESTORATION -->
+  <div class="section-card">
+    <div class="section-header">
+      <span class="section-num">4</span>
+      <span class="section-title">RESTORATION DETAILS</span>
+    </div>
+    <div class="section-body">
+      <div class="form-grid cols-4">
+
+        <div class="field col-span-2">
+          <label>Restoration Date & Time <span class="col-num">(20)</span></label>
+          <input type="datetime-local" id="restoration_time" oninput="calcDuration()"/>
+        </div>
+
+        <div class="field">
+          <label>Duration (Auto-calculated) <span class="col-num">(21)</span></label>
+          <input type="text" id="duration_display" class="auto-fill" readonly placeholder="HH h MM m"/>
+        </div>
+
+        <div class="field">
+          <label>Duration (Minutes)</label>
+          <input type="number" id="duration_min" class="auto-fill" readonly placeholder="Auto"/>
+        </div>
+
+        <div class="field col-span-4">
+          <label>Root Cause for Identified Fault / EHT LC / Lines LC <span class="col-num">(22)</span></label>
+          <textarea id="root_cause" placeholder="Describe the root cause analysis, LC details, EHT line cause..."></textarea>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: RECTIFICATION -->
+  <div class="section-card">
+    <div class="section-header">
+      <span class="section-num">5</span>
+      <span class="section-title">RECTIFICATION WORK</span>
+    </div>
+    <div class="section-body">
+      <div class="form-grid cols-4">
+
+        <div class="field col-span-2">
+          <label>Rectified Date & Time <span class="col-num">(23)</span></label>
+          <input type="datetime-local" id="rectified_time" oninput="calcLCDuration()"/>
+        </div>
+
+        <div class="field col-span-2">
+          <label>Rectification Work Details <span class="col-num">(24)</span></label>
+          <input type="text" id="rectification_details" placeholder="e.g. Cable joint replaced at 150m from SS, pole repaired"/>
+        </div>
+
+        <div class="field col-span-2">
+          <label>LC Taken From <span class="col-num">(25)</span></label>
+          <input type="text" id="lc_taken_from" placeholder="Name / Designation of officer who issued LC"/>
+        </div>
+
+        <div class="field col-span-2">
+          <label>LC Completed <span class="col-num">(26)</span></label>
+          <input type="datetime-local" id="lc_completed" oninput="calcLCDuration()"/>
+        </div>
+
+        <div class="field">
+          <label>LC Duration (Auto-calculated) <span class="col-num">(27)</span></label>
+          <input type="text" id="lc_duration_display" class="auto-fill" readonly placeholder="HH h MM m"/>
+        </div>
+
+        <div class="field col-span-3">
+          <label>Additional Remarks / Notes</label>
+          <textarea id="remarks" placeholder="Any additional remarks, site conditions, crew details, material used..."></textarea>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar">
+    <button class="btn btn-success" onclick="logBreakdown()">✓ LOG BREAKDOWN ENTRY</button>
+    <button class="btn btn-primary" onclick="exportExcel()">⬇ EXPORT TO EXCEL</button>
+    <button class="btn btn-outline" onclick="clearForm()">✕ CLEAR FORM</button>
+    <div style="margin-left:auto;color:var(--muted);font-size:11px;" id="entryStatus">0 entries logged this session</div>
+  </div>
+
+  <!-- LOG TABLE -->
+  <div class="log-section">
+    <div class="log-header">
+      <span class="log-header-title">📋 BREAKDOWN LOG — SESSION ENTRIES</span>
+      <span class="log-count" id="logCountBadge">0</span>
+    </div>
+    <div class="log-table-wrap">
+      <table id="logTable">
         <thead>
           <tr>
             <th>#</th>
             <th>Substation</th>
-            <th>Division</th>
-            <th>33KV Feeder / Source</th>
-            <th>Type</th>
+            <th>Section</th>
+            <th>33KV Source / Feeder</th>
+            <th>EHT Source</th>
             <th>Failure Time</th>
+            <th>Type</th>
+            <th>Agency</th>
+            <th>Relay</th>
+            <th>Identified Fault</th>
+            <th>Nature</th>
+            <th>Weather</th>
+            <th>Restoration Time</th>
             <th>Duration</th>
-            <th>Fault</th>
-            <th>Status</th>
+            <th>Alt Source</th>
+            <th>Root Cause</th>
+            <th>Rect. Time</th>
+            <th>LC From</th>
+            <th>LC Done</th>
+            <th>LC Duration</th>
+            <th>FPI Location</th>
+            <th>Person</th>
+            <th>Remarks</th>
+            <th>Action</th>
           </tr>
         </thead>
-        <tbody id="log-tbody">
-          <tr><td colspan="9"><div class="empty-msg"><strong>No entries yet</strong><span>Log breakdown entries in the Breakdown Entry tab — they appear here automatically every 5 seconds.</span></div></td></tr>
+        <tbody id="logBody">
+          <tr><td colspan="24" class="empty-log">No entries yet. Fill the form above and click LOG BREAKDOWN ENTRY.</td></tr>
         </tbody>
       </table>
     </div>
-  </div>
-
-  <!-- Right column: fault bars + outage type -->
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="card">
-      <div class="card-hd">🔍 IDENTIFIED FAULTS <span id="fault-count-badge">0</span></div>
-      <div id="fault-bars"><div class="empty-msg" style="padding:14px"><span>No fault data yet</span></div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-hd">⚡ OUTAGE BREAKDOWN</div>
-      <div class="stat-row"><b>🔴 Breakdown</b><span class="pill pill-rd" id="cnt-bd">0</span></div>
-      <div class="stat-row"><b>✅ Planned</b><span class="pill pill-gn" id="cnt-pl">0</span></div>
-      <div class="stat-row"><b>⚠ Emergency</b><span class="pill pill-am" id="cnt-em">0</span></div>
-      <div class="stat-row"><b>⚡ Tripping</b><span class="pill pill-bl" id="cnt-tr">0</span></div>
+    <div class="export-bar">
+      <button class="btn btn-amber" onclick="exportExcel()" style="font-size:11px;padding:7px 16px;">⬇ Export Log to Excel</button>
+      <button class="btn btn-outline" onclick="clearLog()" style="font-size:11px;padding:7px 16px;">🗑 Clear Log</button>
     </div>
   </div>
+
 </div>
 
-<!-- BOTTOM GRID: feeder status + fault nature + section summary -->
-<div class="grid3">
-  <!-- Affected SS / feeder status -->
-  <div class="card">
-    <div class="card-hd">🏭 AFFECTED SUBSTATIONS <span id="ss-count-badge">0</span></div>
-    <div id="ss-grid" class="feeder-grid">
-      <div class="f-cell idle" style="grid-column:span 4"><div class="fn" style="text-align:center;color:var(--tx3)">Log entries to see affected substations</div></div>
-    </div>
-  </div>
-
-  <!-- Relay indication -->
-  <div class="card">
-    <div class="card-hd">🔌 RELAY INDICATIONS</div>
-    <div id="relay-bars"><div class="empty-msg" style="padding:14px"><span>No relay data yet</span></div></div>
-  </div>
-
-  <!-- Division summary -->
-  <div class="card">
-    <div class="card-hd">🗺 DIVISION SUMMARY</div>
-    <div id="div-summary">
-      <div class="stat-row"><b>Banjara Hills</b><span class="pill pill-gn" id="div-bh">0</span></div>
-      <div class="stat-row"><b>Secunderabad</b><span class="pill pill-pk" id="div-sc">0</span></div>
-      <div class="stat-row"><b>South</b><span class="pill pill-am" id="div-so">0</span></div>
-      <div class="stat-row"><b>Central</b><span class="pill pill-bl" id="div-ce">0</span></div>
-    </div>
-  </div>
-</div>
+<!-- TOAST -->
+<div id="toast">✓ Breakdown entry logged successfully!</div>
 
 <script>
+// ─── SS DATA ───────────────────────────────────────────────
+const SS_DATA = [{"ss_code": "1081211401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV SRINAGAR COLONY SS"}, {"ss_code": "1081211402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV YELLAREDDYGUDA SS"}, {"ss_code": "1081212401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV KALYAN NAGAR SS"}, {"ss_code": "1081213401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV YOUSUFGUDA SS"}, {"ss_code": "1081213402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV KRISHNA NAGAR SS"}, {"ss_code": "1081221401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV NIMS SS"}, {"ss_code": "1081221402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV ROAD NO.2(NEW) SS"}, {"ss_code": "1081221403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV L.V.PRASAD (ROAD NO.2) SS"}, {"ss_code": "1081221405", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV MUFFAKAMJAH SS"}, {"ss_code": "1081223401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV FILM NAGAR SS"}, {"ss_code": "1081223402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV MLA COLONY SS"}, {"ss_code": "1081223403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV ROAD NO.12 B'HILLS SS"}, {"ss_code": "1081223404", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV ROAD NO.13 BANJARA HILLS SS"}, {"ss_code": "1081223405", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV COMMAND CONTROL ROOM SS"}, {"ss_code": "1081222401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Madhapur", "section": "Madhapur", "ss_name": "33/11 KV JUBILEE HILLS SS"}, {"ss_code": "1081222402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Madhapur", "section": "Madhapur", "ss_name": "33/11 KV MADHAPUR SS"}, {"ss_code": "1081222403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Madhapur", "section": "Madhapur", "ss_name": "33/11 KV MIND SPACE (RAHEJA) SS"}, {"ss_code": "1081222405", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Madhapur", "section": "Madhapur", "ss_name": "33/11 KV ROAD NO22 (JBH) SS"}, {"ss_code": "1081222406", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Madhapur", "section": "Madhapur", "ss_name": "33/11KV RAVINDER SOCIETY SS"}, {"ss_code": "1081222407", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11KV PRASASAN NAGAR SS"}, {"ss_code": "1081131401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV MYTRIVANAM SS"}, {"ss_code": "1081131402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV BALKAMPET (BEGUMPET) SS"}, {"ss_code": "1081131403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV ESI SS"}, {"ss_code": "1081132401", "op_circle": "Banjara Hills", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV AIRPORT SS"}, {"ss_code": "1081132402", "op_circle": "Banjara Hills", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11KV PRAKASHNAGAR"}, {"ss_code": "1084132401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV HPS SS"}, {"ss_code": "1081133401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV GREENLANDS SS"}, {"ss_code": "1081133402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV KUNDANBAGH SS"}, {"ss_code": "1081133403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV CM CAMP OFFICE"}, {"ss_code": "1081143401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV MOTHINAGAR SS"}, {"ss_code": "1084241401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV BORABANDA INDORE SS"}, {"ss_code": "1081142401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV ALLWYN SS"}, {"ss_code": "1081142403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11KV LOADHA SS"}, {"ss_code": "1081143402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11KV JANAPRIYA SS"}, {"ss_code": "1084244401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11KV SPR HILLS SS"}, {"ss_code": "1101511401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV HUSSAIN SAGAR SS"}, {"ss_code": "1101511402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV PUBLIC GARDEN SS"}, {"ss_code": "1101511403", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV LUMBINI PARK SS"}, {"ss_code": "1101512401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV ZP OFFICE SS"}, {"ss_code": "1101513401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV LAKE VIEW SS"}, {"ss_code": "1101513402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV ERAMANZIL SS"}, {"ss_code": "1101531401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV HYDERGUDA SS"}, {"ss_code": "1101531402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV NIZAM COLLEGE SS"}, {"ss_code": "1101533401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV EXHIBITION GROUND SS"}, {"ss_code": "1101721401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV INDIRA PARK SS"}, {"ss_code": "1101722401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV JAWAHAR NAGAR SS"}, {"ss_code": "1102411401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV NARAYANGUDA SS"}, {"ss_code": "1102411402", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV VITTALWADI SS"}, {"ss_code": "1102412401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV ZAMISTANPUR SS"}, {"ss_code": "1102421401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV INDUSTRIAL AREA SS"}, {"ss_code": "1102421402", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV FEVER HOSPITAL SS"}, {"ss_code": "1102431401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV BATHAKAMMAKUNTA SS"}, {"ss_code": "1102432401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV AMBERPET SS"}, {"ss_code": "1102432402", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV DURGANAGAR SS"}, {"ss_code": "1102433401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11KV GOLNAKA SS"}, {"ss_code": "1103911401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV AC GUARDS SS"}, {"ss_code": "1103912401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV NAMPALLY SS"}, {"ss_code": "1103912402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV ITI MALLEPALLY SS"}, {"ss_code": "1103913401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV GUDIMALKAPUR SS"}, {"ss_code": "1103921401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV GOLCONDA SS"}, {"ss_code": "1103921402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV MOTHIMAHAL SS"}, {"ss_code": "1103922401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV ASIF NAGAR SS"}, {"ss_code": "1103922402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV LANGAR HOUSE SS"}, {"ss_code": "1103923402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV SANDYA HOTEL SS"}, {"ss_code": "1103932401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV ALLURI SITARAMARAJU NAGAR SS"}, {"ss_code": "1103933401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV SD EYE HOSPITAL SS"}, {"ss_code": "1103933402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV TOLI CHOWKI SS"}, {"ss_code": "1103935401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11KV ADITHYA TOWERS SS"}, {"ss_code": "1091311401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV KHILWATH SS"}, {"ss_code": "1091311402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV DEVIBAGH SS"}, {"ss_code": "1091312401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV PANJASHAH SS"}, {"ss_code": "1091313401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV SALARJUNG MUSEUM SS"}, {"ss_code": "1091313402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV PETLA BURZ SS"}, {"ss_code": "1091321401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV CRPF SS"}, {"ss_code": "1091322401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11KV ARUNDHATI COLONY SS"}, {"ss_code": "1091323401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV FALAKNUMA SS"}, {"ss_code": "1091323402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV KANDIKAL GATE SS"}, {"ss_code": "1091331402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV HYDERGUDA SS (South)"}, {"ss_code": "1091332401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV CHANDULAL BARADARI SS"}, {"ss_code": "1091333401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV MIRALAM SS"}, {"ss_code": "1091333402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV ALIABAD SS"}, {"ss_code": "1091333403", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV MIRALAM WATER FILTER BED SS"}, {"ss_code": "1091334401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV ATTAPUR SS"}, {"ss_code": "1092811401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV MALAKPET B QUARTERS SS"}, {"ss_code": "1092812401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV MOOSARAM BAGH SS"}, {"ss_code": "1092812402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11KV TEEGALAGUDA SS"}, {"ss_code": "1092813401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV ASMAN GADH SS"}, {"ss_code": "1092813402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11KV LAXMI NAGAR SS"}, {"ss_code": "1092822401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11 KV YAKUTPURA SS"}, {"ss_code": "1092823401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11 KV SANTOSH NAGAR SS"}, {"ss_code": "1092823402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11 KV MIDHANI SS"}, {"ss_code": "1092824401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11 KV MADANNAPET SS"}, {"ss_code": "1092831401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV MALAKPET SS"}, {"ss_code": "1092832401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV CHANCHAL GUDA SS"}, {"ss_code": "1092833401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11 KV DEBEERPURA SS"}, {"ss_code": "1092834402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV GUNJ SS"}, {"ss_code": "1093211401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV KARWAN SS"}, {"ss_code": "1093211402", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11KV JIYAGUDA SS"}, {"ss_code": "1093212401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV SEETARAM BAGH SS"}, {"ss_code": "1093212402", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV KULSUMPURA SS"}, {"ss_code": "1093221401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV SULTAN BAZAR SS"}, {"ss_code": "1093222401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV ENT SS"}, {"ss_code": "1093223401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV KOTI WOMENS COLLEGE SS"}, {"ss_code": "1093231401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV OSMANIA HOSPITAL SS"}, {"ss_code": "1093232401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV GOSHA MAHAL SS"}, {"ss_code": "1851111401", "op_circle": "Secunderabad", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV CHILKALGUDA SS"}, {"ss_code": "1851112401", "op_circle": "Secunderabad", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV OSMANIA UNIVERSITY SS"}, {"ss_code": "1851112402", "op_circle": "Secunderabad", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV IICT SS"}, {"ss_code": "1851113401", "op_circle": "Secunderabad", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV SEETHAPHALMANDI SS"}, {"ss_code": "1851114401", "op_circle": "Secunderabad", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV LALAGUDA SS"}, {"ss_code": "1851114402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV ADDAGUTTA SS"}, {"ss_code": "1851221401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV BANSILALPET SS"}, {"ss_code": "1851222401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV JAMES STREET SS"}, {"ss_code": "1851222402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV PATIGADDA SS"}, {"ss_code": "1851222403", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV SANJEEVAIAH PARK SS"}, {"ss_code": "1851222404", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV KIMS SS"}, {"ss_code": "1851224401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV CLOCK TOWER SS"}, {"ss_code": "1851224402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV MONDA MARKET SS"}, {"ss_code": "1852111401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV NEHRU NAGAR SS"}, {"ss_code": "1852111402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV MARREDPALLY SS"}, {"ss_code": "1852113401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV GYMKHANA SS"}, {"ss_code": "1852121401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV GUNROCK SS"}, {"ss_code": "1852121403", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV THIRUMALAGIRI SS"}, {"ss_code": "1852121404", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV BHOODEVI NAGAR SS"}, {"ss_code": "1852122401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV HAKIMPET SS"}, {"ss_code": "1852122402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV MACHA BOLLARAM SS"}, {"ss_code": "1852123401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV R.P.NILAYAM SS"}, {"ss_code": "1852123403", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV ALWAL"}, {"ss_code": "1853111401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV BOWENPALLY SS"}, {"ss_code": "1853111402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV CHINNA THOKATTA SS"}, {"ss_code": "1853121401", "op_circle": "Secunderabad", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV IDPL SS"}, {"ss_code": "1853122401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV NEW BOWENPALLY-2 SS"}, {"ss_code": "1853131401", "op_circle": "Secunderabad", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV HAL SS"}, {"ss_code": "1853131402", "op_circle": "Secunderabad", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV PRASHANTH NAGAR SS"}, {"ss_code": "1853132401", "op_circle": "Secunderabad", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV PRAGA TOOLS SS"}, {"ss_code": "1853132402", "op_circle": "Secunderabad", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV HMT SS"}];
+
+// ─── STATE ─────────────────────────────────────────────────
+let entries = [];
+let entryCounter = 0;
+let selectedRadios = {};
+let currentFilter = { circle: '', division: '', subDiv: '', section: '' };
+
+// ─── INIT ───────────────────────────────────────────────────
+function init() {
+  // Populate ss_name dropdown (all 136)
+  const ssSelect = document.getElementById('ss_name');
+  SS_DATA.forEach(ss => {
+    const o = document.createElement('option');
+    o.value = ss.ss_code;
+    o.textContent = ss.ss_name;
+    o.dataset.circle = ss.op_circle;
+    o.dataset.division = ss.lines_division;
+    o.dataset.subDiv = ss.sub_division;
+    o.dataset.section = ss.section;
+    ssSelect.appendChild(o);
+  });
+
+  // Populate op_circle
+  const circles = [...new Set(SS_DATA.map(s => s.op_circle))].sort();
+  const circleSelect = document.getElementById('op_circle');
+  circles.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; circleSelect.appendChild(o); });
+
+  // Clock removed (running inside iframe — parent nav has the clock)
+  loadFromStorage();
+}
+
+// ─── STORAGE BRIDGE ──────────────────────────────────────────
 var LS_KEY = 'tgspdcl_bd_log';
-var FAULT_COLORS = ['#C0392B','#D07A00','#1565C0','#0B7A5C','#8E24AA','#2980B9'];
-var TYPE_COLOR = {Breakdown:'#C0392B',Planned:'#0B7A5C',Emergency:'#D07A00',Tripping:'#1565C0'};
-var TYPE_BG    = {Breakdown:'#FDECEA',Planned:'#D4F0E8',Emergency:'#FFF3CD',Tripping:'#DDEEFF'};
-var DIV_PILL   = {'Banjara Hills':'pill-gn','Secunderabad':'pill-pk','South':'pill-am','Central':'pill-bl'};
 
-function setText(id, v){ var e=document.getElementById(id); if(e) e.textContent=v; }
-function now(){
-  var n=new Date(), p=function(x){return String(x).padStart(2,'0');};
-  return p(n.getDate())+'/'+p(n.getMonth()+1)+'/'+n.getFullYear()+' '+p(n.getHours())+':'+p(n.getMinutes())+':'+p(n.getSeconds());
+function saveToStorage() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(entries)); } catch(e) {}
+  try { window.parent.postMessage({ type: 'BD_LOG_UPDATE', entries: entries }, '*'); } catch(e) {}
 }
 
-function loadEntries(){
-  try{ var r=localStorage.getItem(LS_KEY); return r?JSON.parse(r):[]; }catch(e){ return []; }
+function loadFromStorage() {
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      var saved = JSON.parse(raw);
+      if (Array.isArray(saved) && saved.length) {
+        entries = saved;
+        entryCounter = saved.reduce(function(mx, e) { return Math.max(mx, e.id || 0); }, 0);
+        renderLog();
+      }
+    }
+  } catch(e) {}
 }
 
-function makeBars(containerId, map, colors, badgeId){
-  var c = document.getElementById(containerId); if(!c) return;
-  var entries = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,6);
-  if(badgeId) setText(badgeId, entries.reduce(function(s,e){return s+e[1];},0));
-  if(!entries.length){ c.innerHTML='<div class="empty-msg" style="padding:14px"><span>No data yet</span></div>'; return; }
-  var mx = Math.max.apply(null, entries.map(function(e){return e[1];}));
-  c.innerHTML = entries.map(function(e,i){
-    var pct = mx>0 ? Math.round(e[1]/mx*100) : 0;
-    var col = colors[i%colors.length];
-    return '<div class="bar-row">'+
-      '<div class="bar-lbl" title="'+e[0]+'">'+e[0].slice(0,18)+'</div>'+
-      '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+col+'"></div></div>'+
-      '<div class="bar-val" style="color:'+col+'">'+e[1]+'</div>'+
-      '</div>';
+// ─── CASCADE: Circle → Division → SubDiv → Section ──────────
+function filterByCircle() {
+  const circle = document.getElementById('op_circle').value;
+  currentFilter.circle = circle;
+  currentFilter.division = '';
+  currentFilter.subDiv = '';
+  currentFilter.section = '';
+  rebuildDivisions(circle);
+  rebuildSubDivisions('', '');
+  rebuildSections('', '', '');
+  filterSSDropdown();
+}
+
+function rebuildDivisions(circle) {
+  const divs = [...new Set(SS_DATA.filter(s => !circle || s.op_circle === circle).map(s => s.lines_division))].sort();
+  const sel = document.getElementById('lines_division');
+  sel.innerHTML = '<option value="">— Select Division —</option>';
+  divs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+}
+
+function filterByDivision() {
+  currentFilter.division = document.getElementById('lines_division').value;
+  currentFilter.subDiv = '';
+  currentFilter.section = '';
+  rebuildSubDivisions(currentFilter.circle, currentFilter.division);
+  rebuildSections(currentFilter.circle, currentFilter.division, '');
+  filterSSDropdown();
+}
+
+function rebuildSubDivisions(circle, division) {
+  const subs = [...new Set(SS_DATA.filter(s =>
+    (!circle || s.op_circle === circle) &&
+    (!division || s.lines_division === division)
+  ).map(s => s.sub_division))].sort();
+  const sel = document.getElementById('sub_division');
+  sel.innerHTML = '<option value="">— Select Sub-Division —</option>';
+  subs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+}
+
+function filterBySubDiv() {
+  currentFilter.subDiv = document.getElementById('sub_division').value;
+  currentFilter.section = '';
+  rebuildSections(currentFilter.circle, currentFilter.division, currentFilter.subDiv);
+  filterSSDropdown();
+}
+
+function rebuildSections(circle, division, subDiv) {
+  const secs = [...new Set(SS_DATA.filter(s =>
+    (!circle || s.op_circle === circle) &&
+    (!division || s.lines_division === division) &&
+    (!subDiv || s.sub_division === subDiv)
+  ).map(s => s.section))].sort();
+  const sel = document.getElementById('section');
+  sel.innerHTML = '<option value="">— Select Section —</option>';
+  secs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+}
+
+function filterBySection() {
+  currentFilter.section = document.getElementById('section').value;
+  filterSSDropdown();
+}
+
+function filterSSDropdown() {
+  const { circle, division, subDiv, section } = currentFilter;
+  const ssSelect = document.getElementById('ss_name');
+  const currentVal = ssSelect.value;
+  Array.from(ssSelect.options).forEach(opt => {
+    if (!opt.value) return;
+    opt.hidden = (
+      (circle && opt.dataset.circle !== circle) ||
+      (division && opt.dataset.division !== division) ||
+      (subDiv && opt.dataset.subDiv !== subDiv) ||
+      (section && opt.dataset.section !== section)
+    );
+  });
+  // Keep current selection if still visible
+  if (ssSelect.value) onSSChange();
+}
+
+// ─── 33KV SOURCES MAP (from DATABASE.xlsx) ─────────────────
+const SOURCES_MAP = {"1081212401": {"Regular Source": "132 KV ERRAGADDA-33KV KALYAN NAGAR", "Alternate Source-1": "132 KV ERRAGADDA-33KV SCADA", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV HUSSAIN SAGAR (LV 1,2)"}, "1081211401": {"Regular Source": "132 KV ERRAGADDA-33KV SRINAGAR COLONY", "Alternate Source-1": "132 KV ERRAGADDA-33 KV ERRAMANZIL", "Alternate Source-2": "132 KV ERRAGADDA-33KV SRINAGAR COLONY"}, "1081211402": {"Regular Source": "132 KV ERRAGADDA-33KV YELLAREDDY GUDA", "Alternate Source-1": "132 KV ERRAGADDA-33 KV ERRAMANZIL"}, "1081213401": {"Regular Source": "132 KV ERRAGADDA-33 KV SPR HILLS FEEDER", "Alternate Source-1": "132 KV ERRAGADDA-33KV YOUSUFGUDA", "Alternate Source-2": "132 KV ERRAGADDA-33KV MUFFAKHAMZA", "Alternate Source-3": "132 KV JUBILEE HILLS-33KV YOUSUFGUDA"}, "1081221402": {"Regular Source": "132 KV JUBILEE HILLS-33 KV ROAD NO.2(NEW) FEEDER", "Alternate Source-1": "132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION", "Alternate Source-2": "132 KV NIMS-33KV MUFKHAMJAH", "Alternate Source-3": "132 KV JUBILEE HILLS-33KV NIMS"}, "1081221403": {"Regular Source": "132 KV ERRAGADDA-33KV BANJARA HILLS - II (LV PRASAD)", "Alternate Source-1": "132 KV ERRAGADDA-33KV LV PRASAD UG CABLE", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV BANJARA HILLS RD 12"}, "1081221405": {"Regular Source": "132 KV NIMS-33KV ERRAMANJIL", "Alternate Source-1": "132 KV ERRAGADDA-33KV LV PRASAD UG CABLE", "Alternate Source-2": "132 KV NIMS-33KV MUFKHAMJAH"}, "1084244401": {"Regular Source": "132 KV ERRAGADDA-33 KV SPR HILLS FEEDER", "Alternate Source-1": "132 KV ERRAGADDA-33KV MUFFAKHAMZA"}, "1081213402": {"Regular Source": "132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV HUSSAIN SAGAR (LV 1,2)", "Alternate Source-2": "132 KV ERRAGADDA-33KV BANJARA HILLS - II (LV PRASAD)"}, "1081131401": {"Regular Source": "132 KV BALKAMPET-33KV MAITRIVANAM", "Alternate Source-1": "132 KV ERRAGADDA-33KV MAITRIVANAM", "Alternate Source-2": "132 KV ERRAGADDA-33 KV KUNDANBAGH"}, "1081131402": {"Regular Source": "132 KV BALKAMPET-33KV BEGUMPET", "Alternate Source-1": "132 KV ERRAGADDA-33KV BEGUMPET", "Alternate Source-2": "132 KV ERRAGADDA-33KV PATIGADDA"}, "1081131403": {"Regular Source": "132 KV BALKAMPET-33KV ESI", "Alternate Source-1": "132 KV ERRAGADDA-33KV ESI"}, "1084132401": {"Regular Source": "132 KV BALKAMPET-33KV HYDERABAD PUBLIC SCHOOL", "Alternate Source-1": "132 KV ERRAGADDA-33 KV HYDERABAD PUBLIC SCHOOL", "Alternate Source-2": "132 KV BALKAMPET-33KV PATIGADDA"}, "1081133401": {"Regular Source": "132 KV BALKAMPET-33KV GREEN LANDS", "Alternate Source-1": "132 KV ERRAGADDA-33KV ERRAGADDA GREENLANDS", "Alternate Source-2": "LINK LINE NIMS -GREENLANDS"}, "1081133402": {"Regular Source": "132 KV BALKAMPET-33KV PATIGADDA", "Alternate Source-1": "132 KV ERRAGADDA-33 KV KUNDANBAGH", "Alternate Source-2": "LINK LINE NIMS -GREENLANDS"}, "1081133403": {"Regular Source": "132 KV BALKAMPET-33KV CM CAMP OFFICE", "Alternate Source-1": "132 KV NIMS-33KV CM CAMP OFFICE", "Alternate Source-2": "132 KV ERRAGADDA-33 KV KUNDANBAGH"}, "1081142401": {"Regular Source": "132 KV BALKAMPET-33 KV BALKAMPET-ALLWYN FEEDER", "Alternate Source-1": "132 KV BALKAMPET-33KV LODHA", "Alternate Source-2": "132 KV ERRAGADDA-33KV HYD INDUSTRIES", "Alternate Source-3": "132 KV ERRAGADDA-33KV ALLWYN"}, "1081142403": {"Regular Source": "132 KV BALKAMPET-33KV LODHA", "Alternate Source-1": "132 KV BALKAMPET-33 KV BALKAMPET-ALLWYN FEEDER", "Alternate Source-2": "132 KV ERRAGADDA-33KV HYD INDUSTRIES", "Alternate Source-3": "132 KV ERRAGADDA-33KV ALLWYN"}, "1081143402": {"Regular Source": "132 KV ERRAGADDA-33KV JANAPRIYA", "Alternate Source-1": "132 KV ERRAGADDA-33KV ERRAGADDA - IDPL-II"}, "1081222401": {"Regular Source": "132 KV JUBILEE HILLS-33KV GCB-1(LOCAL FEEDERS)JUBILI HILLS", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV GCB (LOCAL FEEDERS) JUBILI HILLS", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV YOUSUFGUDA", "Alternate Source-3": "132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER"}, "1081222402": {"Regular Source": "400 KV RAIDURG SS-33 KV OG-5 FEEDER", "Alternate Source-1": "132 KV MADHAPUR-33KV MADHAPUR", "Alternate Source-2": "132 KV MADHAPUR-33 KV DEVBHOOMI PH-3 FEEDER", "Alternate Source-3": "132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER", "Alternate Source-4": "132 KV MADHAPUR-33KV MADHAPUR - 2", "Alternate Source-5": "132 KV JUBILEE HILLS-33KV INTIME PROPERTIES"}, "1081222403": {"Regular Source": "132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER", "Alternate Source-1": "132 KV MADHAPUR-33KV SUNDEW", "Alternate Source-2": "132 KV MADHAPUR-33KV RAHEJA IT PARK(H.T)", "Alternate Source-3": "132 KV MADHAPUR-33KV TRION PROPERTY"}, "1081222405": {"Regular Source": "132 KV JUBILEE HILLS-33KV JUBILEE HILLS RD.NO.22", "Alternate Source-1": "132 KV ERRAGADDA-33KV MUFFAKHAMZA", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV YOUSUFGUDA"}, "1081222406": {"Regular Source": "132 KV JUBILEE HILLS-33KV RAVINDRA SOCIETY", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV ASIFNAGAR-I", "Alternate Source-2": "132 KV MADHAPUR-33KV RAVINDRA SOCIETY"}, "1081143401": {"Regular Source": "132 KV ERRAGADDA-33KV MOTINAGAR", "Alternate Source-1": "132 KV ERRAGADDA-33KV IDPL I&II (SYNTHETIC DRUGS)"}, "1084241401": {"Regular Source": "132 KV ERRAGADDA-33KV BORABANDA", "Alternate Source-1": "132 KV ERRAGADDA-33KV KUKATPALLY"}, "1853121401": {"Regular Source": "132KV IDPL-33KV IDPL", "Alternate Source-1": "220 KV SHAPUR NAGAR-33KV IDPL (SYNTHETIC DRUGS)", "Alternate Source-2": "132KV IDPL-33 KV IDPL - 2", "Alternate Source-3": "132 KV GUNROCK-33KV H.M.T."}, "1853131401": {"Regular Source": "132 KV CHINTAL-33KV HAL", "Alternate Source-1": "132KV IDPL-33KV ALLWYN", "Alternate Source-2": "132 KV GUNROCK-33KV H.M.T."}, "1853131402": {"Regular Source": "132KV IDPL-33KV PRASANTHNAGAR", "Alternate Source-1": "220 KV SHAPUR NAGAR-33KV IDPL (SYNTHETIC DRUGS)", "Alternate Source-2": "132KV IDPL-33KV BALAJI NAGAR"}, "1853132401": {"Regular Source": "132KV IDPL-33KV PRAGATOOLS", "Alternate Source-1": "220 KV SHAPUR NAGAR-33KV H.M.T.", "Alternate Source-2": "220 KV SHAPUR NAGAR-33KV JAGADGIRIGUTTA(PRAGA TOOLS)"}, "1853132402": {"Regular Source": "132 KV CHINTAL-33 KV HMT", "Alternate Source-1": "220 KV SHAPUR NAGAR-33KV H.M.T.", "Alternate Source-2": "132 KV GUNROCK-33KV H.M.T."}, "1081221401": {"Regular Source": "132 KV NIMS-33KV NIMS OLD", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV NIMS", "Alternate Source-2": "132 KV ERRAGADDA-33KV LV PRASAD UG CABLE", "Alternate Source-3": "132 KV NIMS-33 KV ROAD NO.13 FEEDER"}, "1081223401": {"Regular Source": "132 KV JUBILEE HILLS-33KV FILM NAGAR", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV GOLCONDA", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV MOTIMAHAL"}, "1081223402": {"Regular Source": "132 KV JUBILEE HILLS-33KV MLA COLONY", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV MPL FEEDER", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV ROAD NO 13"}, "1081223403": {"Regular Source": "132 KV JUBILEE HILLS-33KV ROAD NO 13", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV BANJARA HILLS RD 12", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV MPL FEEDER"}, "1081223404": {"Regular Source": "132 KV JUBILEE HILLS-33KV ROAD NO.13/B", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV ROAD NO 13", "Alternate Source-2": "132 KV NIMS-33 KV ROAD NO.13 FEEDER"}, "1081223405": {"Regular Source": "132 KV JUBILEE HILLS-33KV COMMAND CONTROL CENTER", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV MPL FEEDER", "Alternate Source-2": "132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION", "Alternate Source-3": "132 KV NIMS-33 KV ROAD NO.13 FEEDER"}, "1081222407": {"Regular Source": "132 KV JUBILEE HILLS-33KV PRASHASAN NAGAR", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV GCB-1(LOCAL FEEDERS)JUBILI HILLS"}, "1101511401": {"Regular Source": "132 KV PATIGADDA-33KV ZP OFFICE", "Alternate Source-1": "132 KV NIMS-33KV ERRAMANJIL", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - I", "Alternate Source-3": "132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN", "Alternate Source-4": "132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)"}, "1103911401": {"Regular Source": "132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)", "Alternate Source-1": "132 KV NIMS-33KV AC GUARDS"}, "1103912401": {"Regular Source": "132 KV NIMS-33KV AC GUARDS", "Alternate Source-1": "132 KV IMLIBAN SS-33KV EXHIBITION", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)", "Alternate Source-3": "132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN"}, "1103912402": {"Regular Source": "132 KV ASIFNAGAR-33KV ITI MALLEPALLY", "Alternate Source-1": "132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)", "Alternate Source-2": "132 KV ASIFNAGAR-33KV SEETARAMBAGH"}, "1103913401": {"Regular Source": "132 KV ASIFNAGAR-33KV GUDIMALKAPUR", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV KARWAN"}, "1103921401": {"Regular Source": "132 KV ASIFNAGAR-33KV GOLCONDA", "Alternate Source-1": "132 KV ASIFNAGAR-SHAIKPET", "Alternate Source-2": "400 KV RAIDURG SS-33 KV SANDHYA FEEDER"}, "1103921402": {"Regular Source": "132 KV ASIFNAGAR-33KV MOTIMAHAL", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV MOTIMAHAL", "Alternate Source-2": "33KV LANGERHOUSE SS -33KV MOTHIMAHALSS (LINK LINE)", "Alternate Source-3": "33KV TOLICHOWKI-33KV MOTHIMAHAL"}, "1103922401": {"Regular Source": "132 KV ASIFNAGAR-33KV ASIFNAGAR", "Alternate Source-1": "132 KV ASIFNAGAR-33KV S.D.HOSPITAL", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV ASIFNAGAR-II"}, "1103922402": {"Regular Source": "132 KV ASIFNAGAR-33KV KARWAN", "Alternate Source-1": "132 KV IMLIBAN SS-33KV JIYAGUDA", "Alternate Source-2": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH", "Alternate Source-3": "132 KV JUBILEE HILLS-33KV MOTIMAHAL"}, "1103923402": {"Regular Source": "400 KV RAIDURG SS-33 KV SANDHYA FEEDER", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV GOLCONDA"}, "1103932401": {"Regular Source": "132 KV ASIFNAGAR-33KV ALLURI SEETHARAM RAJU NAGAR", "Alternate Source-1": "132 KV IMLIBAN SS-33KV JIYAGUDA", "Alternate Source-2": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH"}, "1103933401": {"Regular Source": "132 KV ASIFNAGAR-33KV S.D.HOSPITAL", "Alternate Source-1": "132 KV NIMS-33KV AC GUARDS", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV ASIFNAGAR-II"}, "1103933402": {"Regular Source": "132 KV JUBILEE HILLS-33KV TOLICHOWKI", "Alternate Source-1": "132 KV ASIFNAGAR-TOLICHOWKI", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV MOTIMAHAL"}, "1103935401": {"Regular Source": "132 KV ASIFNAGAR-33 KV ADITYA TOWERS FEEDER", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV GOLCONDA"}, "1093211401": {"Regular Source": "132KV SHIVRAMPALLY-33KV KARWAN", "Alternate Source-1": "132 KV IMLIBAN SS-33KV JIYAGUDA", "Alternate Source-2": "132 KV ASIFNAGAR-33KV KARWAN", "Alternate Source-3": "132 KV ASIFNAGAR-33KV GUDIMALKAPUR"}, "1093211402": {"Regular Source": "132 KV IMLIBAN SS-33KV JIYAGUDA", "Alternate Source-1": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH", "Alternate Source-2": "132 KV ASIFNAGAR-33KV ALLURI SEETHARAM RAJU NAGAR", "Alternate Source-3": "132KV SHIVRAMPALLY-33KV KARWAN"}, "1093212401": {"Regular Source": "132 KV ASIFNAGAR-33KV SEETARAMBAGH", "Alternate Source-1": "132 KV IMLIBAN SS-33KV GOSHAMAHAL", "Alternate Source-2": "132 KV ASIFNAGAR-33KV KULSUMPURA"}, "1093212402": {"Regular Source": "132 KV ASIFNAGAR-33KV KULSUMPURA", "Alternate Source-1": "132 KV IMLIBAN SS-33KV GOSHAMAHAL", "Alternate Source-2": "132 KV ASIFNAGAR-33KV SEETARAMBAGH"}, "1093222401": {"Regular Source": "132 KV IMLIBAN SS-33KV ENT", "Alternate Source-1": "132 KV IMLIBAN SS-33KV EXHIBITION"}, "1093223401": {"Regular Source": "132 KV IMLIBAN SS-33KV SULTANBAZAR (OLD BREAKER)", "Alternate Source-1": "132 KV IMLIBAN SS-33KV SULTANBAZAR (OLD BREAKER)", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)"}, "1093231401": {"Regular Source": "132 KV IMLIBAN SS-33KV OSMANIA HOSPITAL", "Alternate Source-1": "132 KV ASIFNAGAR-33KV SEETARAMBAGH", "Alternate Source-2": "132 KV IMLIBAN SS-33KV GOSHAMAHAL", "Alternate Source-3": "132 KV IMLIBAN SS-33KV EXHIBITION"}, "1093232401": {"Regular Source": "132 KV IMLIBAN SS-33KV GOSHAMAHAL", "Alternate Source-1": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH", "Alternate Source-2": "132 KV ASIFNAGAR-33KV KULSUMPURA"}, "1101511402": {"Regular Source": "132KV NARAYANGUDA-PUBLICGARDEN", "Alternate Source-1": "132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN", "Alternate Source-2": "132 KV IMLIBAN SS-33KV EXHIBITION"}, "1101511403": {"Regular Source": "132 KV HUSSAINSAGAR-33KV INDIRA PARK /H.S.S.III", "Alternate Source-1": "132 KV PATIGADDA-INDIRAPARK", "Alternate Source-2": "132 KV OSMANIA UNIVERSITY-33KV INDIRAPARK"}, "1101512401": {"Regular Source": "132 KV NIMS-33KV ZP OFFICE", "Alternate Source-1": "132 KV ERRAGADDA-33KV ZP OFFICE"}, "1101513401": {"Regular Source": "132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II", "Alternate Source-1": "132 KV NIMS-33KV LAKE VIEW", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - I", "Alternate Source-3": "132 KV NIMS-33KV ERRAMANJIL"}, "1101513402": {"Regular Source": "132 KV NIMS-33KV ERRAMANJIL", "Alternate Source-1": "132 KV ERRAGADDA-33 KV ERRAMANZIL", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II", "Alternate Source-3": "132 KV PATIGADDA-33KV ZP OFFICE"}, "1101531401": {"Regular Source": "132KV NARAYANGUDA-HYDERGUDA", "Alternate Source-1": "132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)", "Alternate Source-2": "132 KV FEVER HOSPITAL-33KV SULTAN BAZAR"}, "1101531402": {"Regular Source": "132KV NARAYANGUDA-NIZAM COLLEGE", "Alternate Source-1": "132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II"}, "1101533401": {"Regular Source": "132 KV IMLIBAN SS-33KV EXHIBITION", "Alternate Source-1": "33KV PUBLIC GARDEN-33KV EXHIBITION LINKLINE"}, "1101721401": {"Regular Source": "132 KV PATIGADDA-INDIRAPARK", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV INDIRA PARK", "Alternate Source-2": "132 KV OSMANIA UNIVERSITY-33KV INDIRAPARK"}, "1101722401": {"Regular Source": "132 KV FEVER HOSPITAL-33KV JAWAHAR NAGAR", "Alternate Source-1": "132 KV HUSSAINSAGAR-33KV INDIRA PARK /H.S.S.III"}, "1081132402": {"Regular Source": "132 KV PATIGADDA-33KV PRAKASH NAGAR", "Alternate Source-1": "132 KV PATIGADDA-33KV AIRPORT"}, "1851114402": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33 KV ADDAGUTTA FEEDER", "Alternate Source-1": "132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI", "Alternate Source-2": "132 KV GUNROCK-33KV NEW MARREDPALL(UG)"}, "1851221401": {"Regular Source": "132 KV GIS CHILKALGUDA-33KV PATIGADDA", "Alternate Source-1": "132 KV PATIGADDA-33KV BANSILALPET"}, "1851222401": {"Regular Source": "132 KV PATIGADDA-JAMES STREET", "Alternate Source-1": "132 KV GUNROCK-33KV JAMES STREET", "Alternate Source-2": "132 KV GUNROCK-33KV AIRPORT", "Alternate Source-3": "132 KV PATIGADDA-33KV KIMS"}, "1851222402": {"Regular Source": "132 KV PATIGADDA-33KV PATIGADDA", "Alternate Source-1": "132 KV PATIGADDA-33KV BANSILALPET", "Alternate Source-2": "132 KV PATIGADDA-33KV AIRPORT", "Alternate Source-3": "132 KV GIS CHILKALGUDA-33KV PATIGADDA"}, "1851222403": {"Regular Source": "132 KV PATIGADDA-33KV SANJEEVAOIAH PARK", "Alternate Source-1": "132 KV GUNROCK-33KV AIRPORT", "Alternate Source-2": "132 KV PATIGADDA-33KV PATIGADDA"}, "1851222404": {"Regular Source": "132 KV PATIGADDA-33KV KIMS", "Alternate Source-1": "132 KV GUNROCK-33KV KIMS(GUNROCK SS)", "Alternate Source-2": "132 KV GUNROCK-33KV JAMES STREET", "Alternate Source-3": "132 KV PATIGADDA-JAMES STREET"}, "1851224401": {"Regular Source": "132 KV GIS CHILKALGUDA-33KV CLOCK TOWER", "Alternate Source-1": "132 KV GUNROCK-33KV JAMES STREET"}, "1851224402": {"Regular Source": "132 KV PATIGADDA-MONDA MARKET", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV SEETHAPHALMANDI.", "Alternate Source-2": "132 KV GUNROCK-33KV NEHRU NAGAR"}, "1852111401": {"Regular Source": "132 KV GUNROCK-33KV NEHRU NAGAR", "Alternate Source-1": "132KV CHILKALGUDA SS - MONDAMARKET-NEHRUNAGAR(LINK LINE DEPENDS ON 33/11KV MOONDA MARKET SUPPLY)", "Alternate Source-2": "132 KV GIS CHILKALGUDA-33KV CLOCK TOWER", "Alternate Source-3": "132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI"}, "1852111402": {"Regular Source": "132 KV GUNROCK-33KV NEW MARREDPALL(UG)", "Alternate Source-1": "132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI", "Alternate Source-2": "132 KV OSMANIA UNIVERSITY-33 KV ADDAGUTTA FEEDER", "Alternate Source-3": "132 KV GUNROCK-33KV NEHRU NAGAR"}, "1852113401": {"Regular Source": "132 KV GUNROCK-33KV GYMKHANA", "Alternate Source-1": "132 KV GUNROCK-33KV KIMS(GUNROCK SS)", "Alternate Source-2": "132 KV GUNROCK-33KV JAMES STREET"}, "1852121401": {"Regular Source": "132 KV GUNROCK-33KV GUN ROCK", "Alternate Source-1": "132 KV GUNROCK-33KV JAMES STREET", "Alternate Source-2": "132 KV GUNROCK-33KV H.M.T."}, "1852121403": {"Regular Source": "132 KV GUNROCK-33KV THIRUMALAGIRI", "Alternate Source-1": "132 KV GUNROCK-33KV KIMS(GUNROCK SS)", "Alternate Source-2": "132KV GUNROCK - MACHABOLLARAM-TIRUMALGIRI(LINK LINE)"}, "1852121404": {"Regular Source": "132 KV GUNROCK-33KV BHUDEVINAGAR", "Alternate Source-1": "132 KV GUNROCK-33KV H.M.T."}, "1852122401": {"Regular Source": "132 KV GUNROCK-33KV HAKEEMPET UG - II", "Alternate Source-1": "132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER", "Alternate Source-2": "132 KV GUNROCK-33KV R.P. NILAYAM", "Alternate Source-3": "132 KV MALKARAM-33 KV CRPF FEEDER"}, "1852122402": {"Regular Source": "132 KV GUNROCK-33KV MACCHABOLLARAM", "Alternate Source-1": "132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER", "Alternate Source-2": "132 KV MALKARAM-33 KV CRPF FEEDER"}, "1852123401": {"Regular Source": "132 KV GUNROCK-33KV R.P. NILAYAM", "Alternate Source-1": "132 KV GUNROCK-33KV HAKEEMPET UG - II", "Alternate Source-2": "132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER", "Alternate Source-3": "132 KV GUNROCK-33 KV ALWAL FEEDER"}, "1852123403": {"Regular Source": "132 KV GUNROCK-33 KV ALWAL FEEDER", "Alternate Source-1": "132 KV GUNROCK-33KV HAKEEMPET UG - II"}, "1853111401": {"Regular Source": "132 KV GUNROCK-33KV BOWENPALLY", "Alternate Source-1": "132 KV GUNROCK-33KV H.M.T.", "Alternate Source-2": "132 KV GUNROCK-33KV BOWENPALLY", "Alternate Source-3": "132KV IDPL-33KV ALLWYN"}, "1853111402": {"Regular Source": "132 KV GUNROCK-33KV CHINNA THOKOTTA", "Alternate Source-1": "132 KV GUNROCK-33KV BOWENPALLY", "Alternate Source-2": "132 KV GUNROCK-33 KV NEW BOWENPALLY FEEDER"}, "1853122401": {"Regular Source": "132 KV GUNROCK-33 KV NEW BOWENPALLY FEEDER", "Alternate Source-1": "132 KV GUNROCK-33KV H.M.T.", "Alternate Source-2": "132KV IDPL-33KV ALLWYN"}, "1102411401": {"Regular Source": "132 KV FEVER HOSPITAL-33KV NARAYANGUDA", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA", "Alternate Source-2": "132 KV FEVER HOSPITAL-33KV JAWAHAR NAGAR", "Alternate Source-3": "132KV GIS HUS' SAGAR -SS-3 JAWAHAR NGR"}, "1102411402": {"Regular Source": "132KV NARAYANGUDA-VITTALWADI", "Alternate Source-1": "132 KV IMLIBAN SS-33KV KING KOTI (NEW)", "Alternate Source-2": "132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA"}, "1102412401": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33KV ZAMISTANPURA", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA"}, "1102421401": {"Regular Source": "132 KV FEVER HOSPITAL-33KV INDUSTRIAL AREA", "Alternate Source-1": "132 KV IMLIBAN SS-33KV INDUSTRIAL AREA", "Alternate Source-2": "132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA", "Alternate Source-3": "220 KV MOULA-ALI-33 KV AZAMABAD FEEDER"}, "1102421402": {"Regular Source": "132 KV FEVER HOSPITAL-33KV FEVER HOSPITAL", "Alternate Source-1": "132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA", "Alternate Source-2": "220 KV MOULA-ALI-33 KV AZAMABAD FEEDER"}, "1102431401": {"Regular Source": "132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA", "Alternate Source-1": "220 KV MOULA-ALI-33 KV AZAMABAD FEEDER", "Alternate Source-2": "132 KV MOOSARAMBAGH-33KV GOLNAKA"}, "1102432401": {"Regular Source": "132 KV MOOSARAMBAGH-33KV AMBERPET", "Alternate Source-1": "132 KV MOOSARAMBAGH-33KV DURGANAGAR", "Alternate Source-2": "132 KV BANDLAGUDA-33KV AMBERPET"}, "1102432402": {"Regular Source": "132 KV MOOSARAMBAGH-33KV DURGANAGAR", "Alternate Source-1": "132 KV MOOSARAMBAGH-33KV WATER WORKS", "Alternate Source-2": "132 KV IMLIBAN SS-33KV DURGANAGAR"}, "1102433401": {"Regular Source": "132 KV MOOSARAMBAGH-33KV GOLNAKA", "Alternate Source-1": "132 KV IMLIBAN SS-33KV INDUSTRIAL AREA", "Alternate Source-2": "132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA"}, "1093221401": {"Regular Source": "132 KV FEVER HOSPITAL-33KV SULTAN BAZAR", "Alternate Source-1": "132 KV FEVER HOSPITAL-33KV SULTAN BAZAR", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)", "Alternate Source-3": "132 KV IMLIBAN SS-33KV KING KOTI (NEW)"}, "1851111401": {"Regular Source": "132 KV GIS CHILKALGUDA-33KV CHILAKALAGUDA", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA", "Alternate Source-2": "132 KV IMLIBAN SS-33KV INDUSTRIAL AREA"}, "1851112401": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33KV OSMANIA UNIVERSITY", "Alternate Source-1": "132 KV OSMANIA UNIVERSITY-33KV LALAGUDA", "Alternate Source-2": "33KV CHILKALGUDA SS -33KV O.U. INTERLINK LINE", "Alternate Source-3": "33KV SEETHAPHALMANDI-33KV O.U INTERLINK LINE"}, "1851112402": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33KV IICT", "Alternate Source-1": "220 KV MOULA-ALI-33 KV AZAMABAD FEEDER", "Alternate Source-2": "132 KV OSMANIA UNIVERSITY-33KV LALAGUDA"}, "1851113401": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33KV SEETHAPHALMANDI", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV SEETHAPHALMANDI.", "Alternate Source-2": "33KV O.U-33KV SEETHAPHALMANDI LINK LINE"}, "1851114401": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33KV LALAGUDA", "Alternate Source-1": "132 KV OSMANIA UNIVERSITY-33KV SCR"}, "1091311401": {"Regular Source": "132 KV IMLIBAN SS-33KV SALARJUNG---KILWATH UG CABLE", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI", "Alternate Source-2": "MAILAR DEVI PALLY-DEVI BAGH", "Alternate Source-3": "132KV SHIVRAMPALLY-33 KV CHANDULALBARADARI UG CABLE FEEDER"}, "1091311402": {"Regular Source": "MAILAR DEVI PALLY-DEVI BAGH", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI", "Alternate Source-2": "132 KV IMLIBAN SS-33KV PETLABURZ"}, "1091312401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV PANJESHA FEEDER", "Alternate Source-1": "132 KV IMLIBAN SS-33KV PANJESHA"}, "1091313401": {"Regular Source": "132 KV IMLIBAN SS-33KV SALARJUNJ O/H", "Alternate Source-1": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH"}, "1091313402": {"Regular Source": "132 KV IMLIBAN SS-33KV PETLABURZ", "Alternate Source-1": "MAILAR DEVI PALLY-DEVI BAGH", "Alternate Source-2": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH"}, "1091321401": {"Regular Source": "132 KV MAMIDIPALLY-33 KV CRPF", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV CRPF", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV FALAKNUMA", "Alternate Source-3": "132KV MD PALLY-KANDIKAGATE-CRPF LINK LINE"}, "1091323401": {"Regular Source": "MAILAR DEVI PALLY-FALAKNAMA", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV FALAKNUMA", "Alternate Source-2": "MAILAR DEVI PALLY-ALIABAD"}, "1091323402": {"Regular Source": "MAILAR DEVI PALLY-KANDIKAL GATE", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV KANDIKAL GATE", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV CRPF"}, "1091331402": {"Regular Source": "132KV SHIVRAMPALLY-33 KV SHIVARAMPALLY-HYDERGUDA UG FEEDER", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV HYDERGUDA", "Alternate Source-2": "132KV SHIVRAMPALLY-33KV KARWAN", "Alternate Source-3": "132KV SHIVRAMPALLY-33KV ATTAPUR"}, "1091332401": {"Regular Source": "132KV SHIVRAMPALLY-33 KV CHANDULALBARADARI UG CABLE FEEDER", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI", "Alternate Source-2": "132 KV IMLIBAN SS-33KV SALARJUNG---KILWATH UG CABLE"}, "1091333401": {"Regular Source": "132KV SHIVRAMPALLY-33KV MIRALAM", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI", "Alternate Source-2": "132KV SHIVRAMPALLY-33KV SHAMSHABAD(SHIVARAMPALLY SS)"}, "1091333402": {"Regular Source": "MAILAR DEVI PALLY-ALIABAD", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV SHAMSHABAD(SHIVARAMPALLY SS)"}, "1091333403": {"Regular Source": "MAILAR DEVI PALLY-NPA", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI", "Alternate Source-2": "MAILAR DEVI PALLY-DEVI BAGH"}, "1091334401": {"Regular Source": "132KV SHIVRAMPALLY-33KV ATTAPUR", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV HYDERGUDA", "Alternate Source-2": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI"}, "1091322401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV ARUNDATHI NAGAR COLONY FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-II", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV CRPF"}, "1092811401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV MALAKPET B QUATERS FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV LAXMI NAGAR", "Alternate Source-2": "132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER"}, "1092812401": {"Regular Source": "132 KV MOOSARAMBAGH-33KV MOOSARAMBAGH", "Alternate Source-1": "132 KV MOOSARAMBAGH-33KV ASMANGADH", "Alternate Source-2": "132 KV BANDLAGUDA-33KV MOOSARAMBAGH", "Alternate Source-3": "220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA"}, "1092812402": {"Regular Source": "132 KV MOOSARAMBAGH-33KV TEEGALAGUA", "Alternate Source-1": "132 KV BANDLAGUDA-33KV MOOSARAMBAGH", "Alternate Source-2": "33KV DURGA NAGAR-33KV TEEGALGUDA LINKLINE(DEPENDS ON 33/11KV DURGANAGARSS SUPPLY)", "Alternate Source-3": "220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA"}, "1092813401": {"Regular Source": "132 KV MOOSARAMBAGH-33KV ASMANGADH", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV ASMANGADH", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV MALAKPETGUNJ", "Alternate Source-3": "220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER"}, "1092813402": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV LAXMI NAGAR FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV LAXMI NAGAR", "Alternate Source-2": "132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER", "Alternate Source-3": "220 KV CHANDRAYANA GUTTA-33KV CRPF"}, "1092822401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV YAKUTHPURA FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I", "Alternate Source-2": "132 KV IMLIBAN SS-33KV YAKUTHPURA"}, "1092823401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV SANTOSH NAGAR FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR -UG", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I", "Alternate Source-3": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-II"}, "1092823402": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV MIDHANI FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV KANCHANBAGH"}, "1092824401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV MADANNAPET FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-MADANNAPET", "Alternate Source-2": "220/33 KV CHANCHALGUDA SS-33 KV SANTOSH NAGAR FEEDER"}, "1092831401": {"Regular Source": "132 KV MOOSARAMBAGH-MALAKPET", "Alternate Source-1": "132 KV IMLIBAN SS-33KV MALAKPET", "Alternate Source-2": "132 KV IMLIBAN SS-33KV DURGANAGAR"}, "1092832401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV CHANCHALGUDA FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA", "Alternate Source-2": "220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER"}, "1092833401": {"Regular Source": "132 KV IMLIBAN SS-33KV YAKUTHPURA", "Alternate Source-1": "220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER"}, "1092834402": {"Regular Source": "220 KV CHANDRAYANA GUTTA-33KV MALAKPETGUNJ", "Alternate Source-1": "132 KV IMLIBAN SS-33KV MALAKPET GUNJ", "Alternate Source-2": "132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER"}};
+
+function onSSChange() {
+  const ssSelect = document.getElementById('ss_name');
+  const code = ssSelect.value;
+  if (!code) {
+    document.getElementById('ss_code').value = '';
+    document.getElementById('lines_circle').value = '';
+    return;
+  }
+  const ss = SS_DATA.find(s => s.ss_code === code);
+  if (!ss) return;
+  document.getElementById('ss_code').value = ss.ss_code;
+  document.getElementById('lines_circle').value = ss.lines_division;
+  // Auto-fill cascade hierarchy if not already set
+  if (!document.getElementById('op_circle').value) {
+    document.getElementById('op_circle').value = ss.op_circle;
+    filterByCircle();
+    document.getElementById('lines_division').value = ss.lines_division;
+    filterByDivision();
+    document.getElementById('sub_division').value = ss.sub_division;
+    filterBySubDiv();
+    document.getElementById('section').value = ss.section;
+  }
+  // ── Auto-fill 33KV sources from DATABASE ──────────────────────
+  const src = SOURCES_MAP[code] || {};
+  const reg = src['Regular Source'] || '';
+  const alt1 = src['Alternate Source-1'] || '';
+  const alt2 = src['Alternate Source-2'] || '';
+  const alt3 = src['Alternate Source-3'] || '';
+
+  // Extract EHT (132KV SS) from regular source string
+  const ehtMatch = reg.match(/^(132 KV [^-]+)/i);
+  const ehtSS = ehtMatch ? ehtMatch[1].trim() : '';
+
+  // Set 33KV source feeder field
+  const feeder33 = document.getElementById('feeder_33kv');
+  if (feeder33 && !feeder33.value && reg) feeder33.value = reg;
+
+  // Set name_eht field
+  const nameEHT = document.getElementById('name_eht');
+  if (nameEHT && !nameEHT.value && reg) nameEHT.value = reg;
+
+  // Populate EHT substation dropdown
+  const ehtSel = document.getElementById('eht_substation');
+  if (ehtSel && ehtSS) {
+    // Try to find exact match first, then partial
+    let matched = false;
+    for (let i = 0; i < ehtSel.options.length; i++) {
+      if (ehtSel.options[i].text.toUpperCase().includes(ehtSS.toUpperCase().replace('132 KV ',''))) {
+        ehtSel.selectedIndex = i; matched = true; break;
+      }
+    }
+    // If no match, add a temporary option
+    if (!matched && ehtSS) {
+      const opt = document.createElement('option');
+      opt.value = ehtSS; opt.textContent = ehtSS; opt.selected = true;
+      ehtSel.appendChild(opt);
+    }
+  }
+
+  // Populate alt_source dropdown
+  const altSel = document.getElementById('alt_source');
+  if (altSel && !altSel.value && alt1) {
+    // Try to match existing options
+    let matched = false;
+    for (let i = 0; i < altSel.options.length; i++) {
+      if (altSel.options[i].text.toUpperCase().includes(alt1.slice(-15).toUpperCase())) {
+        altSel.selectedIndex = i; matched = true; break;
+      }
+    }
+    if (!matched && alt1) {
+      const opt = document.createElement('option');
+      opt.value = alt1; opt.textContent = alt1; opt.selected = true;
+      altSel.appendChild(opt);
+    }
+  }
+
+  // Show source badge below the SS selector
+  let badge = document.getElementById('ss-source-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'ss-source-badge';
+    badge.style.cssText = 'margin-top:6px;padding:8px 12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;font-size:10px;color:#0369a1;line-height:1.8';
+    const ssField = document.getElementById('ss_name').parentElement;
+    ssField.appendChild(badge);
+  }
+  let html = '';
+  if (reg)  html += '<div><strong>Regular:</strong> ' + reg + '</div>';
+  if (alt1) html += '<div><strong>Alt-1:</strong> ' + alt1 + '</div>';
+  if (alt2) html += '<div><strong>Alt-2:</strong> ' + alt2 + '</div>';
+  if (alt3) html += '<div><strong>Alt-3:</strong> ' + alt3 + '</div>';
+  badge.innerHTML = html || '<span style="color:#94a3b8">No source data</span>';
+}
+
+// ─── RADIO ──────────────────────────────────────────────────
+function selectRadio(name, value, el) {
+  selectedRadios[name] = value;
+  document.querySelectorAll(`[onclick*="selectRadio('${name}'"]`).forEach(btn => btn.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ─── DURATION CALC ──────────────────────────────────────────
+function calcDuration() {
+  const f = document.getElementById('failure_time').value;
+  const r = document.getElementById('restoration_time').value;
+  if (f && r) {
+    const diff = (new Date(r) - new Date(f)) / 60000;
+    if (diff >= 0) {
+      const h = Math.floor(diff / 60), m = Math.floor(diff % 60);
+      document.getElementById('duration_display').value = `${h}h ${m}m`;
+      document.getElementById('duration_min').value = Math.round(diff);
+    } else {
+      document.getElementById('duration_display').value = 'Invalid';
+      document.getElementById('duration_min').value = '';
+    }
+  }
+}
+
+function calcLCDuration() {
+  const f = document.getElementById('rectified_time').value;
+  const r = document.getElementById('lc_completed').value;
+  if (f && r) {
+    const diff = (new Date(r) - new Date(f)) / 60000;
+    if (diff >= 0) {
+      const h = Math.floor(diff / 60), m = Math.floor(diff % 60);
+      document.getElementById('lc_duration_display').value = `${h}h ${m}m`;
+    } else {
+      document.getElementById('lc_duration_display').value = 'Invalid';
+    }
+  }
+}
+
+// ─── LOG ENTRY ──────────────────────────────────────────────
+function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+
+function logBreakdown() {
+  if (!getVal('ss_name')) { alert('Please select a Substation.'); return; }
+  if (!getVal('failure_time')) { alert('Please enter Failure Date & Time.'); return; }
+  if (!getVal('feeder_33kv')) { alert('Please enter 33KV Source / Feeder.'); return; }
+
+  entryCounter++;
+  const entry = {
+    id: entryCounter,
+    ss_name: document.getElementById('ss_name').options[document.getElementById('ss_name').selectedIndex].text,
+    ss_code: getVal('ss_code'),
+    op_circle: getVal('op_circle'),
+    lines_division: getVal('lines_division'),
+    sub_division: getVal('sub_division'),
+    section: getVal('section'),
+    failure_time: getVal('failure_time'),
+    eht_substation: getVal('eht_substation'),
+    feeder_33kv: getVal('feeder_33kv'),
+    agency: selectedRadios['agency'] || '',
+    outage_type: selectedRadios['outage_type'] || '',
+    ops_type: getVal('ops_type'),
+    relay: getVal('relay'),
+    identified_fault: getVal('identified_fault'),
+    fault_nature: selectedRadios['fault_nature'] || '',
+    weather: getVal('weather'),
+    person_responsible: getVal('person_responsible'),
+    fpi_location: getVal('fpi_location'),
+    name_eht: getVal('name_eht'),
+    alt_source: getVal('alt_source'),
+    restoration_time: getVal('restoration_time'),
+    duration: getVal('duration_display'),
+    duration_min: getVal('duration_min'),
+    root_cause: getVal('root_cause'),
+    rectified_time: getVal('rectified_time'),
+    rectification_details: getVal('rectification_details'),
+    lc_taken_from: getVal('lc_taken_from'),
+    lc_completed: getVal('lc_completed'),
+    lc_duration: getVal('lc_duration_display'),
+    remarks: getVal('remarks')
+  };
+  entries.push(entry);
+  saveToStorage();
+  renderLog();
+  showToast();
+  clearForm();
+}
+
+function renderLog() {
+  const tbody = document.getElementById('logBody');
+  document.getElementById('logCountBadge').textContent = entries.length;
+  document.getElementById('entryStatus').textContent = `${entries.length} entr${entries.length === 1 ? 'y' : 'ies'} logged this session`;
+
+  if (!entries.length) {
+    tbody.innerHTML = '<tr><td colspan="24" class="empty-log">No entries yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = entries.map((e, i) => {
+    const typeBadge = e.outage_type === 'Breakdown' ? 'badge-red' : e.outage_type === 'Planned' ? 'badge-green' : e.outage_type === 'Emergency' ? 'badge-amber' : 'badge-blue';
+    const natureBadge = e.fault_nature === 'Permanent' ? 'badge-red' : 'badge-amber';
+    const ft = e.failure_time ? e.failure_time.replace('T', ' ') : '—';
+    const rt = e.restoration_time ? e.restoration_time.replace('T', ' ') : '—';
+    const rct = e.rectified_time ? e.rectified_time.replace('T', ' ') : '—';
+    const lct = e.lc_completed ? e.lc_completed.replace('T', ' ') : '—';
+    return `<tr>
+      <td><strong>${e.id}</strong></td>
+      <td style="white-space:nowrap;font-weight:600;color:#1e3a6b">${e.ss_name}</td>
+      <td>${e.section || '—'}</td>
+      <td>${e.feeder_33kv || '—'}</td>
+      <td>${e.eht_substation || '—'}</td>
+      <td style="white-space:nowrap">${ft}</td>
+      <td><span class="status-badge ${typeBadge}">${e.outage_type || '—'}</span></td>
+      <td>${e.agency || '—'}</td>
+      <td>${e.relay || '—'}</td>
+      <td>${e.identified_fault || '—'}</td>
+      <td><span class="status-badge ${natureBadge}">${e.fault_nature || '—'}</span></td>
+      <td>${e.weather || '—'}</td>
+      <td style="white-space:nowrap">${rt}</td>
+      <td><strong>${e.duration || '—'}</strong></td>
+      <td>${e.alt_source || '—'}</td>
+      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.root_cause || '—'}</td>
+      <td style="white-space:nowrap">${rct}</td>
+      <td>${e.lc_taken_from || '—'}</td>
+      <td style="white-space:nowrap">${lct}</td>
+      <td>${e.lc_duration || '—'}</td>
+      <td>${e.fpi_location || '—'}</td>
+      <td>${e.person_responsible || '—'}</td>
+      <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.remarks || '—'}</td>
+      <td><button class="del-btn" onclick="deleteEntry(${i})">✕</button></td>
+    </tr>`;
   }).join('');
 }
 
-function render(){
-  setText('live-now', now());
-  var entries = loadEntries();
-  var total = entries.length;
-  var restored = entries.filter(function(e){ return !!e.restoration_time; }).length;
-  var active   = total - restored;
-
-  // Durations
-  var durs = entries.filter(function(e){ return e.duration_min && !isNaN(+e.duration_min) && +e.duration_min > 0; });
-  var avgDur = durs.length ? Math.round(durs.reduce(function(s,e){return s+(+e.duration_min);},0)/durs.length) : 0;
-
-  // Sets
-  var divSet={}, secSet={};
-  entries.forEach(function(e){ if(e.lines_division) divSet[e.lines_division]=1; if(e.section) secSet[e.section]=1; });
-
-  // KPIs
-  setText('kpi-active',   active);
-  setText('kpi-restored', restored);
-  setText('kpi-avg',      avgDur ? avgDur+' min' : '—');
-  setText('kpi-divs',     Object.keys(divSet).length);
-  setText('kpi-total',    total);
-  setText('kpi-secs',     Object.keys(secSet).length);
-  setText('chip-count',   total + ' LOG ENTR'+(total===1?'Y':'IES'));
-  setText('chip-active',  active + ' ACTIVE');
-  setText('log-count-badge', total + ' entr'+(total===1?'y':'ies'));
-
-  // Active breakdown alert chip
-  var alertChip = document.getElementById('chip-alert');
-  if(alertChip) alertChip.style.display = active > 0 ? 'inline-block' : 'none';
-
-  // Outage type
-  var types = {Breakdown:0,Planned:0,Emergency:0,Tripping:0};
-  var faultMap={}, relayMap={};
-  var divCount={'Banjara Hills':0,'Secunderabad':0,'South':0,'Central':0};
-  entries.forEach(function(e){
-    if(types.hasOwnProperty(e.outage_type)) types[e.outage_type]++;
-    if(e.identified_fault && e.identified_fault!=='—' && e.identified_fault) faultMap[e.identified_fault]=(faultMap[e.identified_fault]||0)+1;
-    if(e.relay && e.relay!=='—' && e.relay && e.relay!=='None') relayMap[e.relay]=(relayMap[e.relay]||0)+1;
-    if(e.lines_division && divCount.hasOwnProperty(e.lines_division)) divCount[e.lines_division]++;
-  });
-  setText('cnt-bd', types.Breakdown);
-  setText('cnt-pl', types.Planned);
-  setText('cnt-em', types.Emergency);
-  setText('cnt-tr', types.Tripping);
-  setText('div-bh', divCount['Banjara Hills']);
-  setText('div-sc', divCount['Secunderabad']);
-  setText('div-so', divCount['South']);
-  setText('div-ce', divCount['Central']);
-
-  // Bars
-  makeBars('fault-bars', faultMap, FAULT_COLORS, 'fault-count-badge');
-  makeBars('relay-bars', relayMap, ['#2980B9','#8E24AA','#C0392B','#D07A00','#0B7A5C','#1565C0'], null);
-
-  // Log table — newest first, all entries
-  var tbody = document.getElementById('log-tbody');
-  if(tbody){
-    if(!entries.length){
-      tbody.innerHTML='<tr><td colspan="9"><div class="empty-msg"><strong>No entries yet</strong><span>Log breakdown entries in the Breakdown Entry tab — they appear here automatically every 5 seconds.</span></div></td></tr>';
-    } else {
-      var recent = entries.slice().reverse();
-      tbody.innerHTML = recent.map(function(e,i){
-        var tc = TYPE_COLOR[e.outage_type]||'#1565C0';
-        var tb2 = TYPE_BG[e.outage_type]||'#DDEEFF';
-        var isRest = !!e.restoration_time;
-        var statusHtml = isRest
-          ? '<span class="badge-rest">RESTORED</span>'
-          : '<span class="badge-active">ACTIVE ●</span>';
-        var ft = e.failure_time ? e.failure_time.replace('T',' ') : '—';
-        var dur = e.duration || (isRest ? '—' : 'Ongoing');
-        var fault = e.identified_fault && e.identified_fault!=='—' ? e.identified_fault : '—';
-        return '<tr>'+
-          '<td style="font-family:var(--m);color:var(--tx3)">'+(i+1)+'</td>'+
-          '<td style="font-weight:700;color:var(--tx);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e.ss_name+'</td>'+
-          '<td><span class="pill '+(DIV_PILL[e.lines_division]||'pill-bl')+'" style="white-space:nowrap">'+(e.lines_division||'—')+'</span></td>'+
-          '<td style="font-size:10px;color:var(--tx2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(e.feeder_33kv||'')+'">'+( e.feeder_33kv||'—')+'</td>'+
-          '<td><span class="type-badge" style="background:'+tb2+';color:'+tc+';border-color:'+tc+'44">'+(e.outage_type||'—')+'</span></td>'+
-          '<td style="white-space:nowrap;font-family:var(--m);font-size:10px">'+ft+'</td>'+
-          '<td style="font-family:var(--m);font-weight:700;color:var(--bl)">'+dur+'</td>'+
-          '<td style="font-size:10px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+fault+'">'+fault+'</td>'+
-          '<td>'+statusHtml+'</td>'+
-          '</tr>';
-      }).join('');
-    }
-  }
-
-  // Affected SS grid
-  var ssGrid = document.getElementById('ss-grid');
-  if(ssGrid){
-    var unique = {};
-    entries.forEach(function(e){ if(e.ss_name) unique[e.ss_name]={type:e.outage_type, rest:!!e.restoration_time}; });
-    var ssArr = Object.entries(unique);
-    setText('ss-count-badge', ssArr.length);
-    if(!ssArr.length){
-      ssGrid.innerHTML='<div class="f-cell idle" style="grid-column:span 4"><div class="fn" style="text-align:center;color:var(--tx3)">Log entries to see affected substations</div></div>';
-    } else {
-      ssGrid.innerHTML = ssArr.map(function(kv){
-        var cls = kv[1].rest ? '' : (kv[1].type==='Breakdown'?'bd':'');
-        var status = kv[1].rest ? 'RESTORED' : (kv[1].type==='Breakdown'?'BREAKDOWN':'OUTAGE');
-        return '<div class="f-cell '+cls+'"><div class="fn" title="'+kv[0]+'">'+kv[0].replace('33/11 KV ','').replace(' SS','')+'</div><div class="fs">'+status+'</div></div>';
-      }).join('');
-    }
-  }
+function deleteEntry(i) {
+  entries.splice(i, 1);
+  saveToStorage();
+  renderLog();
 }
 
-// Listen for postMessage from parent (Breakdown Entry iframe)
-window.addEventListener('message', function(ev){
-  if(ev.data && ev.data.type === 'BD_LOG_UPDATE'){
-    try{ localStorage.setItem(LS_KEY, JSON.stringify(ev.data.entries||[])); }catch(e){}
-    render();
-  }
-});
+function clearLog() {
+  if (entries.length && !confirm('Clear all logged entries?')) return;
+  entries = [];
+  entryCounter = 0;
+  saveToStorage();
+  renderLog();
+}
 
-render();
-setInterval(render, 5000);
+// ─── FORM CLEAR ─────────────────────────────────────────────
+function clearForm() {
+  ['ss_name','ss_code','op_circle','lines_circle','lines_division','sub_division','section',
+   'failure_time','eht_substation','feeder_33kv','ops_type','relay','identified_fault',
+   'weather','person_responsible','fpi_location','name_eht','alt_source','restoration_time',
+   'duration_display','duration_min','root_cause','rectified_time','rectification_details',
+   'lc_taken_from','lc_completed','lc_duration_display','remarks'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  selectedRadios = {};
+  document.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('selected'));
+  currentFilter = { circle: '', division: '', subDiv: '', section: '' };
+  rebuildDivisions('');
+  rebuildSubDivisions('','');
+  rebuildSections('','','');
+  // Re-populate ss dropdown
+  const ssSelect = document.getElementById('ss_name');
+  Array.from(ssSelect.options).forEach(opt => { opt.hidden = false; });
+  // Clear source badge
+  const badge = document.getElementById('ss-source-badge');
+  if (badge) badge.innerHTML = '';
+}
+
+// ─── EXPORT TO EXCEL ────────────────────────────────────────
+function exportExcel() {
+  if (!entries.length) { alert('No entries to export.'); return; }
+  const headers = ['#','SS Name','SS Code','Operation Circle','Lines Division','Sub Division','Section',
+    'Failure Date & Time (7)','EHT Source SS (8)','33KV Source Feeder (9)','Agency (10)','Type of Outage (11)',
+    'Type of Operations','Relay Indication (12)','Identified Fault (13)','Nature of Fault (14)','Weather (15)',
+    'Person Responsible (15)','FPI Location (24)','Name of EHT (18)','Alternative Source (19)',
+    'Restoration Date & Time (20)','Duration (21)','Duration (Min)','Root Cause (22)',
+    'Rectified Date & Time (23)','Rectification Details (24)','LC Taken From (25)','LC Completed (26)','LC Duration (27)','Remarks'];
+
+  const rows = entries.map(e => [
+    e.id, e.ss_name, e.ss_code, e.op_circle, e.lines_division, e.sub_division, e.section,
+    e.failure_time, e.eht_substation, e.feeder_33kv, e.agency, e.outage_type,
+    e.ops_type, e.relay, e.identified_fault, e.fault_nature, e.weather,
+    e.person_responsible, e.fpi_location, e.name_eht, e.alt_source,
+    e.restoration_time, e.duration, e.duration_min, e.root_cause,
+    e.rectified_time, e.rectification_details, e.lc_taken_from, e.lc_completed, e.lc_duration, e.remarks
+  ]);
+
+  // Build CSV
+  const csv = [headers, ...rows].map(r =>
+    r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')
+  ).join('\n');
+
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const d = new Date().toISOString().slice(0,10);
+  a.download = `TGSPDCL_Breakdown_Log_${d}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── TOAST ──────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (msg) t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── START ──────────────────────────────────────────────────
+init();
 </script>
 </body>
 </html>
