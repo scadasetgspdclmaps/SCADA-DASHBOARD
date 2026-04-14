@@ -39,9 +39,22 @@ body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--
 .cl-l{font-size:9px;letter-spacing:1.5px;opacity:.7;font-family:var(--m);text-transform:uppercase}
 .cl-v{font-size:14px;font-weight:700;margin-top:3px;font-family:var(--m)}
 
+/* SECTION TITLES */
+.section-title{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:#7a6100;background:#FFF3CD;border:1px solid #F3D16F;
+  border-radius:999px;padding:7px 12px;margin-bottom:10px
+}
+.section-title.teal{
+  color:#0B7A5C;background:#D4F0E8;border-color:#8AD6C2
+}
+.section-wrap{margin-bottom:14px}
+
 /* TWO-COL GRID */
 .grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:14px}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.grid2equal{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 
 /* CARD */
 .card{background:var(--card);border:.5px solid var(--bd2);border-radius:12px;padding:14px 16px;box-shadow:0 1px 8px rgba(21,101,192,.06)}
@@ -89,7 +102,11 @@ tbody td{padding:7px 10px;color:var(--tx2);vertical-align:middle}
 .f-cell .fs{font-size:8px;margin-top:2px;font-weight:600}
 .f-cell.bd .fs{color:var(--rd)}.f-cell .fs{color:var(--gn)}.f-cell.idle .fs{color:var(--tx3)}
 
-@media(max-width:900px){.kpi-row{grid-template-columns:repeat(3,1fr)}.grid2,.grid3{grid-template-columns:1fr}}
+@media(max-width:900px){
+  .kpi-row{grid-template-columns:repeat(3,1fr)}
+  .grid2,.grid3,.grid2equal{grid-template-columns:1fr}
+  .feeder-grid{grid-template-columns:repeat(2,1fr)}
+}
 </style>
 </head>
 <body>
@@ -120,6 +137,80 @@ tbody td{padding:7px 10px;color:var(--tx2);vertical-align:middle}
   <div class="kpi p"><div class="kl">Divisions Affected</div><div class="kv" id="kpi-divs">0</div><div class="ks">Lines divisions in log</div></div>
   <div class="kpi"><div class="kl">Total Entries</div><div class="kv" id="kpi-total">0</div><div class="ks">All sessions combined</div></div>
   <div class="kpi"><div class="kl">Sections Affected</div><div class="kv" id="kpi-secs">0</div><div class="ks">Unique sections in log</div></div>
+</div>
+
+<!-- 33KV FEEDERS -->
+<div class="section-wrap">
+  <div class="section-title">33KV Feeders</div>
+  <div class="grid3">
+    <div class="card">
+      <div class="card-hd">🟢 LIVE 33KV FEEDERS <span id="live-feeders">0</span></div>
+      <div id="live-feeder-list">
+        <div class="empty-msg" style="padding:14px"><span>No live feeder data yet</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">🔴 BREAKDOWN 33KV FEEDERS <span id="bd-feeders">0</span></div>
+      <div id="bd-feeder-list">
+        <div class="empty-msg" style="padding:14px"><span>No breakdown feeder data yet</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">⚪ IDLE FEEDERS <span id="idle-feeders">0</span></div>
+      <div id="idle-feeder-list">
+        <div class="empty-msg" style="padding:14px"><span>No idle feeder data yet</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 33/11KV SUBSTATIONS -->
+<div class="section-wrap">
+  <div class="section-title">33/11KV Substations</div>
+  <div class="grid3">
+    <div class="card">
+      <div class="card-hd">🏭 ON REGULAR SOURCE <span id="ss-regular">0</span></div>
+      <div id="ss-regular-list">
+        <div class="empty-msg" style="padding:14px"><span>No regular source data yet</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">🔁 ON ALTERNATE SOURCE <span id="ss-alt">0</span></div>
+      <div id="ss-alt-list">
+        <div class="empty-msg" style="padding:14px"><span>No alternate source data yet</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">🔀 ON MULTIPLE SOURCES <span id="ss-multi">0</span></div>
+      <div id="ss-multi-list">
+        <div class="empty-msg" style="padding:14px"><span>No multiple source data yet</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="section-wrap">
+  <div class="section-title teal">Loading</div>
+  <div class="grid2equal">
+    <div class="card">
+      <div class="card-hd">📈 33/11KV SUBSTATIONS WITH MAX LOADING <span id="ss-overload">0</span></div>
+      <div id="ss-overload-list">
+        <div class="empty-msg" style="padding:14px"><span>No PTR loading data yet</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">📊 33KV FEEDERS WITH MAX LOADING <span id="feeder-overload">0</span></div>
+      <div id="feeder-overload-list">
+        <div class="empty-msg" style="padding:14px"><span>No feeder loading data yet</span></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- MAIN GRID: log table + fault bars -->
@@ -205,20 +296,37 @@ var TYPE_BG    = {Breakdown:'#FDECEA',Planned:'#D4F0E8',Emergency:'#FFF3CD',Trip
 var DIV_PILL   = {'Banjara Hills':'pill-gn','Secunderabad':'pill-pk','South':'pill-am','Central':'pill-bl'};
 
 function setText(id, v){ var e=document.getElementById(id); if(e) e.textContent=v; }
+
 function now(){
   var n=new Date(), p=function(x){return String(x).padStart(2,'0');};
   return p(n.getDate())+'/'+p(n.getMonth()+1)+'/'+n.getFullYear()+' '+p(n.getHours())+':'+p(n.getMinutes())+':'+p(n.getSeconds());
 }
 
 function loadEntries(){
-  try{ var r=localStorage.getItem(LS_KEY); return r?JSON.parse(r):[]; }catch(e){ return []; }
+  try{
+    var r=localStorage.getItem(LS_KEY);
+    return r?JSON.parse(r):[];
+  }catch(e){
+    return [];
+  }
+}
+
+function uniqueValues(arr){
+  return Array.from(new Set(arr.filter(function(v){ return v && String(v).trim() !== ''; })));
 }
 
 function makeBars(containerId, map, colors, badgeId){
-  var c = document.getElementById(containerId); if(!c) return;
+  var c = document.getElementById(containerId);
+  if(!c) return;
+
   var entries = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,6);
   if(badgeId) setText(badgeId, entries.reduce(function(s,e){return s+e[1];},0));
-  if(!entries.length){ c.innerHTML='<div class="empty-msg" style="padding:14px"><span>No data yet</span></div>'; return; }
+
+  if(!entries.length){
+    c.innerHTML='<div class="empty-msg" style="padding:14px"><span>No data yet</span></div>';
+    return;
+  }
+
   var mx = Math.max.apply(null, entries.map(function(e){return e[1];}));
   c.innerHTML = entries.map(function(e,i){
     var pct = mx>0 ? Math.round(e[1]/mx*100) : 0;
@@ -231,46 +339,74 @@ function makeBars(containerId, map, colors, badgeId){
   }).join('');
 }
 
+function renderMiniList(containerId, arr, mode){
+  var el = document.getElementById(containerId);
+  if(!el) return;
+
+  if(!arr.length){
+    el.innerHTML = '<div class="empty-msg" style="padding:14px"><span>No data yet</span></div>';
+    return;
+  }
+
+  el.innerHTML = arr.slice(0,8).map(function(item){
+    var pill = 'pill-bl';
+    if(mode === 'green') pill = 'pill-gn';
+    if(mode === 'red') pill = 'pill-rd';
+    if(mode === 'amber') pill = 'pill-am';
+    if(mode === 'purple') pill = 'pill-pk';
+
+    return '<div class="stat-row">'+
+      '<b title="'+item.label+'">'+item.label+'</b>'+
+      '<span class="pill '+pill+'">'+item.value+'</span>'+
+      '</div>';
+  }).join('');
+}
+
 function render(){
   setText('live-now', now());
+
   var entries = loadEntries();
   var total = entries.length;
   var restored = entries.filter(function(e){ return !!e.restoration_time; }).length;
-  var active   = total - restored;
+  var active = total - restored;
 
-  // Durations
-  var durs = entries.filter(function(e){ return e.duration_min && !isNaN(+e.duration_min) && +e.duration_min > 0; });
-  var avgDur = durs.length ? Math.round(durs.reduce(function(s,e){return s+(+e.duration_min);},0)/durs.length) : 0;
+  var durs = entries.filter(function(e){
+    return e.duration_min && !isNaN(+e.duration_min) && +e.duration_min > 0;
+  });
+  var avgDur = durs.length
+    ? Math.round(durs.reduce(function(s,e){return s+(+e.duration_min);},0)/durs.length)
+    : 0;
 
-  // Sets
   var divSet={}, secSet={};
-  entries.forEach(function(e){ if(e.lines_division) divSet[e.lines_division]=1; if(e.section) secSet[e.section]=1; });
+  entries.forEach(function(e){
+    if(e.lines_division) divSet[e.lines_division]=1;
+    if(e.section) secSet[e.section]=1;
+  });
 
-  // KPIs
-  setText('kpi-active',   active);
+  setText('kpi-active', active);
   setText('kpi-restored', restored);
-  setText('kpi-avg',      avgDur ? avgDur+' min' : '—');
-  setText('kpi-divs',     Object.keys(divSet).length);
-  setText('kpi-total',    total);
-  setText('kpi-secs',     Object.keys(secSet).length);
-  setText('chip-count',   total + ' LOG ENTR'+(total===1?'Y':'IES'));
-  setText('chip-active',  active + ' ACTIVE');
-  setText('log-count-badge', total + ' entr'+(total===1?'y':'ies'));
+  setText('kpi-avg', avgDur ? avgDur+' min' : '—');
+  setText('kpi-divs', Object.keys(divSet).length);
+  setText('kpi-total', total);
+  setText('kpi-secs', Object.keys(secSet).length);
+  setText('chip-count', total + ' LOG ENTR' + (total===1?'Y':'IES'));
+  setText('chip-active', active + ' ACTIVE');
+  setText('log-count-badge', total + ' entr' + (total===1?'y':'ies'));
 
-  // Active breakdown alert chip
   var alertChip = document.getElementById('chip-alert');
   if(alertChip) alertChip.style.display = active > 0 ? 'inline-block' : 'none';
 
-  // Outage type
   var types = {Breakdown:0,Planned:0,Emergency:0,Tripping:0};
   var faultMap={}, relayMap={};
   var divCount={'Banjara Hills':0,'Secunderabad':0,'South':0,'Central':0};
+
   entries.forEach(function(e){
     if(types.hasOwnProperty(e.outage_type)) types[e.outage_type]++;
-    if(e.identified_fault && e.identified_fault!=='—' && e.identified_fault) faultMap[e.identified_fault]=(faultMap[e.identified_fault]||0)+1;
-    if(e.relay && e.relay!=='—' && e.relay && e.relay!=='None') relayMap[e.relay]=(relayMap[e.relay]||0)+1;
+    if(e.identified_fault && e.identified_fault!=='—') faultMap[e.identified_fault]=(faultMap[e.identified_fault]||0)+1;
+    if(e.relay && e.relay!=='—' && e.relay!=='None') relayMap[e.relay]=(relayMap[e.relay]||0)+1;
     if(e.lines_division && divCount.hasOwnProperty(e.lines_division)) divCount[e.lines_division]++;
   });
+
   setText('cnt-bd', types.Breakdown);
   setText('cnt-pl', types.Planned);
   setText('cnt-em', types.Emergency);
@@ -280,11 +416,9 @@ function render(){
   setText('div-so', divCount['South']);
   setText('div-ce', divCount['Central']);
 
-  // Bars
   makeBars('fault-bars', faultMap, FAULT_COLORS, 'fault-count-badge');
   makeBars('relay-bars', relayMap, ['#2980B9','#8E24AA','#C0392B','#D07A00','#0B7A5C','#1565C0'], null);
 
-  // Log table — newest first, all entries
   var tbody = document.getElementById('log-tbody');
   if(tbody){
     if(!entries.length){
@@ -303,7 +437,7 @@ function render(){
         var fault = e.identified_fault && e.identified_fault!=='—' ? e.identified_fault : '—';
         return '<tr>'+
           '<td style="font-family:var(--m);color:var(--tx3)">'+(i+1)+'</td>'+
-          '<td style="font-weight:700;color:var(--tx);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e.ss_name+'</td>'+
+          '<td style="font-weight:700;color:var(--tx);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.ss_name||'—')+'</td>'+
           '<td><span class="pill '+(DIV_PILL[e.lines_division]||'pill-bl')+'" style="white-space:nowrap">'+(e.lines_division||'—')+'</span></td>'+
           '<td style="font-size:10px;color:var(--tx2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(e.feeder_33kv||'')+'">'+( e.feeder_33kv||'—')+'</td>'+
           '<td><span class="type-badge" style="background:'+tb2+';color:'+tc+';border-color:'+tc+'44">'+(e.outage_type||'—')+'</span></td>'+
@@ -316,11 +450,12 @@ function render(){
     }
   }
 
-  // Affected SS grid
   var ssGrid = document.getElementById('ss-grid');
   if(ssGrid){
     var unique = {};
-    entries.forEach(function(e){ if(e.ss_name) unique[e.ss_name]={type:e.outage_type, rest:!!e.restoration_time}; });
+    entries.forEach(function(e){
+      if(e.ss_name) unique[e.ss_name]={type:e.outage_type, rest:!!e.restoration_time};
+    });
     var ssArr = Object.entries(unique);
     setText('ss-count-badge', ssArr.length);
     if(!ssArr.length){
@@ -333,12 +468,111 @@ function render(){
       }).join('');
     }
   }
+
+  /* ---------------- NEW DASHBOARD SUMMARY LOGIC ---------------- */
+
+  var feederMap = {};
+  entries.forEach(function(e){
+    var feeder = (e.feeder_33kv || '').trim();
+    if(!feeder) return;
+    if(!feederMap[feeder]){
+      feederMap[feeder] = {active:false, restored:false};
+    }
+    if(e.restoration_time) feederMap[feeder].restored = true;
+    else feederMap[feeder].active = true;
+  });
+
+  var liveFeederArr = [];
+  var bdFeederArr = [];
+  Object.keys(feederMap).forEach(function(name){
+    if(feederMap[name].active){
+      bdFeederArr.push({label:name, value:'BREAKDOWN'});
+    }else if(feederMap[name].restored){
+      liveFeederArr.push({label:name, value:'LIVE'});
+    }
+  });
+
+  liveFeederArr.sort(function(a,b){ return a.label.localeCompare(b.label); });
+  bdFeederArr.sort(function(a,b){ return a.label.localeCompare(b.label); });
+
+  setText('live-feeders', liveFeederArr.length);
+  setText('bd-feeders', bdFeederArr.length);
+
+  renderMiniList('live-feeder-list', liveFeederArr, 'green');
+  renderMiniList('bd-feeder-list', bdFeederArr, 'red');
+
+  /* Idle feeders:
+     this needs master feeder list to calculate properly.
+     If your data later has all feeders, we can compare and show true idle feeders.
+  */
+  var idleFeederArr = [];
+  setText('idle-feeders', idleFeederArr.length);
+  renderMiniList('idle-feeder-list', idleFeederArr, 'amber');
+
+  var regularArr = [];
+  var altArr = [];
+  var multiArr = [];
+
+  entries.forEach(function(e){
+    var ss = (e.ss_name || '').trim();
+    var src = (e.source_type || '').trim().toLowerCase();
+    if(!ss || !src) return;
+
+    if(src === 'regular'){
+      regularArr.push(ss);
+    }else if(src === 'alternate' || src === 'alternate source'){
+      altArr.push(ss);
+    }else if(src === 'multiple' || src === 'multiple source' || src === 'multiple sources'){
+      multiArr.push(ss);
+    }
+  });
+
+  regularArr = uniqueValues(regularArr).sort();
+  altArr = uniqueValues(altArr).sort();
+  multiArr = uniqueValues(multiArr).sort();
+
+  setText('ss-regular', regularArr.length);
+  setText('ss-alt', altArr.length);
+  setText('ss-multi', multiArr.length);
+
+  renderMiniList('ss-regular-list', regularArr.map(function(v){ return {label:v, value:'REG'}; }), 'green');
+  renderMiniList('ss-alt-list', altArr.map(function(v){ return {label:v, value:'ALT'}; }), 'amber');
+  renderMiniList('ss-multi-list', multiArr.map(function(v){ return {label:v, value:'MULTI'}; }), 'purple');
+
+  var ssOverloadArr = [];
+  var feederOverloadArr = [];
+
+  entries.forEach(function(e){
+    if(e.ptr_loading !== undefined && e.ptr_loading !== null && e.ptr_loading !== '' && !isNaN(+e.ptr_loading) && +e.ptr_loading > 70){
+      ssOverloadArr.push({
+        label:(e.ss_name || 'Unknown SS'),
+        value:Math.round(+e.ptr_loading) + '%'
+      });
+    }
+
+    if(e.feeder_loading !== undefined && e.feeder_loading !== null && e.feeder_loading !== '' && !isNaN(+e.feeder_loading) && +e.feeder_loading > 70){
+      feederOverloadArr.push({
+        label:(e.feeder_33kv || 'Unknown Feeder'),
+        value:Math.round(+e.feeder_loading) + '%'
+      });
+    }
+  });
+
+  ssOverloadArr.sort(function(a,b){ return parseFloat(b.value) - parseFloat(a.value); });
+  feederOverloadArr.sort(function(a,b){ return parseFloat(b.value) - parseFloat(a.value); });
+
+  setText('ss-overload', ssOverloadArr.length);
+  setText('feeder-overload', feederOverloadArr.length);
+
+  renderMiniList('ss-overload-list', ssOverloadArr, 'red');
+  renderMiniList('feeder-overload-list', feederOverloadArr, 'amber');
 }
 
-// Listen for postMessage from parent (Breakdown Entry iframe)
 window.addEventListener('message', function(ev){
   if(ev.data && ev.data.type === 'BD_LOG_UPDATE'){
-    try{ localStorage.setItem(LS_KEY, JSON.stringify(ev.data.entries||[])); }catch(e){}
+    try{
+      localStorage.setItem(LS_KEY, JSON.stringify(ev.data.entries||[]));
+    }catch(e){}
     render();
   }
 });
