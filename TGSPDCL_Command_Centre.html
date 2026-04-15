@@ -305,6 +305,83 @@ html,body{width:100%;height:100%;overflow:hidden}
 @media(max-width:1100px){.live-kpis{grid-template-columns:repeat(3,1fr)}.live-grid,.live-bottom{grid-template-columns:1fr}}
 @media(max-width:700px){.live-hero{flex-direction:column}.live-kpis{grid-template-columns:repeat(2,1fr)}.live-stat{grid-template-columns:1fr}.live-clock{text-align:left;min-width:auto}}
 
+
+/* ── SIM PANELS ──────────────────────────────────────── */
+.sim-three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px}
+@media(max-width:1000px){.sim-three{grid-template-columns:1fr}}
+.sim-card{background:#fff;border:.5px solid #C8D8E8;border-radius:16px;
+  box-shadow:0 3px 10px rgba(21,101,192,.06);overflow:hidden}
+.sim-card-hdr{padding:11px 16px;border-bottom:1px solid #E8F0F8;
+  display:flex;align-items:center;justify-content:space-between}
+.sim-card-hdr-left{display:flex;align-items:center;gap:8px}
+.sim-hdr-title{font-size:11px;font-weight:800;color:#1A2E40;letter-spacing:.7px}
+.sim-count-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;
+  font-family:monospace}
+.sim-card-body{padding:0;max-height:260px;overflow-y:auto}
+.sim-card-body::-webkit-scrollbar{width:4px}
+.sim-card-body::-webkit-scrollbar-thumb{background:#C8D8E8;border-radius:3px}
+.sim-feeder-item{padding:8px 14px;border-bottom:1px solid #F0F5FB;transition:background .12s}
+.sim-feeder-item:last-child{border-bottom:none}
+.sim-feeder-item:hover{background:#F6FAFF}
+.sim-feeder-name{font-size:10px;font-weight:700;color:#1A2E40;margin-bottom:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sim-feeder-ss{font-size:9px;color:#7A95AD;margin-bottom:4px}
+.sim-mini-bar-wrap{display:flex;align-items:center;gap:6px}
+.sim-mini-bar-bg{flex:1;height:5px;background:#E8EFF6;border-radius:3px;overflow:hidden}
+.sim-mini-bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.sim-mini-bar-val{font-size:10px;font-weight:700;font-family:monospace;flex-shrink:0;width:40px;text-align:right}
+.sim-mini-bar-pct{font-size:9px;font-family:monospace;flex-shrink:0;width:32px;text-align:right}
+.sim-empty{text-align:center;padding:28px 14px;color:#B0C4D4;font-size:11px}
+.sim-bkdn-item{padding:9px 14px;border-bottom:1px solid #FEF0EE}
+.sim-bkdn-item:last-child{border-bottom:none}
+.sim-bkdn-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.sim-bkdn-name{font-size:10px;font-weight:700;color:#7B1A1A;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.sim-bkdn-dur{font-size:9px;font-weight:700;color:#C0392B;font-family:monospace;flex-shrink:0}
+.sim-bkdn-ss{font-size:9px;color:#8A6060;margin-bottom:3px}
+.sim-bkdn-div{font-size:9px;color:#B07070}
+.sim-idle-item{padding:8px 14px;border-bottom:1px solid #F0F5FB;transition:background .12s}
+.sim-idle-item:last-child{border-bottom:none}
+.sim-idle-name{font-size:10px;font-weight:600;color:#4A6580;margin-bottom:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sim-idle-meta{font-size:9px;color:#8A9AAA}
+/* SS source rows */
+.ss-src-section{margin-bottom:18px}
+.ss-src-row{background:#fff;border:.5px solid #C8D8E8;border-radius:12px;
+  box-shadow:0 2px 6px rgba(21,101,192,.05);padding:14px 20px;margin-bottom:8px;
+  display:flex;align-items:center;justify-content:space-between;transition:box-shadow .15s}
+.ss-src-row:last-child{margin-bottom:0}
+.ss-src-row:hover{box-shadow:0 4px 14px rgba(21,101,192,.1)}
+.ss-src-title{font-size:13px;font-weight:600;color:#1A2E40}
+.ss-src-count{font-size:26px;font-weight:800;font-family:monospace;line-height:1}
+/* Loading section */
+.load-two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+@media(max-width:900px){.load-two{grid-template-columns:1fr}}
+.load-card{background:#fff;border:.5px solid #C8D8E8;border-radius:16px;
+  box-shadow:0 3px 10px rgba(21,101,192,.06);overflow:hidden}
+.load-card-hdr{padding:10px 14px;border-bottom:1px solid #E8F0F8;
+  display:flex;align-items:center;justify-content:space-between}
+.load-card-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;color:#7A95AD}
+.load-card-dot{width:8px;height:8px;border-radius:50%;background:#1565C0}
+.load-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.load-tbl th{padding:7px 10px;text-align:left;font-size:8px;font-weight:700;
+  letter-spacing:1px;color:#7A95AD;background:#F6FAFD;border-bottom:1px solid #E8F0F8}
+.load-tbl th.r{text-align:right}
+.load-tbl td{padding:7px 10px;border-bottom:1px solid #F0F5FB;vertical-align:middle}
+.load-tbl tr:last-child td{border-bottom:none}
+.load-tbl tr:hover td{background:#F6FAFF}
+.load-status-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;
+  border-radius:6px;font-size:8px;font-weight:700;white-space:nowrap;border:1px solid}
+.lsp-live{background:#D4F0E8;color:#0B5C42;border-color:#A5D6C8}
+.lsp-bkdn{background:#FDECEA;color:#7B1A1A;border-color:#F5A5A0}
+.lsp-idle{background:#F0F4F8;color:#4A6580;border-color:#C8D4E0}
+/* Section label chip */
+.sim-sec-label{display:inline-flex;align-items:center;gap:6px;
+  padding:5px 14px;border-radius:6px;font-size:11px;font-weight:800;
+  letter-spacing:.5px;margin-bottom:12px;color:#fff}
+.ssl-yellow{background:#E6A800}
+.ssl-teal{background:#0B7A5C}
+@keyframes blp{0%,100%{opacity:1}50%{opacity:.35}}
 </style>
 </head>
 <body>
@@ -375,47 +452,100 @@ html,body{width:100%;height:100%;overflow:hidden}
         <div class="hcard-tags"><span class="hcard-tag">GOLCONDA SS</span><span class="hcard-tag">PTR DATA</span><span class="hcard-tag">MAINTENANCE</span></div>
         <div class="hcard-arrow">&#8594;</div>
       </div>
-<div class="card">
-    <div class="card-header">
-        <div class="card-icon">🔌</div>
-        <h3 class="card-title">33KV JAMES STREET SECTION NETWORK</h3>
-    </div>
-    <p class="card-description">
-        James Street Sub-Division live network command — 15 feeders, substation status 
-        (live / breakdown / idle), automated breakdown log entry, and integrated GIS feeder map.
-    </p>
-    <div class="tag-group">
-        <span class="tag">15 FEEDERS</span>
-        <span class="tag">LIVE STATUS</span>
-        <span class="tag">LOG ENTRY</span>
-        <span class="tag">JAMES STREET</span>
-    </div>
-    <div class="button-container">
-        <a href="James_Street_SCADA.html" class="btn btn-primary">Section Status</a>
-        <a href="index.html" class="btn btn-secondary">GIS Map</a>
-        <a href="James_Street_SCADA.html" class="btn btn-warning">Log Breakdown</a>
-    </div>
-</div>
-</div>
-        <div style="display:flex;gap:6px;margin-top:12px;padding-top:10px;border-top:.5px solid #E8EEF4;">
-          <a href="https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html" target="_blank" onclick="event.stopPropagation()" style="flex:1;text-align:center;font-size:9px;font-weight:700;color:#B71C1C;background:#FFF5F5;border:.5px solid #FFCDD2;border-radius:5px;padding:5px 2px;text-decoration:none;font-family:monospace;">&#128203; Section Status</a>
-          <a href="https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/" target="_blank" onclick="event.stopPropagation()" style="flex:1;text-align:center;font-size:9px;font-weight:700;color:#1565C0;background:#E3F2FD;border:.5px solid #BBDEFB;border-radius:5px;padding:5px 2px;text-decoration:none;font-family:monospace;">&#128506; GIS Map</a>
-          <a href="https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/entry.html" target="_blank" onclick="event.stopPropagation()" style="flex:1;text-align:center;font-size:9px;font-weight:700;color:#E65100;background:#FFF3E0;border:.5px solid #FFE0B2;border-radius:5px;padding:5px 2px;text-decoration:none;font-family:monospace;">&#9889; Log Breakdown</a>
+
+      <!-- JAMES STREET SECTION NETWORK -->
+      <div class="hcard" style="border-top-color:#B71C1C;cursor:pointer"
+        onclick="window.open('https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html','_blank')">
+        <div class="hcard-icon">&#128268;</div>
+        <div class="hcard-title" style="color:#B71C1C;">33KV JAMES STREET SECTION</div>
+        <div class="hcard-desc">James Street Sub-Division live network command — 15 feeders, substation status (live / breakdown / idle), automated breakdown log entry, and integrated GIS feeder map.</div>
+        <div class="hcard-tags">
+          <span class="hcard-tag">15 FEEDERS</span>
+          <span class="hcard-tag">LIVE STATUS</span>
+          <span class="hcard-tag">LOG ENTRY</span>
+          <span class="hcard-tag">JAMES STREET</span>
         </div>
-        <div class="hcard-arrow">&#8594;</div>
+        <div class="hcard-arrow" style="color:#B71C1C">&#8594;</div>
       </div>
-      <div class="hcard" style="border-top-color:#7B1FA2;grid-column:span 2;display:flex;align-items:flex-start;gap:20px;" onclick="switchSection('entry')">
-        <div style="flex-shrink:0">
-          <div class="hcard-icon" style="font-size:32px;margin-bottom:0">&#128203;</div>
+
+      <!-- LIVE DASHBOARD -->
+      <div class="hcard" style="border-top-color:#1565C0;cursor:pointer" onclick="switchSection('live')">
+        <div class="hcard-icon">&#128640;</div>
+        <div class="hcard-title" style="color:#1565C0;">LIVE DASHBOARD</div>
+        <div class="hcard-desc">Real-time 33KV feeder status — Live, Breakdown and Idle feeders with load monitoring, source status and loading percentage for all 33/11KV SS.</div>
+        <div class="hcard-tags">
+          <span class="hcard-tag">LIVE FEEDERS</span>
+          <span class="hcard-tag">BREAKDOWN</span>
+          <span class="hcard-tag">IDLE</span>
+          <span class="hcard-tag">LOADING %</span>
         </div>
-        <div style="flex:1">
-          <div class="hcard-title" style="color:#7B1FA2;">BREAKDOWN ENTRY — OUTAGE LOG FORM</div>
-          <div class="hcard-desc">Log 33/11KV substation outages against the full PMI register — cascading SS selection across 136 substations, all 27 data columns (Col 1–27), relay indication, nature of fault, weather, LC details, auto-calculated durations, and one-click CSV export.</div>
-          <div class="hcard-tags">
-            <span class="hcard-tag">136 SS</span><span class="hcard-tag">4 OP CIRCLES</span><span class="hcard-tag">PMI REGISTER</span><span class="hcard-tag">AUTO DURATION</span><span class="hcard-tag">CSV EXPORT</span>
+        <div class="hcard-arrow" style="color:#1565C0">&#8594;</div>
+      </div>
+
+      <!-- 33KV SCADA — BREAKDOWN ENTRY -->
+            </div>
+
+    </div>
+
+    <!-- QUICK ACCESS WIDGET ROW -->
+    <div style="max-width:960px;width:100%;margin-top:14px;margin-bottom:2px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:#7A95AD;
+        margin-bottom:8px;padding-left:2px">QUICK ACCESS</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+
+        <!-- Live Dashboard -->
+        <div onclick="switchSection('live')" style="cursor:pointer;
+          background:linear-gradient(135deg,#1565C0,#1976D2);
+          border-radius:10px;padding:14px 16px;
+          box-shadow:0 4px 14px rgba(21,101,192,.25);
+          display:flex;align-items:center;gap:12px;
+          transition:all .2s" 
+          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(21,101,192,.35)'"
+          onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(21,101,192,.25)'">
+          <div style="font-size:24px;flex-shrink:0">🚀</div>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:#fff;letter-spacing:.5px">LIVE DASHBOARD</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.7);margin-top:2px">33KV feeders · Live, Breakdown, Idle</div>
           </div>
+          <div style="margin-left:auto;color:rgba(255,255,255,.5);font-size:14px">&#8594;</div>
         </div>
-        <div class="hcard-arrow" style="position:static;color:#CE93D8">&#8594;</div>
+
+        <!-- 33KV SCADA - James Street -->
+        <div onclick="window.open('https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html','_blank')"
+          style="cursor:pointer;
+          background:linear-gradient(135deg,#7B1FA2,#9C27B0);
+          border-radius:10px;padding:14px 16px;
+          box-shadow:0 4px 14px rgba(123,31,162,.25);
+          display:flex;align-items:center;gap:12px;
+          transition:all .2s"
+          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(123,31,162,.35)'"
+          onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(123,31,162,.25)'">
+          <div style="font-size:24px;flex-shrink:0">🔌</div>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:#fff;letter-spacing:.5px">33KV SCADA</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.7);margin-top:2px">James Street · Section Network</div>
+          </div>
+          <div style="margin-left:auto;color:rgba(255,255,255,.5);font-size:14px">&#8594;</div>
+        </div>
+
+        <!-- Breakdown Entry -->
+        <div onclick="switchSection('entry')"
+          style="cursor:pointer;
+          background:linear-gradient(135deg,#C0392B,#E53935);
+          border-radius:10px;padding:14px 16px;
+          box-shadow:0 4px 14px rgba(192,57,43,.25);
+          display:flex;align-items:center;gap:12px;
+          transition:all .2s"
+          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(192,57,43,.35)'"
+          onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(192,57,43,.25)'">
+          <div style="font-size:24px;flex-shrink:0">📋</div>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:#fff;letter-spacing:.5px">BREAKDOWN ENTRY</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.7);margin-top:2px">Log outage · 136 SS · CSV export</div>
+          </div>
+          <div style="margin-left:auto;color:rgba(255,255,255,.5);font-size:14px">&#8594;</div>
+        </div>
+
       </div>
     </div>
     <div class="hstats">
@@ -830,87 +960,117 @@ html,body{width:100%;height:100%;overflow:hidden}
   </div>
 </div>
 
-<!-- KPI ROW -->
-<div class="live-kpis">
-  <div class="live-kpi r"><div class="lk-l">Active Breakdowns</div><div class="lk-v" id="ld-active">0</div><div class="lk-s">Awaiting restoration</div></div>
-  <div class="live-kpi g"><div class="lk-l">Restored</div><div class="lk-v" id="ld-restored">0</div><div class="lk-s">Restoration logged</div></div>
-  <div class="live-kpi a"><div class="lk-l">Avg Duration</div><div class="lk-v" id="ld-avg" style="font-size:18px;margin-top:6px">—</div><div class="lk-s">Minutes (restored only)</div></div>
-  <div class="live-kpi p"><div class="lk-l">Divisions Affected</div><div class="lk-v" id="ld-divs">0</div><div class="lk-s">Lines divisions in log</div></div>
-  <div class="live-kpi"><div class="lk-l">Total Entries</div><div class="lk-v" id="ld-total">0</div><div class="lk-s">All sessions</div></div>
-  <div class="live-kpi"><div class="lk-l">Sections Affected</div><div class="lk-v" id="ld-secs">0</div><div class="lk-s">Unique sections</div></div>
-</div>
 
-<!-- MAIN GRID -->
-<div class="live-grid">
-  <!-- Log Table -->
-  <div class="live-panel" style="overflow:hidden;padding:0">
-    <div class="live-hd" style="padding:12px 16px;margin:0;border-radius:0;border-bottom:1px solid rgba(255,255,255,.1)">
-      <h3>📋 RECENT BREAKDOWN LOG</h3>
-      <span id="ld-log-badge">0 entries</span>
+<!-- ═══ SIM: 33KV FEEDERS SECTION ═══ -->
+<div class="sim-sec-label ssl-yellow">33KV Feeders</div>
+<div class="sim-three">
+
+  <!-- LIVE 33KV FEEDERS -->
+  <div class="sim-card">
+    <div class="sim-card-hdr">
+      <div class="sim-card-hdr-left">
+        <span style="font-size:15px">🟢</span>
+        <span class="sim-hdr-title">LIVE 33KV FEEDERS</span>
+      </div>
+      <span class="sim-count-badge" id="sim-live-badge"
+        style="background:#D4F0E8;color:#0B5C42">0 LIVE</span>
     </div>
-    <div style="overflow-x:auto;max-height:320px;overflow-y:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:11px">
-        <thead>
-          <tr style="background:#1565C0">
-            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">#</th>
-            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Substation</th>
-            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Division</th>
-            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">33KV Feeder</th>
-            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Type</th>
-            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Failure Time</th>
-            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Duration</th>
-            <th style="color:#fff;padding:8px 10px;font-size:9px;font-weight:700;text-align:left;white-space:nowrap">Status</th>
-          </tr>
-        </thead>
-        <tbody id="ld-log-tbody">
-          <tr><td colspan="8" style="text-align:center;padding:28px 20px;color:#7A95AD;font-size:12px">No breakdown entries yet.<br><span style="font-size:10px">Log entries in the Breakdown Entry tab — they appear here automatically.</span></td></tr>
-        </tbody>
-      </table>
+    <div class="sim-card-body" id="sim-live-body">
+      <div class="sim-empty">Initialising…</div>
     </div>
   </div>
 
-  <!-- Fault Analysis -->
-  <div class="live-panel">
-    <div class="live-hd"><h3>🔍 IDENTIFIED FAULTS</h3><span id="ld-fault-badge">0</span></div>
-    <div id="ld-fault-bars" style="padding:4px 0">
-      <div style="text-align:center;padding:20px;color:#7A95AD;font-size:11px">Log breakdown entries to see fault analysis</div>
+  <!-- BREAKDOWN 33KV FEEDERS -->
+  <div class="sim-card" style="border:.5px solid #F5C5C0">
+    <div class="sim-card-hdr" style="background:#FFF8F7">
+      <div class="sim-card-hdr-left">
+        <span style="font-size:15px">🔴</span>
+        <span class="sim-hdr-title" style="color:#7B1A1A">BREAKDOWN 33KV FEEDERS</span>
+      </div>
+      <span class="sim-count-badge" id="sim-bkdn-badge"
+        style="background:#FDECEA;color:#C0392B">0 ACTIVE</span>
     </div>
+    <div class="sim-card-body" id="sim-bkdn-body">
+      <div class="sim-empty">Initialising…</div>
+    </div>
+  </div>
+
+  <!-- IDLE FEEDERS -->
+  <div class="sim-card">
+    <div class="sim-card-hdr">
+      <div class="sim-card-hdr-left">
+        <span style="font-size:15px">⚫</span>
+        <span class="sim-hdr-title">IDLE FEEDERS</span>
+      </div>
+      <span class="sim-count-badge" id="sim-idle-badge"
+        style="background:#EEF2F8;color:#4A6580">0 IDLE</span>
+    </div>
+    <div class="sim-card-body" id="sim-idle-body">
+      <div class="sim-empty">Initialising…</div>
+    </div>
+  </div>
+
+</div><!-- end sim-three -->
+
+<!-- ═══ 33/11KV SUBSTATIONS SECTION ═══ -->
+<div class="sim-sec-label ssl-yellow">33/11KV Substations</div>
+<div class="ss-src-section">
+  <div class="ss-src-row">
+    <div class="ss-src-title">33/11KV Substations on Regular Source</div>
+    <div class="ss-src-count" style="color:#0B7A5C" id="sim-ss-reg">0</div>
+  </div>
+  <div class="ss-src-row">
+    <div class="ss-src-title">33/11KV Substations on Alternate Source</div>
+    <div class="ss-src-count" style="color:#D07A00" id="sim-ss-alt">0</div>
+  </div>
+  <div class="ss-src-row">
+    <div class="ss-src-title">33/11KV Substations on Multiple Sources</div>
+    <div class="ss-src-count" style="color:#8E24AA" id="sim-ss-multi">0</div>
   </div>
 </div>
 
-<!-- BOTTOM ROW -->
-<div class="live-bottom">
-  <!-- Outage type -->
-  <div class="live-mini">
-    <h4>⚡ OUTAGE TYPE</h4>
-    <div class="live-list">
-      <div class="row"><b>🔴 Breakdown</b><span class="live-pill bad" id="ld-cnt-bd">0</span></div>
-      <div class="row"><b>✅ Planned</b><span class="live-pill ok" id="ld-cnt-pl">0</span></div>
-      <div class="row"><b>⚠ Emergency</b><span class="live-pill warn" id="ld-cnt-em">0</span></div>
-      <div class="row"><b>⚡ Tripping</b><span class="live-pill" id="ld-cnt-tr">0</span></div>
+<!-- ═══ LOADING SECTION ═══ -->
+<div class="sim-sec-label ssl-teal">Loading</div>
+<div class="load-two">
+
+  <!-- SS with max loading -->
+  <div class="load-card">
+    <div class="load-card-hdr">
+      <span class="load-card-lbl">33/11KV SUBSTATIONS WITH MAX LOADING</span>
+      <span class="load-card-dot"></span>
+    </div>
+    <div id="sim-ss-load-wrap" style="overflow-x:auto">
+      <div class="sim-empty">Initialising…</div>
     </div>
   </div>
-  <!-- Division summary -->
-  <div class="live-mini">
-    <h4>🗺 DIVISION SUMMARY</h4>
-    <div class="live-list">
-      <div class="row"><b>Banjara Hills</b><span class="live-pill ok" id="ld-div-bh">0</span></div>
-      <div class="row"><b>Secunderabad</b><span class="live-pill alt" id="ld-div-sc">0</span></div>
-      <div class="row"><b>South</b><span class="live-pill warn" id="ld-div-so">0</span></div>
-      <div class="row"><b>Central</b><span class="live-pill" id="ld-div-ce">0</span></div>
+
+  <!-- Feeders with max loading -->
+  <div class="load-card">
+    <div class="load-card-hdr">
+      <span class="load-card-lbl">33KV FEEDERS WITH MAX LOADING</span>
+      <span class="load-card-dot" style="background:#0B7A5C"></span>
+    </div>
+    <div id="sim-feeder-load-wrap" style="overflow-x:auto">
+      <div class="sim-empty">Initialising…</div>
     </div>
   </div>
-  <!-- Relay & status -->
-  <div class="live-mini">
-    <h4>🔌 RELAY / CONTROL ROOM</h4>
-    <div class="live-list" id="ld-relay-list">
-      <div class="row"><b>Heartbeat</b><span class="live-pill ok">LIVE</span></div>
-      <div class="row"><b>Refresh</b><span class="live-pill">5 SEC</span></div>
-      <div class="row"><b>Data Source</b><span class="live-pill ok">LOCAL LOG</span></div>
-      <div class="row"><b>Active Alerts</b><span class="live-pill bad" id="ld-alerts">0</span></div>
-    </div>
+
+</div><!-- end load-two -->
+<!-- ═══ TODAY'S MAX LOADING WIDGET (>70%) ═══ -->
+<div class="sim-sec-label" style="background:#C0392B;margin-top:4px">⚠ Today's High Loading Alert &nbsp;<span style="font-size:9px;font-weight:400;opacity:.8">SS &amp; Feeders &gt; 70% of capacity</span></div>
+<div id="sim-highload-wrap" style="background:#fff;border:.5px solid #F5C5C0;border-radius:16px;box-shadow:0 3px 10px rgba(192,57,43,.08);overflow:hidden;margin-bottom:18px">
+  <div style="padding:10px 14px;border-bottom:1px solid #FEE8E8;display:flex;align-items:center;justify-content:space-between;background:#FFF8F7">
+    <span style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:#C0392B">MAXIMUM LOADING RECORDED TODAY</span>
+    <span id="sim-highload-count" style="font-size:9px;padding:2px 8px;border-radius:999px;background:#FDECEA;color:#C0392B;font-family:monospace;font-weight:700">0 items</span>
+  </div>
+  <div id="sim-highload-body" style="overflow-x:auto">
+    <div class="sim-empty">Calculating…</div>
   </div>
 </div>
+
+
+
+
 
 </div><!-- /live-wrap -->
 
@@ -1038,6 +1198,247 @@ html,body{width:100%;height:100%;overflow:hidden}
   renderLive();
   setInterval(renderLive, 5000);
 })();
+
+
+// ═══════════════════════════════════════════════════════
+//  TGSPDCL LIVE SIMULATION ENGINE
+//  Uses real SS_DB feeder names — updates every 3 seconds
+// ═══════════════════════════════════════════════════════
+(function(){
+
+var SIM_FEEDERS = [
+  {f:'ERRAGADDA-33KV KALYAN NAGAR',   eht:'132KV ERRAGADDA SS',    ss:'33/11 KV KALYAN NAGAR SS',      div:'Banjara Hills', cap:300},
+  {f:'ERRAGADDA-33KV SCADA',          eht:'132KV ERRAGADDA SS',    ss:'33/11 KV SRINAGAR COLONY SS',   div:'Banjara Hills', cap:300},
+  {f:'ERRAGADDA-33KV YOUSUFGUDA',     eht:'132KV ERRAGADDA SS',    ss:'33/11 KV YOUSUFGUDA SS',        div:'Banjara Hills', cap:300},
+  {f:'ERRAGADDA-33KV SPR HILLS',      eht:'132KV ERRAGADDA SS',    ss:'33/11KV SPR HILLS SS',          div:'Banjara Hills', cap:300},
+  {f:'ERRAGADDA-POLICE BATTALION',    eht:'132KV ERRAGADDA SS',    ss:'33/11 KV KRISHNA NAGAR SS',     div:'Banjara Hills', cap:300},
+  {f:'ERRAGADDA-33KV BORABANDA',      eht:'132KV ERRAGADDA SS',    ss:'33/11 KV BORABANDA INDORE SS',  div:'Banjara Hills', cap:300},
+  {f:'JUBILEE HILLS-33KV GCB-1',      eht:'132KV JUBILEE HILLS SS',ss:'33/11 KV JUBILEE HILLS SS',     div:'Banjara Hills', cap:300},
+  {f:'JUBILEE HILLS-33KV ROAD NO22',  eht:'132KV JUBILEE HILLS SS',ss:'33/11 KV ROAD NO22 (JBH) SS',   div:'Banjara Hills', cap:300},
+  {f:'JUBILEE HILLS-33KV FILM NAGAR', eht:'132KV JUBILEE HILLS SS',ss:'33/11 KV FILM NAGAR SS',        div:'Banjara Hills', cap:300},
+  {f:'JUBILEE HILLS-33KV MLA COLONY', eht:'132KV JUBILEE HILLS SS',ss:'33/11 KV MLA COLONY SS',        div:'Banjara Hills', cap:300},
+  {f:'JUBILEE HILLS-33KV NIMS',       eht:'132KV JUBILEE HILLS SS',ss:'33/11 KV NIMS SS',              div:'Banjara Hills', cap:300},
+  {f:'NIMS-33KV NIMS OLD',            eht:'132KV NIMS SS',         ss:'33/11 KV NIMS SS (OLD)',         div:'Banjara Hills', cap:300},
+  {f:'NIMS-33KV ERRAMANJIL',          eht:'132KV NIMS SS',         ss:'33/11 KV ERAMANZIL SS',          div:'Banjara Hills', cap:300},
+  {f:'NIMS-33KV CM CAMP OFFICE',      eht:'132KV NIMS SS',         ss:'33/11 KV CM CAMP OFFICE SS',    div:'Banjara Hills', cap:300},
+  {f:'BALKAMPET-33KV BEGUMPET',       eht:'132KV BALKAMPET SS',    ss:'33/11 KV BALKAMPET SS',          div:'Banjara Hills', cap:300},
+  {f:'BALKAMPET-33KV ALLWYN',         eht:'132KV BALKAMPET SS',    ss:'33/11 KV ALLWYN SS',             div:'Banjara Hills', cap:300},
+  {f:'BALKAMPET-33KV GREENLANDS',     eht:'132KV BALKAMPET SS',    ss:'33/11 KV GREENLANDS SS',         div:'Banjara Hills', cap:300},
+  {f:'GUNROCK-33KV JAMES STREET',     eht:'132KV GUNROCK SS',      ss:'33/11 KV JAMES STREET SS',      div:'Secunderabad',  cap:300},
+  {f:'GUNROCK-33KV GYMKHANA',         eht:'132KV GUNROCK SS',      ss:'33/11 KV GYMKHANA SS',          div:'Secunderabad',  cap:300},
+  {f:'GUNROCK-33KV BOWENPALLY',       eht:'132KV GUNROCK SS',      ss:'33/11 KV BOWENPALLY SS',        div:'Secunderabad',  cap:300},
+  {f:'GUNROCK-33KV NEHRU NAGAR',      eht:'132KV GUNROCK SS',      ss:'33/11 KV NEHRU NAGAR SS',       div:'Secunderabad',  cap:300},
+  {f:'GUNROCK-33KV MARREDPALLY',      eht:'132KV GUNROCK SS',      ss:'33/11 KV MARREDPALLY SS',       div:'Secunderabad',  cap:300},
+  {f:'HUSSAINSAGAR-33KV AC GUARDS',   eht:'132KV HUSSAINSAGAR SS', ss:'33/11 KV AC GUARDS SS',         div:'Central',       cap:300},
+  {f:'HUSSAINSAGAR-HUSSAIN SAGAR-I',  eht:'132KV HUSSAINSAGAR SS', ss:'33/11 KV HUSSAIN SAGAR SS',     div:'Central',       cap:300},
+  {f:'ASIFNAGAR-33KV GOLCONDA',       eht:'132KV ASIFNAGAR SS',    ss:'33/11 KV GOLCONDA SS',          div:'Central',       cap:300},
+  {f:'ASIFNAGAR-33KV MOTIMAHAL',      eht:'132KV ASIFNAGAR SS',    ss:'33/11 KV MOTHIMAHAL SS',        div:'Central',       cap:300},
+  {f:'ASIFNAGAR-33KV ASIFNAGAR',      eht:'132KV ASIFNAGAR SS',    ss:'33/11 KV ASIF NAGAR SS',        div:'Central',       cap:300},
+  {f:'PATIGADDA-33KV JAMES ST',       eht:'132KV PATIGADDA SS',    ss:'33/11 KV JAMES STREET SS-2',    div:'Secunderabad',  cap:300},
+  {f:'PATIGADDA-33KV KIMS',           eht:'132KV PATIGADDA SS',    ss:'33/11 KV KIMS SS',              div:'Secunderabad',  cap:300},
+  {f:'IMLIBAN-33KV JIYAGUDA',         eht:'132KV IMLIBAN SS',      ss:'33/11KV JIYAGUDA SS',           div:'Central',       cap:300},
+  {f:'IMLIBAN-33KV ENT',              eht:'132KV IMLIBAN SS',      ss:'33/11 KV ENT SS',               div:'Central',       cap:300},
+  {f:'IMLIBAN-33KV OSMANIA HOSP',     eht:'132KV IMLIBAN SS',      ss:'33/11 KV OSMANIA HOSPITAL SS',  div:'Central',       cap:300},
+  {f:'SHIVRAMPALLY-33KV MIRALAM',     eht:'132KV SHIVRAMPALLY SS', ss:'33/11 KV MIRALAM SS',           div:'South',         cap:300},
+  {f:'SHIVRAMPALLY-33KV ATTAPUR',     eht:'132KV SHIVRAMPALLY SS', ss:'33/11 KV ATTAPUR SS',           div:'South',         cap:300},
+  {f:'MOOSARAMBAGH-33KV AMBERPET',    eht:'132KV MOOSARAMBAGH SS', ss:'33/11 KV AMBERPET SS',          div:'South',         cap:300},
+];
+
+var ST_W = ['Live','Live','Live','Live','Live','Live','Live','Live','Idle','Idle','Breakdown'];
+
+var state = SIM_FEEDERS.map(function(f){
+  return {
+    f:f.f, eht:f.eht, ss:f.ss, div:f.div, cap:f.cap,
+    status: ST_W[Math.floor(Math.random()*ST_W.length)],
+    load: Math.round(f.cap*(0.35+Math.random()*0.55)),
+    srcType: Math.random()<0.15?'Alternate':Math.random()<0.05?'Multiple':'Regular',
+    sinceMin: Math.floor(Math.random()*180)
+  };
+});
+
+function rnd(b,cap){var v=Math.round(b+b*(Math.random()*.09*2-.09));return Math.min(cap||b,Math.max(10,v));}
+function fmtMin(m){var h=Math.floor(m/60),mn=Math.floor(m%60);return h>0?h+'h '+mn+'m':mn+'m';}
+function colFor(p){return p>=100?'#C0392B':p>=80?'#D07A00':'#0B7A5C';}
+function bgFor(p){return p>=100?'#FFF0EE':p>=80?'#FFFAE8':'#F0FBF5';}
+function barFor(p){return p>=100?'#C0392B':p>=80?'#E6A800':'#0B7A5C';}
+function pillFor(p){return p>=100?'lsp-bkdn':p>=80?'lsp-idle':'lsp-live';}
+
+function tickSim(){
+  state = state.map(function(f){
+    var s=f.status, r=Math.random();
+    if(r<0.018&&s==='Live') s='Breakdown';
+    else if(r<0.04&&s==='Breakdown') s='Live';
+    else if(r<0.012&&s==='Live') s='Idle';
+    else if(r<0.03&&s==='Idle') s='Live';
+    return {f:f.f,eht:f.eht,ss:f.ss,div:f.div,cap:f.cap,
+      status:s,load:rnd(f.load,f.cap),srcType:f.srcType,
+      sinceMin:s===f.status?f.sinceMin+(3/60):0};
+  });
+  renderSim();
+}
+
+function renderSim(){
+  var live  = state.filter(function(f){return f.status==='Live';});
+  var bkdn  = state.filter(function(f){return f.status==='Breakdown';});
+  var idle  = state.filter(function(f){return f.status==='Idle';});
+  var reg   = state.filter(function(f){return f.srcType==='Regular';});
+  var alt   = state.filter(function(f){return f.srcType==='Alternate';});
+  var multi = state.filter(function(f){return f.srcType==='Multiple';});
+
+  // Badges
+  var lb=document.getElementById('sim-live-badge');
+  if(lb){lb.textContent=live.length+' LIVE';}
+  var bb=document.getElementById('sim-bkdn-badge');
+  if(bb){bb.textContent=bkdn.length+' ACTIVE';}
+  var ib=document.getElementById('sim-idle-badge');
+  if(ib){ib.textContent=idle.length+' IDLE';}
+
+  // SS source counts
+  var sr=document.getElementById('sim-ss-reg'); if(sr) sr.textContent=reg.length;
+  var sa=document.getElementById('sim-ss-alt'); if(sa) sa.textContent=alt.length;
+  var sm=document.getElementById('sim-ss-multi'); if(sm) sm.textContent=multi.length;
+
+  // ── LIVE BODY ──
+  var lbody=document.getElementById('sim-live-body');
+  if(lbody){
+    if(!live.length){ lbody.innerHTML='<div class="sim-empty">No live feeders currently</div>'; }
+    else{
+      lbody.innerHTML=live.slice(0,10).map(function(f){
+        var p=Math.min(100,Math.min(100,Math.round(f.load/f.cap*100))), col=colFor(p), bar=barFor(p), bg=bgFor(p);
+        return '<div class="sim-feeder-item" style="background:'+bg+'">'
+          +'<div class="sim-feeder-name">'+f.f+'</div>'
+          +'<div class="sim-feeder-ss">→ '+f.ss+'</div>'
+          +'<div class="sim-mini-bar-wrap">'
+          +'<div class="sim-mini-bar-bg"><div class="sim-mini-bar-fill" style="width:'+Math.min(p,100)+'%;background:'+bar+'"></div></div>'
+          +'<span class="sim-mini-bar-val" style="color:'+col+'">'+f.load+'A</span>'
+          +'<span class="sim-mini-bar-pct" style="color:'+col+'">'+p+'%</span>'
+          +'</div></div>';
+      }).join('')
+      +(live.length>10?'<div style="text-align:center;padding:6px;font-size:9px;color:#7A95AD">+' +(live.length-10)+' more feeders</div>':'');
+    }
+  }
+
+  // ── BREAKDOWN BODY ──
+  var dbody=document.getElementById('sim-bkdn-body');
+  if(dbody){
+    if(!bkdn.length){ dbody.innerHTML='<div class="sim-empty" style="color:#B07070">✓ No active breakdowns</div>'; }
+    else{
+      dbody.innerHTML=bkdn.map(function(f){
+        return '<div class="sim-bkdn-item">'
+          +'<div class="sim-bkdn-top">'
+          +'<div class="sim-bkdn-name">'+f.f+'</div>'
+          +'<span class="sim-bkdn-dur">⏱ '+fmtMin(f.sinceMin)+'</span>'
+          +'</div>'
+          +'<div class="sim-bkdn-ss">→ '+f.ss+'</div>'
+          +'<div class="sim-bkdn-div">'+f.div+' &nbsp;·&nbsp; '+f.eht+'</div>'
+          +'</div>';
+      }).join('');
+    }
+  }
+
+  // ── IDLE BODY ──
+  var ibody=document.getElementById('sim-idle-body');
+  if(ibody){
+    if(!idle.length){ ibody.innerHTML='<div class="sim-empty">No idle feeders</div>'; }
+    else{
+      ibody.innerHTML=idle.map(function(f){
+        return '<div class="sim-idle-item">'
+          +'<div class="sim-idle-name">'+f.f+'</div>'
+          +'<div class="sim-idle-meta">'+f.ss+' &nbsp;·&nbsp; Idle: '+fmtMin(f.sinceMin)+'</div>'
+          +'</div>';
+      }).join('');
+    }
+  }
+
+  // ── SS MAX LOADING TABLE ──
+  var topSS=[].concat(state).sort(function(a,b){return b.load-a.load;}).slice(0,10);
+  var sswrap=document.getElementById('sim-ss-load-wrap');
+  if(sswrap){
+    sswrap.innerHTML='<table class="load-tbl">'
+      +'<thead><tr><th>SUBSTATION</th><th class="r">LOAD</th><th class="r">%</th><th>STATUS</th></tr></thead>'
+      +'<tbody>'
+      +topSS.map(function(f){
+        var p=Math.min(100,Math.min(100,Math.round(f.load/f.cap*100))), col=colFor(p), pc=pillFor(p);
+        return '<tr><td style="max-width:180px;font-weight:600">'+f.ss+'</td>'
+          +'<td style="text-align:right;font-weight:700;font-family:monospace;color:'+col+'">'+f.load+'A</td>'
+          +'<td style="text-align:right;font-weight:700;color:'+col+'">'+p+'%</td>'
+          +'<td><span class="load-status-pill '+pc+'">'+f.status.toUpperCase()+'</span></td></tr>';
+      }).join('')
+      +'</tbody></table>';
+  }
+
+  // ── FEEDER MAX LOADING TABLE ──
+  var topF=[].concat(state).sort(function(a,b){return b.load-a.load;}).slice(0,10);
+  var fwrap=document.getElementById('sim-feeder-load-wrap');
+  if(fwrap){
+    fwrap.innerHTML='<table class="load-tbl">'
+      +'<thead><tr><th>33KV FEEDER</th><th class="r">LOAD (A)</th><th class="r">%</th><th>EHT SS</th></tr></thead>'
+      +'<tbody>'
+      +topF.map(function(f){
+        var p=Math.min(100,Math.min(100,Math.round(f.load/f.cap*100))), col=colFor(p);
+        return '<tr><td style="font-weight:600;max-width:170px">'+f.f+'</td>'
+          +'<td style="text-align:right;font-weight:700;font-family:monospace;color:'+col+'">'+f.load+'</td>'
+          +'<td style="text-align:right;font-weight:700;color:'+col+'">'+p+'%</td>'
+          +'<td style="font-size:10px;color:#7A95AD;max-width:130px">'+f.eht+'</td></tr>';
+      }).join('')
+      +'</tbody></table>';
+  }
+}
+
+
+function renderHighLoad(){
+  // Track max loads per feeder/SS across the day
+  var high = state.filter(function(f){
+    var p = Math.min(100, Math.min(100,Math.round(f.load/f.cap*100)));
+    return p >= 70;
+  }).map(function(f){
+    var p = Math.min(100, Math.min(100,Math.round(f.load/f.cap*100)));
+    return {name:f.f, ss:f.ss, load:f.load, cap:f.cap, pct:p, div:f.div};
+  }).sort(function(a,b){return b.pct-a.pct;});
+
+  var cnt = document.getElementById('sim-highload-count');
+  if(cnt) cnt.textContent = high.length + (high.length===1?' item':' items');
+
+  var body = document.getElementById('sim-highload-body');
+  if(!body) return;
+  if(!high.length){
+    body.innerHTML = '<div class="sim-empty" style="color:#B07070">✓ No substations or feeders above 70% loading today</div>';
+    return;
+  }
+  body.innerHTML = '<table class="load-tbl">'
+    +'<thead><tr>'
+    +'<th>33KV FEEDER</th>'
+    +'<th>33/11KV SS</th>'
+    +'<th>DIVISION</th>'
+    +'<th class="r">LOAD</th>'
+    +'<th class="r">MAX % TODAY</th>'
+    +'<th>LOADING BAR</th>'
+    +'</tr></thead><tbody>'
+    +high.map(function(f){
+      var col = f.pct>=100?'#C0392B':f.pct>=85?'#D07A00':'#8E6400';
+      var bg  = f.pct>=100?'#FDECEA':f.pct>=85?'#FFF8E8':'#FFFFF0';
+      var bar = f.pct>=100?'#C0392B':f.pct>=85?'#E6A800':'#C8A000';
+      return '<tr style="background:'+bg+'">'
+        +'<td style="font-weight:600;max-width:160px">'+f.name+'</td>'
+        +'<td style="max-width:150px;color:#4A6580">'+f.ss+'</td>'
+        +'<td style="font-size:10px;color:#7A95AD">'+f.div+'</td>'
+        +'<td style="text-align:right;font-weight:700;font-family:monospace;color:'+col+'">'+f.load+'A</td>'
+        +'<td style="text-align:right;font-weight:800;font-family:monospace;color:'+col+';font-size:13px">'+f.pct+'%</td>'
+        +'<td style="min-width:120px;padding-right:14px">'
+        +'<div style="height:8px;background:#F0E8E8;border-radius:4px;overflow:hidden">'
+        +'<div style="width:'+f.pct+'%;height:100%;background:'+bar+';border-radius:4px;transition:width .6s ease"></div>'
+        +'</div></td>'
+        +'</tr>';
+    }).join('')
+    +'</tbody></table>';
+}
+
+renderSim();
+renderHighLoad();
+setInterval(function(){tickSim();renderHighLoad();}, 3000);
+
+})();
+
 </script>
 </div>
 <div class="shell-section" id="sec-ss">
