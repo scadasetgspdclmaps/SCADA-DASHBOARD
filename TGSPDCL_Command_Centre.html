@@ -763,7 +763,7 @@ function buildSSLoadData(){
         alt2: ss.alt2,
         alt3: ss.alt3
       },
-      lvs: ss.lvs.map(function(lv){return {name:lv.lv, mva:lv.mva, cap:lv.cap, load:0};}),
+      lvs: ss.lvs.map(function(lv){return {name:lv.lv, mva:lv.mva, cap:lv.cap, load:Math.round(lv.cap*(0.35+Math.random()*0.5))};}),
       totalCap: totalCap,
       srcType: srcType,
       hasAlt: hasAlt
@@ -1086,7 +1086,7 @@ function ssldTick(){
 // ── INIT ───────────────────────────────────────────────
 // ── API-LIVE MODE ──────────────────────────────────────────────────────
 // Tries local API at http://localhost:8000 → falls back to simulation
-var API_BASE =  + API_URL + ;
+var API_BASE = 'http://localhost:8000';
 var usingLiveAPI = false;
 
 function setApiStatus(live) {
@@ -1146,7 +1146,8 @@ function tryAPI() {
     .catch(function(){ clearTimeout(tid); fallbackToSim(); });
 }
 
-tryAPI();
+setApiStatus(false); ssldFilter(); setInterval(ssldTick, 4000);
+setTimeout(function(){ var ctrl=new AbortController(); var tid=setTimeout(function(){ctrl.abort();},2000); fetch(API_BASE+'/health',{signal:ctrl.signal}).then(function(r){clearTimeout(tid);return r.json();}).then(function(d){if(d.status==='ok'){setApiStatus(true);}}).catch(function(){});},500);
 
 })();
 </script>
