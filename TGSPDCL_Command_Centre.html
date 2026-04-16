@@ -737,7 +737,7 @@ html,body{width:100%;height:100%;overflow:hidden}
 //  Page 3 logic:  changeover feasibility check
 // ═══════════════════════════════════════════════════════
 
-// MVA → Amps capacity (MVA*1000 / (√3×11))
+// MVA → Amps capacity (MVA*1000 / (3×11))
 function mvaToAmps(mva){ return Math.round(mva*1000/(1.732*11)); }
 
 // Build per-LV data for each SS from SS_DB
@@ -900,7 +900,7 @@ function buildCard(d){
     '</tr>';
   }).join('');
 
-  // Source-wise load split (Page 2: sum of LVs / √3)
+  // Source-wise load split (Page 2: sum of LVs / 3)
   var srcSplit = '';
   if(d.srcType === 'multiple' && d.lvs.length >= 2){
     var regLvs  = d.lvs.slice(0, half);
@@ -920,7 +920,7 @@ function buildCard(d){
           ss.reg_source.split('-').slice(-1)[0]+'</div>'+
         '<div style="font-size:13px;font-weight:700;font-family:monospace;color:#1B5E20;margin-top:2px">'+
           regLoad+'A <span style="font-size:9px;font-weight:400;color:#7A95AD">/ '+regCap+'A ('+(regCap>0?Math.min(100,Math.round(regLoad/regCap*100)):0)+'%)</span></div>'+
-        '<div style="font-size:9px;color:#7A95AD">(LV1–LV'+half+' sum) ÷ √3</div>'+
+        '<div style="font-size:9px;color:#7A95AD">(LV1–LV'+half+' sum) ÷ 3</div>'+
       '</div>'+
       '<div style="flex:1;min-width:160px;padding:6px 9px;border-radius:6px;'+
         'background:#FFF8E1;border:1px solid #FFE082">'+
@@ -929,11 +929,11 @@ function buildCard(d){
           (ss.alt1||'—').split('-').slice(-1)[0]+'</div>'+
         '<div style="font-size:13px;font-weight:700;font-family:monospace;color:#7A4800;margin-top:2px">'+
           altLoad+'A <span style="font-size:9px;font-weight:400;color:#7A95AD">/ '+altCap+'A ('+(altCap>0?Math.min(100,Math.round(altLoad/altCap*100)):0)+'%)</span></div>'+
-        '<div style="font-size:9px;color:#7A95AD">(LV'+(half+1)+'–LV'+d.lvs.length+' sum) ÷ √3</div>'+
+        '<div style="font-size:9px;color:#7A95AD">(LV'+(half+1)+'–LV'+d.lvs.length+' sum) ÷ 3</div>'+
       '</div>'+
     '</div>';
   } else {
-    // Single source: total load / √3 = incoming feeder load
+    // Single source: total load / 3 = incoming feeder load
     var feederLoad = Math.round(totalLoad/1.732);
     var feederCap  = 300; // default 33KV feeder cap
     var fPct = Math.min(100,Math.round(feederLoad/feederCap*100));
@@ -951,7 +951,7 @@ function buildCard(d){
       '</div>'+
       '<div style="text-align:right">'+
         '<div style="font-size:15px;font-weight:800;font-family:monospace;color:'+fCol+'">'+feederLoad+'A</div>'+
-        '<div style="font-size:9px;color:#7A95AD">(ΣLV) ÷ √3 &nbsp;·&nbsp; Cap: '+feederCap+'A</div>'+
+        '<div style="font-size:9px;color:#7A95AD">(ΣLV) ÷ 3 &nbsp;·&nbsp; Cap: '+feederCap+'A</div>'+
       '</div>'+
       '</div>'+
       '<div style="height:6px;background:#E8EFF6;border-radius:3px;overflow:hidden;margin-top:6px">'+
