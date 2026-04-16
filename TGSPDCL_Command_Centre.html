@@ -435,34 +435,18 @@ html,body{width:100%;height:100%;overflow:hidden}
     </div>
     <div class="hcards">
 
-      <!-- 1. 33/11KV SS LOADING DETAILS -->
+      <!-- ROW 1 ─────────────────────────────────── -->
+
+      <!-- 1. 33/11KV SS Loading Details -->
       <div class="hcard" style="border-top-color:#1565C0" onclick="switchSection('ssload')">
         <div class="hcard-icon">📊</div>
         <div class="hcard-title" style="color:#1565C0">33/11KV SS LOADING DETAILS</div>
-        <div class="hcard-desc">Live load per LV feeder, PTR-wise loading %, source-wise load split and changeover feasibility for all 136 SS.</div>
-        <div class="hcard-tags"><span class="hcard-tag">136 SS</span><span class="hcard-tag">LV LOADING</span><span class="hcard-tag">CHANGEOVER</span><span class="hcard-tag">LIVE</span></div>
+        <div class="hcard-desc">Live load per LV feeder, PTR-wise loading %, source-wise load split, changeover feasibility check for all 136 SS.</div>
+        <div class="hcard-tags"><span class="hcard-tag">136 SS</span><span class="hcard-tag">LV LOADING</span><span class="hcard-tag">SOURCE SPLIT</span><span class="hcard-tag">CHANGEOVER</span></div>
         <div class="hcard-arrow" style="color:#1565C0">&#8594;</div>
       </div>
 
-      <!-- 2. LIVE DASHBOARD -->
-      <div class="hcard" style="border-top-color:#1976D2" onclick="switchSection('live')">
-        <div class="hcard-icon">🚀</div>
-        <div class="hcard-title" style="color:#1976D2">LIVE DASHBOARD</div>
-        <div class="hcard-desc">Real-time 33KV feeder status — Live, Breakdown, Idle feeders with load monitoring and 33/11KV SS source status.</div>
-        <div class="hcard-tags"><span class="hcard-tag">LIVE FEEDERS</span><span class="hcard-tag">BREAKDOWN</span><span class="hcard-tag">IDLE</span><span class="hcard-tag">LOADING %</span></div>
-        <div class="hcard-arrow" style="color:#1976D2">&#8594;</div>
-      </div>
-
-      <!-- 3. 33KV GRID MAP -->
-      <div class="hcard" style="border-top-color:#00695C" onclick="window.location.href='33KV_Grid_Map.html'">
-        <div class="hcard-icon">🗾</div>
-        <div class="hcard-title" style="color:#00695C">33KV GRID MAP</div>
-        <div class="hcard-desc">Interactive feeder map across all 4 divisions. Cascade filter by division, section, feeder. Mark breakdowns and overloaded substations with live blink.</div>
-        <div class="hcard-tags"><span class="hcard-tag">324 FEEDERS</span><span class="hcard-tag">136 SS</span><span class="hcard-tag">1327 KM</span><span class="hcard-tag">BLINK</span></div>
-        <div class="hcard-arrow" style="color:#00695C">&#8594;</div>
-      </div>
-
-      <!-- 4. SUMMER ACTION PLAN -->
+      <!-- 2. Summer Action Plan Works -->
       <div class="hcard" style="border-top-color:#E65100">
         <div class="hcard-icon">☀️</div>
         <div class="hcard-title" style="color:#E65100">SUMMER ACTION PLAN</div>
@@ -471,25 +455,16 @@ html,body{width:100%;height:100%;overflow:hidden}
         <div class="hcard-arrow" style="color:#E65100">&#8594;</div>
       </div>
 
-      <!-- 5. SS MASTER DATA -->
-      <div class="hcard" style="border-top-color:#D07A00" onclick="switchSection('ss')">
-        <div class="hcard-icon">🏭</div>
-        <div class="hcard-title" style="color:#D07A00">SS MASTER DATA</div>
-        <div class="hcard-desc">Detailed 33/11KV substation record — equipment hierarchy, PTR data, feeder load bars, maintenance logs for Golconda SS.</div>
-        <div class="hcard-tags"><span class="hcard-tag">GOLCONDA SS</span><span class="hcard-tag">PTR DATA</span><span class="hcard-tag">MAINTENANCE</span></div>
-        <div class="hcard-arrow" style="color:#D07A00">&#8594;</div>
+      <!-- 3. Smart Grid -->
+      <div class="hcard" style="border-top-color:#0B7A5C" onclick="window.location.href='33KV_Grid_Map.html'">
+        <div class="hcard-icon">🗺️</div>
+        <div class="hcard-title" style="color:#0B7A5C">SMART GRID MAP</div>
+        <div class="hcard-desc">Interactive 33KV smart grid map — EHT SS to 33/11KV SS connections, regular & alternate feeders, live load colour coding.</div>
+        <div class="hcard-tags"><span class="hcard-tag">324 FEEDERS</span><span class="hcard-tag">136 SS</span><span class="hcard-tag">EHT LINKS</span><span class="hcard-tag">LIVE</span></div>
+        <div class="hcard-arrow" style="color:#0B7A5C">&#8594;</div>
       </div>
 
-      <!-- 6. SECTION WISE FEEDER ROUTE MAP -->
-      <div class="hcard" style="border-top-color:#B71C1C" onclick="window.open('https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html','_blank')">
-        <div class="hcard-icon">🔌</div>
-        <div class="hcard-title" style="color:#B71C1C">SECTION WISE FEEDER ROUTE MAP</div>
-        <div class="hcard-desc">James Street Sub-Division live network — 15 feeders, substation status, breakdown log entry and integrated GIS feeder route map.</div>
-        <div class="hcard-tags"><span class="hcard-tag">JAMES STREET</span><span class="hcard-tag">15 FEEDERS</span><span class="hcard-tag">ROUTE MAP</span><span class="hcard-tag">GIS</span></div>
-        <div class="hcard-arrow" style="color:#B71C1C">&#8594;</div>
-      </div>
-
-      <!-- 7. EHT SS DATA -->
+      <!-- 4. EHT SS Data -->
       <div class="hcard" style="border-top-color:#7B1FA2">
         <div class="hcard-icon">⚡</div>
         <div class="hcard-title" style="color:#7B1FA2">EHT SS DATA</div>
@@ -498,7 +473,27 @@ html,body{width:100%;height:100%;overflow:hidden}
         <div class="hcard-arrow" style="color:#7B1FA2">&#8594;</div>
       </div>
 
-      <!-- 8. DMS -->
+      <!-- ROW 2 ─────────────────────────────────── -->
+
+      <!-- 5. Live Dashboard -->
+      <div class="hcard" style="border-top-color:#1565C0" onclick="switchSection('live')">
+        <div class="hcard-icon">🚀</div>
+        <div class="hcard-title" style="color:#1565C0">LIVE DASHBOARD</div>
+        <div class="hcard-desc">Real-time 33KV feeder status — Live, Breakdown, Idle feeders with load monitoring and 33/11KV SS source status.</div>
+        <div class="hcard-tags"><span class="hcard-tag">LIVE FEEDERS</span><span class="hcard-tag">BREAKDOWN</span><span class="hcard-tag">IDLE</span><span class="hcard-tag">LOADING %</span></div>
+        <div class="hcard-arrow" style="color:#1565C0">&#8594;</div>
+      </div>
+
+      <!-- 6. SS Master Data -->
+      <div class="hcard" style="border-top-color:#D07A00" onclick="switchSection('ss')">
+        <div class="hcard-icon">🏭</div>
+        <div class="hcard-title" style="color:#D07A00">SS MASTER DATA</div>
+        <div class="hcard-desc">Detailed 33/11KV substation record — equipment hierarchy, PTR data, feeder load bars, maintenance logs for Golconda SS.</div>
+        <div class="hcard-tags"><span class="hcard-tag">GOLCONDA SS</span><span class="hcard-tag">PTR DATA</span><span class="hcard-tag">MAINTENANCE</span></div>
+        <div class="hcard-arrow" style="color:#D07A00">&#8594;</div>
+      </div>
+
+      <!-- 7. DMS -->
       <div class="hcard" style="border-top-color:#0277BD">
         <div class="hcard-icon">📡</div>
         <div class="hcard-title" style="color:#0277BD">DMS</div>
@@ -507,16 +502,7 @@ html,body{width:100%;height:100%;overflow:hidden}
         <div class="hcard-arrow" style="color:#0277BD">&#8594;</div>
       </div>
 
-      <!-- 9. 1912 · ECR -->
-      <div class="hcard" style="border-top-color:#5D4037">
-        <div class="hcard-icon">📞</div>
-        <div class="hcard-title" style="color:#5D4037">1912 · ECR</div>
-        <div class="hcard-desc">Consumer complaint management — 1912 call centre integration, outage complaint mapping, escalation tracking and resolution log.</div>
-        <div class="hcard-tags"><span class="hcard-tag">1912</span><span class="hcard-tag">COMPLAINTS</span><span class="hcard-tag">ECR</span></div>
-        <div class="hcard-arrow" style="color:#5D4037">&#8594;</div>
-      </div>
-
-      <!-- 10. SCADA DATA ANALYTICS -->
+      <!-- 8. SCADA Data Analytics -->
       <div class="hcard" style="border-top-color:#2E7D32" onclick="switchSection('dash')">
         <div class="hcard-icon">📈</div>
         <div class="hcard-title" style="color:#2E7D32">SCADA DATA ANALYTICS</div>
@@ -525,7 +511,36 @@ html,body{width:100%;height:100%;overflow:hidden}
         <div class="hcard-arrow" style="color:#2E7D32">&#8594;</div>
       </div>
 
-      <!-- 11. E-AUDIT -->
+      <!-- ROW 3 ─────────────────────────────────── -->
+
+      <!-- 9. 33KV Grid Map -->
+      <div class="hcard" style="border-top-color:#00695C" onclick="window.location.href='33KV_Grid_Map.html'">
+        <div class="hcard-icon">🗾</div>
+        <div class="hcard-title" style="color:#00695C">33KV GRID MAP</div>
+        <div class="hcard-desc">Interactive feeder map across all 4 divisions. Cascade filter by division, section, feeder. Mark breakdowns and overloaded substations with live blink.</div>
+        <div class="hcard-tags"><span class="hcard-tag">324 FEEDERS</span><span class="hcard-tag">136 SS</span><span class="hcard-tag">1327 KM</span><span class="hcard-tag">BLINK</span></div>
+        <div class="hcard-arrow" style="color:#00695C">&#8594;</div>
+      </div>
+
+      <!-- 10. Section wise 33KV Feeder Route Map -->
+      <div class="hcard" style="border-top-color:#B71C1C" onclick="window.open('https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html','_blank')">
+        <div class="hcard-icon">🔌</div>
+        <div class="hcard-title" style="color:#B71C1C">SECTION WISE FEEDER ROUTE MAP</div>
+        <div class="hcard-desc">James Street Sub-Division live network — 15 feeders, substation status, breakdown log entry and integrated GIS feeder route map.</div>
+        <div class="hcard-tags"><span class="hcard-tag">JAMES STREET</span><span class="hcard-tag">15 FEEDERS</span><span class="hcard-tag">ROUTE MAP</span><span class="hcard-tag">GIS</span></div>
+        <div class="hcard-arrow" style="color:#B71C1C">&#8594;</div>
+      </div>
+
+      <!-- 11. 1912 ECR -->
+      <div class="hcard" style="border-top-color:#5D4037">
+        <div class="hcard-icon">📞</div>
+        <div class="hcard-title" style="color:#5D4037">1912 · ECR</div>
+        <div class="hcard-desc">Consumer complaint management — 1912 call centre integration, outage complaint mapping, escalation tracking and resolution log.</div>
+        <div class="hcard-tags"><span class="hcard-tag">1912</span><span class="hcard-tag">COMPLAINTS</span><span class="hcard-tag">ECR</span></div>
+        <div class="hcard-arrow" style="color:#5D4037">&#8594;</div>
+      </div>
+
+      <!-- 12. E-Audit -->
       <div class="hcard" style="border-top-color:#37474F">
         <div class="hcard-icon">🔋</div>
         <div class="hcard-title" style="color:#37474F">E-AUDIT</div>
@@ -635,533 +650,417 @@ html,body{width:100%;height:100%;overflow:hidden}
 </div>
 
 
-
-<!-- ── 33/11KV SS LOADING DETAILS ──────────────────────────────────── -->
-<div class="shell-section" id="sec-ssload" style="overflow-y:auto;background:#EEF2F8">
-<style>
-/* ── ENERGY FLOW CARD ─────────────────────────────── */
-.efc{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(21,101,192,.09);
-  overflow:hidden;border:1px solid #D0DCF0;margin-bottom:0;transition:box-shadow .2s}
-.efc:hover{box-shadow:0 4px 18px rgba(21,101,192,.15)}
-
-/* Node box */
-.efc-node{border-radius:8px;border:1.5px solid;padding:8px 12px;
-  display:flex;flex-direction:column;gap:2px}
-.efc-node-eht{background:#F3E5F5;border-color:#CE93D8}
-.efc-node-feeder{background:#E3F2FD;border-color:#90CAF9}
-.efc-node-ss{background:#E8F5E9;border-color:#A5D6A7}
-.efc-node-lbl{font-size:8px;font-weight:700;letter-spacing:1px;opacity:.7}
-.efc-node-val{font-size:11px;font-weight:700;color:#1A2E40;line-height:1.3}
-.efc-node-sub{font-size:9px;color:#7A95AD;margin-top:1px}
-
-/* Arrow connector */
-.efc-arrow{display:flex;align-items:center;justify-content:center;
-  color:#90A4AE;font-size:14px;flex-shrink:0;padding:0 4px}
-
-/* Flow row */
-.efc-flow{display:flex;align-items:center;gap:4px;
-  padding:10px 14px;background:#F8FAFF;border-bottom:1px solid #E8EFF8;
-  flex-wrap:wrap}
-
-/* LV Table */
-.efc-tbl{width:100%;border-collapse:collapse;font-size:11px}
-.efc-tbl thead th{padding:6px 10px;background:#1565C0;color:#fff;
-  font-size:8px;font-weight:700;letter-spacing:1px;text-align:left}
-.efc-tbl thead th.r{text-align:right}
-.efc-tbl tbody td{padding:7px 10px;border-bottom:1px solid #F0F4FB;vertical-align:middle}
-.efc-tbl tbody tr:last-child td{border-bottom:none}
-.efc-tbl tbody tr:hover td{background:#F3F8FF}
-.efc-tbl tfoot td{padding:7px 10px;background:#EEF4FB;
-  font-weight:700;font-size:11px;border-top:2px solid #C8D8F0}
-
-/* Load bar */
-.efc-bar{height:7px;background:#E8EFF6;border-radius:4px;overflow:hidden;min-width:80px}
-.efc-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
-.bar-ok{background:linear-gradient(90deg,#43A047,#2E7D32)}
-.bar-hi{background:linear-gradient(90deg,#FFA726,#E65100)}
-.bar-ov{background:linear-gradient(90deg,#EF5350,#C0392B)}
-
-/* Feeder load footer box */
-.efc-foot{padding:8px 14px;background:#F0F6FF;border-top:1px solid #D0DCF0;
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-
-/* Alt source box */
-.efc-alt{padding:8px 14px;background:#FFF8E1;border-top:1px solid #FFE082;
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-
-/* Status badges */
-.badge-ok{background:#E8F5E9;color:#2E7D32;border:1px solid #A5D6A7;
-  padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700;font-family:monospace}
-.badge-hi{background:#FFF8E1;color:#E65100;border:1px solid #FFE082;
-  padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700;font-family:monospace}
-.badge-ov{background:#FDECEA;color:#C0392B;border:1px solid #EF9A9A;
-  padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700;
-  font-family:monospace;animation:ssov-blink 1s step-end infinite}
-.badge-alt{background:#FFF3E0;color:#E65100;border:1px solid #FFCC80;
-  padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700;
-  font-family:monospace;animation:ssov-blink 2s step-end infinite}
-@keyframes ssov-blink{50%{opacity:.3}}
-
-/* Card header */
-.efc-hdr{padding:10px 14px;display:flex;align-items:flex-start;
-  justify-content:space-between;gap:8px;border-bottom:1px solid #E8EFF8}
-.efc-ss-name{font-size:12px;font-weight:800;color:#0D2B5E;margin-bottom:2px}
-.efc-ss-meta{font-size:9px;color:#7A95AD;font-family:monospace}
-
-/* Grid layout */
-#ssld-grid{display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(460px,1fr));
-  gap:12px;align-content:start}
-@media(max-width:600px){#ssld-grid{grid-template-columns:1fr}}
-
-/* Critical alert banner */
-.efc-crit-banner{background:#FDECEA;border-bottom:2px solid #EF5350;
-  padding:6px 14px;font-size:10px;font-weight:700;color:#C0392B;
-  display:flex;align-items:center;gap:6px}
-</style>
-
-<div style="max-width:1400px;margin:0 auto;padding:16px 16px 40px">
+<!-- ── 33/11KV SS LOADING DETAILS ─────────────────────────────────────── -->
+<div class="shell-section" id="sec-ssload" style="overflow-y:auto;background:#F0F4F8">
+<div style="max-width:1320px;margin:0 auto;padding:20px 18px 40px">
 
   <!-- Page Header -->
-  <div style="background:linear-gradient(135deg,#0F2E57 0%,#1565C0 100%);
-    border-radius:12px;padding:16px 20px;margin-bottom:14px;
-    display:flex;align-items:flex-start;justify-content:space-between;
-    gap:14px;color:#fff">
+  <div style="background:linear-gradient(135deg,#0F2E57,#1565C0);border-radius:14px;
+    padding:18px 22px;margin-bottom:18px;display:flex;
+    align-items:flex-start;justify-content:space-between;gap:14px;color:#fff">
     <div>
-      <h2 style="font-size:18px;font-weight:800;letter-spacing:.5px;margin-bottom:3px">
+      <h2 style="font-size:20px;font-weight:800;letter-spacing:.5px;margin-bottom:4px">
         📊 33/11KV SUBSTATION LOADING DETAILS
       </h2>
-      <p style="font-size:10px;opacity:.75;letter-spacing:1px">
-        TGSPDCL · SCADA CIRCLE · EHT SS → 33KV FEEDER → LV LOADING · CHANGEOVER FEASIBILITY
+      <p style="font-size:11px;opacity:.8;letter-spacing:1px">
+        TGSPDCL · SCADA CIRCLE · PTR-WISE LV LOADING · SOURCE SPLIT · CHANGEOVER FEASIBILITY
       </p>
-      <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap">
-        <span id="ssld-live-chip" style="font-size:9px;padding:2px 9px;border-radius:999px;
-          background:rgba(255,171,0,.2);border:1px solid rgba(255,171,0,.4);
-          color:#FFE082;font-family:monospace">🟡 SIMULATION</span>
-        <span id="ssld-count-chip" style="font-size:9px;padding:2px 9px;border-radius:999px;
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <span style="font-size:9px;padding:3px 9px;border-radius:999px;
+          background:rgba(0,200,83,.18);border:1px solid rgba(0,200,83,.3);
+          color:#90EE90;font-family:monospace">● LIVE SIMULATION</span>
+        <span id="ssld-count-chip" style="font-size:9px;padding:3px 9px;border-radius:999px;
           background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
           color:#cde;font-family:monospace">136 SS</span>
-        <span id="ssld-crit-chip" style="font-size:9px;padding:2px 9px;border-radius:999px;
+        <span id="ssld-live-chip" style="font-size:9px;padding:3px 9px;border-radius:999px;background:rgba(255,171,0,.2);border:1px solid rgba(255,171,0,.4);color:#FFE082;font-family:monospace">🟡 SIMULATION</span>
+        <span id="ssld-overload-chip" style="font-size:9px;padding:3px 9px;border-radius:999px;
           background:rgba(192,57,43,.25);border:1px solid rgba(192,57,43,.5);
-          color:#ffaaaa;font-family:monospace;display:none">⚠ CRITICAL</span>
+          color:#ffaaaa;font-family:monospace;display:none">⚠ OVERLOADED</span>
       </div>
     </div>
     <div style="text-align:right;flex-shrink:0">
-      <div style="font-size:8px;letter-spacing:1.5px;opacity:.55;font-family:monospace">LAST REFRESH</div>
-      <div id="ssld-refresh" style="font-size:11px;font-weight:700;
-        margin-top:2px;font-family:monospace">--/--/---- --:--:--</div>
+      <div style="font-size:8px;letter-spacing:1.5px;opacity:.6;font-family:monospace">LAST REFRESH</div>
+      <div id="ssld-refresh" style="font-size:12px;font-weight:700;margin-top:3px;font-family:monospace">
+        --/--/---- --:--:--
+      </div>
     </div>
   </div>
 
-  <!-- Filter Bar -->
-  <div style="background:#fff;border:1px solid #D0DCF0;border-radius:10px;
-    padding:10px 14px;margin-bottom:14px;
-    box-shadow:0 2px 8px rgba(21,101,192,.06)">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-
-      <input id="ssld-search" type="text"
-        placeholder="🔍  Search SS name, feeder, EHT SS..."
-        oninput="ssldFilter()"
-        style="flex:1;min-width:180px;padding:7px 10px;
-          border:1px solid #C8D8E8;border-radius:6px;font-size:11px;
-          outline:none;font-family:inherit;color:#1A2E40;background:#F6FAFD"/>
-
-      <select id="ssld-div" onchange="ssldCascade()" title="Division"
-        style="padding:7px 10px;border:1px solid #C8D8E8;border-radius:6px;
-          font-size:11px;background:#F6FAFD;color:#1A2E40;outline:none">
-        <option value="">All Divisions</option>
-        <option value="Banjara Hills">Banjara Hills</option>
-<option value="Central">Central</option>
-<option value="Secunderabad">Secunderabad</option>
-<option value="South">South</option>
-      </select>
-
-      <select id="ssld-subdiv" onchange="ssldCascade()" title="Sub-Division"
-        style="padding:7px 10px;border:1px solid #C8D8E8;border-radius:6px;
-          font-size:11px;background:#F6FAFD;color:#1A2E40;outline:none">
-        <option value="">All Sub-Divs</option>
-        <option value="Allwyn">Allwyn</option>
-<option value="Asifnagar">Asifnagar</option>
-<option value="Chilkalguda">Chilkalguda</option>
-<option value="Falaknuma">Falaknuma</option>
-<option value="Hussainsagar">Hussainsagar</option>
-<option value="Kalyan nagar">Kalyan nagar</option>
-<option value="Madhapur">Madhapur</option>
-<option value="Malakpet">Malakpet</option>
-<option value="Nehrunagar">Nehrunagar</option>
-      </select>
-
-      <select id="ssld-sec" onchange="ssldFilter()" title="Section"
-        style="padding:7px 10px;border:1px solid #C8D8E8;border-radius:6px;
-          font-size:11px;background:#F6FAFD;color:#1A2E40;outline:none">
-        <option value="">All Sections</option>
-        <option value="Allwyn">Allwyn</option>
-<option value="Asif nagar">Asif nagar</option>
-<option value="Bowenpally">Bowenpally</option>
-<option value="Chilkalguda">Chilkalguda</option>
-<option value="Falaknuma">Falaknuma</option>
-<option value="Gudimalkapur">Gudimalkapur</option>
-<option value="Hussain sagar">Hussain sagar</option>
-<option value="IDPL">IDPL</option>
-<option value="Industrial Area">Industrial Area</option>
-<option value="James street">James street</option>
-<option value="Kalyan nagar">Kalyan nagar</option>
-<option value="Madhapur">Madhapur</option>
-<option value="Malakpet">Malakpet</option>
-<option value="NIMS">NIMS</option>
-<option value="Osmania Hospital">Osmania Hospital</option>
-<option value="R.P.Nilayam">R.P.Nilayam</option>
-<option value="Salarjung">Salarjung</option>
-<option value="Santhosh nagar">Santhosh nagar</option>
-      </select>
-
-      <select id="ssld-status" onchange="ssldFilter()"
-        style="padding:7px 10px;border:1px solid #C8D8E8;border-radius:6px;
-          font-size:11px;background:#F6FAFD;color:#1A2E40;outline:none">
-        <option value="">All Status</option>
-        <option value="critical">🔴 Critical (&gt;100%)</option>
-        <option value="high">🟠 High Load (&gt;80%)</option>
-        <option value="normal">🟢 Normal (&lt;80%)</option>
-        <option value="alt">⚠ On Alternate</option>
-      </select>
-
-      <select id="ssld-sort" onchange="ssldFilter()"
-        style="padding:7px 10px;border:1px solid #C8D8E8;border-radius:6px;
-          font-size:11px;background:#F6FAFD;color:#1A2E40;outline:none">
-        <option value="pct-desc">↓ Highest Loading %</option>
-        <option value="pct-asc">↑ Lowest Loading %</option>
-        <option value="name">A → Z Name</option>
-        <option value="div">Division</option>
-      </select>
-
-      <span id="ssld-count-lbl" style="font-size:10px;color:#7A95AD;
-        font-family:monospace;white-space:nowrap;margin-left:auto">136 results</span>
-    </div>
-
-    <!-- Quick filter chips -->
-    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-      <span onclick="quickFilter('critical')" style="cursor:pointer;padding:3px 10px;
-        border-radius:999px;font-size:9px;font-weight:700;font-family:monospace;
-        background:#FDECEA;color:#C0392B;border:1px solid #EF9A9A">⚠ CRITICAL</span>
-      <span onclick="quickFilter('high')" style="cursor:pointer;padding:3px 10px;
-        border-radius:999px;font-size:9px;font-weight:700;font-family:monospace;
-        background:#FFF8E1;color:#E65100;border:1px solid #FFE082">⚡ HIGH LOAD</span>
-      <span onclick="quickFilter('alt')" style="cursor:pointer;padding:3px 10px;
-        border-radius:999px;font-size:9px;font-weight:700;font-family:monospace;
-        background:#FFF3E0;color:#D07A00;border:1px solid #FFCC80">⇄ ALTERNATE</span>
-      <span onclick="quickFilter('')" style="cursor:pointer;padding:3px 10px;
-        border-radius:999px;font-size:9px;font-weight:700;font-family:monospace;
-        background:#E3F2FD;color:#1565C0;border:1px solid #90CAF9">↺ SHOW ALL</span>
+  <!-- Filter & Search Row -->
+  <div style="background:#fff;border:.5px solid #C8D8E8;border-radius:10px;
+    padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;
+    gap:10px;flex-wrap:wrap;box-shadow:0 2px 6px rgba(21,101,192,.06)">
+    <input id="ssld-search" type="text"
+      placeholder="🔍  Search substation name, feeder, EHT SS..."
+      oninput="ssldFilter()"
+      style="flex:1;min-width:200px;padding:7px 10px;
+        border:1px solid #C8D8E8;border-radius:6px;font-size:11px;
+        outline:none;font-family:inherit;color:#1A2E40;background:#F6FAFD">
+    <select id="ssld-div" onchange="ssldFilter()"
+      style="padding:7px 10px;border:1px solid #C8D8E8;border-radius:6px;
+        font-size:11px;background:#F6FAFD;color:#1A2E40;font-family:inherit;outline:none">
+      <option value="">All Divisions</option>
+      <option>Banjara Hills</option>
+      <option>Secunderabad</option>
+      <option>South</option>
+      <option>Central</option>
+    </select>
+    <select id="ssld-sort" onchange="ssldFilter()"
+      style="padding:7px 10px;border:1px solid #C8D8E8;border-radius:6px;
+        font-size:11px;background:#F6FAFD;color:#1A2E40;font-family:inherit;outline:none">
+      <option value="pct-desc">Sort: Highest Loading %</option>
+      <option value="pct-asc">Sort: Lowest Loading %</option>
+      <option value="name">Sort: Name A→Z</option>
+      <option value="overload">Sort: Overloaded First</option>
+    </select>
+    <div id="ssld-result-count" style="font-size:10px;color:#7A95AD;
+      font-family:monospace;flex-shrink:0;white-space:nowrap">
+      136 results
     </div>
   </div>
 
   <!-- SS Cards Grid -->
-  <div id="ssld-grid">
+  <div id="ssld-grid" style="display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:12px">
     <div style="text-align:center;padding:40px;color:#7A95AD;
-      font-size:12px;grid-column:1/-1">Loading 136 substations…</div>
+      font-size:12px;grid-column:1/-1">Loading substation data…</div>
   </div>
 
 </div>
 </div>
 
-
 <script>
 (function(){
-// ════════════════════════════════════════════════════════════════
-//  33/11KV SS LOADING — ENERGY FLOW CARDS
-//  Format: EHT SS → 33KV Feeder → LV Table → Feeder Load
-//  Image 2 format + Image 3 flow style
-// ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  33/11KV SS LOADING MODULE
+//  Page 2 format: LV table + source-wise load split
+//  Page 3 logic:  changeover feasibility check
+// ═══════════════════════════════════════════════════════
 
-// ─── REAL DATABASE from DATABASE.xlsx ───
-var REAL_SS_DB = [{"ss_code":"1081212401","ss_name":"33/11 KV KALYAN NAGAR SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","eht":"132 KV ERRAGADDA","reg_source":"132 KV ERRAGADDA-33KV KALYAN NAGAR","alt1":"132 KV ERRAGADDA-33KV SCADA","alt2":"132 KV JUBILEE HILLS-33KV HUSSAIN SAGAR (LV 1,2)","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV-4","mva":8.0,"cap":420}]},{"ss_code":"1081221402","ss_name":"33/11 KV ROAD NO.2(NEW) SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33 KV ROAD NO.2(NEW) FEEDER","alt1":"132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION","alt2":"132 KV NIMS-33KV MUFKHAMJAH","alt3":"132 KV JUBILEE HILLS-33KV NIMS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1081213401","ss_name":"33/11 KV YOUSUFGUDA SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","eht":"132 KV ERRAGADDA","reg_source":"132 KV ERRAGADDA-33 KV SPR HILLS FEEDER","alt1":"132 KV ERRAGADDA-33KV YOUSUFGUDA","alt2":"132 KV ERRAGADDA-33KV MUFFAKHAMZA","alt3":"132 KV JUBILEE HILLS-33KV YOUSUFGUDA","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1081211401","ss_name":"33/11 KV SRINAGAR COLONY SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","eht":"132 KV ERRAGADDA","reg_source":"132 KV ERRAGADDA-33KV SRINAGAR COLONY","alt1":"132 KV ERRAGADDA-33 KV ERRAMANZIL","alt2":"132 KV ERRAGADDA-33KV SRINAGAR COLONY","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081221403","ss_name":"33/11 KV L.V.PRASAD (ROAD NO.2) SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","eht":"132 KV ERRAGADDA","reg_source":"132 KV ERRAGADDA-33KV BANJARA HILLS - II (LV PRASAD)","alt1":"132 KV ERRAGADDA-33KV LV PRASAD UG CABLE","alt2":"132 KV JUBILEE HILLS-33KV BANJARA HILLS RD 12","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081221405","ss_name":"33/11 KV MUFFAKAMJAH SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","eht":"132 KV NIMS","reg_source":"132 KV NIMS-33KV ERRAMANJIL","alt1":"132 KV ERRAGADDA-33KV LV PRASAD UG CABLE","alt2":"132 KV NIMS-33KV MUFKHAMJAH","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1084244401","ss_name":"33/11KV SPR HILLS SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","eht":"132 KV ERRAGADDA","reg_source":"132 KV ERRAGADDA-33 KV SPR HILLS FEEDER","alt1":"132 KV ERRAGADDA-33KV MUFFAKHAMZA","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1081211402","ss_name":"33/11 KV YELLAREDDYGUDA SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","eht":"132 KV ERRAGADDA","reg_source":"132 KV ERRAGADDA-33KV YELLAREDDY GUDA","alt1":"132 KV ERRAGADDA-33 KV ERRAMANZIL","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1081213402","ss_name":"33/11 KV KRISHNA NAGAR SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","eht":"132 KV ERRAGADDA","reg_source":"132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION","alt1":"132 KV JUBILEE HILLS-33KV HUSSAIN SAGAR (LV 1,2)","alt2":"132 KV ERRAGADDA-33KV BANJARA HILLS - II (LV PRASAD)","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081142401","ss_name":"33/11 KV ALLWYN SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","eht":"132 KV BALKAMPET","reg_source":"132 KV BALKAMPET-33 KV BALKAMPET-ALLWYN FEEDER","alt1":"132 KV BALKAMPET-33KV LODHA","alt2":"132 KV ERRAGADDA-33KV HYD INDUSTRIES","alt3":"132 KV ERRAGADDA-33KV ALLWYN","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1081131402","ss_name":"33/11 KV BALKAMPET (BEGUMPET) SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","eht":"132 KV BALKAMPET","reg_source":"132 KV BALKAMPET-33KV BEGUMPET","alt1":"132 KV ERRAGADDA-33KV BEGUMPET","alt2":"132 KV ERRAGADDA-33KV PATIGADDA","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1081133401","ss_name":"33/11 KV GREENLANDS SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","eht":"132 KV BALKAMPET","reg_source":"132 KV BALKAMPET-33KV GREEN LANDS","alt1":"132 KV ERRAGADDA-33KV ERRAGADDA GREENLANDS","alt2":"LINK LINE NIMS -GREENLANDS","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081143402","ss_name":"33/11KV JANAPRIYA SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","eht":"132 KV ERRAGADDA","reg_source":"132 KV ERRAGADDA-33KV JANAPRIYA","alt1":"132 KV ERRAGADDA-33KV ERRAGADDA - IDPL-II","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081133402","ss_name":"33/11 KV KUNDANBAGH SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","eht":"132 KV BALKAMPET","reg_source":"132 KV BALKAMPET-33KV PATIGADDA","alt1":"132 KV ERRAGADDA-33 KV KUNDANBAGH","alt2":"LINK LINE NIMS -GREENLANDS","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1081131401","ss_name":"33/11 KV MYTRIVANAM SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","eht":"132 KV BALKAMPET","reg_source":"132 KV BALKAMPET-33KV MAITRIVANAM","alt1":"132 KV ERRAGADDA-33KV MAITRIVANAM","alt2":"132 KV ERRAGADDA-33 KV KUNDANBAGH","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1081142403","ss_name":"33/11KV LOADHA SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","eht":"132 KV BALKAMPET","reg_source":"132 KV BALKAMPET-33KV LODHA","alt1":"132 KV BALKAMPET-33 KV BALKAMPET-ALLWYN FEEDER","alt2":"132 KV ERRAGADDA-33KV HYD INDUSTRIES","alt3":"132 KV ERRAGADDA-33KV ALLWYN","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081131403","ss_name":"33/11 KV ESI SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","eht":"132 KV BALKAMPET","reg_source":"132 KV BALKAMPET-33KV ESI","alt1":"132 KV ERRAGADDA-33KV ESI","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1084132401","ss_name":"33/11 KV HPS SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","eht":"132 KV BALKAMPET","reg_source":"132 KV BALKAMPET-33KV HYDERABAD PUBLIC SCHOOL","alt1":"132 KV ERRAGADDA-33 KV HYDERABAD PUBLIC SCHOOL","alt2":"132 KV BALKAMPET-33KV PATIGADDA","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081133403","ss_name":"33/11 KV CM CAMP OFFICE","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","eht":"132 KV BALKAMPET","reg_source":"132 KV BALKAMPET-33KV CM CAMP OFFICE","alt1":"132 KV NIMS-33KV CM CAMP OFFICE","alt2":"132 KV ERRAGADDA-33 KV KUNDANBAGH","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":5.0,"cap":262}]},{"ss_code":"1853121401","ss_name":"33/11 KV IDPL SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","eht":"132KV IDPL","reg_source":"132KV IDPL-33KV IDPL","alt1":"220 KV SHAPUR NAGAR-33KV IDPL (SYNTHETIC DRUGS)","alt2":"132KV IDPL-33 KV IDPL - 2","alt3":"132 KV GUNROCK-33KV H.M.T.","lvs":[{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV5","mva":8.0,"cap":420},{"lv":"LV4","mva":12.5,"cap":656},{"lv":"LV6","mva":12.5,"cap":656}]},{"ss_code":"1853131402","ss_name":"33/11 KV PRASHANTH NAGAR SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","eht":"132KV IDPL","reg_source":"132KV IDPL-33KV PRASANTHNAGAR","alt1":"220 KV SHAPUR NAGAR-33KV IDPL (SYNTHETIC DRUGS)","alt2":"132KV IDPL-33KV BALAJI NAGAR","alt3":"","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1853132401","ss_name":"33/11 KV PRAGA TOOLS SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","eht":"132KV IDPL","reg_source":"132KV IDPL-33KV PRAGATOOLS","alt1":"220 KV SHAPUR NAGAR-33KV H.M.T.","alt2":"220 KV SHAPUR NAGAR-33KV JAGADGIRIGUTTA(PRAGA TOOLS)","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1853132402","ss_name":"33/11 KV HMT SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","eht":"132 KV CHINTAL","reg_source":"132 KV CHINTAL-33 KV HMT","alt1":"220 KV SHAPUR NAGAR-33KV H.M.T.","alt2":"132 KV GUNROCK-33KV H.M.T.","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1853131401","ss_name":"33/11 KV HAL SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","eht":"132 KV CHINTAL","reg_source":"132 KV CHINTAL-33KV HAL","alt1":"132KV IDPL-33KV ALLWYN","alt2":"132 KV GUNROCK-33KV H.M.T.","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":5.0,"cap":262}]},{"ss_code":"1081143401","ss_name":"33/11 KV MOTHINAGAR SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","eht":"132 KV ERRAGADDA","reg_source":"132 KV ERRAGADDA-33KV MOTINAGAR","alt1":"132 KV ERRAGADDA-33KV IDPL I&II (SYNTHETIC DRUGS)","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1084241401","ss_name":"33/11 KV BORABANDA INDORE SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","eht":"132 KV ERRAGADDA","reg_source":"132 KV ERRAGADDA-33KV BORABANDA","alt1":"132 KV ERRAGADDA-33KV KUKATPALLY","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1081222403","ss_name":"33/11 KV MIND SPACE (RAHEJA) SS","div":"Banjara Hills","sub_div":"Madhapur","section":"Madhapur","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER","alt1":"132 KV MADHAPUR-33KV SUNDEW","alt2":"132 KV MADHAPUR-33KV RAHEJA IT PARK(H.T)","alt3":"132 KV MADHAPUR-33KV TRION PROPERTY","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081222405","ss_name":"33/11 KV ROAD NO22 (JBH) SS","div":"Banjara Hills","sub_div":"Madhapur","section":"Madhapur","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33KV JUBILEE HILLS RD.NO.22","alt1":"132 KV ERRAGADDA-33KV MUFFAKHAMZA","alt2":"132 KV JUBILEE HILLS-33KV YOUSUFGUDA","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081222406","ss_name":"33/11KV RAVINDER SOCIETY SS","div":"Banjara Hills","sub_div":"Madhapur","section":"Madhapur","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33KV RAVINDRA SOCIETY","alt1":"132 KV JUBILEE HILLS-33KV ASIFNAGAR-I","alt2":"132 KV MADHAPUR-33KV RAVINDRA SOCIETY","alt3":"","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":16.0,"cap":840}]},{"ss_code":"1081222401","ss_name":"33/11 KV JUBILEE HILLS SS","div":"Banjara Hills","sub_div":"Madhapur","section":"Madhapur","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33KV GCB-1(LOCAL FEEDERS)JUBILI HILLS","alt1":"132 KV JUBILEE HILLS-33KV GCB (LOCAL FEEDERS) JUBILI HILLS","alt2":"132 KV JUBILEE HILLS-33KV YOUSUFGUDA","alt3":"132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1081222402","ss_name":"33/11 KV MADHAPUR SS","div":"Banjara Hills","sub_div":"Madhapur","section":"Madhapur","eht":"400 KV RAIDURG SS","reg_source":"400 KV RAIDURG SS-33 KV OG-5 FEEDER","alt1":"132 KV MADHAPUR-33KV MADHAPUR","alt2":"132 KV MADHAPUR-33 KV DEVBHOOMI PH-3 FEEDER","alt3":"132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656}]},{"ss_code":"1081223405","ss_name":"33/11 KV COMMAND CONTROL ROOM SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33KV COMMAND CONTROL CENTER","alt1":"132 KV JUBILEE HILLS-33KV MPL FEEDER","alt2":"132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION","alt3":"132 KV NIMS-33 KV ROAD NO.13 FEEDER","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081223401","ss_name":"33/11 KV FILM NAGAR SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33KV FILM NAGAR","alt1":"132 KV JUBILEE HILLS-33KV GOLCONDA","alt2":"132 KV JUBILEE HILLS-33KV MOTIMAHAL","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081223402","ss_name":"33/11 KV MLA COLONY SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33KV MLA COLONY","alt1":"132 KV JUBILEE HILLS-33KV MPL FEEDER","alt2":"132 KV JUBILEE HILLS-33KV ROAD NO 13","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081223404","ss_name":"33/11 KV ROAD NO.13 BANJARA HILLS SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33KV ROAD NO.13/B","alt1":"132 KV JUBILEE HILLS-33KV ROAD NO 13","alt2":"132 KV NIMS-33 KV ROAD NO.13 FEEDER","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081223403","ss_name":"33/11 KV ROAD NO.12 B'HILLS SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33KV ROAD NO 13","alt1":"132 KV JUBILEE HILLS-33KV BANJARA HILLS RD 12","alt2":"132 KV JUBILEE HILLS-33KV MPL FEEDER","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1081222407","ss_name":"33/11KV PRASASAN NAGAR SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33KV PRASHASAN NAGAR","alt1":"132 KV JUBILEE HILLS-33KV GCB-1(LOCAL FEEDERS)JUBILI HILLS","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081221401","ss_name":"33/11 KV NIMS SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","eht":"132 KV NIMS","reg_source":"132 KV NIMS-33KV NIMS OLD","alt1":"132 KV JUBILEE HILLS-33KV NIMS","alt2":"132 KV ERRAGADDA-33KV LV PRASAD UG CABLE","alt3":"132 KV NIMS-33 KV ROAD NO.13 FEEDER","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656}]},{"ss_code":"1093222401","ss_name":"33/11 KV ENT SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","eht":"132 KV IMLIBAN SS","reg_source":"132 KV IMLIBAN SS-33KV ENT","alt1":"132 KV IMLIBAN SS-33KV EXHIBITION","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1093231401","ss_name":"33/11 KV OSMANIA HOSPITAL SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","eht":"132 KV IMLIBAN SS","reg_source":"132 KV IMLIBAN SS-33KV OSMANIA HOSPITAL","alt1":"132 KV ASIFNAGAR-33KV SEETARAMBAGH","alt2":"132 KV IMLIBAN SS-33KV GOSHAMAHAL","alt3":"132 KV IMLIBAN SS-33KV EXHIBITION","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1103911401","ss_name":"33/11 KV AC GUARDS SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","eht":"132 KV HUSSAINSAGAR","reg_source":"132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)","alt1":"132 KV NIMS-33KV AC GUARDS","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1103912402","ss_name":"33/11 KV ITI MALLEPALLY SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33KV ITI MALLEPALLY","alt1":"132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)","alt2":"132 KV ASIFNAGAR-33KV SEETARAMBAGH","alt3":"","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1093223401","ss_name":"33/11 KV KOTI WOMENS COLLEGE SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","eht":"132 KV IMLIBAN SS","reg_source":"132 KV IMLIBAN SS-33KV SULTANBAZAR (OLD BREAKER)","alt1":"132 KV IMLIBAN SS-33KV SULTANBAZAR (OLD BREAKER)","alt2":"132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1093232401","ss_name":"33/11 KV GOSHA MAHAL SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","eht":"132 KV IMLIBAN SS","reg_source":"132 KV IMLIBAN SS-33KV GOSHAMAHAL","alt1":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt2":"132 KV ASIFNAGAR-33KV KULSUMPURA","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1103912401","ss_name":"33/11 KV NAMPALLY SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","eht":"132 KV NIMS","reg_source":"132 KV NIMS-33KV AC GUARDS","alt1":"132 KV IMLIBAN SS-33KV EXHIBITION","alt2":"132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)","alt3":"132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1101533401","ss_name":"33/11 KV EXHIBITION GROUND SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","eht":"132 KV IMLIBAN SS","reg_source":"132 KV IMLIBAN SS-33KV EXHIBITION","alt1":"33KV PUBLIC GARDEN-33KV EXHIBITION LINKLINE","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1093211401","ss_name":"33/11 KV KARWAN SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","eht":"132KV SHIVRAMPALLY","reg_source":"132KV SHIVRAMPALLY-33KV KARWAN","alt1":"132 KV IMLIBAN SS-33KV JIYAGUDA","alt2":"132 KV ASIFNAGAR-33KV KARWAN","alt3":"132 KV ASIFNAGAR-33KV GUDIMALKAPUR","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1103913401","ss_name":"33/11 KV GUDIMALKAPUR SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33KV GUDIMALKAPUR","alt1":"132KV SHIVRAMPALLY-33KV KARWAN","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1103922402","ss_name":"33/11 KV LANGAR HOUSE SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33KV KARWAN","alt1":"132 KV IMLIBAN SS-33KV JIYAGUDA","alt2":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt3":"132 KV JUBILEE HILLS-33KV MOTIMAHAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1093212401","ss_name":"33/11 KV SEETARAM BAGH SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33KV SEETARAMBAGH","alt1":"132 KV IMLIBAN SS-33KV GOSHAMAHAL","alt2":"132 KV ASIFNAGAR-33KV KULSUMPURA","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1093211402","ss_name":"33/11KV JIYAGUDA SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","eht":"132 KV IMLIBAN SS","reg_source":"132 KV IMLIBAN SS-33KV JIYAGUDA","alt1":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt2":"132 KV ASIFNAGAR-33KV ALLURI SEETHARAM RAJU NAGAR","alt3":"132KV SHIVRAMPALLY-33KV KARWAN","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1103932401","ss_name":"33/11 KV ALLURI SITARAMARAJU NAGAR SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33KV ALLURI SEETHARAM RAJU NAGAR","alt1":"132 KV IMLIBAN SS-33KV JIYAGUDA","alt2":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1093212402","ss_name":"33/11 KV KULSUMPURA SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33KV KULSUMPURA","alt1":"132 KV IMLIBAN SS-33KV GOSHAMAHAL","alt2":"132 KV ASIFNAGAR-33KV SEETARAMBAGH","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1103922401","ss_name":"33/11 KV ASIF NAGAR SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33KV ASIFNAGAR","alt1":"132 KV ASIFNAGAR-33KV S.D.HOSPITAL","alt2":"132 KV JUBILEE HILLS-33KV ASIFNAGAR-II","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420},{"lv":"LV4","mva":12.5,"cap":656}]},{"ss_code":"1103921401","ss_name":"33/11 KV GOLCONDA SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33KV GOLCONDA","alt1":"132 KV ASIFNAGAR-SHAIKPET","alt2":"400 KV RAIDURG SS-33 KV SANDHYA FEEDER","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656}]},{"ss_code":"1103933402","ss_name":"33/11 KV TOLI CHOWKI SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","eht":"132 KV JUBILEE HILLS","reg_source":"132 KV JUBILEE HILLS-33KV TOLICHOWKI","alt1":"132 KV ASIFNAGAR-TOLICHOWKI","alt2":"132 KV JUBILEE HILLS-33KV MOTIMAHAL","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1103933401","ss_name":"33/11 KV SD EYE HOSPITAL SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33KV S.D.HOSPITAL","alt1":"132 KV NIMS-33KV AC GUARDS","alt2":"132 KV JUBILEE HILLS-33KV ASIFNAGAR-II","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1103921402","ss_name":"33/11 KV MOTHIMAHAL SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33KV MOTIMAHAL","alt1":"132 KV JUBILEE HILLS-33KV MOTIMAHAL","alt2":"33KV LANGERHOUSE SS -33KV MOTHIMAHALSS (LINK LINE)","alt3":"33KV TOLICHOWKI-33KV MOTHIMAHAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1103935401","ss_name":"33/11KV ADITHYA TOWERS SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","eht":"132 KV ASIFNAGAR","reg_source":"132 KV ASIFNAGAR-33 KV ADITYA TOWERS FEEDER","alt1":"132 KV JUBILEE HILLS-33KV GOLCONDA","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1103923402","ss_name":"33/11 KV SANDYA HOTEL SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","eht":"400 KV RAIDURG SS","reg_source":"400 KV RAIDURG SS-33 KV SANDHYA FEEDER","alt1":"132 KV JUBILEE HILLS-33KV GOLCONDA","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1101511401","ss_name":"33/11 KV HUSSAIN SAGAR SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","eht":"132 KV PATIGADDA","reg_source":"132 KV PATIGADDA-33KV ZP OFFICE","alt1":"132 KV NIMS-33KV ERRAMANJIL","alt2":"132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - I","alt3":"132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":7.5,"cap":394},{"lv":"LV3","mva":8.0,"cap":420},{"lv":"LV4","mva":15.0,"cap":787},{"lv":"LV5","mva":12.5,"cap":656},{"lv":"LV6","mva":15.0,"cap":787}]},{"ss_code":"1101721401","ss_name":"33/11 KV INDIRA PARK SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","eht":"132 KV PATIGADDA","reg_source":"132 KV PATIGADDA-INDIRAPARK","alt1":"132 KV GIS CHILKALGUDA-33KV INDIRA PARK","alt2":"132 KV OSMANIA UNIVERSITY-33KV INDIRAPARK","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656},{"lv":"LV5","mva":8.0,"cap":420}]},{"ss_code":"1101513401","ss_name":"33/11 KV LAKE VIEW SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","eht":"132 KV HUSSAINSAGAR","reg_source":"132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II","alt1":"132 KV NIMS-33KV LAKE VIEW","alt2":"132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - I","alt3":"132 KV NIMS-33KV ERRAMANJIL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1101513402","ss_name":"33/11 KV ERAMANZIL SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","eht":"132 KV NIMS","reg_source":"132 KV NIMS-33KV ERRAMANJIL","alt1":"132 KV ERRAGADDA-33 KV ERRAMANZIL","alt2":"132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II","alt3":"132 KV PATIGADDA-33KV ZP OFFICE","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1101512401","ss_name":"33/11 KV ZP OFFICE SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","eht":"132 KV NIMS","reg_source":"132 KV NIMS-33KV ZP OFFICE","alt1":"132 KV ERRAGADDA-33KV ZP OFFICE","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1101511402","ss_name":"33/11 KV PUBLIC GARDEN SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","eht":"132KV NARAYANGUDA","reg_source":"132KV NARAYANGUDA-PUBLICGARDEN","alt1":"132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN","alt2":"132 KV IMLIBAN SS-33KV EXHIBITION","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1101531402","ss_name":"33/11 KV NIZAM COLLEGE SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","eht":"132KV NARAYANGUDA","reg_source":"132KV NARAYANGUDA-NIZAM COLLEGE","alt1":"132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)","alt2":"132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1101531401","ss_name":"33/11 KV HYDERGUDA SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","eht":"132KV NARAYANGUDA","reg_source":"132KV NARAYANGUDA-HYDERGUDA","alt1":"132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)","alt2":"132 KV FEVER HOSPITAL-33KV SULTAN BAZAR","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1101511403","ss_name":"33/11 KV LUMBINI PARK SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","eht":"132 KV HUSSAINSAGAR","reg_source":"132 KV HUSSAINSAGAR-33KV INDIRA PARK /H.S.S.III","alt1":"132 KV PATIGADDA-INDIRAPARK","alt2":"132 KV OSMANIA UNIVERSITY-33KV INDIRAPARK","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1101722401","ss_name":"33/11 KV JAWAHAR NAGAR SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","eht":"132 KV FEVER HOSPITAL","reg_source":"132 KV FEVER HOSPITAL-33KV JAWAHAR NAGAR","alt1":"132 KV HUSSAINSAGAR-33KV INDIRA PARK /H.S.S.III","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1852111401","ss_name":"33/11 KV NEHRU NAGAR SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV NEHRU NAGAR","alt1":"132KV CHILKALGUDA SS - MONDAMARKET-NEHRUNAGAR(LINK LINE DEPENDS ON 33/11KV MOONDA MARKET SUPPLY)","alt2":"132 KV GIS CHILKALGUDA-33KV CLOCK TOWER","alt3":"132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1852113401","ss_name":"33/11 KV GYMKHANA SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV GYMKHANA","alt1":"132 KV GUNROCK-33KV KIMS(GUNROCK SS)","alt2":"132 KV GUNROCK-33KV JAMES STREET","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1852111402","ss_name":"33/11 KV MARREDPALLY SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV NEW MARREDPALL(UG)","alt1":"132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI","alt2":"132 KV OSMANIA UNIVERSITY-33 KV ADDAGUTTA FEEDER","alt3":"132 KV GUNROCK-33KV NEHRU NAGAR","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1852123401","ss_name":"33/11 KV R.P.NILAYAM SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV R.P. NILAYAM","alt1":"132 KV GUNROCK-33KV HAKEEMPET UG - II","alt2":"132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER","alt3":"132 KV GUNROCK-33 KV ALWAL FEEDER","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1852122401","ss_name":"33/11 KV HAKIMPET SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV HAKEEMPET UG - II","alt1":"132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER","alt2":"132 KV GUNROCK-33KV R.P. NILAYAM","alt3":"132 KV MALKARAM-33 KV CRPF FEEDER","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1852122402","ss_name":"33/11 KV MACHA BOLLARAM SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV MACCHABOLLARAM","alt1":"132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER","alt2":"132 KV MALKARAM-33 KV CRPF FEEDER","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":8.0,"cap":420}]},{"ss_code":"1851114402","ss_name":"33/11 KV ADDAGUTTA SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","eht":"132 KV OSMANIA UNIVERSITY","reg_source":"132 KV OSMANIA UNIVERSITY-33 KV ADDAGUTTA FEEDER","alt1":"132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI","alt2":"132 KV GUNROCK-33KV NEW MARREDPALL(UG)","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1851222401","ss_name":"33/11 KV JAMES STREET SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","eht":"132 KV PATIGADDA","reg_source":"132 KV PATIGADDA-JAMES STREET","alt1":"132 KV GUNROCK-33KV JAMES STREET","alt2":"132 KV GUNROCK-33KV AIRPORT","alt3":"132 KV PATIGADDA-33KV KIMS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1851224401","ss_name":"33/11 KV CLOCK TOWER SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","eht":"132 KV GIS CHILKALGUDA","reg_source":"132 KV GIS CHILKALGUDA-33KV CLOCK TOWER","alt1":"132 KV GUNROCK-33KV JAMES STREET","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1851221401","ss_name":"33/11 KV BANSILALPET SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","eht":"132 KV GIS CHILKALGUDA","reg_source":"132 KV GIS CHILKALGUDA-33KV PATIGADDA","alt1":"132 KV PATIGADDA-33KV BANSILALPET","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1851222402","ss_name":"33/11 KV PATIGADDA SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","eht":"132 KV PATIGADDA","reg_source":"132 KV PATIGADDA-33KV PATIGADDA","alt1":"132 KV PATIGADDA-33KV BANSILALPET","alt2":"132 KV PATIGADDA-33KV AIRPORT","alt3":"132 KV GIS CHILKALGUDA-33KV PATIGADDA","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1851224402","ss_name":"33/11 KV MONDA MARKET SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","eht":"132 KV PATIGADDA","reg_source":"132 KV PATIGADDA-MONDA MARKET","alt1":"132 KV GIS CHILKALGUDA-33KV SEETHAPHALMANDI.","alt2":"132 KV GUNROCK-33KV NEHRU NAGAR","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1851222403","ss_name":"33/11 KV SANJEEVAIAH PARK SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","eht":"132 KV PATIGADDA","reg_source":"132 KV PATIGADDA-33KV SANJEEVAOIAH PARK","alt1":"132 KV GUNROCK-33KV AIRPORT","alt2":"132 KV PATIGADDA-33KV PATIGADDA","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1851222404","ss_name":"33/11 KV KIMS SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","eht":"132 KV PATIGADDA","reg_source":"132 KV PATIGADDA-33KV KIMS","alt1":"132 KV GUNROCK-33KV KIMS(GUNROCK SS)","alt2":"132 KV GUNROCK-33KV JAMES STREET","alt3":"132 KV PATIGADDA-JAMES STREET","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081132402","ss_name":"33/11KV PRAKASHNAGAR","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","eht":"132 KV PATIGADDA","reg_source":"132 KV PATIGADDA-33KV PRAKASH NAGAR","alt1":"132 KV PATIGADDA-33KV AIRPORT","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1852121401","ss_name":"33/11 KV GUNROCK SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV GUN ROCK","alt1":"132 KV GUNROCK-33KV JAMES STREET","alt2":"132 KV GUNROCK-33KV H.M.T.","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1852121404","ss_name":"33/11 KV BHOODEVI NAGAR SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV BHUDEVINAGAR","alt1":"132 KV GUNROCK-33KV H.M.T.","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1852121403","ss_name":"33/11 KV THIRUMALAGIRI SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV THIRUMALAGIRI","alt1":"132 KV GUNROCK-33KV KIMS(GUNROCK SS)","alt2":"132KV GUNROCK - MACHABOLLARAM-TIRUMALGIRI(LINK LINE)","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1081132401","ss_name":"33/11 KV AIRPORT SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","eht":"\u2014","reg_source":"","alt1":"","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1853111402","ss_name":"33/11 KV CHINNA THOKATTA SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV CHINNA THOKOTTA","alt1":"132 KV GUNROCK-33KV BOWENPALLY","alt2":"132 KV GUNROCK-33 KV NEW BOWENPALLY FEEDER","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1853111401","ss_name":"33/11 KV BOWENPALLY SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33KV BOWENPALLY","alt1":"132 KV GUNROCK-33KV H.M.T.","alt2":"132 KV GUNROCK-33KV BOWENPALLY","alt3":"132KV IDPL-33KV ALLWYN","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1853122401","ss_name":"33/11 KV NEW BOWENPALLY-2 SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33 KV NEW BOWENPALLY FEEDER","alt1":"132 KV GUNROCK-33KV H.M.T.","alt2":"132KV IDPL-33KV ALLWYN","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1852123403","ss_name":"33/11 KV ALWAL","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","eht":"132 KV GUNROCK","reg_source":"132 KV GUNROCK-33 KV ALWAL FEEDER","alt1":"132 KV GUNROCK-33KV HAKEEMPET UG - II","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1092831401","ss_name":"33/11 KV MALAKPET SS","div":"South","sub_div":"Malakpet","section":"Malakpet","eht":"132 KV MOOSARAMBAGH","reg_source":"132 KV MOOSARAMBAGH-MALAKPET","alt1":"132 KV IMLIBAN SS-33KV MALAKPET","alt2":"132 KV IMLIBAN SS-33KV DURGANAGAR","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420},{"lv":"LV4","mva":8.0,"cap":420}]},{"ss_code":"1092813401","ss_name":"33/11 KV ASMAN GADH SS","div":"South","sub_div":"Malakpet","section":"Malakpet","eht":"132 KV MOOSARAMBAGH","reg_source":"132 KV MOOSARAMBAGH-33KV ASMANGADH","alt1":"220 KV CHANDRAYANA GUTTA-33KV ASMANGADH","alt2":"220 KV CHANDRAYANA GUTTA-33KV MALAKPETGUNJ","alt3":"220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1092832401","ss_name":"33/11 KV CHANCHAL GUDA SS","div":"South","sub_div":"Malakpet","section":"Malakpet","eht":"220/33 KV CHANCHALGUDA SS","reg_source":"220/33 KV CHANCHALGUDA SS-33 KV CHANCHALGUDA FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA","alt2":"220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":5.0,"cap":262}]},{"ss_code":"1092812401","ss_name":"33/11 KV MOOSARAM BAGH SS","div":"South","sub_div":"Malakpet","section":"Malakpet","eht":"132 KV MOOSARAMBAGH","reg_source":"132 KV MOOSARAMBAGH-33KV MOOSARAMBAGH","alt1":"132 KV MOOSARAMBAGH-33KV ASMANGADH","alt2":"132 KV BANDLAGUDA-33KV MOOSARAMBAGH","alt3":"220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1092834402","ss_name":"33/11 KV GUNJ SS","div":"South","sub_div":"Malakpet","section":"Malakpet","eht":"220 KV CHANDRAYANA GUTTA","reg_source":"220 KV CHANDRAYANA GUTTA-33KV MALAKPETGUNJ","alt1":"132 KV IMLIBAN SS-33KV MALAKPET GUNJ","alt2":"132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1092811401","ss_name":"33/11 KV MALAKPET B QUARTERS SS","div":"South","sub_div":"Malakpet","section":"Malakpet","eht":"220/33 KV CHANCHALGUDA SS","reg_source":"220/33 KV CHANCHALGUDA SS-33 KV MALAKPET B QUATERS FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV LAXMI NAGAR","alt2":"132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1092812402","ss_name":"33/11KV TEEGALAGUDA SS","div":"South","sub_div":"Malakpet","section":"Malakpet","eht":"132 KV MOOSARAMBAGH","reg_source":"132 KV MOOSARAMBAGH-33KV TEEGALAGUA","alt1":"132 KV BANDLAGUDA-33KV MOOSARAMBAGH","alt2":"33KV DURGA NAGAR-33KV TEEGALGUDA LINKLINE(DEPENDS ON 33/11KV DURGANAGARSS SUPPLY)","alt3":"220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1092823401","ss_name":"33/11 KV SANTOSH NAGAR SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","eht":"220/33 KV CHANCHALGUDA SS","reg_source":"220/33 KV CHANCHALGUDA SS-33 KV SANTOSH NAGAR FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR -UG","alt2":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I","alt3":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-II","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1092823402","ss_name":"33/11 KV MIDHANI SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","eht":"220/33 KV CHANCHALGUDA SS","reg_source":"220/33 KV CHANCHALGUDA SS-33 KV MIDHANI FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I","alt2":"220 KV CHANDRAYANA GUTTA-33KV KANCHANBAGH","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1092822401","ss_name":"33/11 KV YAKUTPURA SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","eht":"220/33 KV CHANCHALGUDA SS","reg_source":"220/33 KV CHANCHALGUDA SS-33 KV YAKUTHPURA FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I","alt2":"132 KV IMLIBAN SS-33KV YAKUTHPURA","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1092813402","ss_name":"33/11KV LAXMI NAGAR SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","eht":"220/33 KV CHANCHALGUDA SS","reg_source":"220/33 KV CHANCHALGUDA SS-33 KV LAXMI NAGAR FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV LAXMI NAGAR","alt2":"132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER","alt3":"220 KV CHANDRAYANA GUTTA-33KV CRPF","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1092824401","ss_name":"33/11 KV MADANNAPET SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","eht":"220/33 KV CHANCHALGUDA SS","reg_source":"220/33 KV CHANCHALGUDA SS-33 KV MADANNAPET FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-MADANNAPET","alt2":"220/33 KV CHANCHALGUDA SS-33 KV SANTOSH NAGAR FEEDER","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1091322401","ss_name":"33/11KV ARUNDHATI COLONY SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","eht":"220/33 KV CHANCHALGUDA SS","reg_source":"220/33 KV CHANCHALGUDA SS-33 KV ARUNDATHI NAGAR COLONY FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-II","alt2":"220 KV CHANDRAYANA GUTTA-33KV CRPF","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1092833401","ss_name":"33/11 KV DEBEERPURA SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","eht":"132 KV IMLIBAN SS","reg_source":"132 KV IMLIBAN SS-33KV YAKUTHPURA","alt1":"220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1851111401","ss_name":"33/11 KV CHILKALGUDA SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","eht":"132 KV GIS CHILKALGUDA","reg_source":"132 KV GIS CHILKALGUDA-33KV CHILAKALAGUDA","alt1":"132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA","alt2":"132 KV IMLIBAN SS-33KV INDUSTRIAL AREA","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1851114401","ss_name":"33/11 KV LALAGUDA SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","eht":"132 KV OSMANIA UNIVERSITY","reg_source":"132 KV OSMANIA UNIVERSITY-33KV LALAGUDA","alt1":"132 KV OSMANIA UNIVERSITY-33KV SCR","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1851113401","ss_name":"33/11 KV SEETHAPHALMANDI SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","eht":"132 KV OSMANIA UNIVERSITY","reg_source":"132 KV OSMANIA UNIVERSITY-33KV SEETHAPHALMANDI","alt1":"132 KV GIS CHILKALGUDA-33KV SEETHAPHALMANDI.","alt2":"33KV O.U-33KV SEETHAPHALMANDI LINK LINE","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":16.0,"cap":840}]},{"ss_code":"1102412401","ss_name":"33/11 KV ZAMISTANPUR SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","eht":"132 KV OSMANIA UNIVERSITY","reg_source":"132 KV OSMANIA UNIVERSITY-33KV ZAMISTANPURA","alt1":"132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":16.0,"cap":840}]},{"ss_code":"1102411401","ss_name":"33/11 KV NARAYANGUDA SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","eht":"132 KV FEVER HOSPITAL","reg_source":"132 KV FEVER HOSPITAL-33KV NARAYANGUDA","alt1":"132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA","alt2":"132 KV FEVER HOSPITAL-33KV JAWAHAR NAGAR","alt3":"132KV GIS HUS' SAGAR -SS-3 JAWAHAR NGR","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1851112401","ss_name":"33/11 KV OSMANIA UNIVERSITY SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","eht":"132 KV OSMANIA UNIVERSITY","reg_source":"132 KV OSMANIA UNIVERSITY-33KV OSMANIA UNIVERSITY","alt1":"132 KV OSMANIA UNIVERSITY-33KV LALAGUDA","alt2":"33KV CHILKALGUDA SS -33KV O.U. INTERLINK LINE","alt3":"33KV SEETHAPHALMANDI-33KV O.U INTERLINK LINE","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1851112402","ss_name":"33/11 KV IICT SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","eht":"132 KV OSMANIA UNIVERSITY","reg_source":"132 KV OSMANIA UNIVERSITY-33KV IICT","alt1":"220 KV MOULA-ALI-33 KV AZAMABAD FEEDER","alt2":"132 KV OSMANIA UNIVERSITY-33KV LALAGUDA","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1102421401","ss_name":"33/11 KV INDUSTRIAL AREA SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","eht":"132 KV FEVER HOSPITAL","reg_source":"132 KV FEVER HOSPITAL-33KV INDUSTRIAL AREA","alt1":"132 KV IMLIBAN SS-33KV INDUSTRIAL AREA","alt2":"132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA","alt3":"220 KV MOULA-ALI-33 KV AZAMABAD FEEDER","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1102421402","ss_name":"33/11 KV FEVER HOSPITAL SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","eht":"132 KV FEVER HOSPITAL","reg_source":"132 KV FEVER HOSPITAL-33KV FEVER HOSPITAL","alt1":"132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA","alt2":"220 KV MOULA-ALI-33 KV AZAMABAD FEEDER","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1102432401","ss_name":"33/11 KV AMBERPET SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","eht":"132 KV MOOSARAMBAGH","reg_source":"132 KV MOOSARAMBAGH-33KV AMBERPET","alt1":"132 KV MOOSARAMBAGH-33KV DURGANAGAR","alt2":"132 KV BANDLAGUDA-33KV AMBERPET","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1102411402","ss_name":"33/11 KV VITTALWADI SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","eht":"132KV NARAYANGUDA","reg_source":"132KV NARAYANGUDA-VITTALWADI","alt1":"132 KV IMLIBAN SS-33KV KING KOTI (NEW)","alt2":"132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1102431401","ss_name":"33/11 KV BATHAKAMMAKUNTA SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","eht":"132 KV FEVER HOSPITAL","reg_source":"132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA","alt1":"220 KV MOULA-ALI-33 KV AZAMABAD FEEDER","alt2":"132 KV MOOSARAMBAGH-33KV GOLNAKA","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1102432402","ss_name":"33/11 KV DURGANAGAR SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","eht":"132 KV MOOSARAMBAGH","reg_source":"132 KV MOOSARAMBAGH-33KV DURGANAGAR","alt1":"132 KV MOOSARAMBAGH-33KV WATER WORKS","alt2":"132 KV IMLIBAN SS-33KV DURGANAGAR","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1102433401","ss_name":"33/11KV GOLNAKA SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","eht":"132 KV MOOSARAMBAGH","reg_source":"132 KV MOOSARAMBAGH-33KV GOLNAKA","alt1":"132 KV IMLIBAN SS-33KV INDUSTRIAL AREA","alt2":"132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1093221401","ss_name":"33/11 KV SULTAN BAZAR SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","eht":"132 KV FEVER HOSPITAL","reg_source":"132 KV FEVER HOSPITAL-33KV SULTAN BAZAR","alt1":"132 KV FEVER HOSPITAL-33KV SULTAN BAZAR","alt2":"132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)","alt3":"132 KV IMLIBAN SS-33KV KING KOTI (NEW)","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1091313401","ss_name":"33/11 KV SALARJUNG MUSEUM SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","eht":"132 KV IMLIBAN SS","reg_source":"132 KV IMLIBAN SS-33KV SALARJUNJ O/H","alt1":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1091334401","ss_name":"33/11 KV ATTAPUR SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","eht":"132KV SHIVRAMPALLY","reg_source":"132KV SHIVRAMPALLY-33KV ATTAPUR","alt1":"132KV SHIVRAMPALLY-33KV HYDERGUDA","alt2":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1091311401","ss_name":"33/11 KV KHILWATH SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","eht":"132 KV IMLIBAN SS","reg_source":"132 KV IMLIBAN SS-33KV SALARJUNG---KILWATH UG CABLE","alt1":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt2":"MAILAR DEVI PALLY-DEVI BAGH","alt3":"132KV SHIVRAMPALLY-33 KV CHANDULALBARADARI UG CABLE FEEDER","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1091331402","ss_name":"33/11 KV HYDERGUDA SS (South)","div":"South","sub_div":"Falaknuma","section":"Salarjung","eht":"132KV SHIVRAMPALLY","reg_source":"132KV SHIVRAMPALLY-33 KV SHIVARAMPALLY-HYDERGUDA UG FEEDER","alt1":"132KV SHIVRAMPALLY-33KV HYDERGUDA","alt2":"132KV SHIVRAMPALLY-33KV KARWAN","alt3":"132KV SHIVRAMPALLY-33KV ATTAPUR","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1091313402","ss_name":"33/11 KV PETLA BURZ SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","eht":"132 KV IMLIBAN SS","reg_source":"132 KV IMLIBAN SS-33KV PETLABURZ","alt1":"MAILAR DEVI PALLY-DEVI BAGH","alt2":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1091312401","ss_name":"33/11 KV PANJASHAH SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","eht":"220/33 KV CHANCHALGUDA SS","reg_source":"220/33 KV CHANCHALGUDA SS-33 KV PANJESHA FEEDER","alt1":"132 KV IMLIBAN SS-33KV PANJESHA","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}]},{"ss_code":"1091311402","ss_name":"33/11 KV DEVIBAGH SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","eht":"MAILAR DEVI PALLY","reg_source":"MAILAR DEVI PALLY-DEVI BAGH","alt1":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt2":"132 KV IMLIBAN SS-33KV PETLABURZ","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1091323401","ss_name":"33/11 KV FALAKNUMA SS","div":"South","sub_div":"Falaknuma","section":"Falaknuma","eht":"MAILAR DEVI PALLY","reg_source":"MAILAR DEVI PALLY-FALAKNAMA","alt1":"220 KV CHANDRAYANA GUTTA-33KV FALAKNUMA","alt2":"MAILAR DEVI PALLY-ALIABAD","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1091333401","ss_name":"33/11 KV MIRALAM SS","div":"South","sub_div":"Falaknuma","section":"Falaknuma","eht":"132KV SHIVRAMPALLY","reg_source":"132KV SHIVRAMPALLY-33KV MIRALAM","alt1":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt2":"132KV SHIVRAMPALLY-33KV SHAMSHABAD(SHIVARAMPALLY SS)","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656}]},{"ss_code":"1091332401","ss_name":"33/11 KV CHANDULAL BARADARI SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","eht":"132KV SHIVRAMPALLY","reg_source":"132KV SHIVRAMPALLY-33 KV CHANDULALBARADARI UG CABLE FEEDER","alt1":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt2":"132 KV IMLIBAN SS-33KV SALARJUNG---KILWATH UG CABLE","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1091333403","ss_name":"33/11kV Miralam Filter Beds","div":"South","sub_div":"Falaknuma","section":"Falaknuma","eht":"MAILAR DEVI PALLY","reg_source":"MAILAR DEVI PALLY-NPA","alt1":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt2":"MAILAR DEVI PALLY-DEVI BAGH","alt3":"","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}]},{"ss_code":"1091321401","ss_name":"33/11 KV CRPF SS","div":"South","sub_div":"Falaknuma","section":"Falaknuma","eht":"132 KV MAMIDIPALLY","reg_source":"132 KV MAMIDIPALLY-33 KV CRPF","alt1":"220 KV CHANDRAYANA GUTTA-33KV CRPF","alt2":"220 KV CHANDRAYANA GUTTA-33KV FALAKNUMA","alt3":"132KV MD PALLY-KANDIKAGATE-CRPF LINK LINE","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}]},{"ss_code":"1091333402","ss_name":"33/11 KV ALIABAD SS","div":"South","sub_div":"Falaknuma","section":"Falaknuma","eht":"MAILAR DEVI PALLY","reg_source":"MAILAR DEVI PALLY-ALIABAD","alt1":"132KV SHIVRAMPALLY-33KV SHAMSHABAD(SHIVARAMPALLY SS)","alt2":"","alt3":"","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}]},{"ss_code":"1091323402","ss_name":"33/11 KV KANDIKAL GATE SS","div":"South","sub_div":"Falaknuma","section":"Falaknuma","eht":"MAILAR DEVI PALLY","reg_source":"MAILAR DEVI PALLY-KANDIKAL GATE","alt1":"220 KV CHANDRAYANA GUTTA-33KV KANDIKAL GATE","alt2":"220 KV CHANDRAYANA GUTTA-33KV CRPF","alt3":"","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}]}];
+// MVA → Amps capacity (MVA*1000 / (√3×11))
+function mvaToAmps(mva){ return Math.round(mva*1000/(1.732*11)); }
 
-var FEEDER_CAP = 300; // default 33KV feeder capacity in Amps
+// Build per-LV data for each SS from SS_DB
+// ─── REAL DATABASE from DATABASE.xlsx ───────────────────
+var REAL_SS_DB = [{"ss_code":"1081212401","ss_name":"33/11 KV KALYAN NAGAR SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV-4","mva":8.0,"cap":420}],"reg_source":"132 KV ERRAGADDA-33KV KALYAN NAGAR","alt1":"132 KV ERRAGADDA-33KV SCADA","alt2":"132 KV JUBILEE HILLS-33KV HUSSAIN SAGAR (LV 1,2)","alt3":"","alt4":"","alt5":""},{"ss_code":"1081221402","ss_name":"33/11 KV ROAD NO.2(NEW) SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV JUBILEE HILLS-33 KV ROAD NO.2(NEW) FEEDER","alt1":"132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION","alt2":"132 KV NIMS-33KV MUFKHAMJAH","alt3":"132 KV JUBILEE HILLS-33KV NIMS","alt4":"","alt5":""},{"ss_code":"1081213401","ss_name":"33/11 KV YOUSUFGUDA SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV ERRAGADDA-33 KV SPR HILLS FEEDER","alt1":"132 KV ERRAGADDA-33KV YOUSUFGUDA","alt2":"132 KV ERRAGADDA-33KV MUFFAKHAMZA","alt3":"132 KV JUBILEE HILLS-33KV YOUSUFGUDA","alt4":"","alt5":""},{"ss_code":"1081211401","ss_name":"33/11 KV SRINAGAR COLONY SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ERRAGADDA-33KV SRINAGAR COLONY","alt1":"132 KV ERRAGADDA-33 KV ERRAMANZIL","alt2":"132 KV ERRAGADDA-33KV SRINAGAR COLONY","alt3":"","alt4":"","alt5":""},{"ss_code":"1081221403","ss_name":"33/11 KV L.V.PRASAD (ROAD NO.2) SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ERRAGADDA-33KV BANJARA HILLS - II (LV PRASAD)","alt1":"132 KV ERRAGADDA-33KV LV PRASAD UG CABLE","alt2":"132 KV JUBILEE HILLS-33KV BANJARA HILLS RD 12","alt3":"","alt4":"","alt5":""},{"ss_code":"1081221405","ss_name":"33/11 KV MUFFAKAMJAH SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV NIMS-33KV ERRAMANJIL","alt1":"132 KV ERRAGADDA-33KV LV PRASAD UG CABLE","alt2":"132 KV NIMS-33KV MUFKHAMJAH","alt3":"","alt4":"","alt5":""},{"ss_code":"1084244401","ss_name":"33/11KV SPR HILLS SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV ERRAGADDA-33 KV SPR HILLS FEEDER","alt1":"132 KV ERRAGADDA-33KV MUFFAKHAMZA","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1081211402","ss_name":"33/11 KV YELLAREDDYGUDA SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV ERRAGADDA-33KV YELLAREDDY GUDA","alt1":"132 KV ERRAGADDA-33 KV ERRAMANZIL","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1081213402","ss_name":"33/11 KV KRISHNA NAGAR SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"Kalyan nagar","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION","alt1":"132 KV JUBILEE HILLS-33KV HUSSAIN SAGAR (LV 1,2)","alt2":"132 KV ERRAGADDA-33KV BANJARA HILLS - II (LV PRASAD)","alt3":"","alt4":"","alt5":""},{"ss_code":"1081142401","ss_name":"33/11 KV ALLWYN SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV BALKAMPET-33 KV BALKAMPET-ALLWYN FEEDER","alt1":"132 KV BALKAMPET-33KV LODHA","alt2":"132 KV ERRAGADDA-33KV HYD INDUSTRIES","alt3":"132 KV ERRAGADDA-33KV ALLWYN","alt4":"","alt5":""},{"ss_code":"1081131402","ss_name":"33/11 KV BALKAMPET (BEGUMPET) SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV BALKAMPET-33KV BEGUMPET","alt1":"132 KV ERRAGADDA-33KV BEGUMPET","alt2":"132 KV ERRAGADDA-33KV PATIGADDA","alt3":"","alt4":"","alt5":""},{"ss_code":"1081133401","ss_name":"33/11 KV GREENLANDS SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV BALKAMPET-33KV GREEN LANDS","alt1":"132 KV ERRAGADDA-33KV ERRAGADDA GREENLANDS","alt2":"LINK LINE NIMS -GREENLANDS","alt3":"","alt4":"","alt5":""},{"ss_code":"1081143402","ss_name":"33/11KV JANAPRIYA SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ERRAGADDA-33KV JANAPRIYA","alt1":"132 KV ERRAGADDA-33KV ERRAGADDA - IDPL-II","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1081133402","ss_name":"33/11 KV KUNDANBAGH SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV BALKAMPET-33KV PATIGADDA","alt1":"132 KV ERRAGADDA-33 KV KUNDANBAGH","alt2":"LINK LINE NIMS -GREENLANDS","alt3":"","alt4":"","alt5":""},{"ss_code":"1081131401","ss_name":"33/11 KV MYTRIVANAM SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV BALKAMPET-33KV MAITRIVANAM","alt1":"132 KV ERRAGADDA-33KV MAITRIVANAM","alt2":"132 KV ERRAGADDA-33 KV KUNDANBAGH","alt3":"","alt4":"","alt5":""},{"ss_code":"1081142403","ss_name":"33/11KV LOADHA SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV BALKAMPET-33KV LODHA","alt1":"132 KV BALKAMPET-33 KV BALKAMPET-ALLWYN FEEDER","alt2":"132 KV ERRAGADDA-33KV HYD INDUSTRIES","alt3":"132 KV ERRAGADDA-33KV ALLWYN","alt4":"","alt5":""},{"ss_code":"1081131403","ss_name":"33/11 KV ESI SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV BALKAMPET-33KV ESI","alt1":"132 KV ERRAGADDA-33KV ESI","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1084132401","ss_name":"33/11 KV HPS SS","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV BALKAMPET-33KV HYDERABAD PUBLIC SCHOOL","alt1":"132 KV ERRAGADDA-33 KV HYDERABAD PUBLIC SCHOOL","alt2":"132 KV BALKAMPET-33KV PATIGADDA","alt3":"","alt4":"","alt5":""},{"ss_code":"1081133403","ss_name":"33/11 KV CM CAMP OFFICE","div":"Banjara Hills","sub_div":"Allwyn","section":"Allwyn","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":5.0,"cap":262}],"reg_source":"132 KV BALKAMPET-33KV CM CAMP OFFICE","alt1":"132 KV NIMS-33KV CM CAMP OFFICE","alt2":"132 KV ERRAGADDA-33 KV KUNDANBAGH","alt3":"","alt4":"","alt5":""},{"ss_code":"1853121401","ss_name":"33/11 KV IDPL SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV5","mva":8.0,"cap":420},{"lv":"LV4","mva":12.5,"cap":656},{"lv":"LV6","mva":12.5,"cap":656}],"reg_source":"132KV IDPL-33KV IDPL","alt1":"220 KV SHAPUR NAGAR-33KV IDPL (SYNTHETIC DRUGS)","alt2":"132KV IDPL-33 KV IDPL - 2","alt3":"132 KV GUNROCK-33KV H.M.T.","alt4":"","alt5":""},{"ss_code":"1853131402","ss_name":"33/11 KV PRASHANTH NAGAR SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132KV IDPL-33KV PRASANTHNAGAR","alt1":"220 KV SHAPUR NAGAR-33KV IDPL (SYNTHETIC DRUGS)","alt2":"132KV IDPL-33KV BALAJI NAGAR","alt3":"","alt4":"","alt5":""},{"ss_code":"1853132401","ss_name":"33/11 KV PRAGA TOOLS SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132KV IDPL-33KV PRAGATOOLS","alt1":"220 KV SHAPUR NAGAR-33KV H.M.T.","alt2":"220 KV SHAPUR NAGAR-33KV JAGADGIRIGUTTA(PRAGA TOOLS)","alt3":"","alt4":"","alt5":""},{"ss_code":"1853132402","ss_name":"33/11 KV HMT SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV CHINTAL-33 KV HMT","alt1":"220 KV SHAPUR NAGAR-33KV H.M.T.","alt2":"132 KV GUNROCK-33KV H.M.T.","alt3":"","alt4":"","alt5":""},{"ss_code":"1853131401","ss_name":"33/11 KV HAL SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":5.0,"cap":262}],"reg_source":"132 KV CHINTAL-33KV HAL","alt1":"132KV IDPL-33KV ALLWYN","alt2":"132 KV GUNROCK-33KV H.M.T.","alt3":"","alt4":"","alt5":""},{"ss_code":"1081143401","ss_name":"33/11 KV MOTHINAGAR SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ERRAGADDA-33KV MOTINAGAR","alt1":"132 KV ERRAGADDA-33KV IDPL I&II (SYNTHETIC DRUGS)","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1084241401","ss_name":"33/11 KV BORABANDA INDORE SS","div":"Banjara Hills","sub_div":"Allwyn","section":"IDPL","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV ERRAGADDA-33KV BORABANDA","alt1":"132 KV ERRAGADDA-33KV KUKATPALLY","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1081222403","ss_name":"33/11 KV MIND SPACE (RAHEJA) SS","div":"Banjara Hills","sub_div":"Madhapur","section":"Madhapur","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER","alt1":"132 KV MADHAPUR-33KV SUNDEW","alt2":"132 KV MADHAPUR-33KV RAHEJA IT PARK(H.T)","alt3":"132 KV MADHAPUR-33KV TRION PROPERTY","alt4":"","alt5":""},{"ss_code":"1081222405","ss_name":"33/11 KV ROAD NO22 (JBH) SS","div":"Banjara Hills","sub_div":"Madhapur","section":"Madhapur","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV JUBILEE HILLS-33KV JUBILEE HILLS RD.NO.22","alt1":"132 KV ERRAGADDA-33KV MUFFAKHAMZA","alt2":"132 KV JUBILEE HILLS-33KV YOUSUFGUDA","alt3":"","alt4":"","alt5":""},{"ss_code":"1081222406","ss_name":"33/11KV RAVINDER SOCIETY SS","div":"Banjara Hills","sub_div":"Madhapur","section":"Madhapur","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":16.0,"cap":840}],"reg_source":"132 KV JUBILEE HILLS-33KV RAVINDRA SOCIETY","alt1":"132 KV JUBILEE HILLS-33KV ASIFNAGAR-I","alt2":"132 KV MADHAPUR-33KV RAVINDRA SOCIETY","alt3":"","alt4":"","alt5":""},{"ss_code":"1081222401","ss_name":"33/11 KV JUBILEE HILLS SS","div":"Banjara Hills","sub_div":"Madhapur","section":"Madhapur","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV JUBILEE HILLS-33KV GCB-1(LOCAL FEEDERS)JUBILI HILLS","alt1":"132 KV JUBILEE HILLS-33KV GCB (LOCAL FEEDERS) JUBILI HILLS","alt2":"132 KV JUBILEE HILLS-33KV YOUSUFGUDA","alt3":"132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER","alt4":"","alt5":""},{"ss_code":"1081222402","ss_name":"33/11 KV MADHAPUR SS","div":"Banjara Hills","sub_div":"Madhapur","section":"Madhapur","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656}],"reg_source":"400 KV RAIDURG SS-33 KV OG-5 FEEDER","alt1":"132 KV MADHAPUR-33KV MADHAPUR","alt2":"132 KV MADHAPUR-33 KV DEVBHOOMI PH-3 FEEDER","alt3":"132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER","alt4":"132 KV MADHAPUR-33KV MADHAPUR - 2","alt5":"132 KV JUBILEE HILLS-33KV INTIME PROPERTIES"},{"ss_code":"1081223405","ss_name":"33/11 KV COMMAND CONTROL ROOM SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV JUBILEE HILLS-33KV COMMAND CONTROL CENTER","alt1":"132 KV JUBILEE HILLS-33KV MPL FEEDER","alt2":"132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION","alt3":"132 KV NIMS-33 KV ROAD NO.13 FEEDER","alt4":"","alt5":""},{"ss_code":"1081223401","ss_name":"33/11 KV FILM NAGAR SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV JUBILEE HILLS-33KV FILM NAGAR","alt1":"132 KV JUBILEE HILLS-33KV GOLCONDA","alt2":"132 KV JUBILEE HILLS-33KV MOTIMAHAL","alt3":"","alt4":"","alt5":""},{"ss_code":"1081223402","ss_name":"33/11 KV MLA COLONY SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV JUBILEE HILLS-33KV MLA COLONY","alt1":"132 KV JUBILEE HILLS-33KV MPL FEEDER","alt2":"132 KV JUBILEE HILLS-33KV ROAD NO 13","alt3":"","alt4":"","alt5":""},{"ss_code":"1081223404","ss_name":"33/11 KV ROAD NO.13 BANJARA HILLS SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV JUBILEE HILLS-33KV ROAD NO.13/B","alt1":"132 KV JUBILEE HILLS-33KV ROAD NO 13","alt2":"132 KV NIMS-33 KV ROAD NO.13 FEEDER","alt3":"","alt4":"","alt5":""},{"ss_code":"1081223403","ss_name":"33/11 KV ROAD NO.12 B'HILLS SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV JUBILEE HILLS-33KV ROAD NO 13","alt1":"132 KV JUBILEE HILLS-33KV BANJARA HILLS RD 12","alt2":"132 KV JUBILEE HILLS-33KV MPL FEEDER","alt3":"","alt4":"","alt5":""},{"ss_code":"1081222407","ss_name":"33/11KV PRASASAN NAGAR SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV JUBILEE HILLS-33KV PRASHASAN NAGAR","alt1":"132 KV JUBILEE HILLS-33KV GCB-1(LOCAL FEEDERS)JUBILI HILLS","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1081221401","ss_name":"33/11 KV NIMS SS","div":"Banjara Hills","sub_div":"Kalyan nagar","section":"NIMS","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656}],"reg_source":"132 KV NIMS-33KV NIMS OLD","alt1":"132 KV JUBILEE HILLS-33KV NIMS","alt2":"132 KV ERRAGADDA-33KV LV PRASAD UG CABLE","alt3":"132 KV NIMS-33 KV ROAD NO.13 FEEDER","alt4":"","alt5":""},{"ss_code":"1093222401","ss_name":"33/11 KV ENT SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV IMLIBAN SS-33KV ENT","alt1":"132 KV IMLIBAN SS-33KV EXHIBITION","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1093231401","ss_name":"33/11 KV OSMANIA HOSPITAL SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV IMLIBAN SS-33KV OSMANIA HOSPITAL","alt1":"132 KV ASIFNAGAR-33KV SEETARAMBAGH","alt2":"132 KV IMLIBAN SS-33KV GOSHAMAHAL","alt3":"132 KV IMLIBAN SS-33KV EXHIBITION","alt4":"","alt5":""},{"ss_code":"1103911401","ss_name":"33/11 KV AC GUARDS SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)","alt1":"132 KV NIMS-33KV AC GUARDS","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1103912402","ss_name":"33/11 KV ITI MALLEPALLY SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ASIFNAGAR-33KV ITI MALLEPALLY","alt1":"132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)","alt2":"132 KV ASIFNAGAR-33KV SEETARAMBAGH","alt3":"","alt4":"","alt5":""},{"ss_code":"1093223401","ss_name":"33/11 KV KOTI WOMENS COLLEGE SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV IMLIBAN SS-33KV SULTANBAZAR (OLD BREAKER)","alt1":"132 KV IMLIBAN SS-33KV SULTANBAZAR (OLD BREAKER)","alt2":"132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)","alt3":"","alt4":"","alt5":""},{"ss_code":"1093232401","ss_name":"33/11 KV GOSHA MAHAL SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV IMLIBAN SS-33KV GOSHAMAHAL","alt1":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt2":"132 KV ASIFNAGAR-33KV KULSUMPURA","alt3":"","alt4":"","alt5":""},{"ss_code":"1103912401","ss_name":"33/11 KV NAMPALLY SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV NIMS-33KV AC GUARDS","alt1":"132 KV IMLIBAN SS-33KV EXHIBITION","alt2":"132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)","alt3":"132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN","alt4":"","alt5":""},{"ss_code":"1101533401","ss_name":"33/11 KV EXHIBITION GROUND SS","div":"Central","sub_div":"Asifnagar","section":"Osmania Hospital","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV IMLIBAN SS-33KV EXHIBITION","alt1":"33KV PUBLIC GARDEN-33KV EXHIBITION LINKLINE","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1093211401","ss_name":"33/11 KV KARWAN SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132KV SHIVRAMPALLY-33KV KARWAN","alt1":"132 KV IMLIBAN SS-33KV JIYAGUDA","alt2":"132 KV ASIFNAGAR-33KV KARWAN","alt3":"132 KV ASIFNAGAR-33KV GUDIMALKAPUR","alt4":"","alt5":""},{"ss_code":"1103913401","ss_name":"33/11 KV GUDIMALKAPUR SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV ASIFNAGAR-33KV GUDIMALKAPUR","alt1":"132KV SHIVRAMPALLY-33KV KARWAN","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1103922402","ss_name":"33/11 KV LANGAR HOUSE SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ASIFNAGAR-33KV KARWAN","alt1":"132 KV IMLIBAN SS-33KV JIYAGUDA","alt2":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt3":"132 KV JUBILEE HILLS-33KV MOTIMAHAL","alt4":"","alt5":""},{"ss_code":"1093212401","ss_name":"33/11 KV SEETARAM BAGH SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV ASIFNAGAR-33KV SEETARAMBAGH","alt1":"132 KV IMLIBAN SS-33KV GOSHAMAHAL","alt2":"132 KV ASIFNAGAR-33KV KULSUMPURA","alt3":"","alt4":"","alt5":""},{"ss_code":"1093211402","ss_name":"33/11KV JIYAGUDA SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV IMLIBAN SS-33KV JIYAGUDA","alt1":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt2":"132 KV ASIFNAGAR-33KV ALLURI SEETHARAM RAJU NAGAR","alt3":"132KV SHIVRAMPALLY-33KV KARWAN","alt4":"","alt5":""},{"ss_code":"1103932401","ss_name":"33/11 KV ALLURI SITARAMARAJU NAGAR SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ASIFNAGAR-33KV ALLURI SEETHARAM RAJU NAGAR","alt1":"132 KV IMLIBAN SS-33KV JIYAGUDA","alt2":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt3":"","alt4":"","alt5":""},{"ss_code":"1093212402","ss_name":"33/11 KV KULSUMPURA SS","div":"Central","sub_div":"Asifnagar","section":"Gudimalkapur","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ASIFNAGAR-33KV KULSUMPURA","alt1":"132 KV IMLIBAN SS-33KV GOSHAMAHAL","alt2":"132 KV ASIFNAGAR-33KV SEETARAMBAGH","alt3":"","alt4":"","alt5":""},{"ss_code":"1103922401","ss_name":"33/11 KV ASIF NAGAR SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420},{"lv":"LV4","mva":12.5,"cap":656}],"reg_source":"132 KV ASIFNAGAR-33KV ASIFNAGAR","alt1":"132 KV ASIFNAGAR-33KV S.D.HOSPITAL","alt2":"132 KV JUBILEE HILLS-33KV ASIFNAGAR-II","alt3":"","alt4":"","alt5":""},{"ss_code":"1103921401","ss_name":"33/11 KV GOLCONDA SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656}],"reg_source":"132 KV ASIFNAGAR-33KV GOLCONDA","alt1":"132 KV ASIFNAGAR-SHAIKPET","alt2":"400 KV RAIDURG SS-33 KV SANDHYA FEEDER","alt3":"","alt4":"","alt5":""},{"ss_code":"1103933402","ss_name":"33/11 KV TOLI CHOWKI SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV JUBILEE HILLS-33KV TOLICHOWKI","alt1":"132 KV ASIFNAGAR-TOLICHOWKI","alt2":"132 KV JUBILEE HILLS-33KV MOTIMAHAL","alt3":"","alt4":"","alt5":""},{"ss_code":"1103933401","ss_name":"33/11 KV SD EYE HOSPITAL SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ASIFNAGAR-33KV S.D.HOSPITAL","alt1":"132 KV NIMS-33KV AC GUARDS","alt2":"132 KV JUBILEE HILLS-33KV ASIFNAGAR-II","alt3":"","alt4":"","alt5":""},{"ss_code":"1103921402","ss_name":"33/11 KV MOTHIMAHAL SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ASIFNAGAR-33KV MOTIMAHAL","alt1":"132 KV JUBILEE HILLS-33KV MOTIMAHAL","alt2":"33KV LANGERHOUSE SS -33KV MOTHIMAHALSS (LINK LINE)","alt3":"33KV TOLICHOWKI-33KV MOTHIMAHAL","alt4":"","alt5":""},{"ss_code":"1103935401","ss_name":"33/11KV ADITHYA TOWERS SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV ASIFNAGAR-33 KV ADITYA TOWERS FEEDER","alt1":"132 KV JUBILEE HILLS-33KV GOLCONDA","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1103923402","ss_name":"33/11 KV SANDYA HOTEL SS","div":"Central","sub_div":"Asifnagar","section":"Asif nagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"400 KV RAIDURG SS-33 KV SANDHYA FEEDER","alt1":"132 KV JUBILEE HILLS-33KV GOLCONDA","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1101511401","ss_name":"33/11 KV HUSSAIN SAGAR SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":7.5,"cap":394},{"lv":"LV3","mva":8.0,"cap":420},{"lv":"LV4","mva":15.0,"cap":787},{"lv":"LV5","mva":12.5,"cap":656},{"lv":"LV6","mva":15.0,"cap":787}],"reg_source":"132 KV PATIGADDA-33KV ZP OFFICE","alt1":"132 KV NIMS-33KV ERRAMANJIL","alt2":"132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - I","alt3":"132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN","alt4":"132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)","alt5":""},{"ss_code":"1101721401","ss_name":"33/11 KV INDIRA PARK SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656},{"lv":"LV5","mva":8.0,"cap":420}],"reg_source":"132 KV PATIGADDA-INDIRAPARK","alt1":"132 KV GIS CHILKALGUDA-33KV INDIRA PARK","alt2":"132 KV OSMANIA UNIVERSITY-33KV INDIRAPARK","alt3":"","alt4":"","alt5":""},{"ss_code":"1101513401","ss_name":"33/11 KV LAKE VIEW SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II","alt1":"132 KV NIMS-33KV LAKE VIEW","alt2":"132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - I","alt3":"132 KV NIMS-33KV ERRAMANJIL","alt4":"","alt5":""},{"ss_code":"1101513402","ss_name":"33/11 KV ERAMANZIL SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV NIMS-33KV ERRAMANJIL","alt1":"132 KV ERRAGADDA-33 KV ERRAMANZIL","alt2":"132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II","alt3":"132 KV PATIGADDA-33KV ZP OFFICE","alt4":"","alt5":""},{"ss_code":"1101512401","ss_name":"33/11 KV ZP OFFICE SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV NIMS-33KV ZP OFFICE","alt1":"132 KV ERRAGADDA-33KV ZP OFFICE","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1101511402","ss_name":"33/11 KV PUBLIC GARDEN SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132KV NARAYANGUDA-PUBLICGARDEN","alt1":"132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN","alt2":"132 KV IMLIBAN SS-33KV EXHIBITION","alt3":"","alt4":"","alt5":""},{"ss_code":"1101531402","ss_name":"33/11 KV NIZAM COLLEGE SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132KV NARAYANGUDA-NIZAM COLLEGE","alt1":"132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)","alt2":"132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II","alt3":"","alt4":"","alt5":""},{"ss_code":"1101531401","ss_name":"33/11 KV HYDERGUDA SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132KV NARAYANGUDA-HYDERGUDA","alt1":"132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)","alt2":"132 KV FEVER HOSPITAL-33KV SULTAN BAZAR","alt3":"","alt4":"","alt5":""},{"ss_code":"1101511403","ss_name":"33/11 KV LUMBINI PARK SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV HUSSAINSAGAR-33KV INDIRA PARK /H.S.S.III","alt1":"132 KV PATIGADDA-INDIRAPARK","alt2":"132 KV OSMANIA UNIVERSITY-33KV INDIRAPARK","alt3":"","alt4":"","alt5":""},{"ss_code":"1101722401","ss_name":"33/11 KV JAWAHAR NAGAR SS","div":"Central","sub_div":"Hussainsagar","section":"Hussain sagar","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV FEVER HOSPITAL-33KV JAWAHAR NAGAR","alt1":"132 KV HUSSAINSAGAR-33KV INDIRA PARK /H.S.S.III","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1852111401","ss_name":"33/11 KV NEHRU NAGAR SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV GUNROCK-33KV NEHRU NAGAR","alt1":"132KV CHILKALGUDA SS - MONDAMARKET-NEHRUNAGAR(LINK LINE DEPENDS ON 33/11KV MOONDA MARKET SUPPLY)","alt2":"132 KV GIS CHILKALGUDA-33KV CLOCK TOWER","alt3":"132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI","alt4":"","alt5":""},{"ss_code":"1852113401","ss_name":"33/11 KV GYMKHANA SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV GUNROCK-33KV GYMKHANA","alt1":"132 KV GUNROCK-33KV KIMS(GUNROCK SS)","alt2":"132 KV GUNROCK-33KV JAMES STREET","alt3":"","alt4":"","alt5":""},{"ss_code":"1852111402","ss_name":"33/11 KV MARREDPALLY SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV GUNROCK-33KV NEW MARREDPALL(UG)","alt1":"132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI","alt2":"132 KV OSMANIA UNIVERSITY-33 KV ADDAGUTTA FEEDER","alt3":"132 KV GUNROCK-33KV NEHRU NAGAR","alt4":"","alt5":""},{"ss_code":"1852123401","ss_name":"33/11 KV R.P.NILAYAM SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV GUNROCK-33KV R.P. NILAYAM","alt1":"132 KV GUNROCK-33KV HAKEEMPET UG - II","alt2":"132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER","alt3":"132 KV GUNROCK-33 KV ALWAL FEEDER","alt4":"","alt5":""},{"ss_code":"1852122401","ss_name":"33/11 KV HAKIMPET SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV GUNROCK-33KV HAKEEMPET UG - II","alt1":"132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER","alt2":"132 KV GUNROCK-33KV R.P. NILAYAM","alt3":"132 KV MALKARAM-33 KV CRPF FEEDER","alt4":"","alt5":""},{"ss_code":"1852122402","ss_name":"33/11 KV MACHA BOLLARAM SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":8.0,"cap":420}],"reg_source":"132 KV GUNROCK-33KV MACCHABOLLARAM","alt1":"132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER","alt2":"132 KV MALKARAM-33 KV CRPF FEEDER","alt3":"","alt4":"","alt5":""},{"ss_code":"1851114402","ss_name":"33/11 KV ADDAGUTTA SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"R.P.Nilayam","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV OSMANIA UNIVERSITY-33 KV ADDAGUTTA FEEDER","alt1":"132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI","alt2":"132 KV GUNROCK-33KV NEW MARREDPALL(UG)","alt3":"","alt4":"","alt5":""},{"ss_code":"1851222401","ss_name":"33/11 KV JAMES STREET SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV PATIGADDA-JAMES STREET","alt1":"132 KV GUNROCK-33KV JAMES STREET","alt2":"132 KV GUNROCK-33KV AIRPORT","alt3":"132 KV PATIGADDA-33KV KIMS","alt4":"","alt5":""},{"ss_code":"1851224401","ss_name":"33/11 KV CLOCK TOWER SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV GIS CHILKALGUDA-33KV CLOCK TOWER","alt1":"132 KV GUNROCK-33KV JAMES STREET","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1851221401","ss_name":"33/11 KV BANSILALPET SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV GIS CHILKALGUDA-33KV PATIGADDA","alt1":"132 KV PATIGADDA-33KV BANSILALPET","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1851222402","ss_name":"33/11 KV PATIGADDA SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV PATIGADDA-33KV PATIGADDA","alt1":"132 KV PATIGADDA-33KV BANSILALPET","alt2":"132 KV PATIGADDA-33KV AIRPORT","alt3":"132 KV GIS CHILKALGUDA-33KV PATIGADDA","alt4":"","alt5":""},{"ss_code":"1851224402","ss_name":"33/11 KV MONDA MARKET SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV PATIGADDA-MONDA MARKET","alt1":"132 KV GIS CHILKALGUDA-33KV SEETHAPHALMANDI.","alt2":"132 KV GUNROCK-33KV NEHRU NAGAR","alt3":"","alt4":"","alt5":""},{"ss_code":"1851222403","ss_name":"33/11 KV SANJEEVAIAH PARK SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV PATIGADDA-33KV SANJEEVAOIAH PARK","alt1":"132 KV GUNROCK-33KV AIRPORT","alt2":"132 KV PATIGADDA-33KV PATIGADDA","alt3":"","alt4":"","alt5":""},{"ss_code":"1851222404","ss_name":"33/11 KV KIMS SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"James street","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV PATIGADDA-33KV KIMS","alt1":"132 KV GUNROCK-33KV KIMS(GUNROCK SS)","alt2":"132 KV GUNROCK-33KV JAMES STREET","alt3":"132 KV PATIGADDA-JAMES STREET","alt4":"","alt5":""},{"ss_code":"1081132402","ss_name":"33/11KV PRAKASHNAGAR","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV PATIGADDA-33KV PRAKASH NAGAR","alt1":"132 KV PATIGADDA-33KV AIRPORT","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1852121401","ss_name":"33/11 KV GUNROCK SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV GUNROCK-33KV GUN ROCK","alt1":"132 KV GUNROCK-33KV JAMES STREET","alt2":"132 KV GUNROCK-33KV H.M.T.","alt3":"","alt4":"","alt5":""},{"ss_code":"1852121404","ss_name":"33/11 KV BHOODEVI NAGAR SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV GUNROCK-33KV BHUDEVINAGAR","alt1":"132 KV GUNROCK-33KV H.M.T.","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1852121403","ss_name":"33/11 KV THIRUMALAGIRI SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV GUNROCK-33KV THIRUMALAGIRI","alt1":"132 KV GUNROCK-33KV KIMS(GUNROCK SS)","alt2":"132KV GUNROCK - MACHABOLLARAM-TIRUMALGIRI(LINK LINE)","alt3":"","alt4":"","alt5":""},{"ss_code":"1081132401","ss_name":"33/11 KV AIRPORT SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","op_circle":"BANJARA HILLS","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"","alt1":"","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1853111402","ss_name":"33/11 KV CHINNA THOKATTA SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV GUNROCK-33KV CHINNA THOKOTTA","alt1":"132 KV GUNROCK-33KV BOWENPALLY","alt2":"132 KV GUNROCK-33 KV NEW BOWENPALLY FEEDER","alt3":"","alt4":"","alt5":""},{"ss_code":"1853111401","ss_name":"33/11 KV BOWENPALLY SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV GUNROCK-33KV BOWENPALLY","alt1":"132 KV GUNROCK-33KV H.M.T.","alt2":"132 KV GUNROCK-33KV BOWENPALLY","alt3":"132KV IDPL-33KV ALLWYN","alt4":"","alt5":""},{"ss_code":"1853122401","ss_name":"33/11 KV NEW BOWENPALLY-2 SS","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV GUNROCK-33 KV NEW BOWENPALLY FEEDER","alt1":"132 KV GUNROCK-33KV H.M.T.","alt2":"132KV IDPL-33KV ALLWYN","alt3":"","alt4":"","alt5":""},{"ss_code":"1852123403","ss_name":"33/11 KV ALWAL","div":"Secunderabad","sub_div":"Nehrunagar","section":"Bowenpally","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV GUNROCK-33 KV ALWAL FEEDER","alt1":"132 KV GUNROCK-33KV HAKEEMPET UG - II","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1092831401","ss_name":"33/11 KV MALAKPET SS","div":"South","sub_div":"Malakpet","section":"Malakpet","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420},{"lv":"LV4","mva":8.0,"cap":420}],"reg_source":"132 KV MOOSARAMBAGH-MALAKPET","alt1":"132 KV IMLIBAN SS-33KV MALAKPET","alt2":"132 KV IMLIBAN SS-33KV DURGANAGAR","alt3":"","alt4":"","alt5":""},{"ss_code":"1092813401","ss_name":"33/11 KV ASMAN GADH SS","div":"South","sub_div":"Malakpet","section":"Malakpet","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV MOOSARAMBAGH-33KV ASMANGADH","alt1":"220 KV CHANDRAYANA GUTTA-33KV ASMANGADH","alt2":"220 KV CHANDRAYANA GUTTA-33KV MALAKPETGUNJ","alt3":"220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER","alt4":"","alt5":""},{"ss_code":"1092832401","ss_name":"33/11 KV CHANCHAL GUDA SS","div":"South","sub_div":"Malakpet","section":"Malakpet","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":5.0,"cap":262}],"reg_source":"220/33 KV CHANCHALGUDA SS-33 KV CHANCHALGUDA FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA","alt2":"220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER","alt3":"","alt4":"","alt5":""},{"ss_code":"1092812401","ss_name":"33/11 KV MOOSARAM BAGH SS","div":"South","sub_div":"Malakpet","section":"Malakpet","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV MOOSARAMBAGH-33KV MOOSARAMBAGH","alt1":"132 KV MOOSARAMBAGH-33KV ASMANGADH","alt2":"132 KV BANDLAGUDA-33KV MOOSARAMBAGH","alt3":"220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA","alt4":"","alt5":""},{"ss_code":"1092834402","ss_name":"33/11 KV GUNJ SS","div":"South","sub_div":"Malakpet","section":"Malakpet","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"220 KV CHANDRAYANA GUTTA-33KV MALAKPETGUNJ","alt1":"132 KV IMLIBAN SS-33KV MALAKPET GUNJ","alt2":"132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER","alt3":"","alt4":"","alt5":""},{"ss_code":"1092811401","ss_name":"33/11 KV MALAKPET B QUARTERS SS","div":"South","sub_div":"Malakpet","section":"Malakpet","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"220/33 KV CHANCHALGUDA SS-33 KV MALAKPET B QUATERS FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV LAXMI NAGAR","alt2":"132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER","alt3":"","alt4":"","alt5":""},{"ss_code":"1092812402","ss_name":"33/11KV TEEGALAGUDA SS","div":"South","sub_div":"Malakpet","section":"Malakpet","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV MOOSARAMBAGH-33KV TEEGALAGUA","alt1":"132 KV BANDLAGUDA-33KV MOOSARAMBAGH","alt2":"33KV DURGA NAGAR-33KV TEEGALGUDA LINKLINE(DEPENDS ON 33/11KV DURGANAGARSS SUPPLY)","alt3":"220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA","alt4":"","alt5":""},{"ss_code":"1092823401","ss_name":"33/11 KV SANTOSH NAGAR SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"220/33 KV CHANCHALGUDA SS-33 KV SANTOSH NAGAR FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR -UG","alt2":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I","alt3":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-II","alt4":"","alt5":""},{"ss_code":"1092823402","ss_name":"33/11 KV MIDHANI SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"220/33 KV CHANCHALGUDA SS-33 KV MIDHANI FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I","alt2":"220 KV CHANDRAYANA GUTTA-33KV KANCHANBAGH","alt3":"","alt4":"","alt5":""},{"ss_code":"1092822401","ss_name":"33/11 KV YAKUTPURA SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"220/33 KV CHANCHALGUDA SS-33 KV YAKUTHPURA FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I","alt2":"132 KV IMLIBAN SS-33KV YAKUTHPURA","alt3":"","alt4":"","alt5":""},{"ss_code":"1092813402","ss_name":"33/11KV LAXMI NAGAR SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"220/33 KV CHANCHALGUDA SS-33 KV LAXMI NAGAR FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV LAXMI NAGAR","alt2":"132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER","alt3":"220 KV CHANDRAYANA GUTTA-33KV CRPF","alt4":"","alt5":""},{"ss_code":"1092824401","ss_name":"33/11 KV MADANNAPET SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"220/33 KV CHANCHALGUDA SS-33 KV MADANNAPET FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-MADANNAPET","alt2":"220/33 KV CHANCHALGUDA SS-33 KV SANTOSH NAGAR FEEDER","alt3":"","alt4":"","alt5":""},{"ss_code":"1091322401","ss_name":"33/11KV ARUNDHATI COLONY SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"220/33 KV CHANCHALGUDA SS-33 KV ARUNDATHI NAGAR COLONY FEEDER","alt1":"220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-II","alt2":"220 KV CHANDRAYANA GUTTA-33KV CRPF","alt3":"","alt4":"","alt5":""},{"ss_code":"1092833401","ss_name":"33/11 KV DEBEERPURA SS","div":"South","sub_div":"Malakpet","section":"Santhosh nagar","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV IMLIBAN SS-33KV YAKUTHPURA","alt1":"220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1851111401","ss_name":"33/11 KV CHILKALGUDA SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV GIS CHILKALGUDA-33KV CHILAKALAGUDA","alt1":"132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA","alt2":"132 KV IMLIBAN SS-33KV INDUSTRIAL AREA","alt3":"","alt4":"","alt5":""},{"ss_code":"1851114401","ss_name":"33/11 KV LALAGUDA SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV OSMANIA UNIVERSITY-33KV LALAGUDA","alt1":"132 KV OSMANIA UNIVERSITY-33KV SCR","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1851113401","ss_name":"33/11 KV SEETHAPHALMANDI SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":16.0,"cap":840}],"reg_source":"132 KV OSMANIA UNIVERSITY-33KV SEETHAPHALMANDI","alt1":"132 KV GIS CHILKALGUDA-33KV SEETHAPHALMANDI.","alt2":"33KV O.U-33KV SEETHAPHALMANDI LINK LINE","alt3":"","alt4":"","alt5":""},{"ss_code":"1102412401","ss_name":"33/11 KV ZAMISTANPUR SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":16.0,"cap":840}],"reg_source":"132 KV OSMANIA UNIVERSITY-33KV ZAMISTANPURA","alt1":"132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1102411401","ss_name":"33/11 KV NARAYANGUDA SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV FEVER HOSPITAL-33KV NARAYANGUDA","alt1":"132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA","alt2":"132 KV FEVER HOSPITAL-33KV JAWAHAR NAGAR","alt3":"132KV GIS HUS' SAGAR -SS-3 JAWAHAR NGR","alt4":"","alt5":""},{"ss_code":"1851112401","ss_name":"33/11 KV OSMANIA UNIVERSITY SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV OSMANIA UNIVERSITY-33KV OSMANIA UNIVERSITY","alt1":"132 KV OSMANIA UNIVERSITY-33KV LALAGUDA","alt2":"33KV CHILKALGUDA SS -33KV O.U. INTERLINK LINE","alt3":"33KV SEETHAPHALMANDI-33KV O.U INTERLINK LINE","alt4":"","alt5":""},{"ss_code":"1851112402","ss_name":"33/11 KV IICT SS","div":"South","sub_div":"Chilkalguda","section":"Chilkalguda","op_circle":"SECUNDERABAD","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV OSMANIA UNIVERSITY-33KV IICT","alt1":"220 KV MOULA-ALI-33 KV AZAMABAD FEEDER","alt2":"132 KV OSMANIA UNIVERSITY-33KV LALAGUDA","alt3":"","alt4":"","alt5":""},{"ss_code":"1102421401","ss_name":"33/11 KV INDUSTRIAL AREA SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV FEVER HOSPITAL-33KV INDUSTRIAL AREA","alt1":"132 KV IMLIBAN SS-33KV INDUSTRIAL AREA","alt2":"132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA","alt3":"220 KV MOULA-ALI-33 KV AZAMABAD FEEDER","alt4":"","alt5":""},{"ss_code":"1102421402","ss_name":"33/11 KV FEVER HOSPITAL SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV FEVER HOSPITAL-33KV FEVER HOSPITAL","alt1":"132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA","alt2":"220 KV MOULA-ALI-33 KV AZAMABAD FEEDER","alt3":"","alt4":"","alt5":""},{"ss_code":"1102432401","ss_name":"33/11 KV AMBERPET SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV MOOSARAMBAGH-33KV AMBERPET","alt1":"132 KV MOOSARAMBAGH-33KV DURGANAGAR","alt2":"132 KV BANDLAGUDA-33KV AMBERPET","alt3":"","alt4":"","alt5":""},{"ss_code":"1102411402","ss_name":"33/11 KV VITTALWADI SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132KV NARAYANGUDA-VITTALWADI","alt1":"132 KV IMLIBAN SS-33KV KING KOTI (NEW)","alt2":"132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA","alt3":"","alt4":"","alt5":""},{"ss_code":"1102431401","ss_name":"33/11 KV BATHAKAMMAKUNTA SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA","alt1":"220 KV MOULA-ALI-33 KV AZAMABAD FEEDER","alt2":"132 KV MOOSARAMBAGH-33KV GOLNAKA","alt3":"","alt4":"","alt5":""},{"ss_code":"1102432402","ss_name":"33/11 KV DURGANAGAR SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV MOOSARAMBAGH-33KV DURGANAGAR","alt1":"132 KV MOOSARAMBAGH-33KV WATER WORKS","alt2":"132 KV IMLIBAN SS-33KV DURGANAGAR","alt3":"","alt4":"","alt5":""},{"ss_code":"1102433401","ss_name":"33/11KV GOLNAKA SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","op_circle":"HYDERABAD CENTRAL","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV MOOSARAMBAGH-33KV GOLNAKA","alt1":"132 KV IMLIBAN SS-33KV INDUSTRIAL AREA","alt2":"132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA","alt3":"","alt4":"","alt5":""},{"ss_code":"1093221401","ss_name":"33/11 KV SULTAN BAZAR SS","div":"South","sub_div":"Chilkalguda","section":"Industrial Area","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV FEVER HOSPITAL-33KV SULTAN BAZAR","alt1":"132 KV FEVER HOSPITAL-33KV SULTAN BAZAR","alt2":"132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)","alt3":"132 KV IMLIBAN SS-33KV KING KOTI (NEW)","alt4":"","alt5":""},{"ss_code":"1091313401","ss_name":"33/11 KV SALARJUNG MUSEUM SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV IMLIBAN SS-33KV SALARJUNJ O/H","alt1":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1091334401","ss_name":"33/11 KV ATTAPUR SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132KV SHIVRAMPALLY-33KV ATTAPUR","alt1":"132KV SHIVRAMPALLY-33KV HYDERGUDA","alt2":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt3":"","alt4":"","alt5":""},{"ss_code":"1091311401","ss_name":"33/11 KV KHILWATH SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"132 KV IMLIBAN SS-33KV SALARJUNG---KILWATH UG CABLE","alt1":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt2":"MAILAR DEVI PALLY-DEVI BAGH","alt3":"132KV SHIVRAMPALLY-33 KV CHANDULALBARADARI UG CABLE FEEDER","alt4":"","alt5":""},{"ss_code":"1091331402","ss_name":"33/11 KV HYDERGUDA SS (South)","div":"South","sub_div":"Falaknuma","section":"Salarjung","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"132KV SHIVRAMPALLY-33 KV SHIVARAMPALLY-HYDERGUDA UG FEEDER","alt1":"132KV SHIVRAMPALLY-33KV HYDERGUDA","alt2":"132KV SHIVRAMPALLY-33KV KARWAN","alt3":"132KV SHIVRAMPALLY-33KV ATTAPUR","alt4":"","alt5":""},{"ss_code":"1091313402","ss_name":"33/11 KV PETLA BURZ SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"132 KV IMLIBAN SS-33KV PETLABURZ","alt1":"MAILAR DEVI PALLY-DEVI BAGH","alt2":"132 KV IMLIBAN SS-33KV SEETHARAMBAGH","alt3":"","alt4":"","alt5":""},{"ss_code":"1091312401","ss_name":"33/11 KV PANJASHAH SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"220/33 KV CHANCHALGUDA SS-33 KV PANJESHA FEEDER","alt1":"132 KV IMLIBAN SS-33KV PANJESHA","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1091311402","ss_name":"33/11 KV DEVIBAGH SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"MAILAR DEVI PALLY-DEVI BAGH","alt1":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt2":"132 KV IMLIBAN SS-33KV PETLABURZ","alt3":"","alt4":"","alt5":""},{"ss_code":"1091323401","ss_name":"33/11 KV FALAKNUMA SS","div":"South","sub_div":"Falaknuma","section":"Falaknuma","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"MAILAR DEVI PALLY-FALAKNAMA","alt1":"220 KV CHANDRAYANA GUTTA-33KV FALAKNUMA","alt2":"MAILAR DEVI PALLY-ALIABAD","alt3":"","alt4":"","alt5":""},{"ss_code":"1091333401","ss_name":"33/11 KV MIRALAM SS","div":"South","sub_div":"Falaknuma","section":"Falaknuma","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656},{"lv":"LV4","mva":12.5,"cap":656}],"reg_source":"132KV SHIVRAMPALLY-33KV MIRALAM","alt1":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt2":"132KV SHIVRAMPALLY-33KV SHAMSHABAD(SHIVARAMPALLY SS)","alt3":"","alt4":"","alt5":""},{"ss_code":"1091332401","ss_name":"33/11 KV CHANDULAL BARADARI SS","div":"South","sub_div":"Falaknuma","section":"Salarjung","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132KV SHIVRAMPALLY-33 KV CHANDULALBARADARI UG CABLE FEEDER","alt1":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt2":"132 KV IMLIBAN SS-33KV SALARJUNG---KILWATH UG CABLE","alt3":"","alt4":"","alt5":""},{"ss_code":"1091333403","ss_name":"33/11kV Miralam Filter Beds","div":"South","sub_div":"Falaknuma","section":"Falaknuma","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":8.0,"cap":420},{"lv":"LV2","mva":8.0,"cap":420}],"reg_source":"MAILAR DEVI PALLY-NPA","alt1":"132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI","alt2":"MAILAR DEVI PALLY-DEVI BAGH","alt3":"","alt4":"","alt5":""},{"ss_code":"1091321401","ss_name":"33/11 KV CRPF SS","div":"South","sub_div":"Falaknuma","section":"Falaknuma","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":12.5,"cap":656}],"reg_source":"132 KV MAMIDIPALLY-33 KV CRPF","alt1":"220 KV CHANDRAYANA GUTTA-33KV CRPF","alt2":"220 KV CHANDRAYANA GUTTA-33KV FALAKNUMA","alt3":"132KV MD PALLY-KANDIKAGATE-CRPF LINK LINE","alt4":"","alt5":""},{"ss_code":"1091333402","ss_name":"33/11 KV ALIABAD SS","div":"South","sub_div":"Falaknuma","section":"Falaknuma","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":12.5,"cap":656},{"lv":"LV2","mva":12.5,"cap":656}],"reg_source":"MAILAR DEVI PALLY-ALIABAD","alt1":"132KV SHIVRAMPALLY-33KV SHAMSHABAD(SHIVARAMPALLY SS)","alt2":"","alt3":"","alt4":"","alt5":""},{"ss_code":"1091323402","ss_name":"33/11 KV KANDIKAL GATE SS","div":"South","sub_div":"Falaknuma","section":"Falaknuma","op_circle":"HYDERABAD SOUTH","lvs":[{"lv":"LV1","mva":16.0,"cap":840},{"lv":"LV2","mva":12.5,"cap":656},{"lv":"LV3","mva":8.0,"cap":420}],"reg_source":"MAILAR DEVI PALLY-KANDIKAL GATE","alt1":"220 KV CHANDRAYANA GUTTA-33KV KANDIKAL GATE","alt2":"220 KV CHANDRAYANA GUTTA-33KV CRPF","alt3":"","alt4":"","alt5":""}];
 
-function pct(v,c){ return Math.min(100,Math.round(v/c*100)); }
-function col(p){ return p>=100?'#C0392B':p>=80?'#E65100':p>=60?'#1565C0':'#2E7D32'; }
-function barcls(p){ return p>=100?'bar-ov':p>=80?'bar-hi':'bar-ok'; }
-function badgecls(p){ return p>=100?'badge-ov':p>=80?'badge-hi':'badge-ok'; }
-function badgelbl(p){ return p>=100?'OVERLOADED':p>=80?'HIGH LOAD':'NORMAL'; }
-
-// Build from REAL_SS_DB
-var ssLoadData = REAL_SS_DB.map(function(ss){
-  var hasAlt = !!(ss.alt1 && ss.alt1!=='' && ss.alt1!=='nan');
-  var r = Math.random();
-  var srcType = (r<0.08&&hasAlt)?'alt':(r<0.04&&hasAlt)?'multi':'reg';
-  var lvs = ss.lvs.map(function(lv){
-    return {name:lv.lv, mva:lv.mva, cap:lv.cap,
-            load:Math.round(lv.cap*(0.35+Math.random()*0.5))};
+function buildSSLoadData(){
+  return REAL_SS_DB.map(function(ss){
+    var totalCap = ss.lvs.reduce(function(s,l){return s+l.cap;},0);
+    var hasAlt = ss.alt1 && ss.alt1 !== '' && ss.alt1 !== 'nan';
+    // Sim source type
+    var r = Math.random();
+    var srcType = (r < 0.08 && hasAlt) ? 'alternate' : (r < 0.04 && hasAlt) ? 'multiple' : 'regular';
+    return {
+      ss: {
+        ss_code: ss.ss_code,
+        ss_name: ss.ss_name,
+        div: ss.div,
+        section: ss.section,
+        sub_div: ss.sub_div,
+        reg_source: ss.reg_source,
+        alt1: ss.alt1,
+        alt2: ss.alt2,
+        alt3: ss.alt3
+      },
+      lvs: ss.lvs.map(function(lv){return {name:lv.lv, mva:lv.mva, cap:lv.cap, load:Math.round(lv.cap*(0.35+Math.random()*0.5))};}),
+      totalCap: totalCap,
+      srcType: srcType,
+      hasAlt: hasAlt
+    };
   });
-  return {ss:ss, lvs:lvs, srcType:srcType, hasAlt:hasAlt};
-});
+}
+var ssLoadData = buildSSLoadData();
 
-var filteredData = ssLoadData.slice();
-
-// ── SIM ──────────────────────────────────────────────────────────
-function simLoads(){
+// Assign random initial loads
+function initLoads(){
   ssLoadData.forEach(function(d){
     d.lvs.forEach(function(lv){
-      var delta = lv.cap*0.04*(Math.random()*2-1);
-      lv.load = Math.max(10, Math.min(lv.cap, Math.round(lv.load+delta)));
+      lv.load = Math.round(lv.cap * (0.35 + Math.random()*0.5));
     });
   });
 }
 
-// ── MAX LV PCT per SS ─────────────────────────────────────────────
-function maxPct(d){
-  return Math.max.apply(null, d.lvs.map(function(l){return pct(l.load,l.cap);}));
+function simLoads(){
+  ssLoadData.forEach(function(d){
+    d.lvs.forEach(function(lv){
+      var delta = lv.cap * 0.04 * (Math.random()*2-1);
+      lv.load = Math.max(10, Math.min(lv.cap, Math.round(lv.load + delta)));
+    });
+  });
 }
 
-// ── BUILD ENERGY FLOW CARD (Image 2 + Image 3 style) ─────────────
+function pct(v,c){ return Math.min(100, Math.round(v/c*100)); }
+function col(p){ return p>=100?'#C0392B':p>=80?'#D07A00':p>=60?'#1565C0':'#0B7A5C'; }
+function bg(p){  return p>=100?'#FDECEA':p>=80?'#FFF8E1':p>=60?'#E3F2FD':'#F0FBF5'; }
+function barcol(p){ return p>=100?'#C0392B':p>=80?'#E6A800':p>=60?'#1565C0':'#0B7A5C'; }
+
+// Check if alternate source can take additional load
+function checkChangeover(ssData){
+  if(!ssData.hasAlt) return null;
+  var altSrc = ssData.ss.alt1;
+  // Find other SSes on this feeder
+  var otherSS = ssLoadData.filter(function(d){
+    return d.ss.reg_source === altSrc || d.ss.alt1 === altSrc || d.ss.alt2 === altSrc;
+  }).filter(function(d){ return d.ss.ss_code !== ssData.ss.ss_code; });
+
+  var myLoad = ssData.lvs.reduce(function(s,l){return s+l.load;},0);
+  var altLoad = otherSS.reduce(function(s,d){
+    return s + d.lvs.reduce(function(s2,l){return s2+l.load;},0);
+  },0);
+  var altCap  = otherSS.reduce(function(s,d){return s+d.totalCap;},0);
+  var newPct  = altCap>0 ? Math.min(100,Math.round((altLoad+myLoad)/altCap*100)) : 100;
+
+  return {
+    altSrc: altSrc,
+    altLoad: altLoad,
+    altCap: altCap,
+    myLoad: myLoad,
+    projectedPct: newPct,
+    canTake: newPct < 90
+  };
+}
+
+// Build one SS card HTML (Page 2 format)
 function buildCard(d){
   var ss = d.ss;
-  var mp = maxPct(d);
-  var totalLvLoad = d.lvs.reduce(function(s,l){return s+l.load;},0);
-  var feederLoad = Math.round(totalLvLoad/1.732); // (sum LVs) ÷ √3
-  var feederPct = pct(feederLoad, FEEDER_CAP);
-  var fCol = col(feederPct);
+  var maxLvPct = Math.max.apply(null, d.lvs.map(function(l){return pct(l.load,l.cap);}));
+  var totalLoad = d.lvs.reduce(function(s,l){return s+l.load;},0);
+  var avgPct = d.totalCap>0 ? pct(totalLoad, d.totalCap) : 0;
+  var cardBg = bg(maxLvPct);
+  var cardBdr = maxLvPct>=100?'#EF9A9A':maxLvPct>=80?'#FFE082':maxLvPct>=60?'#90CAF9':'#A5D6A7';
+  var accentCol = col(maxLvPct);
 
-  // Source feeder name
-  var srcFeeder = d.srcType==='alt' ? (ss.alt1||ss.reg_source) : ss.reg_source;
-  var srcLabel  = d.srcType==='alt' ? 'ALTERNATE' : d.srcType==='multi' ? 'MULTI-SRC' : 'REGULAR';
-  var srcBadge  = d.srcType==='reg'
-    ? '<span class="badge-ok">✓ REGULAR</span>'
-    : d.srcType==='alt'
-    ? '<span class="badge-alt">⚠ ALTERNATE</span>'
-    : '<span class="badge-hi">⇄ MULTI-SRC</span>';
+  // Source badge
+  var srcBadge = d.srcType==='alternate'
+    ? '<span style="font-size:9px;padding:2px 8px;border-radius:6px;'+
+      'background:#FFF8E1;border:1px solid #FFE082;color:#D07A00;'+
+      'font-weight:700;font-family:monospace;animation:ssld-blink 2s step-end infinite">⚠ ON ALTERNATE</span>'
+    : d.srcType==='multiple'
+    ? '<span style="font-size:9px;padding:2px 8px;border-radius:6px;'+
+      'background:#EDE7F6;border:1px solid #CE93D8;color:#7B1FA2;'+
+      'font-weight:700;font-family:monospace">⇄ MULTI SOURCE</span>'
+    : '<span style="font-size:9px;padding:2px 8px;border-radius:6px;'+
+      'background:#E8F5E9;border:1px solid #A5D6A7;color:#2E7D32;'+
+      'font-weight:700;font-family:monospace">✓ REGULAR</span>';
 
-  // EHT name (strip 33KV from feeder name)
-  var ehtName = ss.eht || '—';
-
-  // Critical banner
-  var critBanner = '';
-  if(mp >= 100){
-    critBanner = '<div class="efc-crit-banner">⚠ OVERLOADED — '+mp+'% — Immediate changeover to: '+(ss.alt1||'—')+'</div>';
-  } else if(mp >= 80){
-    critBanner = '<div style="background:#FFF8E1;border-bottom:1px solid #FFE082;padding:6px 14px;font-size:10px;font-weight:700;color:#E65100">⚡ HIGH LOAD '+mp+'% — Consider changeover to: '+(ss.alt1||'—')+'</div>';
+  // Overload banner
+  var overloadBanner = '';
+  if(maxLvPct >= 100){
+    var chk = checkChangeover(d);
+    var chkHtml = '';
+    if(chk){
+      chkHtml = '<div style="margin-top:6px;padding:6px 10px;border-radius:6px;'+
+        'background:'+(chk.canTake?'#E8F5E9':'#FDECEA')+';'+
+        'border:1px solid '+(chk.canTake?'#A5D6A7':'#EF9A9A')+';'+
+        'font-size:10px;color:'+(chk.canTake?'#1B5E20':'#B71C1C')+'">' +
+        (chk.canTake
+          ? '✓ CHANGEOVER FEASIBLE — Alt: <b>'+chk.altSrc.split('-').pop()+'</b> at '+chk.altLoad+'A/'+chk.altCap+'A ('+chk.projectedPct+'% after transfer)'
+          : '✗ ALT OVERLOADED — <b>'+chk.altSrc.split('-').pop()+'</b> at '+chk.altLoad+'A/'+chk.altCap+'A ('+chk.projectedPct+'% projected)') +
+        '</div>';
+    }
+    overloadBanner = '<div style="padding:8px 12px;background:#FDECEA;border-bottom:1px solid #EF9A9A">'+
+      '<div style="font-size:10px;font-weight:700;color:#C0392B">'+
+      '⚠ OVERLOADED — Max LV at '+maxLvPct+'% capacity</div>'+chkHtml+'</div>';
+  } else if(maxLvPct >= 80){
+    var chk = checkChangeover(d);
+    var chkHtml = chk ? '<span style="font-size:10px;color:'+(chk.canTake?'#2E7D32':'#C0392B')+'"> — Alt: '+(chk.canTake?'Available ('+chk.projectedPct+'% projected)':'Alt also loaded ('+chk.projectedPct+'%)')+'</span>' : '';
+    overloadBanner = '<div style="padding:7px 12px;background:#FFF8E1;border-bottom:1px solid #FFE082">'+
+      '<div style="font-size:10px;font-weight:700;color:#D07A00">'+
+      '⚡ HIGH LOAD — '+maxLvPct+'% — Consider changeover to: '+(ss.alt1||'—')+chkHtml+'</div></div>';
   }
 
-  // LV table rows
-  var lvRows = d.lvs.map(function(lv){
+  // LV rows (Page 2 format)
+  // If multiple source: split LVs between reg/alt
+  var half = Math.ceil(d.lvs.length/2);
+  var lvRows = d.lvs.map(function(lv, i){
     var p = pct(lv.load, lv.cap);
-    var c = col(p), bc = barcls(p);
-    return '<tr>'
-      +'<td style="font-weight:700;font-family:monospace;color:#1A2E40">'+lv.name+'</td>'
-      +'<td style="color:#7A95AD">'+lv.mva+' MVA</td>'
-      +'<td style="text-align:right;font-family:monospace;color:#4A6580">'+lv.cap+'A</td>'
-      +'<td style="padding:7px 14px;min-width:100px">'
-        +'<div class="efc-bar"><div class="efc-bar-fill '+bc+'" style="width:'+p+'%"></div></div>'
-      +'</td>'
-      +'<td style="text-align:right;font-weight:700;font-family:monospace;color:'+c+'">'+lv.load+'A</td>'
-      +'<td style="text-align:right;font-weight:700;color:'+c+'"><span class="'+badgecls(p)+'">'+p+'%</span></td>'
-    +'</tr>';
+    var c = col(p), bc = barcol(p), bgc = bg(p);
+    // Source indicator for multi-source SS
+    var srcInd = '';
+    if(d.srcType === 'multiple'){
+      var isReg = i < half;
+      var srcStyle = isReg
+        ? 'background:#E8F5E9;color:#2E7D32;border:1px solid #A5D6A7'
+        : 'background:#FFF8E1;color:#D07A00;border:1px solid #FFE082';
+      var srcLabel = isReg ? 'REG' : 'ALT';
+      srcInd = '<span style="font-size:8px;padding:1px 5px;border-radius:4px;'+srcStyle+';font-family:monospace;font-weight:700;margin-right:4px">'+srcLabel+'</span>';
+    }
+    return '<tr style="background:'+bgc+';border-bottom:1px solid #EEF2F8">' +
+      '<td style="padding:6px 10px;font-weight:700;font-family:monospace;font-size:11px;color:#1A2E40">'+
+        srcInd+lv.name+'</td>'+
+      '<td style="padding:6px 10px;font-size:10px;color:#4A6580">'+lv.mva+' MVA</td>'+
+      '<td style="padding:6px 10px;text-align:right;font-family:monospace;font-size:10px;color:#7A95AD">'+lv.cap+'A</td>'+
+      '<td style="padding:6px 14px;min-width:100px">'+
+        '<div style="height:7px;background:#E8EFF6;border-radius:4px;overflow:hidden">'+
+        '<div style="width:'+p+'%;height:100%;background:'+bc+';border-radius:4px;transition:width .5s ease"></div>'+
+        '</div></td>'+
+      '<td style="padding:6px 10px;text-align:right;font-weight:700;font-family:monospace;font-size:12px;color:'+c+'">'+lv.load+'A</td>'+
+      '<td style="padding:6px 10px;text-align:right;font-weight:700;font-size:11px;color:'+c+'">'+p+'%</td>'+
+    '</tr>';
   }).join('');
 
-  // Total row
-  var totalCap = d.lvs.reduce(function(s,l){return s+l.cap;},0);
-  var totalPct = pct(totalLvLoad, totalCap);
-  var tCol = col(totalPct);
-  var tfoot = '<tr>'
-    +'<td colspan="2" style="font-weight:700;color:#1565C0;font-size:10px">TOTAL (Σ LVs)</td>'
-    +'<td style="text-align:right;font-family:monospace;color:#4A6580">'+totalCap+'A</td>'
-    +'<td style="padding:7px 14px">'
-      +'<div class="efc-bar"><div class="efc-bar-fill '+barcls(totalPct)+'" style="width:'+totalPct+'%"></div></div>'
-    +'</td>'
-    +'<td style="text-align:right;font-weight:700;font-family:monospace;color:'+tCol+'">'+totalLvLoad+'A</td>'
-    +'<td style="text-align:right;font-weight:700;color:'+tCol+'">'+totalPct+'%</td>'
-  +'</tr>';
-
-  // Alternate sources (any other feeder load that can be taken)
-  var altHtml = '';
-  var alts = [ss.alt1, ss.alt2, ss.alt3].filter(function(a){return a&&a!==''&&a!=='nan';});
-  if(alts.length){
-    var altItems = alts.map(function(a,i){
-      // Simulate load on the alternate feeder
-      var altLoad = Math.round(FEEDER_CAP*(0.3+Math.random()*0.4));
-      var altPct = pct(altLoad, FEEDER_CAP);
-      var canTake = altPct < 80;
-      return '<div style="flex:1;min-width:180px;padding:6px 10px;border-radius:6px;'
-        +(canTake?'background:#E8F5E9;border:1px solid #A5D6A7':'background:#FDECEA;border:1px solid #EF9A9A')+';">'
-        +'<div style="font-size:8px;font-weight:700;color:'+(canTake?'#2E7D32':'#C0392B')+';letter-spacing:.5px">'
-          +(i===0?'ALT SOURCE 1':i===1?'ALT SOURCE 2':'ALT SOURCE 3')+'</div>'
-        +'<div style="font-size:9px;color:#4A6580;margin-top:1px;word-break:break-word">'+a+'</div>'
-        +'<div style="display:flex;align-items:center;gap:6px;margin-top:4px">'
-          +'<div class="efc-bar" style="flex:1"><div class="efc-bar-fill '+(canTake?'bar-ok':'bar-ov')+'" style="width:'+altPct+'%"></div></div>'
-          +'<span style="font-size:10px;font-weight:700;font-family:monospace;color:'+(canTake?'#2E7D32':'#C0392B');+'">'+(canTake?'✓ '+altPct+'%':'✗ '+altPct+'%')+'</span>'
-        +'</div>'
-        +'<div style="font-size:9px;color:'+(canTake?'#2E7D32':'#C0392B')+';margin-top:2px;font-weight:700">'
-          +(canTake?'Can take load':'Cannot take — loaded')+'</div>'
-      +'</div>';
-    }).join('');
-    altHtml = '<div class="efc-alt">'
-      +'<div style="font-size:8px;font-weight:700;color:#D07A00;letter-spacing:1px;flex-shrink:0;align-self:flex-start;padding-top:4px">ANY OTHER 33KV FEEDER<br>LOAD THAT CAN BE TAKEN</div>'
-      +altItems
-    +'</div>';
+  // Source-wise load split (Page 2: sum of LVs / √3)
+  var srcSplit = '';
+  if(d.srcType === 'multiple' && d.lvs.length >= 2){
+    var regLvs  = d.lvs.slice(0, half);
+    var altLvs  = d.lvs.slice(half);
+    var regLoad = Math.round(regLvs.reduce(function(s,l){return s+l.load;},0)/1.732);
+    var altLoad = Math.round(altLvs.reduce(function(s,l){return s+l.load;},0)/1.732);
+    var regCap  = Math.round(regLvs.reduce(function(s,l){return s+l.cap;},0)/1.732);
+    var altCap  = Math.round(altLvs.reduce(function(s,l){return s+l.cap;},0)/1.732);
+    srcSplit = '<div style="padding:8px 12px;background:#F6FAFD;border-top:1px solid #E8F0F8;'+
+      'display:flex;gap:10px;flex-wrap:wrap">'+
+      '<div style="font-size:9px;color:#7A95AD;font-weight:700;letter-spacing:1px;'+
+        'align-self:center;flex-shrink:0">SOURCE LOAD SPLIT</div>'+
+      '<div style="flex:1;min-width:160px;padding:6px 9px;border-radius:6px;'+
+        'background:#E8F5E9;border:1px solid #A5D6A7">'+
+        '<div style="font-size:8px;font-weight:700;color:#2E7D32;letter-spacing:.5px">✓ REGULAR SOURCE</div>'+
+        '<div style="font-size:10px;color:#4A6580;margin-top:1px">'+
+          ss.reg_source.split('-').slice(-1)[0]+'</div>'+
+        '<div style="font-size:13px;font-weight:700;font-family:monospace;color:#1B5E20;margin-top:2px">'+
+          regLoad+'A <span style="font-size:9px;font-weight:400;color:#7A95AD">/ '+regCap+'A ('+(regCap>0?Math.min(100,Math.round(regLoad/regCap*100)):0)+'%)</span></div>'+
+        '<div style="font-size:9px;color:#7A95AD">(LV1–LV'+half+' sum) ÷ √3</div>'+
+      '</div>'+
+      '<div style="flex:1;min-width:160px;padding:6px 9px;border-radius:6px;'+
+        'background:#FFF8E1;border:1px solid #FFE082">'+
+        '<div style="font-size:8px;font-weight:700;color:#D07A00;letter-spacing:.5px">⇄ ALTERNATE SOURCE</div>'+
+        '<div style="font-size:10px;color:#4A6580;margin-top:1px">'+
+          (ss.alt1||'—').split('-').slice(-1)[0]+'</div>'+
+        '<div style="font-size:13px;font-weight:700;font-family:monospace;color:#7A4800;margin-top:2px">'+
+          altLoad+'A <span style="font-size:9px;font-weight:400;color:#7A95AD">/ '+altCap+'A ('+(altCap>0?Math.min(100,Math.round(altLoad/altCap*100)):0)+'%)</span></div>'+
+        '<div style="font-size:9px;color:#7A95AD">(LV'+(half+1)+'–LV'+d.lvs.length+' sum) ÷ √3</div>'+
+      '</div>'+
+    '</div>';
+  } else {
+    // Single source: total load / √3 = incoming feeder load
+    var feederLoad = Math.round(totalLoad/1.732);
+    var feederCap  = 300; // default 33KV feeder cap
+    var fPct = Math.min(100,Math.round(feederLoad/feederCap*100));
+    var fCol = col(fPct), fBc = barcol(fPct);
+    // Flag if feeder feeds multiple SS (color indication from Page 2)
+    var feedsMulti = Math.random() < 0.15; // sim: 15% feeders serve multiple SS
+    srcSplit = '<div style="padding:8px 12px;background:#F6FAFD;border-top:1px solid #E8F0F8">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+      '<div>'+
+        '<div style="font-size:8px;font-weight:700;color:#7A95AD;letter-spacing:1px">33KV INCOMING FEEDER LOAD</div>'+
+        '<div style="font-size:10px;font-weight:600;color:#1A2E40;margin-top:2px">'+
+          (d.srcType==='alternate'?(ss.alt1||ss.reg_source):ss.reg_source)+
+          (feedsMulti?'<span style="font-size:8px;margin-left:6px;padding:1px 5px;border-radius:4px;background:#E3F2FD;border:1px solid #90CAF9;color:#0D47A1;font-family:monospace">⚑ MULTI-SS FEEDER</span>':'')+
+        '</div>'+
+      '</div>'+
+      '<div style="text-align:right">'+
+        '<div style="font-size:15px;font-weight:800;font-family:monospace;color:'+fCol+'">'+feederLoad+'A</div>'+
+        '<div style="font-size:9px;color:#7A95AD">(ΣLV) ÷ √3 &nbsp;·&nbsp; Cap: '+feederCap+'A</div>'+
+      '</div>'+
+      '</div>'+
+      '<div style="height:6px;background:#E8EFF6;border-radius:3px;overflow:hidden;margin-top:6px">'+
+      '<div style="width:'+fPct+'%;height:100%;background:'+fBc+';border-radius:3px;transition:width .5s"></div>'+
+      '</div>'+
+    '</div>';
   }
 
-  var cardBg = mp>=100?'#FFF8F7':mp>=80?'#FFFDF5':'#FFFFFF';
-  var cardBdr = mp>=100?'#EF9A9A':mp>=80?'#FFE082':'#D0DCF0';
+  return '<div style="background:#fff;border:.5px solid '+cardBdr+';border-radius:12px;'+
+    'box-shadow:0 2px 8px rgba(21,101,192,.07);overflow:hidden;transition:box-shadow .2s">'+
 
-  return '<div class="efc" style="background:'+cardBg+';border-color:'+cardBdr+'">'
+    // Card header
+    '<div style="padding:10px 14px;background:'+cardBg+';'+
+      'border-bottom:.5px solid '+cardBdr+';'+
+      'display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:11px;font-weight:800;color:#1A2E40;'+
+          'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+ss.ss_name+'</div>'+
+        '<div style="font-size:9px;color:#7A95AD;margin-top:2px;font-family:monospace">'+
+          ss.div+' &nbsp;·&nbsp; '+ss.section+'</div>'+
+        '<div style="font-size:9px;color:#4A6580;margin-top:2px;'+
+          'white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+ss.reg_source+'">'+
+          '⚡ '+(d.srcType==='alternate'?(ss.alt1||ss.reg_source):ss.reg_source)+'</div>'+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">'+
+        srcBadge+
+        '<div style="font-size:18px;font-weight:800;font-family:monospace;color:'+accentCol+';line-height:1">'+
+          maxLvPct+'%</div>'+
+        '<div style="font-size:9px;color:#7A95AD">max LV</div>'+
+      '</div>'+
+    '</div>'+
 
-    // ── Card Header ──────────────────────────────────────
-    +'<div class="efc-hdr">'
-      +'<div style="flex:1;min-width:0">'
-        +'<div class="efc-ss-name">'+ss.ss_name+'</div>'
-        +'<div class="efc-ss-meta">'+ss.div+' · '+ss.sub_div+' · '+ss.section+'</div>'
-      +'</div>'
-      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">'
-        +srcBadge
-        +'<div style="font-size:22px;font-weight:800;font-family:monospace;color:'+col(mp)+';line-height:1">'+mp+'%</div>'
-        +'<div style="font-size:8px;color:#7A95AD">max LV loading</div>'
-      +'</div>'
-    +'</div>'
+    // Overload banner
+    overloadBanner+
 
-    // Critical/high banner
-    +critBanner
+    // LV Table
+    '<table style="width:100%;border-collapse:collapse">'+
+      '<thead><tr style="background:#EEF4FC">'+
+        '<th style="padding:5px 10px;text-align:left;font-size:8px;font-weight:700;'+
+          'letter-spacing:1px;color:#7A95AD">LV</th>'+
+        '<th style="padding:5px 10px;text-align:left;font-size:8px;font-weight:700;'+
+          'letter-spacing:1px;color:#7A95AD">MVA</th>'+
+        '<th style="padding:5px 10px;text-align:right;font-size:8px;font-weight:700;'+
+          'letter-spacing:1px;color:#7A95AD">CAPACITY</th>'+
+        '<th style="padding:5px 14px;font-size:8px;font-weight:700;'+
+          'letter-spacing:1px;color:#7A95AD;min-width:100px">LOAD BAR</th>'+
+        '<th style="padding:5px 10px;text-align:right;font-size:8px;font-weight:700;'+
+          'letter-spacing:1px;color:#7A95AD">LOAD (A)</th>'+
+        '<th style="padding:5px 10px;text-align:right;font-size:8px;font-weight:700;'+
+          'letter-spacing:1px;color:#7A95AD">%</th>'+
+      '</tr></thead>'+
+      '<tbody>'+lvRows+'</tbody>'+
+    '</table>'+
 
-    // ── Energy Flow Line ──────────────────────────────────
-    // EHT SS → Arrow → 33KV Feeder → Arrow → SS
-    +'<div class="efc-flow">'
+    // Source split / feeder load
+    srcSplit+
 
-      // EHT SS node
-      +'<div class="efc-node efc-node-eht" style="flex:1;min-width:120px">'
-        +'<div class="efc-node-lbl">EHT SS</div>'
-        +'<div class="efc-node-val">'+ehtName+'</div>'
-      +'</div>'
-
-      // Arrow
-      +'<div class="efc-arrow">➜</div>'
-
-      // 33KV Feeder node
-      +'<div class="efc-node efc-node-feeder" style="flex:2;min-width:160px">'
-        +'<div class="efc-node-lbl">33KV FEEDER ('+srcLabel+')</div>'
-        +'<div class="efc-node-val" style="font-size:10px">'+srcFeeder+'</div>'
-        +'<div class="efc-node-sub">Feeder Load: <strong style="color:'+fCol+'">'+feederLoad+'A</strong> / '+FEEDER_CAP+'A ('+feederPct+'%)</div>'
-        +'<div class="efc-bar" style="margin-top:4px"><div class="efc-bar-fill '+barcls(feederPct)+'" style="width:'+feederPct+'%"></div></div>'
-      +'</div>'
-
-      // Arrow
-      +'<div class="efc-arrow">➜</div>'
-
-      // SS node
-      +'<div class="efc-node efc-node-ss" style="flex:1;min-width:100px">'
-        +'<div class="efc-node-lbl">33/11KV SS</div>'
-        +'<div class="efc-node-val" style="font-size:10px">'+d.lvs.length+' LV Feeders</div>'
-        +'<div class="efc-node-sub">'+d.lvs.map(function(l){return l.name+':'+l.mva+'MVA';}).join(' | ')+'</div>'
-      +'</div>'
-
-    +'</div>'
-
-    // ── LV Table ──────────────────────────────────────────
-    +'<div style="overflow-x:auto">'
-    +'<table class="efc-tbl">'
-      +'<thead><tr>'
-        +'<th>LV FEEDER</th>'
-        +'<th>PTR CAPACITY</th>'
-        +'<th class="r">MAX LOAD (A)</th>'
-        +'<th style="min-width:100px;padding:6px 14px">LOAD BAR</th>'
-        +'<th class="r">RECORDED LOAD (A)</th>'
-        +'<th class="r">% LOADING</th>'
-      +'</tr></thead>'
-      +'<tbody>'+lvRows+'</tbody>'
-      +'<tfoot><tr>'+tfoot.slice(4) // remove leading <tr>
-    +'</table></div>'
-
-    // ── Feeder Load Footer ────────────────────────────────
-    +'<div class="efc-foot">'
-      +'<div>'
-        +'<div style="font-size:8px;font-weight:700;color:#7A95AD;letter-spacing:1px">33KV FEEDER INCOMING LOAD (Σ LV ÷ √3)</div>'
-        +'<div style="font-size:11px;font-weight:600;color:#1A2E40;margin-top:2px">'+srcFeeder+'</div>'
-      +'</div>'
-      +'<div style="text-align:right">'
-        +'<div style="font-size:20px;font-weight:800;font-family:monospace;color:'+fCol+'">'+feederLoad+'<span style="font-size:10px;font-weight:400">A</span></div>'
-        +'<div style="font-size:9px;color:#7A95AD">Cap: '+FEEDER_CAP+'A &nbsp;|&nbsp; '+feederPct+'%</div>'
-      +'</div>'
-      +'<div style="flex:1;min-width:120px;padding:0 10px">'
-        +'<div class="efc-bar" style="height:8px"><div class="efc-bar-fill '+barcls(feederPct)+'" style="width:'+feederPct+'%"></div></div>'
-      +'</div>'
-    +'</div>'
-
-    // ── Alternate Sources ─────────────────────────────────
-    +altHtml
-
-  +'</div>';
+  '</div>';
 }
 
-// ── FILTER + CASCADE ─────────────────────────────────────────────
-function ssldCascade(){
-  var div = document.getElementById('ssld-div').value;
-  var sdEl = document.getElementById('ssld-subdiv');
-  var secEl = document.getElementById('ssld-sec');
-  // Reset sub-div and section when division changes
-  var allSubDivs = Array.from(new Set(REAL_SS_DB.filter(function(ss){ return !div||ss.div===div; }).map(function(ss){return ss.sub_div;}))).sort();
-  var allSecs    = Array.from(new Set(REAL_SS_DB.filter(function(ss){ return !div||ss.div===div; }).map(function(ss){return ss.section;}))).sort();
-  var curSD = sdEl.value;
-  sdEl.innerHTML = '<option value="">All Sub-Divs</option>'+allSubDivs.map(function(s){return '<option value="'+s+'"'+(s===curSD?' selected':'')+'>'+s+'</option>';}).join('');
-  var curSec = secEl.value;
-  secEl.innerHTML = '<option value="">All Sections</option>'+allSecs.map(function(s){return '<option value="'+s+'"'+(s===curSec?' selected':'')+'>'+s+'</option>';}).join('');
-  ssldFilter();
-}
-
-function quickFilter(val){
-  document.getElementById('ssld-status').value = val;
-  ssldFilter();
-}
+// ── FILTER + SORT ──────────────────────────────────────
+var filteredData = ssLoadData.slice();
 
 function ssldFilter(){
-  var q      = (document.getElementById('ssld-search').value||'').toLowerCase();
-  var div    = document.getElementById('ssld-div').value;
-  var subdiv = document.getElementById('ssld-subdiv').value;
-  var sec    = document.getElementById('ssld-sec').value;
-  var status = document.getElementById('ssld-status').value;
-  var sort   = document.getElementById('ssld-sort').value;
+  var q = (document.getElementById('ssld-search').value||'').toLowerCase();
+  var div = document.getElementById('ssld-div').value;
+  var sort = document.getElementById('ssld-sort').value;
 
   filteredData = ssLoadData.filter(function(d){
-    var ss = d.ss;
-    if(div    && ss.div     !== div)    return false;
-    if(subdiv && ss.sub_div !== subdiv) return false;
-    if(sec    && ss.section !== sec)    return false;
-    if(q && !(ss.ss_name+ss.reg_source+ss.alt1+ss.eht+ss.div+ss.section).toLowerCase().includes(q)) return false;
-    var mp = maxPct(d);
-    if(status==='critical' && mp < 100)  return false;
-    if(status==='high'     && (mp<80||mp>=100)) return false;
-    if(status==='normal'   && mp >= 80)  return false;
-    if(status==='alt'      && d.srcType==='reg') return false;
+    if(div && d.ss.div !== div) return false;
+    if(q && !(d.ss.ss_name+d.ss.reg_source+d.ss.alt1+d.ss.div+d.ss.section).toLowerCase().includes(q)) return false;
     return true;
   });
 
   filteredData.sort(function(a,b){
-    if(sort==='pct-desc') return maxPct(b)-maxPct(a);
-    if(sort==='pct-asc')  return maxPct(a)-maxPct(b);
+    var pA = Math.max.apply(null, a.lvs.map(function(l){return pct(l.load,l.cap);}));
+    var pB = Math.max.apply(null, b.lvs.map(function(l){return pct(l.load,l.cap);}));
+    if(sort==='pct-desc') return pB-pA;
+    if(sort==='pct-asc')  return pA-pB;
     if(sort==='name')     return a.ss.ss_name.localeCompare(b.ss.ss_name);
-    if(sort==='div')      return a.ss.div.localeCompare(b.ss.div);
-    return maxPct(b)-maxPct(a);
+    if(sort==='overload') return (pB>=80?1:0)-(pA>=80?1:0);
+    return pB-pA;
   });
 
   renderSSLD();
 }
 
-// ── RENDER ────────────────────────────────────────────────────────
+// ── RENDER ─────────────────────────────────────────────
 function renderSSLD(){
   var grid = document.getElementById('ssld-grid');
   if(!grid) return;
 
-  var critCnt = filteredData.filter(function(d){return maxPct(d)>=100;}).length;
-  var altCnt  = filteredData.filter(function(d){return d.srcType!=='reg';}).length;
-
   // Update chips
+  var overCnt = filteredData.filter(function(d){
+    return Math.max.apply(null, d.lvs.map(function(l){return pct(l.load,l.cap);})) >= 100;
+  }).length;
+  var chip = document.getElementById('ssld-overload-chip');
+  if(chip){
+    chip.style.display = overCnt > 0 ? 'inline-block' : 'none';
+    chip.textContent = '⚠ '+overCnt+' OVERLOADED';
+  }
   var cc = document.getElementById('ssld-count-chip');
   if(cc) cc.textContent = filteredData.length+' SS';
-  var crit = document.getElementById('ssld-crit-chip');
-  if(crit){ crit.style.display=critCnt>0?'inline-block':'none'; crit.textContent='⚠ '+critCnt+' CRITICAL'; }
-  var lbl = document.getElementById('ssld-count-lbl');
-  if(lbl) lbl.textContent = filteredData.length+' results';
+  var rc = document.getElementById('ssld-result-count');
+  if(rc) rc.textContent = filteredData.length+' results';
 
   // Refresh time
   var now=new Date(), p=function(n){return String(n).padStart(2,'0');};
-  var el=document.getElementById('ssld-refresh');
+  var el = document.getElementById('ssld-refresh');
   if(el) el.textContent=p(now.getDate())+'/'+p(now.getMonth()+1)+'/'+now.getFullYear()+' '+p(now.getHours())+':'+p(now.getMinutes())+':'+p(now.getSeconds());
 
   if(!filteredData.length){
@@ -1171,42 +1070,88 @@ function renderSSLD(){
   grid.innerHTML = filteredData.map(buildCard).join('');
 }
 
-// ── API STATUS ────────────────────────────────────────────────────
-function setApiStatus(live){
-  var c=document.getElementById('ssld-live-chip');
-  if(c){
-    c.textContent=live?'🟢 LIVE API':'🟡 SIMULATION';
-    c.style.background=live?'rgba(0,200,83,.2)':'rgba(255,171,0,.2)';
-    c.style.borderColor=live?'rgba(0,200,83,.4)':'rgba(255,171,0,.4)';
-    c.style.color=live?'#90EE90':'#FFE082';
-  }
-}
+// ── ANIMATION ──────────────────────────────────────────
+var ssldStyle = document.createElement('style');
+ssldStyle.textContent = '@keyframes ssld-blink{50%{opacity:.3}}';
+document.head.appendChild(ssldStyle);
 
-// ── TICK ──────────────────────────────────────────────────────────
+// ── LIVE UPDATES ───────────────────────────────────────
 function ssldTick(){
+  // Only update if section is active
   if(!document.getElementById('sec-ssload').classList.contains('active')) return;
   simLoads();
   renderSSLD();
 }
 
-// ── INIT ──────────────────────────────────────────────────────────
-setApiStatus(false);
-ssldFilter();
-setInterval(ssldTick, 4000);
-
-// Try API in background
+// ── INIT ───────────────────────────────────────────────
+// ── API-LIVE MODE ──────────────────────────────────────────────────────
+// Tries local API at http://localhost:8000 → falls back to simulation
 var API_BASE = 'http://localhost:8000';
-setTimeout(function(){
-  var ctrl=new AbortController();
-  setTimeout(function(){ctrl.abort();},2000);
-  fetch(API_BASE+'/health',{signal:ctrl.signal})
-    .then(function(r){return r.json();})
-    .then(function(d){if(d.status==='ok') setApiStatus(true);})
-    .catch(function(){});
-},600);
+var usingLiveAPI = false;
+
+function setApiStatus(live) {
+  usingLiveAPI = live;
+  var c = document.getElementById('ssld-live-chip');
+  if(c) {
+    c.textContent = live ? '🟢 LIVE API' : '🟡 SIMULATION';
+    c.style.background = live ? 'rgba(0,200,83,.2)' : 'rgba(255,171,0,.2)';
+    c.style.borderColor = live ? 'rgba(0,200,83,.4)' : 'rgba(255,171,0,.4)';
+    c.style.color = live ? '#90EE90' : '#FFE082';
+  }
+}
+
+function loadFromAPI() {
+  fetch(API_BASE + '/ss/all')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      setApiStatus(true);
+      ssLoadData = data.results.map(function(ss) {
+        var realSS = REAL_SS_DB.find(function(d){ return d.ss_code === ss.ss_code; });
+        var lvs = realSS ? realSS.lvs.map(function(lv) {
+          return {name: lv.lv, mva: lv.mva, cap: lv.cap, load: Math.round(lv.cap*(0.35+Math.random()*0.5))};
+        }) : [];
+        var totalCap = lvs.reduce(function(s,l){ return s+l.cap; }, 0);
+        return {
+          ss: {
+            ss_code: ss.ss_code, ss_name: ss.ss_name,
+            div: ss.division, section: ss.section, sub_div: ss.sub_div,
+            reg_source: ss.reg_source||'', alt1: ss.alt1||'',
+            alt2: ss.alt2||'', alt3: ss.alt3||''
+          },
+          lvs: lvs, totalCap: totalCap, srcType: 'regular', hasAlt: !!(ss.alt1)
+        };
+      });
+      ssldFilter();
+      setInterval(function() {
+        if(!document.getElementById('sec-ssload').classList.contains('active')) return;
+        simLoads(); ssldFilter();
+      }, 4000);
+    })
+    .catch(function(e) { console.warn('API load failed:', e); fallbackToSim(); });
+}
+
+function fallbackToSim() {
+  setApiStatus(false);
+  initLoads();
+  ssldFilter();
+  setInterval(ssldTick, 4000);
+}
+
+function tryAPI() {
+  var ctrl = new AbortController();
+  var tid = setTimeout(function(){ ctrl.abort(); }, 2000);
+  fetch(API_BASE + '/health', {signal: ctrl.signal})
+    .then(function(r){ clearTimeout(tid); return r.json(); })
+    .then(function(d){ if(d.status==='ok') loadFromAPI(); else fallbackToSim(); })
+    .catch(function(){ clearTimeout(tid); fallbackToSim(); });
+}
+
+setApiStatus(false); ssldFilter(); setInterval(ssldTick, 4000);
+setTimeout(function(){ var ctrl=new AbortController(); var tid=setTimeout(function(){ctrl.abort();},2000); fetch(API_BASE+'/health',{signal:ctrl.signal}).then(function(r){clearTimeout(tid);return r.json();}).then(function(d){if(d.status==='ok'){setApiStatus(true);}}).catch(function(){});},500);
 
 })();
 </script>
+</div>
 
 <!-- ── MAP ────────────────────────────────────────────────────────────── -->
 <div class="shell-section" id="sec-map">
