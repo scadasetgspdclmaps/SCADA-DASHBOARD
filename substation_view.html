@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>33/11kV Substation Dashboard</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<style>
+:root{
+  --bg:#070b10;--panel:#101820;--panel2:#131d27;--card:#17212d;--line:#263342;
+  --text:#eaf2ff;--muted:#8fa0b4;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;
+  --blue:#38bdf8;--violet:#8b5cf6;--cyan:#14f1d9;--shadow:0 20px 60px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top,#132033,#05070a 55%);color:var(--text);font-family:Segoe UI,Arial,sans-serif;overflow:hidden}
+.app{height:100vh;display:grid;grid-template-columns:260px 1fr;grid-template-rows:62px 1fr}
+.top{grid-column:1/3;background:rgba(9,13,18,.88);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:18px;padding:0 18px;backdrop-filter:blur(12px)}
+.logo{font-weight:800;font-size:20px}.logo i{color:var(--cyan);margin-right:10px}.tag{background:#103b25;color:#59ffa0;padding:5px 10px;border-radius:999px;font-size:12px}.search{flex:1;max-width:560px;background:#111922;border:1px solid var(--line);border-radius:12px;padding:11px 14px;color:var(--muted)}
+.btn{background:#1a2531;border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:10px;cursor:pointer}.btn.white{background:#f8fafc;color:#0f172a;font-weight:700}.live{color:#55ffa2;font-size:13px}
+.side{background:rgba(8,12,17,.92);border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;gap:18px}.station{background:#141d27;border:1px solid var(--line);padding:13px;border-radius:12px;font-weight:700}.nav a{display:flex;gap:12px;align-items:center;color:var(--muted);padding:12px;border-radius:10px;text-decoration:none;margin:4px 0}.nav a.active,.nav a:hover{background:#1b2633;color:#fff}.nav i{width:18px}.profile{margin-top:auto;background:#111922;border:1px solid var(--line);padding:14px;border-radius:14px;color:var(--muted)}
+.main{padding:16px;overflow:auto}.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}.card{background:linear-gradient(180deg,#182331,#101720);border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:var(--shadow)}.card h4{margin:0 0 12px;color:#cbd5e1;font-size:14px}.big{font-size:28px;font-weight:800}.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--yellow)}
+.grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:14px}.viewer{min-height:620px;background:#0b1118;border:1px solid var(--line);border-radius:16px;position:relative;overflow:hidden}.viewer:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:36px 36px;opacity:.8}.viewer-head{position:absolute;z-index:3;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:center}.pill{background:#151e29;border:1px solid var(--line);padding:8px 12px;border-radius:10px;color:#cbd5e1;font-size:13px}.yard{position:absolute;left:50%;top:53%;width:760px;height:430px;transform:translate(-50%,-50%) rotateX(60deg) rotateZ(-38deg);transform-style:preserve-3d;border:8px solid #394553;background:linear-gradient(135deg,#252b31,#14191f);box-shadow:0 45px 80px rgba(0,0,0,.6)}.road{position:absolute;background:#444b54;border:2px solid #58616d}.r1{left:40px;right:40px;top:190px;height:28px}.r2{top:40px;bottom:40px;left:355px;width:28px}.fence{position:absolute;inset:-28px;border:2px dashed #6b7280;opacity:.55}
+.eq{position:absolute;transform-style:preserve-3d;text-align:center;font-size:13px;font-weight:700;color:#dbeafe;text-shadow:0 2px 4px #000}.box{width:105px;height:75px;background:#334155;border:2px solid #64748b;box-shadow:0 20px 0 #1f2937,0 22px 20px rgba(0,0,0,.5)}.ptr .box{background:linear-gradient(90deg,#475569,#94a3b8,#334155);border-color:#9ca3af}.bus{height:12px;background:#facc15;box-shadow:0 10px 0 #a16207;border-radius:8px}.breaker .box{width:45px;height:45px;background:#475569}.cap .box{width:95px;height:70px;background:#155e75;border-color:#22d3ee}.on .box{outline:4px solid rgba(34,197,94,.5)}.alarm .box{outline:5px solid rgba(239,68,68,.7);animation:pulse 1s infinite}@keyframes pulse{50%{filter:brightness(1.8)}}
+.t1{left:120px;top:245px}.t2{left:125px;top:95px}.bus33{left:285px;top:85px;width:360px}.bus11{left:285px;top:300px;width:360px}.cb1{left:315px;top:145px}.cb2{left:410px;top:145px}.cb3{left:505px;top:145px}.cb4{left:605px;top:250px}.cap1{left:610px;top:100px}.ctrl{left:45px;top:35px}.ctrl .box{width:135px;height:90px;background:#d1d5db;color:#111827}.label{position:absolute;transform:rotateZ(38deg) rotateX(-60deg);background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;box-shadow:var(--shadow);min-width:155px}.l1{left:250px;top:165px}.l2{left:510px;top:230px}.l3{left:80px;top:225px}.legend{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:12px;background:#111922;border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--muted);font-size:12px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}.panel{display:flex;flex-direction:column;gap:14px}.status-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);color:#dbeafe}.status-row small{color:var(--muted)}.bar{height:8px;background:#263342;border-radius:20px;overflow:hidden;margin-top:7px}.bar span{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--yellow));border-radius:20px}.alarms{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:14px;margin-top:14px}.table{width:100%;border-collapse:collapse;font-size:13px}.table th,.table td{padding:11px;border-bottom:1px solid var(--line);text-align:left}.table th{color:var(--muted);font-weight:600}.gauge{height:150px;display:grid;place-items:center}.circle{width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--green) 0 72%,#263342 72%);display:grid;place-items:center}.circle div{width:82px;height:82px;border-radius:50%;background:#111922;display:grid;place-items:center;font-size:24px;font-weight:800}
+@media(max-width:1200px){.cards{grid-template-columns:repeat(3,1fr)}.grid,.alarms{grid-template-columns:1fr}.side{display:none}.app{grid-template-columns:1fr}.top{grid-column:1}.yard{scale:.75}.viewer{min-height:520px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top"><div class="logo"><i class="fa-solid fa-bolt"></i>33/11kV Substation - Sunraise SS</div><span class="tag">ONLINE</span><input class="search" placeholder="Search PTR, feeder, breaker, alarms..."/><button class="btn">Last 15 minutes</button><span class="live"><i class="fa-solid fa-circle"></i> Live</span><button class="btn white"><i class="fa-solid fa-plus"></i> Add Event</button></header>
+<aside class="side"><div class="station"><i class="fa-solid fa-building-shield"></i> 33/11kV Sunraise SS</div><nav class="nav"><a class="active"><i class="fa-solid fa-gauge"></i>Overview</a><a><i class="fa-solid fa-diagram-project"></i>Single Line Diagram</a><a><i class="fa-solid fa-cube"></i>3D Substation View</a><a><i class="fa-solid fa-triangle-exclamation"></i>Alarms & Events</a><a><i class="fa-solid fa-chart-line"></i>Analytics</a><a><i class="fa-solid fa-plug-circle-bolt"></i>Energy Meters</a><a><i class="fa-solid fa-file-lines"></i>Reports</a><a><i class="fa-solid fa-screwdriver-wrench"></i>Maintenance</a></nav><div class="profile"><b>Operator</b><br>Control Room User<br><span class="ok">● online</span></div></aside>
+<main class="main">
+<section class="cards">
+ <div class="card"><h4>Total Load</h4><div class="big">18.6 MVA</div><span class="ok">▲ 72% loading</span></div>
+ <div class="card"><h4>Total Power</h4><div class="big">15.2 MW</div><span class="ok">68% demand</span></div>
+ <div class="card"><h4>Frequency</h4><div class="big">50.01 Hz</div><span class="ok">Normal</span></div>
+ <div class="card"><h4>33kV Bus</h4><div class="big">33.2 kV</div><span class="ok">Healthy</span></div>
+ <div class="card"><h4>11kV Bus</h4><div class="big">11.1 kV</div><span class="ok">Healthy</span></div>
+ <div class="card"><h4>Active Alarms</h4><div class="big bad">2</div><span class="bad">PTR oil temp high</span></div>
+</section>
+<section class="grid">
+<div class="viewer">
+ <div class="viewer-head"><div><span class="pill"><i class="fa-solid fa-cube"></i> 3D View</span> <span class="pill">Equipment Status</span></div><span class="pill">Live updating every 30s</span></div>
+ <div class="yard">
+  <div class="fence"></div><div class="road r1"></div><div class="road r2"></div>
+  <div class="eq ctrl"><div class="box">Control Room</div></div>
+  <div class="eq ptr on t1"><div class="box"></div>PTR-1<br>16 MVA</div>
+  <div class="eq ptr t2"><div class="box"></div>PTR-2<br>Standby</div>
+  <div class="eq bus bus33"><div class="bus"></div>33kV Busbar</div>
+  <div class="eq bus bus11"><div class="bus"></div>11kV Busbar</div>
+  <div class="eq breaker on cb1"><div class="box"></div>CB-1</div>
+  <div class="eq breaker on cb2"><div class="box"></div>CB-2</div>
+  <div class="eq breaker alarm cb3"><div class="box"></div>CB-3</div>
+  <div class="eq breaker on cb4"><div class="box"></div>VCB-11kV</div>
+  <div class="eq cap cap1"><div class="box"></div>Capacitor Bank</div>
+  <div class="label l1"><b>33kV Incoming</b><br><span class="ok">33.2 kV</span> | 812 A<br>15.3 MW</div>
+  <div class="label l2"><b>11kV Busbar</b><br><span class="ok">11.1 kV</span> | 1243 A<br>6 Feeders</div>
+  <div class="label l3"><b>PTR-1</b><br><span class="ok">ON LOAD</span><br>Load: 72%<br>Oil Temp: 58°C</div>
+ </div>
+ <div class="legend"><span><i class="dot" style="background:var(--green)"></i>In Service</span><span><i class="dot" style="background:#3b82f6"></i>Standby</span><span><i class="dot" style="background:#6b7280"></i>Off</span><span><i class="dot" style="background:var(--red)"></i>Alarm</span><span><i class="dot" style="background:var(--yellow)"></i>Maintenance</span></div>
+</div>
+<aside class="panel">
+ <div class="card"><h4>Equipment Status</h4>
+  <div class="status-row"><span><i class="fa-solid fa-transformer-bolt"></i> Power Transformers<br><small>1 on load</small></span><b>2</b><b>0 Fault</b></div>
+  <div class="status-row"><span>33kV Circuit Breakers<br><small>2 closed</small></span><b>2</b><b>0 Open</b></div>
+  <div class="status-row"><span>11kV Circuit Breakers<br><small>7 closed</small></span><b>8</b><b>1 Open</b></div>
+  <div class="status-row"><span>Isolators<br><small>13 closed</small></span><b>14</b><b>1 Open</b></div>
+  <div class="status-row"><span>Lightning Arresters<br><small>All OK</small></span><b>6</b><b>0 Fault</b></div>
+ </div>
+ <div class="card"><h4>Load by 11kV Feeders</h4>
+  <p>Industrial Area <b style="float:right">3.6 MW</b></p><div class="bar"><span style="width:72%"></span></div>
+  <p>Residential <b style="float:right">2.8 MW</b></p><div class="bar"><span style="width:56%"></span></div>
+  <p>Commercial <b style="float:right">3.1 MW</b></p><div class="bar"><span style="width:62%"></span></div>
+  <p>Agriculture <b style="float:right">1.8 MW</b></p><div class="bar"><span style="width:36%"></span></div>
+ </div>
+</aside>
+</section>
+<section class="alarms">
+ <div class="card"><h4>Alarms & Events</h4><table class="table"><tr><th>Time</th><th>Severity</th><th>Message</th><th>Status</th></tr><tr><td>10:28</td><td class="bad">High</td><td>PTR-1 Oil Temperature High</td><td class="bad">Active</td></tr><tr><td>10:27</td><td class="warn">Medium</td><td>Feeder-3 Overload Warning</td><td class="bad">Active</td></tr><tr><td>10:25</td><td class="ok">Low</td><td>Capacitor Bank Step Change</td><td>Ack</td></tr></table></div>
+ <div class="card"><h4>PTR-1 Loading</h4><div class="gauge"><div class="circle"><div>72%</div></div></div><p>Oil: 58°C | Wdg: 67°C | 15.2 MVA</p></div>
+ <div class="card"><h4>PTR-2 Loading</h4><div class="gauge"><div class="circle" style="background:conic-gradient(#334155 0 0%,#263342 0%)"><div>0%</div></div></div><p>Standby | Oil: 42°C | Wdg: 45°C</p></div>
+</section>
+</main>
+</div>
+</body>
+</html>
