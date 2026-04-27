@@ -66,7 +66,8 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);display:flex;fle
 .zc{margin-left:auto;display:flex;gap:4px;align-items:center}
 .zb{width:24px;height:24px;border:1px solid var(--b1);border-radius:5px;background:var(--card);color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:monospace;transition:.12s}
 .zb:hover{border-color:var(--gr);color:var(--gr)}
-#zlbl{font-size:10px;color:var(--tx2);font-family:var(--mn);padding:0 4px;min-width:36px;text-align:center}
+#zlbl,#rotlbl{font-size:10px;color:var(--tx2);font-family:var(--mn);padding:0 4px;min-width:36px;text-align:center}
+#rotlbl{min-width:46px;color:var(--bl)}
 #rp{width:236px;border-left:1px solid var(--b1);background:var(--panel);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
 #rp::-webkit-scrollbar{width:3px}
 #rp::-webkit-scrollbar-thumb{background:var(--b1)}
@@ -126,6 +127,12 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);display:flex;fle
       <div class="leg"><div class="ld" style="background:var(--bl)"></div>Maintenance</div>
       <div class="leg"><div class="ld" style="background:var(--gy)"></div>Isolated</div>
       <div class="zc">
+        <button class="zb" onclick="rotLeft()" title="Rotate view left">⟲</button>
+        <span id="rotlbl">0°</span>
+        <button class="zb" onclick="rotRight()" title="Rotate view right">⟳</button>
+        <button class="zb" onclick="toggleAutoRotate()" title="Auto rotate">▶</button>
+        <button class="zb" onclick="rotReset()" title="Reset rotation">R</button>
+        <span style="width:1px;height:18px;background:var(--b1);margin:0 3px"></span>
         <button class="zb" onclick="zIn()">+</button>
         <span id="zlbl">100%</span>
         <button class="zb" onclick="zOut()">−</button>
@@ -171,7 +178,17 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);display:flex;fle
 const S=14, C30=0.866, S30=0.5;
 const svg=document.getElementById('ss');
 
-function p(x,y,z=0){return{sx:(x-y)*S*C30, sy:(x+y)*S*S30-z*S};}
+// 3D view rotation. Default 0° keeps Claude's original isometric angle.
+// Buttons at the bottom rotate the entire substation model without changing equipment data.
+let rotDeg=0;
+const ROT_CENTER={x:22.5,y:18.5};
+function p(x,y,z=0){
+  const a=rotDeg*Math.PI/180;
+  const dx=x-ROT_CENTER.x, dy=y-ROT_CENTER.y;
+  const rx=dx*Math.cos(a)-dy*Math.sin(a)+ROT_CENTER.x;
+  const ry=dx*Math.sin(a)+dy*Math.cos(a)+ROT_CENTER.y;
+  return{sx:(rx-ry)*S*C30, sy:(rx+ry)*S*S30-z*S};
+}
 function pv(pts){return pts.map(q=>`${q.sx.toFixed(1)},${q.sy.toFixed(1)}`).join(' ');}
 function E(tag,at={}){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const[k,v] of Object.entries(at))e.setAttribute(k,v);return e;}
 
@@ -374,6 +391,11 @@ function ptr(ox,oy,st,id){
   const sc={live:'#3fb950',warn:'#d29922',fault:'#f85149',maint:'#58a6ff',off:'#6e7681'}[st]||'#3fb950';
   const TW=10, TD=7, TH=5.2;
 
+  // ── 3D SHADOW + FOUNDATION PAD ──
+  const sh=p(ox+TW/2,oy+TD/2,-0.08);
+  g.appendChild(E('ellipse',{cx:sh.sx,cy:sh.sy,rx:'78',ry:'30',fill:'rgba(0,0,0,0.38)','pointer-events':'none'}));
+  g.appendChild(poly([p(ox-.35,oy-.25,.18),p(ox+TW+.35,oy-.25,.18),p(ox+TW+.35,oy+TD+.25,.18),p(ox-.35,oy+TD+.25,.18)],'#1b2430','rgba(255,255,255,0.04)',0.5));
+
   // ── BUND WALL (oil containment, 0.4m high) ──
   const bx=ox-.8,by=oy-.6, bw=TW+1.6, bd=TD+1.2, bH=.45;
   svg.appendChild(poly([p(bx,by),p(bx+bw,by),p(bx+bw,by+bd),p(bx,by+bd)],'#131820','rgba(255,255,255,0.025)',0.8));
@@ -405,6 +427,13 @@ function ptr(ox,oy,st,id){
     g.appendChild(poly([p(rx,oy+TD+.15,TH*.9),p(rx+1.2,oy+TD+.15,TH*.9),p(rx+1.2,oy+TD+.15,0),p(rx,oy+TD+.15,0)],c1,'rgba(255,255,255,0.03)',0.3));
   }
 
+  // cooling fan / oil cooler hints on radiator bank
+  [ox+1.8,ox+4.8,ox+7.8].forEach(fx=>{
+    const fp=p(fx,oy+TD+.35,TH*.62);
+    g.appendChild(E('circle',{cx:fp.sx,cy:fp.sy,r:'6.5',fill:'#111927',stroke:'#52637d','stroke-width':'0.7',opacity:'0.95'}));
+    g.appendChild(E('path',{d:`M ${fp.sx-5} ${fp.sy} Q ${fp.sx} ${fp.sy-7} ${fp.sx+5} ${fp.sy} Q ${fp.sx} ${fp.sy+7} ${fp.sx-5} ${fp.sy}`,fill:'#2d3b52',opacity:'0.75','pointer-events':'none'}));
+  });
+
   // ── MAIN TANK BODY ── (steel blue-gray, medium darkness - NOT pitch black)
   // Left face (HV side — most visible)
   g.appendChild(poly([p(ox,oy,TH),p(ox+TW,oy,TH),p(ox+TW,oy,0),p(ox,oy,0)],'#283858','rgba(255,255,255,0.07)',0.8));
@@ -422,6 +451,13 @@ function ptr(ox,oy,st,id){
   g.appendChild(ln(ox,oy,TH*.5,ox+TW,oy,TH*.5,'rgba(100,140,200,0.12)',0.8,'5,5'));
   // bottom base plate line
   g.appendChild(ln(ox,oy,0,ox+TW,oy,0,'rgba(150,180,220,0.15)',1.0));
+
+  // transformer skid / rollers
+  [[ox+2.0,oy+TD+.25],[ox+4.2,oy+TD+.25],[ox+6.4,oy+TD+.25],[ox+8.6,oy+TD+.25]].forEach(([wx,wy])=>{
+    const wp=p(wx,wy,.25);
+    g.appendChild(E('ellipse',{cx:wp.sx,cy:wp.sy,rx:'6',ry:'3.5',fill:'#101722',stroke:'#3d4b60','stroke-width':'0.8'}));
+    g.appendChild(E('circle',{cx:wp.sx,cy:wp.sy,r:'2.2',fill:'#556070','stroke':'#778090','stroke-width':'0.5'}));
+  });
 
   // ── OLTC BOX (On-Load Tap Changer, at HV end, x=ox) ──
   const oltcW=1.4, oltcD=3.0, oltcH=3.8;
@@ -790,6 +826,27 @@ function setZ(z){
   document.getElementById('zlbl').textContent=Math.round(cz*100)+'%';
 }
 function zIn(){setZ(cz*1.3);} function zOut(){setZ(cz/1.3);} function zReset(){setZ(1);curVB=VB.slice();svg.setAttribute('viewBox',VB.join(' '));}
+
+let autoRotTimer=null;
+function updateRotLabel(){
+  const r=document.getElementById('rotlbl');
+  if(r) r.textContent=((rotDeg%360+360)%360)+'°';
+}
+function rerenderKeepView(){
+  const vb=[...curVB];
+  closePopup();
+  render();
+  curVB=vb;
+  svg.setAttribute('viewBox',curVB.join(' '));
+  updateRotLabel();
+}
+function rotLeft(){rotDeg=(rotDeg-15)%360;rerenderKeepView();}
+function rotRight(){rotDeg=(rotDeg+15)%360;rerenderKeepView();}
+function rotReset(){rotDeg=0;rerenderKeepView();}
+function toggleAutoRotate(){
+  if(autoRotTimer){clearInterval(autoRotTimer);autoRotTimer=null;return;}
+  autoRotTimer=setInterval(()=>{rotDeg=(rotDeg+5)%360;rerenderKeepView();},900);
+}
 document.getElementById('svgwrap').addEventListener('wheel',e=>{e.preventDefault();setZ(e.deltaY<0?cz*1.15:cz/1.15);},{passive:false});
 let dragging=false,dragStart={},vbS=[];
 document.getElementById('svgwrap').addEventListener('mousedown',e=>{dragging=true;dragStart={x:e.clientX,y:e.clientY};vbS=[...curVB];});
@@ -798,7 +855,7 @@ document.addEventListener('mouseup',()=>{dragging=false;});
 
 function tick(){const n=new Date();document.getElementById('clock').textContent=n.toLocaleTimeString('en-IN',{hour12:false})+' IST';}
 tick();setInterval(tick,1000);
-render();
+render();updateRotLabel();
 </script>
 </body>
 </html>
