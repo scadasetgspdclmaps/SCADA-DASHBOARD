@@ -2,860 +2,1195 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>33/11KV Golconda SS — TGSPDCL SCADA</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<title>33/11KV Golconda SS — 3D SCADA View</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#0d1117;--sb:#0d1117;--panel:#161b22;--card:#1c2128;--card2:#21262d;
-  --b1:rgba(255,255,255,0.08);--b2:rgba(255,255,255,0.04);
-  --tx:#e6edf3;--tx2:#7d8590;--tx3:#30363d;
-  --gr:#3fb950;--gr2:rgba(63,185,80,.14);--gr3:rgba(63,185,80,.3);
-  --am:#d29922;--am2:rgba(210,153,34,.14);
-  --rd:#f85149;--rd2:rgba(248,81,73,.14);
-  --bl:#58a6ff;--bl2:rgba(88,166,255,.12);
-  --gy:#6e7681;
-  --fn:'IBM Plex Sans',sans-serif;--mn:'JetBrains Mono',monospace;
+  --bg:#0a0c10;--panel:#0f1318;--card:#151a22;--card2:#1b2230;
+  --b1:rgba(255,255,255,0.07);--b2:rgba(255,255,255,0.04);
+  --tx:#dde6f0;--tx2:#687282;--tx3:#2e3848;
+  --gr:#2ecc71;--am:#f0a500;--rd:#e74c3c;--bl:#4a9eff;
+  --fn:'Segoe UI',system-ui,sans-serif;--mn:'Consolas',monospace;
 }
 body{font-family:var(--fn);background:var(--bg);color:var(--tx);display:flex;flex-direction:column;height:100vh;overflow:hidden}
-#topbar{height:50px;background:var(--panel);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
-.logo-ic{width:28px;height:28px;background:linear-gradient(135deg,#3fb950,#1a7f37);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.logo-t{font-size:13px;font-weight:600}.logo-s{font-size:9px;color:var(--tx2)}
-.live-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;background:var(--gr2);border:1px solid var(--gr3);color:var(--gr);font-size:10.5px;font-weight:500}
-.pulse{width:6px;height:6px;border-radius:50%;background:var(--gr);animation:blink 2s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-#clock{margin-left:auto;font-size:10.5px;font-family:var(--mn);color:var(--tx2)}
-.btn{padding:6px 12px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--b1);background:var(--card);color:var(--tx);font-family:var(--fn);transition:.12s}
-.btn.pr{background:var(--gr);color:#000;border-color:var(--gr);font-weight:600}
-.btn.pr:hover{background:#1a7f37;color:#fff}
+
+/* ─ TOP BAR ─ */
+#tb{height:46px;background:var(--panel);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;z-index:100}
+.logo{width:28px;height:28px;background:linear-gradient(135deg,#2ecc71,#1a7a45);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.tbrand{font-size:13px;font-weight:600}
+.tsub{font-size:9px;color:var(--tx2)}
+.sep{width:1px;height:22px;background:var(--b1)}
+.ss-tag{padding:3px 10px;background:var(--card);border:1px solid var(--b1);border-radius:5px;font-size:11px;font-weight:500}
+.live-p{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:5px;background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);color:var(--gr);font-size:10px;font-weight:500}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--gr);animation:bl 2s infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.2}}
+#clk{margin-left:auto;font-size:10px;font-family:var(--mn);color:var(--tx2)}
+.tbtn{padding:5px 11px;border-radius:5px;font-size:10.5px;cursor:pointer;border:1px solid var(--b1);background:var(--card);color:var(--tx);font-family:var(--fn);transition:.12s}
+.tbtn:hover{border-color:var(--gr);color:var(--gr)}
+.tbtn.act{background:var(--gr);color:#000;border-color:var(--gr);font-weight:600}
+
+/* ─ KPI ROW ─ */
 #krow{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--b1);flex-shrink:0;background:var(--panel)}
-.kc{padding:8px 13px;border-right:1px solid var(--b1)}.kc:last-child{border-right:none}
-.kc-lbl{font-size:9px;color:var(--tx2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px;font-weight:600}
-.kc-val{font-size:20px;font-weight:700;line-height:1;margin-bottom:3px;font-family:var(--mn)}
-.kc-sub{font-size:9.5px;color:var(--tx2);margin-bottom:5px}
-.kc-act{font-size:9.5px;color:var(--tx2);cursor:pointer;border-top:1px solid var(--b2);padding-top:5px}
-#body{flex:1;display:flex;overflow:hidden}
-#mapa{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;position:relative}
-.mbar{padding:6px 13px;border-bottom:1px solid var(--b1);background:var(--card);display:flex;align-items:center;gap:8px;flex-shrink:0}
-.mbar-t{font-size:11.5px;font-weight:600}
-.sel{background:var(--card);border:1px solid var(--b1);border-radius:5px;padding:4px 8px;font-size:10.5px;color:var(--tx);font-family:var(--fn);outline:none}
-.sel option{background:var(--card)}
-#svgwrap{flex:1;overflow:hidden;position:relative;cursor:grab;background:radial-gradient(ellipse at 50% 35%,rgba(63,185,80,.035) 0%,transparent 65%)}
-#svgwrap:active{cursor:grabbing}
-#ss{width:100%;height:100%}
-/* popup */
-#ep{position:absolute;z-index:300;background:var(--card);border:1px solid var(--b1);border-radius:10px;width:270px;display:none;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.85)}
-.ep-hd{padding:11px 13px;background:var(--card2);border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:9px}
-.ep-ic{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.ep-nm{font-size:12px;font-weight:600;flex:1;line-height:1.3}
-.ep-cl{cursor:pointer;color:var(--tx2);font-size:14px;padding:2px 4px;border-radius:4px}
-.ep-cl:hover{background:var(--b1);color:var(--tx)}
-.ep-bd{padding:10px 13px;max-height:300px;overflow-y:auto}
-.ep-bd::-webkit-scrollbar{width:3px}
-.ep-bd::-webkit-scrollbar-thumb{background:var(--b1)}
-.ep-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;font-size:10.5px;gap:8px}
-.ep-k{color:var(--tx2);flex-shrink:0}
-.ep-v{font-weight:500;text-align:right;font-family:var(--mn);font-size:10px}
-.ep-st{display:flex;align-items:center;gap:5px;font-weight:600;font-size:11px}
-.ep-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.ep-act{margin:0 13px 13px;padding:8px;background:var(--gr);border:none;border-radius:6px;color:#000;font-size:11px;font-weight:700;cursor:pointer;width:calc(100% - 26px);display:flex;align-items:center;justify-content:space-between;font-family:var(--fn)}
-#stbar{background:var(--panel);border-top:1px solid var(--b1);padding:5px 13px;display:flex;align-items:center;gap:14px;flex-shrink:0}
-.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--tx2)}
-.ld{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.zc{margin-left:auto;display:flex;gap:4px;align-items:center}
-.zb{width:24px;height:24px;border:1px solid var(--b1);border-radius:5px;background:var(--card);color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:monospace;transition:.12s}
-.zb:hover{border-color:var(--gr);color:var(--gr)}
-#zlbl,#rotlbl{font-size:10px;color:var(--tx2);font-family:var(--mn);padding:0 4px;min-width:36px;text-align:center}
-#rotlbl{min-width:46px;color:var(--bl)}
-#rp{width:236px;border-left:1px solid var(--b1);background:var(--panel);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
-#rp::-webkit-scrollbar{width:3px}
-#rp::-webkit-scrollbar-thumb{background:var(--b1)}
-.rp-s{padding:10px 12px;border-bottom:1px solid var(--b1)}
-.rp-t{font-size:9px;color:var(--tx2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;font-weight:600}
-.rp-r{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;font-size:10.5px;gap:6px}
-.rp-k{color:var(--tx2);flex-shrink:0}
-.rp-v{font-weight:500;text-align:right}
-.rp-vm{font-family:var(--mn);font-size:10px;color:var(--bl);text-align:right}
-.flr-btn{width:100%;padding:7px 9px;background:var(--card);border:1px solid var(--b1);border-radius:6px;color:var(--tx);font-size:10.5px;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;margin-top:7px;font-family:var(--fn);transition:.12s}
-.flr-btn:hover{border-color:var(--gr);color:var(--gr)}
+.kc{padding:7px 12px;border-right:1px solid var(--b1)}
+.kc:last-child{border-right:none}
+.klbl{font-size:8.5px;color:var(--tx2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;font-weight:600}
+.kval{font-size:19px;font-weight:700;line-height:1;margin-bottom:2px;font-family:var(--mn)}
+.ksub{font-size:9px;color:var(--tx2);margin-bottom:4px}
+.kact{font-size:9px;color:var(--tx2);cursor:pointer;border-top:1px solid var(--b2);padding-top:4px}
 .up{color:var(--gr)}.dn{color:var(--rd)}.warn{color:var(--am)}
+
+/* ─ MAIN BODY ─ */
+#body{flex:1;display:flex;overflow:hidden}
+
+/* ─ LEFT SIDEBAR ─ */
+#lsb{width:220px;background:var(--panel);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+#lsb::-webkit-scrollbar{width:3px}
+#lsb::-webkit-scrollbar-thumb{background:var(--b1)}
+.sb-sec{padding:5px 12px 3px;font-size:8.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-top:5px}
+.sb-lk{display:flex;align-items:center;gap:7px;padding:6px 12px;font-size:11px;color:var(--tx2);cursor:pointer;transition:.12s;border-left:2px solid transparent}
+.sb-lk:hover{background:rgba(255,255,255,0.03);color:var(--tx)}
+.sb-lk.act{background:rgba(46,204,113,.1);color:var(--gr);border-left-color:var(--gr)}
+.sb-bd{padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:700;margin-left:auto}
+
+/* ─ VIEWPORT AREA ─ */
+#vpa{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;position:relative}
+.vbar{padding:6px 12px;border-bottom:1px solid var(--b1);background:var(--card);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.vbar-t{font-size:11.5px;font-weight:600}
+.vsel{background:var(--card);border:1px solid var(--b1);border-radius:4px;padding:3px 7px;font-size:10px;color:var(--tx);font-family:var(--fn);outline:none}
+.vsel option{background:var(--card)}
+
+/* ─ VIEWPORT GRID ─ */
+#vpgrid{flex:1;display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:2px;background:#080b0f;overflow:hidden;position:relative}
+.vp{position:relative;overflow:hidden;background:#0a0d12;border:1px solid rgba(255,255,255,0.04)}
+.vp.main{grid-row:1/3}
+.vp-lbl{position:absolute;top:8px;left:10px;z-index:10;font-size:9px;font-weight:700;font-family:var(--mn);color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;pointer-events:none}
+.vp-corner{position:absolute;top:6px;right:8px;z-index:10;font-size:8.5px;font-family:var(--mn);color:rgba(255,255,255,0.25);pointer-events:none}
+canvas{display:block;width:100%!important;height:100%!important}
+#mainCanvas{position:absolute;inset:0}
+
+/* ─ BOTTOM STATUS ─ */
+#sbar{background:var(--panel);border-top:1px solid var(--b1);padding:5px 12px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.leg{display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--tx2)}
+.ld{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.zc{margin-left:auto;display:flex;gap:4px;align-items:center}
+.zb{width:22px;height:22px;border:1px solid var(--b1);border-radius:4px;background:var(--card);color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:.12s}
+.zb:hover{border-color:var(--gr);color:var(--gr)}
+#zlbl{font-size:9.5px;color:var(--tx2);font-family:var(--mn);min-width:32px;text-align:center}
+
+/* ─ DETAIL PANEL (right overlay) ─ */
+#dp{position:absolute;right:8px;top:8px;width:240px;background:var(--card);border:1px solid var(--b1);border-radius:8px;display:none;overflow:hidden;z-index:200;box-shadow:0 16px 48px rgba(0,0,0,.9)}
+.dp-hd{padding:10px 12px;background:var(--card2);border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px}
+.dp-ic{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.dp-nm{font-size:11.5px;font-weight:600;flex:1;line-height:1.3}
+.dp-cl{cursor:pointer;color:var(--tx2);font-size:13px;padding:2px 4px;border-radius:3px}
+.dp-cl:hover{background:var(--b1);color:var(--tx)}
+.dp-bd{padding:9px 12px;max-height:280px;overflow-y:auto}
+.dp-bd::-webkit-scrollbar{width:3px}
+.dp-bd::-webkit-scrollbar-thumb{background:var(--b1)}
+.dp-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:10px;gap:6px}
+.dp-k{color:var(--tx2);flex-shrink:0}
+.dp-v{font-weight:500;text-align:right;font-family:var(--mn);font-size:9.5px}
+.dp-st{display:flex;align-items:center;gap:4px;font-weight:600;font-size:10.5px}
+.dp-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dp-act{margin:0 12px 12px;padding:7px;background:var(--gr);border:none;border-radius:5px;color:#000;font-size:10.5px;font-weight:700;cursor:pointer;width:calc(100%-24px);display:flex;align-items:center;justify-content:space-between;font-family:var(--fn);width:calc(100% - 24px)}
+
+/* ─ VIEW MODE TABS ─ */
+#vmtabs{display:flex;gap:3px;margin-left:auto}
+.vmt{padding:4px 10px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid var(--b1);background:var(--card);color:var(--tx2);font-family:var(--fn);transition:.12s}
+.vmt:hover{color:var(--tx)}
+.vmt.act{background:rgba(74,158,255,.15);border-color:var(--bl);color:var(--bl);font-weight:600}
+
+/* ─ LOADING ─ */
+#loading{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px}
+.spin{width:36px;height:36px;border-radius:50%;border:3px solid var(--b1);border-top-color:var(--gr);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ldtxt{font-size:11px;color:var(--tx2);font-family:var(--mn)}
 </style>
 </head>
 <body>
-<div id="topbar">
-  <div class="logo-ic">⚡</div>
-  <div><div class="logo-t">TGSPDCL SCADA</div><div class="logo-s">Command Centre</div></div>
-  <div style="width:1px;height:24px;background:var(--b1)"></div>
-  <div style="padding:4px 10px;background:var(--card);border:1px solid var(--b1);border-radius:6px;font-size:11.5px;font-weight:500">🏭 33/11KV Golconda SS — 4 × 12.5 MVA PTR</div>
-  <div class="live-pill"><div class="pulse"></div>Live</div>
-  <div id="clock">--:--:-- IST</div>
-  <button class="btn pr" style="margin-left:8px">+ Log Event</button>
+
+<!-- TOP BAR -->
+<div id="tb">
+  <div class="logo">⚡</div>
+  <div><div class="tbrand">TGSPDCL SCADA</div><div class="tsub">Command Centre</div></div>
+  <div class="sep"></div>
+  <div class="ss-tag">🏭 33/11KV Golconda Substation — 4×12.5MVA</div>
+  <div class="live-p"><div class="dot"></div>Live</div>
+  <div id="clk">--:--:--</div>
+  <button class="tbtn pr act" style="background:var(--bl);border-color:var(--bl);color:#000" onclick="toggleInside()">🏗 Inside View</button>
+  <button class="tbtn pr" style="background:var(--gr);border-color:var(--gr);color:#000">+ Log Event</button>
 </div>
+
+<!-- KPI ROW -->
 <div id="krow">
-  <div class="kc"><div class="kc-lbl">PTR-I &amp; II Loading</div><div class="kc-val warn">87% / 64%</div><div class="kc-sub">10.9 / 8.0 MVA</div><div class="kc-act">PTR details →</div></div>
-  <div class="kc"><div class="kc-lbl">PTR-III &amp; IV Loading</div><div class="kc-val up">58% / 41%</div><div class="kc-sub">7.3 / 5.1 MVA</div><div class="kc-act">PTR details →</div></div>
-  <div class="kc"><div class="kc-lbl">Active Feeders</div><div class="kc-val" style="color:var(--bl)">14<span style="font-size:13px;color:var(--tx2)"> /17</span></div><div class="kc-sub dn">● 2 fault · 1 shutdown</div><div class="kc-act">Feeder status →</div></div>
-  <div class="kc"><div class="kc-lbl">33KV Bus Voltage</div><div class="kc-val up">33.1<span style="font-size:13px">kV</span></div><div class="kc-sub up">✓ Nominal</div><div class="kc-act">Volt profile →</div></div>
-  <div class="kc"><div class="kc-lbl">Active Alarms</div><div class="kc-val dn">4</div><div class="kc-sub dn">▲ +2 since 18:00</div><div class="kc-act">Acknowledge →</div></div>
+  <div class="kc"><div class="klbl">PTR-I Loading</div><div class="kval warn">87%</div><div class="ksub warn">▲ 10.9 MVA · High</div><div class="kact">PTR-I details →</div></div>
+  <div class="kc"><div class="klbl">PTR-II Loading</div><div class="kval up">64%</div><div class="ksub up">▼ 8.0 MVA · Normal</div><div class="kact">PTR-II details →</div></div>
+  <div class="kc"><div class="klbl">PTR-III / IV</div><div class="kval up">58%<span style="font-size:12px"> / 41%</span></div><div class="ksub up">7.3 / 5.1 MVA · OK</div><div class="kact">PTR details →</div></div>
+  <div class="kc"><div class="klbl">Live Feeders</div><div class="kval" style="color:var(--bl)">14<span style="font-size:12px;color:var(--tx2)"> /17</span></div><div class="ksub dn">● 2 fault · 1 isolated</div><div class="kact">Feeder map →</div></div>
+  <div class="kc"><div class="klbl">Active Alarms</div><div class="kval dn">4</div><div class="ksub dn">▲ +2 since 18:00</div><div class="kact">Acknowledge →</div></div>
 </div>
+
+<!-- BODY -->
 <div id="body">
-  <div id="mapa">
-    <div class="mbar">
-      <div class="mbar-t">Substation Isometric View — 33/11KV Golconda SS (4 PTRs)</div>
-      <select class="sel"><option>Display: Status</option><option>Display: Load %</option></select>
-      <select class="sel"><option>Zone: Full Substation</option><option>33KV Section</option><option>Transformer Yard</option><option>11KV LV Panel</option></select>
-      <div class="live-pill" style="margin-left:auto"><div class="pulse"></div>Live · SLD-Based Layout</div>
-    </div>
-    <div id="svgwrap">
-      <svg id="ss" viewBox="-480 -90 1080 660" preserveAspectRatio="xMidYMid meet"></svg>
-      <div id="ep">
-        <div class="ep-hd">
-          <div class="ep-ic" id="ep-ic">⚡</div>
-          <div class="ep-nm" id="ep-nm">Equipment</div>
-          <div class="ep-cl" onclick="closePopup()">✕</div>
-        </div>
-        <div class="ep-bd" id="ep-bd"></div>
-        <button class="ep-act"><span id="ep-at">View Details</span><span>→</span></button>
+  <!-- LEFT SIDEBAR -->
+  <div id="lsb">
+    <div class="sb-sec">33KV Section</div>
+    <div class="sb-lk act">⚡ HV Bay Overview</div>
+    <div class="sb-lk">🔗 Bus Coupler</div>
+    <div class="sb-lk">🔴 LAs &amp; CTs</div>
+    <div class="sb-sec">Transformer Yard</div>
+    <div class="sb-lk">🔄 PTR-I (87% ⚠) <span class="sb-bd" style="background:rgba(240,165,0,.15);color:var(--am)">WARN</span></div>
+    <div class="sb-lk">🔄 PTR-II (64%)</div>
+    <div class="sb-lk">🔄 PTR-III (58%)</div>
+    <div class="sb-lk">🔄 PTR-IV (41%)</div>
+    <div class="sb-sec">11KV Section</div>
+    <div class="sb-lk">🏗 LV Panel Building</div>
+    <div class="sb-lk">📡 Feeder CBs <span class="sb-bd" style="background:rgba(231,76,60,.15);color:var(--rd)">2 FAULT</span></div>
+    <div class="sb-sec">Control Room</div>
+    <div class="sb-lk">🖥 SCADA / RTU</div>
+    <div class="sb-lk">🔋 DC Battery System</div>
+    <div class="sb-lk">🔧 Relay Panels <span class="sb-bd" style="background:rgba(74,158,255,.15);color:var(--bl)">MAINT</span></div>
+    <div class="sb-sec">Operations</div>
+    <div class="sb-lk">📋 Breakdown Register</div>
+    <div class="sb-lk">📈 Load Trends</div>
+    <div class="sb-lk">📐 Single Line Diagram</div>
+    <div class="sb-lk">🗺 33KV GIS Map</div>
+  </div>
+
+  <!-- VIEWPORT AREA -->
+  <div id="vpa">
+    <div class="vbar">
+      <div class="vbar-t">3D Substation Model</div>
+      <select class="vsel" onchange="setDisplayMode(this.value)">
+        <option value="status">Mode: Status</option>
+        <option value="thermal">Mode: Thermal</option>
+        <option value="fault">Mode: Fault Highlight</option>
+        <option value="xray">Mode: X-Ray / Wireframe</option>
+      </select>
+      <div id="vmtabs">
+        <button class="vmt act" onclick="setView('iso')">Isometric</button>
+        <button class="vmt" onclick="setView('top')">Top</button>
+        <button class="vmt" onclick="setView('front')">Front</button>
+        <button class="vmt" onclick="setView('side')">Side</button>
+        <button class="vmt" onclick="setView('inside')">Inside</button>
       </div>
     </div>
-    <div id="stbar">
-      <span style="font-size:10px;font-weight:600;color:var(--tx2)">Legend:</span>
+
+    <!-- CANVAS -->
+    <div id="vpgrid">
+      <canvas id="mainCanvas"></canvas>
+      <!-- viewport labels -->
+      <div id="vplbl" style="position:absolute;top:8px;left:10px;z-index:10;font-size:9px;font-weight:700;font-family:var(--mn);color:rgba(74,158,255,0.7);pointer-events:none;letter-spacing:1px">PERSPECTIVE VIEW</div>
+      <div style="position:absolute;bottom:44px;left:10px;z-index:10;font-size:8.5px;font-family:var(--mn);color:rgba(255,255,255,0.2);pointer-events:none">Scroll=Zoom  Drag=Orbit  Shift+Drag=Pan</div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div id="sbar">
+      <span style="font-size:9.5px;font-weight:600;color:var(--tx2)">Legend:</span>
       <div class="leg"><div class="ld" style="background:var(--gr)"></div>Energised</div>
       <div class="leg"><div class="ld" style="background:var(--am)"></div>Overloaded</div>
       <div class="leg"><div class="ld" style="background:var(--rd)"></div>Fault/Trip</div>
       <div class="leg"><div class="ld" style="background:var(--bl)"></div>Maintenance</div>
-      <div class="leg"><div class="ld" style="background:var(--gy)"></div>Isolated</div>
+      <div class="leg"><div class="ld" style="background:#6e7681)"></div>Isolated</div>
       <div class="zc">
-        <button class="zb" onclick="rotLeft()" title="Rotate view left">⟲</button>
-        <span id="rotlbl">0°</span>
-        <button class="zb" onclick="rotRight()" title="Rotate view right">⟳</button>
-        <button class="zb" onclick="toggleAutoRotate()" title="Auto rotate">▶</button>
-        <button class="zb" onclick="rotReset()" title="Reset rotation">R</button>
-        <span style="width:1px;height:18px;background:var(--b1);margin:0 3px"></span>
         <button class="zb" onclick="zIn()">+</button>
         <span id="zlbl">100%</span>
         <button class="zb" onclick="zOut()">−</button>
-        <button class="zb" onclick="zReset()">⊙</button>
+        <button class="zb" onclick="zReset()" title="Reset view">⊙</button>
+        <button class="zb" onclick="toggleWire()" title="Wireframe">⊞</button>
+        <button class="zb" onclick="screenshotView()" title="Screenshot">📷</button>
       </div>
     </div>
-  </div>
-  <div id="rp">
-    <div class="rp-s">
-      <div class="rp-t">Substation Info</div>
-      <div class="rp-r"><span class="rp-k">Name</span><span class="rp-v">33/11KV Golconda SS</span></div>
-      <div class="rp-r"><span class="rp-k">SS Code</span><span class="rp-vm">1103921401</span></div>
-      <div class="rp-r"><span class="rp-k">Division</span><span class="rp-v">Hyderabad</span></div>
-      <div class="rp-r"><span class="rp-k">Sub-Division</span><span class="rp-v">Golconda</span></div>
-    </div>
-    <div class="rp-s">
-      <div class="rp-t">33KV Incomer Sources (SLD)</div>
-      <div class="rp-r"><span class="rp-k">HV-I Source</span><span class="rp-v up" style="font-size:10px">● 132KV Asifnagar</span></div>
-      <div class="rp-r"><span class="rp-k">HV-II Source</span><span class="rp-v up" style="font-size:10px">● 132KV Asifnagar-Shaikpet</span></div>
-      <div class="rp-r"><span class="rp-k">HV-III Source</span><span class="rp-v up" style="font-size:10px">● 132KV Jubilee Hills</span></div>
-      <div class="rp-r"><span class="rp-k">HV-IV Source</span><span class="rp-v up" style="font-size:10px">● 400KV Raidurg SS</span></div>
-      <div class="rp-r"><span class="rp-k">33KV Bus</span><span class="rp-v">Single Bus, 33.1KV</span></div>
-    </div>
-    <div class="rp-s">
-      <div class="rp-t">PTR Summary</div>
-      <div class="rp-r"><span class="rp-k">PTR-I Oil Temp</span><span class="rp-v warn">72°C ⚠</span></div>
-      <div class="rp-r"><span class="rp-k">PTR-II Oil Temp</span><span class="rp-v up">58°C</span></div>
-      <div class="rp-r"><span class="rp-k">PTR-III Oil Temp</span><span class="rp-v up">55°C</span></div>
-      <div class="rp-r"><span class="rp-k">PTR-IV Oil Temp</span><span class="rp-v up">51°C</span></div>
-      <button class="flr-btn">📐 Open SLD View <span>→</span></button>
-    </div>
-    <div class="rp-s" id="rp-sel">
-      <div class="rp-t">Selected Equipment</div>
-      <div style="font-size:11px;color:var(--tx2);line-height:1.6">Click any equipment to view details.</div>
+    <!-- DETAIL PANEL -->
+    <div id="dp">
+      <div class="dp-hd">
+        <div class="dp-ic" id="dp-ic">⚡</div>
+        <div class="dp-nm" id="dp-nm">Equipment</div>
+        <div class="dp-cl" onclick="closePanel()">✕</div>
+      </div>
+      <div class="dp-bd" id="dp-bd"></div>
+      <button class="dp-act"><span id="dp-at">View Details</span><span>→</span></button>
     </div>
   </div>
 </div>
 
+<div id="loading">
+  <div class="spin"></div>
+  <div class="ldtxt">Building 3D Substation Model…</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ════════════════════════════════════════════════════════════
-//  ISO ENGINE   S=14px/m, 1 unit = 1 metre
-// ════════════════════════════════════════════════════════════
-const S=14, C30=0.866, S30=0.5;
-const svg=document.getElementById('ss');
+// ═══════════════════════════════════════════════════
+//  SCENE SETUP
+// ═══════════════════════════════════════════════════
+const canvas = document.getElementById('mainCanvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.setClearColor(0x070a0f);
 
-// 3D view rotation. Default 0° keeps Claude's original isometric angle.
-// Buttons at the bottom rotate the entire substation model without changing equipment data.
-let rotDeg=0;
-const ROT_CENTER={x:22.5,y:18.5};
-function p(x,y,z=0){
-  const a=rotDeg*Math.PI/180;
-  const dx=x-ROT_CENTER.x, dy=y-ROT_CENTER.y;
-  const rx=dx*Math.cos(a)-dy*Math.sin(a)+ROT_CENTER.x;
-  const ry=dx*Math.sin(a)+dy*Math.cos(a)+ROT_CENTER.y;
-  return{sx:(rx-ry)*S*C30, sy:(rx+ry)*S*S30-z*S};
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x070a0f, 120, 320);
+
+// ─ CAMERA ─
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 600);
+camera.position.set(90, 70, 90);
+camera.lookAt(0, 0, 0);
+
+// ─ ORBIT CONTROLS (manual) ─
+let isDragging=false, isPanning=false, startX=0, startY=0;
+let theta=45, phi=38, radius=135, panX=0, panY=0, panZ=0;
+let targetTheta=45, targetPhi=38, targetRadius=135;
+
+function updateCamera(){
+  const t=theta*Math.PI/180, p=phi*Math.PI/180;
+  camera.position.set(
+    panX + radius*Math.sin(t)*Math.cos(p),
+    panY + radius*Math.sin(p),
+    panZ + radius*Math.cos(t)*Math.cos(p)
+  );
+  camera.lookAt(panX, panY, panZ);
 }
-function pv(pts){return pts.map(q=>`${q.sx.toFixed(1)},${q.sy.toFixed(1)}`).join(' ');}
-function E(tag,at={}){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const[k,v] of Object.entries(at))e.setAttribute(k,v);return e;}
 
-function poly(pts,fill,stk='none',sw=0.5){return E('polygon',{points:pv(pts),fill,stroke:stk,'stroke-width':sw});}
-function ln(x1,y1,z1,x2,y2,z2,stroke,sw=1.5,dash='none'){
-  const a=p(x1,y1,z1),b=p(x2,y2,z2);
-  const l=E('line',{x1:a.sx,y1:a.sy,x2:b.sx,y2:b.sy,stroke,'stroke-width':sw,'stroke-linecap':'round'});
-  if(dash!=='none')l.setAttribute('stroke-dasharray',dash);
-  return l;
+canvas.addEventListener('mousedown', e => {
+  if(e.shiftKey){ isPanning=true; } else { isDragging=true; }
+  startX=e.clientX; startY=e.clientY;
+});
+document.addEventListener('mousemove', e => {
+  if(isDragging){
+    theta -= (e.clientX-startX)*0.4;
+    phi += (e.clientY-startY)*0.3;
+    phi = Math.max(5, Math.min(85, phi));
+    startX=e.clientX; startY=e.clientY;
+  }
+  if(isPanning){
+    panX -= (e.clientX-startX)*0.08;
+    panZ -= (e.clientY-startY)*0.08;
+    startX=e.clientX; startY=e.clientY;
+  }
+});
+document.addEventListener('mouseup',()=>{ isDragging=false; isPanning=false; });
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  radius = Math.max(20, Math.min(280, radius + e.deltaY * 0.18));
+}, {passive:false});
+
+// touch
+let lastTouchDist=0;
+canvas.addEventListener('touchstart', e => {
+  if(e.touches.length===1){isDragging=true; startX=e.touches[0].clientX; startY=e.touches[0].clientY;}
+  if(e.touches.length===2){lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
+});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if(e.touches.length===1 && isDragging){
+    theta -= (e.touches[0].clientX-startX)*0.4; phi += (e.touches[0].clientY-startY)*0.3;
+    phi=Math.max(5,Math.min(85,phi)); startX=e.touches[0].clientX; startY=e.touches[0].clientY;
+  }
+  if(e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    radius=Math.max(20,Math.min(280,radius-(d-lastTouchDist)*0.25)); lastTouchDist=d;
+  }
+}, {passive:false});
+canvas.addEventListener('touchend',()=>isDragging=false);
+
+// ─ LIGHTING ─
+const ambient = new THREE.AmbientLight(0x334455, 0.9);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xfff5e0, 2.2);
+sun.position.set(60, 80, 40);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 1;
+sun.shadow.camera.far = 300;
+sun.shadow.camera.left = -100; sun.shadow.camera.right = 100;
+sun.shadow.camera.top = 100; sun.shadow.camera.bottom = -100;
+sun.shadow.bias = -0.0005;
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight(0x7090b0, 0.6);
+fill.position.set(-40, 30, -30);
+scene.add(fill);
+
+const hemi = new THREE.HemisphereLight(0x4060a0, 0x102030, 0.5);
+scene.add(hemi);
+
+// ─ RAYCASTER ─
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const clickables = [];
+
+// ═══════════════════════════════════════════════════
+//  MATERIALS
+// ═══════════════════════════════════════════════════
+function mat(color, rough=0.5, metal=0.0, emissive=0x000000, emInt=0){
+  const m = new THREE.MeshStandardMaterial({color, roughness:rough, metalness:metal});
+  if(emissive!==0x000000||emInt>0){m.emissive=new THREE.Color(emissive);m.emissiveIntensity=emInt;}
+  return m;
 }
 
-// clickable group
-function cg(id,parent){
-  const g=E('g');
-  g.id=`b_${id}`; g.style.cursor='pointer';
-  g.addEventListener('click',ev=>{ev.stopPropagation();
-    const r=document.getElementById('svgwrap').getBoundingClientRect();
-    showEquip(id,ev.clientX-r.left,ev.clientY-r.top);});
-  parent.appendChild(g);
+const M = {
+  // Ground / civil
+  ground:     mat(0x0f1820, 0.95, 0.0),
+  concrete:   mat(0x2a3040, 0.9,  0.0),
+  gravel:     mat(0x1a2030, 0.95, 0.0),
+  bund:       mat(0x1e2838, 0.85, 0.0),
+  road:       mat(0x141c28, 0.9,  0.0),
+
+  // Steel structures
+  steel:      mat(0x3a4a5e, 0.5, 0.6),
+  steelDark:  mat(0x252e3c, 0.55, 0.6),
+  galv:       mat(0x6878a0, 0.35, 0.7),
+
+  // Transformer tank — VISIBLE BLUE-STEEL
+  ptrTank:    mat(0x2e4570, 0.35, 0.5),
+  ptrTankTop: mat(0x3a5a90, 0.3,  0.5),
+  ptrRadFin:  mat(0x243860, 0.4,  0.4),
+  ptrRadAlt:  mat(0x1e3050, 0.45, 0.4),
+  oltcBox:    mat(0x305080, 0.4,  0.4),
+  ptrBase:    mat(0x1c2c40, 0.7,  0.2),
+
+  // Bushings — ivory porcelain
+  hvBush:     mat(0xecead6, 0.3,  0.0),
+  hvBushShd:  mat(0xd8d4bc, 0.35, 0.0),
+  lvBush:     mat(0xe8e4d4, 0.3,  0.0),
+  bushCap:    mat(0xa0a830, 0.25, 0.6),
+  lvCap:      mat(0x287840, 0.25, 0.5),
+  bushFlange: mat(0x606878, 0.3,  0.6),
+
+  // Conservator cylinder
+  cons:       mat(0x385878, 0.3,  0.5),
+  consGlass:  mat(0x1a3a5a, 0.1,  0.0),
+
+  // CB / SF6 equipment
+  cbMech:     mat(0x2c3c58, 0.4,  0.5),
+  cbPole:     mat(0xd4dce8, 0.2,  0.05),
+  cbFlange:   mat(0x909aac, 0.25, 0.5),
+  cbCap:      mat(0x606878, 0.3,  0.6),
+
+  // LA porcelain — cream
+  laBody:     mat(0xe4e0ce, 0.3,  0.0),
+  laShed:     mat(0xd8d0b8, 0.35, 0.0),
+  laMetal:    mat(0x707888, 0.3,  0.6),
+
+  // CT body
+  ctBody:     mat(0xc8c4b4, 0.35, 0.0),
+  ctBase:     mat(0x2a3448, 0.5,  0.3),
+
+  // Isolator
+  isoBlade:   mat(0xd4b030, 0.25, 0.7, 0xd4b030, 0.05),
+  isoOpen:    mat(0x909090, 0.4,  0.4),
+
+  // Bus conductor — copper/ACSR
+  bus:        mat(0x88a020, 0.3,  0.5, 0x88a020, 0.08),
+  busLive:    mat(0x60d040, 0.25, 0.5, 0x60d040, 0.12),
+
+  // LV Panel building
+  lvBldg:     mat(0x1e2c42, 0.6,  0.2),
+  lvRoof:     mat(0x253345, 0.5,  0.3),
+  lvPanel:    mat(0x1c2840, 0.45, 0.3),
+  lvDoor:     mat(0x243050, 0.5,  0.3),
+  ledGreen:   mat(0x00cc44, 0.2,  0.0, 0x00ff44, 0.9),
+  ledRed:     mat(0xee2020, 0.2,  0.0, 0xff2020, 0.9),
+  ledAmber:   mat(0xee9900, 0.2,  0.0, 0xffaa00, 0.9),
+
+  // Control room
+  ctrlWall:   mat(0x1c2636, 0.65, 0.1),
+  ctrlRoof:   mat(0x253040, 0.5,  0.2),
+
+  // Status indicator spheres
+  sLive:      mat(0x22aa44, 0.2, 0.0, 0x22ff66, 0.8),
+  sWarn:      mat(0xdd8800, 0.2, 0.0, 0xffaa00, 1.0),
+  sFault:     mat(0xcc1818, 0.2, 0.0, 0xff2020, 1.2),
+  sMaint:     mat(0x1870cc, 0.2, 0.0, 0x2299ff, 0.8),
+  sOff:       mat(0x404858, 0.4, 0.0),
+};
+
+// ═══════════════════════════════════════════════════
+//  GEOMETRY HELPERS
+// ═══════════════════════════════════════════════════
+function box(w,h,d,material,x=0,y=0,z=0,rx=0,ry=0,rz=0,castShadow=true){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
+  m.position.set(x,y,z); m.rotation.set(rx,ry,rz);
+  m.castShadow=castShadow; m.receiveShadow=true;
+  return m;
+}
+function cyl(rT,rB,h,segs,material,x=0,y=0,z=0,rx=0,ry=0,rz=0){
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(rT,rB,h,segs),material);
+  m.position.set(x,y,z); m.rotation.set(rx,ry,rz);
+  m.castShadow=true; m.receiveShadow=true;
+  return m;
+}
+function sphere(r,segs,material,x=0,y=0,z=0){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(r,segs,segs),material);
+  m.position.set(x,y,z); m.castShadow=true;
+  return m;
+}
+function torus(r,tube,rs,ts,material,x=0,y=0,z=0,rx=0){
+  const m=new THREE.Mesh(new THREE.TorusGeometry(r,tube,rs,ts),material);
+  m.position.set(x,y,z); m.rotation.x=rx; m.castShadow=true;
+  return m;
+}
+function group(...children){ const g=new THREE.Group(); children.forEach(c=>c&&g.add(c)); return g; }
+function addAll(parent,...children){ children.forEach(c=>c&&parent.add(c)); }
+
+// ─ CONDUCTOR LINE ─
+function condLine(p1,p2,mat,r=0.12){
+  const dir=new THREE.Vector3().subVectors(p2,p1);
+  const len=dir.length();
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,8),mat);
+  m.position.copy(new THREE.Vector3().lerpVectors(p1,p2,0.5));
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());
+  m.castShadow=false; return m;
+}
+
+// ─ STATUS GLOW SPHERE ─
+function statusBall(st,x,y,z){
+  const mats={live:M.sLive,warn:M.sWarn,fault:M.sFault,maint:M.sMaint,off:M.sOff};
+  const s=sphere(0.4,10,mats[st]||M.sOff,x,y,z);
+  // halo ring
+  const h=torus(0.6,0.05,8,20,mats[st]||M.sOff,x,y,z,Math.PI/2);
+  return group(s,h);
+}
+
+// ═══════════════════════════════════════════════════
+//  EQUIPMENT DATA
+// ═══════════════════════════════════════════════════
+const EQ = {
+  ptr1:{name:'PTR-I — 12.5 MVA',icon:'🔄',status:'warn',action:'View PTR-I Details',
+    rows:[['Rating','12.5 MVA, 33/11 KV'],['Make','BHEL / CTR-125'],['Loading','87% (10.9 MVA) ⚠'],['Oil Temp','72°C  ⚠'],['OLTC','Tap 5 → 11.2 KV'],['Buchholz','Normal'],['PRV','Normal']]},
+  ptr2:{name:'PTR-II — 12.5 MVA',icon:'🔄',status:'live',action:'View PTR-II Details',
+    rows:[['Rating','12.5 MVA, 33/11 KV'],['Make','TELK / TR-125'],['Loading','64% (8.0 MVA)'],['Oil Temp','58°C'],['OLTC','Tap 4 → 11.0 KV']]},
+  ptr3:{name:'PTR-III — 12.5 MVA',icon:'🔄',status:'live',action:'View PTR-III Details',
+    rows:[['Rating','12.5 MVA, 33/11 KV'],['Make','BHEL'],['Loading','58% (7.3 MVA)'],['Oil Temp','55°C'],['OLTC','Tap 4 → 11.0 KV']]},
+  ptr4:{name:'PTR-IV — 12.5 MVA',icon:'🔄',status:'live',action:'View PTR-IV Details',
+    rows:[['Rating','12.5 MVA, 33/11 KV'],['Make','TELK'],['Loading','41% (5.1 MVA)'],['Oil Temp','51°C'],['OLTC','Tap 3 → 10.8 KV']]},
+  hv1:{name:'HV-I Bay (INC from Asifnagar)',icon:'⚡',status:'live',action:'View HV-I Bay',
+    rows:[['Source','132KV Asifnagar → 33KV'],['CB Status','CLOSED'],['CT Ratio','600-800/1A'],['Current','198 A']]},
+  hv2:{name:'HV-II Bay (Asifnagar-Shaikpet)',icon:'⚡',status:'live',action:'View HV-II Bay',
+    rows:[['Source','132KV Asifnagar-Shaikpet'],['CB Status','CLOSED'],['Current','145 A']]},
+  hv3:{name:'HV-III Bay (Jubilee Hills)',icon:'⚡',status:'live',action:'View HV-III Bay',
+    rows:[['Source','132KV Jubilee Hills'],['CB Status','CLOSED'],['Current','122 A']]},
+  hv4:{name:'HV-IV Bay (400KV Raidurg)',icon:'⚡',status:'live',action:'View HV-IV Bay',
+    rows:[['Source','400KV Raidurg SS'],['CB Status','CLOSED'],['Current','98 A']]},
+  bc33:{name:'33KV Bus Coupler',icon:'🔗',status:'off',action:'View Bus Coupler',
+    rows:[['CB Status','OPEN (Normal)'],['Bus-A','33.1 KV'],['Bus-B','33.0 KV']]},
+  ctrl:{name:'Control Room / Relay Panel',icon:'🖥',status:'maint',action:'View Control Room',
+    rows:[['SCADA RTU','ABB RTU-560 Active'],['Protection','SEL-311 (O/C, E/F, Diff)'],['DC System','110V VRLA Float'],['UPS','10 KVA Online']]},
+  lvbldg:{name:'11KV LV Switchgear Building',icon:'🏗',status:'live',action:'View Feeder Details',
+    rows:[['Total Bays','17 (incl. 4 LVI + BC)'],['Live Feeders','14 / 17'],['Fault','2 Feeders'],['Isolated','1 Feeder']]},
+};
+
+// ═══════════════════════════════════════════════════
+//  INSULATOR SHED STACK
+// ═══════════════════════════════════════════════════
+function insulatorStack(x, y0, z, height, nSheds, r=0.12, capR=0.35){
+  const g=new THREE.Group();
+  // core rod
+  g.add(cyl(0.06,0.06,height,8,M.laMetal,x,y0+height/2,z));
+  // sheds
+  const step=height/(nSheds+1);
+  for(let i=1;i<=nSheds;i++){
+    const sy=y0+i*step;
+    const shed=cyl(r,r*0.85,0.06,16,M.hvBushShd,x,sy,z);
+    shed.rotation.x=0;
+    g.add(shed);
+    // underside shadow disc
+    const under=cyl(r*0.9,r*0.7,0.04,16,M.laBody,x,sy-0.05,z);
+    g.add(under);
+  }
+  // top terminal cap
+  g.add(cyl(capR,capR*1.1,0.12,12,M.bushCap,x,y0+height+0.06,z));
   return g;
 }
 
-// ── FLOOR SLAB ─────────────────────────────────────────────
-function floor(x,y,w,d,fill){
-  svg.appendChild(poly([p(x,y),p(x+w,y),p(x+w,y+d),p(x,y+d)],fill,'rgba(255,255,255,0.02)',1));
+// ═══════════════════════════════════════════════════
+//  SF6 CIRCUIT BREAKER
+// ═══════════════════════════════════════════════════
+function makeCB(x, z, status, id){
+  const g=new THREE.Group();
+  g.userData={id};
+  clickables.push(g);
+
+  // Mechanism box (steel housing)
+  const mb=box(4.2,1.3,0.9,M.cbMech,x,0.65,z);
+  g.add(mb);
+  // mechanism box face details
+  const face=box(4.2,1.3,0.05,M.steelDark,x,0.65,z+0.46);
+  g.add(face);
+  // handle on box
+  g.add(box(0.3,0.6,0.12,M.galv,x,0.7,z+0.48));
+
+  // 3 poles — along x axis
+  const poleOffsets=[-1.4,0,1.4];
+  poleOffsets.forEach(dx=>{
+    const px=x+dx;
+    // base pedestal
+    g.add(cyl(0.25,0.3,0.4,8,M.cbMech,px,1.5,z));
+    // main pole body (SF6 porcelain cylinder, 4 sections)
+    const poleH=3.5;
+    // bottom section
+    g.add(cyl(0.24,0.24,poleH*0.3,12,M.cbPole,px,1.5+0.2+poleH*0.15,z));
+    // mid section (slightly wider)
+    g.add(cyl(0.26,0.26,poleH*0.35,12,M.cbPole,px,1.5+0.2+poleH*0.3+poleH*0.175,z));
+    // top section
+    g.add(cyl(0.22,0.24,poleH*0.35,12,M.cbPole,px,1.5+0.2+poleH*0.65+poleH*0.175,z));
+    // flanges (5 rings)
+    [0,0.28,0.62,0.88,1.0].forEach(f=>{
+      g.add(cyl(0.34,0.34,0.08,14,M.cbFlange,px,1.5+0.2+poleH*f,z));
+    });
+    // top terminal hood
+    const topY=1.5+0.2+poleH+0.1;
+    g.add(cyl(0.28,0.2,0.25,10,M.cbCap,px,topY,z));
+    // operating link rod (colored by status)
+    const stMat={live:M.sLive,warn:M.sWarn,fault:M.sFault,off:M.sOff}[status]||M.sOff;
+    g.add(condLine(
+      new THREE.Vector3(px,1.2,z),
+      new THREE.Vector3(x,0.7,z+0.35),
+      stMat,0.06));
+  });
+
+  // status ball on top
+  g.add(statusBall(status,x,1.5+0.2+3.5+0.5,z));
+  return g;
 }
 
-// ── WALL SEGMENT ───────────────────────────────────────────
-function wall(x1,y1,x2,y2,h,tc,lc){
-  svg.appendChild(poly([p(x1,y1,0),p(x2,y2,0),p(x2,y2,h),p(x1,y1,h)],lc,'rgba(255,255,255,0.04)',0.6));
-  svg.appendChild(poly([p(x1,y1,h),p(x2,y2,h),...(x1===x2?[p(x2,y2+0.3,h),p(x1,y1+0.3,h)]:[p(x2+0.3,y2,h),p(x1+0.3,y1,h)])],tc,'rgba(255,255,255,0.04)',0.5));
-}
-
-// ── SECTION BANNER ─────────────────────────────────────────
-function banner(cx,cy,cz,txt,col){
-  const pt=p(cx,cy,cz);
-  svg.appendChild(E('rect',{x:(pt.sx-100).toFixed(1),y:(pt.sy-8).toFixed(1),width:'200',height:'16',rx:'3',fill:'rgba(0,0,0,0.6)',stroke:col+'55','stroke-width':'0.8'}));
-  const t=E('text',{x:pt.sx,y:(pt.sy+3).toFixed(1),'text-anchor':'middle',fill:col,'font-size':'8','font-family':"'IBM Plex Sans',sans-serif",'font-weight':'600','letter-spacing':'1.4','pointer-events':'none'});
-  t.textContent=txt; svg.appendChild(t);
-}
-
-// ── BUS BAR ─────────────────────────────────────────────────
-function bus(x1,x2,y,z,col,w=4){
-  svg.appendChild(ln(x1,y,z,x2,y,z,col,w));
-  svg.appendChild(ln(x1,y,z,x2,y,z,'rgba(255,255,255,0.25)',1.0));
-}
-// label on bus
-function busLbl(cx,y,z,txt,col){
-  const pt=p(cx,y,z+0.5);
-  const t=E('text',{x:pt.sx,y:pt.sy,'text-anchor':'middle',fill:col,'font-size':'7','font-family':"'JetBrains Mono',monospace",'pointer-events':'none',opacity:'0.7'});
-  t.textContent=txt; svg.appendChild(t);
-}
-
-// ── STEEL COLUMN ────────────────────────────────────────────
-function col(g,x,y,z0,ht){
-  g.appendChild(ln(x,y,z0,x,y,z0+ht,'#3d4860',4));
-  g.appendChild(ln(x,y,z0,x,y,z0+ht,'#20283a',2));
-}
-
-// ── GANTRY (H-frame) ───────────────────────────────────────
-function gantry(x,y1,y2,ht){
-  const g=E('g'); col(g,x,y1,0,ht); col(g,x,y2,0,ht);
-  // crossarm
-  g.appendChild(ln(x,y1,ht,x,y2,ht,'#3d4860',3));
-  // X-brace
-  const mid=(y1+y2)/2;
-  g.appendChild(ln(x,y1,ht*0.55,x,y2,ht*0.55,'#283040',1.2));
-  g.appendChild(ln(x,y1,ht,x,mid,ht*0.55,'#283040',1.5));
-  g.appendChild(ln(x,y2,ht,x,mid,ht*0.55,'#283040',1.5));
-  svg.appendChild(g);
-}
-
-// ── INSULATOR SHED STACK (single phase) ────────────────────
-function insStr(parent,x,y,z0,ht,nsh,col1='#e0dcd2',col2='#c8c4ba'){
-  const g=E('g');
-  // core rod
-  const a=p(x,y,z0),b=p(x,y,z0+ht);
-  g.appendChild(E('line',{x1:a.sx,y1:a.sy,x2:b.sx,y2:b.sy,stroke:'#b0a898','stroke-width':'2','stroke-linecap':'round'}));
-  // sheds
-  const step=ht/(nsh+1);
-  for(let i=1;i<=nsh;i++){
-    const zh=z0+i*step;
-    const ps=p(x,y,zh);
-    // shadow underside
-    g.appendChild(E('ellipse',{cx:ps.sx,cy:(ps.sy+2.8).toFixed(1),rx:'8.5',ry:'4.2',fill:'#988c7c','stroke-width':'0'}));
-    // top surface
-    g.appendChild(E('ellipse',{cx:ps.sx,cy:ps.sy,rx:'8.5',ry:'4.2',fill:col1,'stroke':col2,'stroke-width':'0.4'}));
-  }
-  // metal terminal cap
-  const tp=p(x,y,z0+ht);
-  g.appendChild(E('ellipse',{cx:tp.sx,cy:tp.sy,rx:'4',ry:'2',fill:'#78808a','stroke':'#50606a','stroke-width':'0.5'}));
-  parent.appendChild(g);
-}
-
-// 3-phase LA bank (at x,y0, 3 phases along y)
-function la3(x,y0,z0){
-  const g=E('g'); const psp=1.4;
-  for(let ph=0;ph<3;ph++){
-    const py=y0+ph*psp;
+// ═══════════════════════════════════════════════════
+//  LA 3-PHASE BANK
+// ═══════════════════════════════════════════════════
+function makeLA(x,z){
+  const g=new THREE.Group();
+  [-1.3,0,1.3].forEach(dx=>{
+    const bx=x+dx;
     // base block
-    g.appendChild(poly([p(x-.3,py,z0+.5),p(x+.3,py,z0+.5),p(x+.3,py,z0),p(x-.3,py,z0)],'#252c3a','rgba(255,255,255,0.05)',0.4));
-    g.appendChild(poly([p(x+.3,py,z0+.5),p(x+.3,py+.6,z0+.5),p(x+.3,py+.6,z0),p(x+.3,py,z0)],'#1c2330','rgba(255,255,255,0.03)',0.3));
-    g.appendChild(poly([p(x-.3,py,z0+.5),p(x+.3,py,z0+.5),p(x+.3,py+.6,z0+.5),p(x-.3,py+.6,z0+.5)],'#2c3448','rgba(255,255,255,0.05)',0.3));
-    // insulator sheds (zinc oxide LA: 5 sheds, 2.5m tall)
-    insStr(g,x,py+.3,z0+.5,2.5,5);
-  }
-  svg.appendChild(g);
-}
-
-// CT 3-phase bank
-function ct3(x,y0,z0){
-  const g=E('g'); const psp=1.4;
-  for(let ph=0;ph<3;ph++){
-    const py=y0+ph*psp;
-    // base
-    g.appendChild(poly([p(x-.5,py,z0+.5),p(x+.5,py,z0+.5),p(x+.5,py,z0),p(x-.5,py,z0)],'#222a3a','rgba(255,255,255,0.04)',0.3));
-    g.appendChild(poly([p(x+.5,py,z0+.5),p(x+.5,py+1,z0+.5),p(x+.5,py+1,z0),p(x+.5,py,z0)],'#1a2232','rgba(255,255,255,0.03)',0.3));
-    g.appendChild(poly([p(x-.5,py,z0+.5),p(x+.5,py,z0+.5),p(x+.5,py+1,z0+.5),p(x-.5,py+1,z0+.5)],'#2a3248','rgba(255,255,255,0.05)',0.3));
-    // stem insulator
-    insStr(g,x,py+.5,z0+.5,1.6,2);
-    // CT head (toroid body)
-    const zh=z0+2.3;
-    g.appendChild(poly([p(x-.65,py+.15,zh),p(x+.65,py+.15,zh),p(x+.65,py+.15,zh-.8),p(x-.65,py+.15,zh-.8)],'#b8b2a4','rgba(255,255,255,0.06)',0.5));
-    g.appendChild(poly([p(x+.65,py+.15,zh),p(x+.65,py+.85,zh),p(x+.65,py+.85,zh-.8),p(x+.65,py+.15,zh-.8)],'#908a7c','rgba(255,255,255,0.04)',0.4));
-    g.appendChild(poly([p(x-.65,py+.15,zh),p(x+.65,py+.15,zh),p(x+.65,py+.85,zh),p(x-.65,py+.85,zh)],'#d8d2c4','rgba(255,255,255,0.06)',0.5));
-  }
-  svg.appendChild(g);
-}
-
-// Isolator 3-phase (blade type)
-function iso3(x,y0,z0,open=false){
-  const g=E('g'); const psp=1.4;
-  for(let ph=0;ph<3;ph++){
-    const py=y0+ph*psp;
-    insStr(g,x-.9,py+.5,z0,1.2,2);
-    insStr(g,x+.9,py+.5,z0,1.2,2);
-    const zb=z0+1.2;
-    if(open){
-      g.appendChild(ln(x-.9,py+.5,zb,x,py+0.1,zb+.6,'#7a8492',2.5));
-    } else {
-      g.appendChild(ln(x-.9,py+.5,zb,x+.9,py+.5,zb,'#c8a820',3));
-      g.appendChild(ln(x-.9,py+.5,zb,x+.9,py+.5,zb,'rgba(255,200,30,0.5)',1));
-    }
-  }
-  svg.appendChild(g);
-}
-
-// SF6 CB  (3 vertical porcelain poles on mechanism box)
-function cbSF6(x,y0,z0,st,id){
-  const g=id?cg(id,svg):E('g');
-  if(!id) svg.appendChild(g);
-  const sc={live:'#3fb950',warn:'#d29922',fault:'#f85149',off:'#6e7681',maint:'#58a6ff'}[st]||'#3fb950';
-  const psp=1.4;
-
-  // mechanism box (grey steel)
-  const mx=x-2.3, my=y0+.2, mw=4.6, md=1.0, mh=1.4;
-  g.appendChild(poly([p(mx,my,z0+mh),p(mx+mw,my,z0+mh),p(mx+mw,my,z0),p(mx,my,z0)],'#2c3650','rgba(255,255,255,0.07)',0.6));
-  g.appendChild(poly([p(mx+mw,my,z0+mh),p(mx+mw,my+md,z0+mh),p(mx+mw,my+md,z0),p(mx+mw,my,z0)],'#222a40','rgba(255,255,255,0.05)',0.5));
-  g.appendChild(poly([p(mx,my,z0+mh),p(mx+mw,my,z0+mh),p(mx+mw,my+md,z0+mh),p(mx,my+md,z0+mh)],'#38445e','rgba(255,255,255,0.07)',0.6));
-  // mechanism box details: handle + terminal blocks
-  const hdp=p(mx+mw*0.5,my,z0+mh*0.5);
-  g.appendChild(E('rect',{x:(hdp.sx-3).toFixed(1),y:(hdp.sy-5).toFixed(1),width:'6',height:'10',rx:'1.5',fill:'#485870','stroke':'#607090','stroke-width':'0.5'}));
-
-  // 3 SF6 poles
-  for(let ph=0;ph<3;ph++){
-    const py=y0+ph*psp;
-    // pole body (SF6 cylinder - sections with flanges)
-    const poleH=3.2, pw=.38;
-    const segs=[['#d8e4f0','#d0dce8',0,0.28],['#c8d4e4','#c0ccd8',0.28,0.6],['#d0dce8','#c8d4e0',0.6,0.85],['#d8e4f0','#d0dce8',0.85,1]];
-    segs.forEach(([c1,c2,f0,f1])=>{
-      const z0p=z0+mh+poleH*f0, z1p=z0+mh+poleH*f1;
-      g.appendChild(poly([p(x-pw,py+.1,z1p),p(x+pw,py+.1,z1p),p(x+pw,py+.1,z0p),p(x-pw,py+.1,z0p)],c1,'rgba(180,200,230,0.2)',0.4));
-      g.appendChild(poly([p(x+pw,py+.1,z1p),p(x+pw,py+.6,z1p),p(x+pw,py+.6,z0p),p(x+pw,py+.1,z0p)],c2,'rgba(160,180,210,0.15)',0.3));
-    });
-    // flanges
-    [0,0.3,0.63,0.88,1].forEach(f=>{
-      const zf=z0+mh+poleH*f;
-      g.appendChild(E('ellipse',{cx:p(x,py+.1,zf).sx,cy:p(x,py+.1,zf).sy,rx:'5.5',ry:'2.8',fill:'#b0bcd0','stroke':'#8898b0','stroke-width':'0.4'}));
-    });
+    g.add(box(0.5,0.4,0.5,M.laMetal,bx,0.2,z));
+    // insulator stack (5 sheds, 2.5m)
+    g.add(insulatorStack(bx,0.4,z,2.5,5,0.28,0.2));
     // top terminal
-    const zt=p(x,py+.1,z0+mh+poleH+0.3);
-    g.appendChild(E('ellipse',{cx:zt.sx,cy:zt.sy,rx:'6',ry:'3',fill:'#707880','stroke':'#508090','stroke-width':'0.5'}));
-    // operating link rod
-    g.appendChild(ln(x,py+.1,z0+mh,mx+mw*.5,my+md*.5,z0+mh*0.9,sc,1.2));
-  }
-  // status indicator + label
-  const dp=p(x,y0+psp,z0+mh+3.2+0.6);
-  const ci=E('circle',{cx:dp.sx,cy:dp.sy,r:'3.8',fill:sc,'pointer-events':'none'});
-  if(st==='fault'){ci.appendChild(E('animate',{attributeName:'opacity',values:'1;0.1;1',dur:'1s',repeatCount:'indefinite'}));}
-  g.appendChild(ci);
+    g.add(cyl(0.18,0.18,0.25,10,M.laMetal,bx,3.1,z));
+  });
+  return g;
 }
 
-// ════════════════════════════════════════════════════════════
-//  POWER TRANSFORMER (PTR)  — FULL REALISTIC SHAPE
-//  ox,oy = bottom-left of BUND (metres)
-//  TW=10, TD=7, TH=5 (tank dims inside bund)
-// ════════════════════════════════════════════════════════════
-function ptr(ox,oy,st,id){
-  const g=cg(id,svg);
-  const sc={live:'#3fb950',warn:'#d29922',fault:'#f85149',maint:'#58a6ff',off:'#6e7681'}[st]||'#3fb950';
-  const TW=10, TD=7, TH=5.2;
+// ═══════════════════════════════════════════════════
+//  CURRENT TRANSFORMER 3-PHASE
+// ═══════════════════════════════════════════════════
+function makeCT(x,z){
+  const g=new THREE.Group();
+  [-1.3,0,1.3].forEach(dx=>{
+    const bx=x+dx;
+    g.add(box(0.8,0.4,0.8,M.ctBase,bx,0.2,z));
+    // stem insulator (2 sheds)
+    g.add(insulatorStack(bx,0.4,z,1.6,2,0.2,0.25));
+    // CT toroidal head
+    const head=cyl(0.55,0.55,0.7,16,M.ctBody,bx,2.2,z);
+    g.add(head);
+    const core=cyl(0.25,0.25,0.75,12,M.laMetal,bx,2.2,z);
+    g.add(core);
+    // primary bushings on top of CT
+    g.add(cyl(0.12,0.12,0.4,8,M.bushCap,bx-0.2,2.65,z));
+    g.add(cyl(0.12,0.12,0.4,8,M.bushCap,bx+0.2,2.65,z));
+  });
+  return g;
+}
 
-  // ── 3D SHADOW + FOUNDATION PAD ──
-  const sh=p(ox+TW/2,oy+TD/2,-0.08);
-  g.appendChild(E('ellipse',{cx:sh.sx,cy:sh.sy,rx:'78',ry:'30',fill:'rgba(0,0,0,0.38)','pointer-events':'none'}));
-  g.appendChild(poly([p(ox-.35,oy-.25,.18),p(ox+TW+.35,oy-.25,.18),p(ox+TW+.35,oy+TD+.25,.18),p(ox-.35,oy+TD+.25,.18)],'#1b2430','rgba(255,255,255,0.04)',0.5));
+// ═══════════════════════════════════════════════════
+//  ISOLATOR 3-PHASE
+// ═══════════════════════════════════════════════════
+function makeIso(x,z,isOpen=false){
+  const g=new THREE.Group();
+  [-1.3,0,1.3].forEach(dx=>{
+    const bx=x+dx;
+    // two insulator stacks
+    g.add(insulatorStack(bx-0.8,0,z,1.2,2,0.18,0.2));
+    g.add(insulatorStack(bx+0.8,0,z,1.2,2,0.18,0.2));
+    // blade
+    if(isOpen){
+      // blade angled up ~45°
+      const blade=box(1.6,0.06,0.06,M.isoOpen,bx,1.4,z);
+      blade.rotation.z=Math.PI/4;
+      g.add(blade);
+    } else {
+      g.add(box(1.7,0.06,0.06,M.isoBlade,bx,1.22,z));
+    }
+  });
+  return g;
+}
 
-  // ── BUND WALL (oil containment, 0.4m high) ──
-  const bx=ox-.8,by=oy-.6, bw=TW+1.6, bd=TD+1.2, bH=.45;
-  svg.appendChild(poly([p(bx,by),p(bx+bw,by),p(bx+bw,by+bd),p(bx,by+bd)],'#131820','rgba(255,255,255,0.025)',0.8));
-  // bund wall faces (concrete, slightly lighter)
-  [// front, back, left, right
-   [[bx,by,bx+bw,by],'#1e2838','#243040'],
-   [[bx,by+bd,bx+bw,by+bd],'#1e2838','#243040'],
-   [[bx,by,bx,by+bd],'#182030','#1e2838'],
-   [[bx+bw,by,bx+bw,by+bd],'#182030','#1e2838'],
-  ].forEach(([[x1,y1,x2,y2],fc,tc2])=>{
-    g.appendChild(poly([p(x1,y1,0),p(x2,y2,0),p(x2,y2,bH),p(x1,y1,bH)],fc,'rgba(255,255,255,0.04)',0.5));
-    g.appendChild(poly([p(x1,y1,bH),p(x2,y2,bH),p(x2,y2+.3,bH),p(x1,y1+.3,bH)],tc2,'rgba(255,255,255,0.04)',0.4));
+// ═══════════════════════════════════════════════════
+//  GANTRY PORTAL
+// ═══════════════════════════════════════════════════
+function makeGantry(x,z,height=8,span=12){
+  const g=new THREE.Group();
+  // 2 columns
+  [z-span/2,z+span/2].forEach(cz=>{
+    const col=cyl(0.22,0.28,height,8,M.steel,x,height/2,cz);
+    g.add(col);
+    // base plate
+    g.add(box(0.7,0.12,0.7,M.steelDark,x,0.06,cz));
+  });
+  // crossarm
+  const arm=box(0.3,0.25,span+0.5,M.steel,x,height,z);
+  g.add(arm);
+  // X diagonal braces (2 halves)
+  const half=span/2;
+  const brace1=condLine(
+    new THREE.Vector3(x,height,z-half),
+    new THREE.Vector3(x,height*0.55,z+half*0.5),
+    M.steelDark,0.1);
+  const brace2=condLine(
+    new THREE.Vector3(x,height,z+half),
+    new THREE.Vector3(x,height*0.55,z-half*0.5),
+    M.steelDark,0.1);
+  g.add(brace1,brace2);
+  // horizontal tie at mid
+  g.add(box(0.15,0.15,span*0.8,M.steelDark,x,height*0.55,z));
+  // crossarm insulators for bus attachment (3 strings)
+  [-3,0,3].forEach(dz=>{
+    g.add(insulatorStack(x,height,z+dz,0.6,1,0.15,0.15));
+  });
+  return g;
+}
+
+// ═══════════════════════════════════════════════════
+//  BUS BAR
+// ═══════════════════════════════════════════════════
+function makeBus(x1,x2,y,z){
+  const g=new THREE.Group();
+  g.add(condLine(new THREE.Vector3(x1,y,z),new THREE.Vector3(x2,y,z),M.busLive,0.18));
+  // glint line (thinner, brighter)
+  g.add(condLine(new THREE.Vector3(x1,y+0.1,z),new THREE.Vector3(x2,y+0.1,z),M.bus,0.06));
+  return g;
+}
+
+// ═══════════════════════════════════════════════════
+//  POWER TRANSFORMER (PTR) — Full 3D Model
+// ═══════════════════════════════════════════════════
+function makePTR(cx, z, status, id){
+  const g=new THREE.Group();
+  g.userData={id};
+  clickables.push(g);
+
+  const TW=10, TH=5.2, TD=7;
+  const halfW=TW/2, halfD=TD/2;
+
+  // ── BUND WALL (oil containment) ──
+  const bW=TW+1.6, bD=TD+1.2, bH=0.45;
+  // bund floor (gravel inside)
+  g.add(box(bW,0.1,bD,M.gravel,cx,0.05,z));
+  // bund wall top-face frames (4 walls as flat boxes)
+  const bx=cx; const bz=z;
+  [[bW,bH,0.25,bx,bH/2,bz-bD/2-0.125], // front
+   [bW,bH,0.25,bx,bH/2,bz+bD/2+0.125], // back
+   [0.25,bH,bD+0.5,bx-bW/2-0.125,bH/2,bz], // left
+   [0.25,bH,bD+0.5,bx+bW/2+0.125,bH/2,bz]  // right
+  ].forEach(([w,h,d,x2,y2,z2])=>{
+    const bwall=box(w,h,d,M.bund,x2,y2,z2);
+    g.add(bwall);
   });
 
-  // ── COOLING RADIATOR FINS (both long sides) ──
-  // HV side (facing y=oy)
-  for(let r=0;r<7;r++){
-    const rx=ox+.6+r*1.35;
-    const c1=r%2===0?'#223050':'#1e2848';
-    const c2=r%2===0?'#1c2846':'#182440';
-    g.appendChild(poly([p(rx,oy-.15,TH*.9),p(rx+1.2,oy-.15,TH*.9),p(rx+1.2,oy-.15,0),p(rx,oy-.15,0)],c1,'rgba(255,255,255,0.03)',0.3));
-    g.appendChild(poly([p(rx,oy,TH*.9),p(rx,oy-.15,TH*.9),p(rx,oy-.15,0),p(rx,oy,0)],c2,'rgba(255,255,255,0.02)',0.3));
-    g.appendChild(poly([p(rx,oy-.15,TH*.9),p(rx+1.2,oy-.15,TH*.9),p(rx+1.2,oy,TH*.9),p(rx,oy,TH*.9)],'#2a3860','rgba(255,255,255,0.04)',0.3));
+  // ── RADIATOR FINS (on front and back faces) ──
+  // Front face (HV side, z=z-halfD)
+  for(let i=0;i<8;i++){
+    const rx=cx-halfW+0.8+i*1.2;
+    // fin panel
+    g.add(box(1.0,TH*0.88,0.15,i%2===0?M.ptrRadFin:M.ptrRadAlt,rx,TH*0.44,z-halfD-0.15));
   }
-  // LV side (facing y=oy+TD)
-  for(let r=0;r<7;r++){
-    const rx=ox+.6+r*1.35;
-    const c1=r%2===0?'#1e3048':'#1a2c44';
-    g.appendChild(poly([p(rx,oy+TD+.15,TH*.9),p(rx+1.2,oy+TD+.15,TH*.9),p(rx+1.2,oy+TD+.15,0),p(rx,oy+TD+.15,0)],c1,'rgba(255,255,255,0.03)',0.3));
+  // Back face (LV side, z=z+halfD)
+  for(let i=0;i<8;i++){
+    const rx=cx-halfW+0.8+i*1.2;
+    g.add(box(1.0,TH*0.85,0.12,i%2===0?M.ptrRadAlt:M.ptrRadFin,rx,TH*0.425,z+halfD+0.12));
   }
 
-  // cooling fan / oil cooler hints on radiator bank
-  [ox+1.8,ox+4.8,ox+7.8].forEach(fx=>{
-    const fp=p(fx,oy+TD+.35,TH*.62);
-    g.appendChild(E('circle',{cx:fp.sx,cy:fp.sy,r:'6.5',fill:'#111927',stroke:'#52637d','stroke-width':'0.7',opacity:'0.95'}));
-    g.appendChild(E('path',{d:`M ${fp.sx-5} ${fp.sy} Q ${fp.sx} ${fp.sy-7} ${fp.sx+5} ${fp.sy} Q ${fp.sx} ${fp.sy+7} ${fp.sx-5} ${fp.sy}`,fill:'#2d3b52',opacity:'0.75','pointer-events':'none'}));
+  // ── MAIN TANK BODY ──
+  const tankMat = status==='warn'?mat(0x2e4a70,0.35,0.5):
+                  status==='fault'?mat(0x502a2a,0.35,0.5):M.ptrTank;
+  g.add(box(TW,TH,TD,tankMat,cx,TH/2,z));
+  // top lid (slightly different color)
+  g.add(box(TW+0.1,0.12,TD+0.1,M.ptrTankTop,cx,TH+0.06,z));
+  // base plate
+  g.add(box(TW+0.2,0.2,TD+0.2,M.ptrBase,cx,0.1,z));
+
+  // Corner vertical stiffeners
+  [[-halfW,-halfD],[halfW,-halfD],[-halfW,halfD],[halfW,halfD]].forEach(([dx,dz])=>{
+    g.add(box(0.2,TH+0.1,0.2,M.steelDark,cx+dx,TH/2,z+dz));
   });
 
-  // ── MAIN TANK BODY ── (steel blue-gray, medium darkness - NOT pitch black)
-  // Left face (HV side — most visible)
-  g.appendChild(poly([p(ox,oy,TH),p(ox+TW,oy,TH),p(ox+TW,oy,0),p(ox,oy,0)],'#283858','rgba(255,255,255,0.07)',0.8));
-  // Right face
-  g.appendChild(poly([p(ox+TW,oy,TH),p(ox+TW,oy+TD,TH),p(ox+TW,oy+TD,0),p(ox+TW,oy,0)],'#1e2e48','rgba(255,255,255,0.06)',0.7));
-  // Top face — slightly lighter so it reads well
-  const topF=poly([p(ox,oy,TH),p(ox+TW,oy,TH),p(ox+TW,oy+TD,TH),p(ox,oy+TD,TH)],'#32466a','rgba(255,255,255,0.08)',0.8);
-  g.appendChild(topF);
+  // ── OLTC BOX (On HV end, left side of tank) ──
+  const oltcW=1.4, oltcH=3.8, oltcD=3.0;
+  const oltcX=cx-halfW-oltcW/2;
+  g.add(box(oltcW,oltcH,oltcD,M.oltcBox,oltcX,oltcH/2+0.8,z+1.5));
+  // OLTC pipe connector to tank
+  g.add(box(0.2,0.2,0.6,M.steel,cx-halfW,TH*0.6,z+1.5));
 
-  // Tank edge / flange lines
-  g.appendChild(ln(ox,oy,TH,ox+TW,oy,TH,'rgba(150,180,220,0.3)',1.5));
-  g.appendChild(ln(ox+TW,oy,TH,ox+TW,oy+TD,TH,'rgba(150,180,220,0.2)',1.2));
-  g.appendChild(ln(ox,oy,TH,ox,oy+TD,TH,'rgba(150,180,220,0.2)',1.2));
-  // mid horizontal weld line on front face
-  g.appendChild(ln(ox,oy,TH*.5,ox+TW,oy,TH*.5,'rgba(100,140,200,0.12)',0.8,'5,5'));
-  // bottom base plate line
-  g.appendChild(ln(ox,oy,0,ox+TW,oy,0,'rgba(150,180,220,0.15)',1.0));
-
-  // transformer skid / rollers
-  [[ox+2.0,oy+TD+.25],[ox+4.2,oy+TD+.25],[ox+6.4,oy+TD+.25],[ox+8.6,oy+TD+.25]].forEach(([wx,wy])=>{
-    const wp=p(wx,wy,.25);
-    g.appendChild(E('ellipse',{cx:wp.sx,cy:wp.sy,rx:'6',ry:'3.5',fill:'#101722',stroke:'#3d4b60','stroke-width':'0.8'}));
-    g.appendChild(E('circle',{cx:wp.sx,cy:wp.sy,r:'2.2',fill:'#556070','stroke':'#778090','stroke-width':'0.5'}));
-  });
-
-  // ── OLTC BOX (On-Load Tap Changer, at HV end, x=ox) ──
-  const oltcW=1.4, oltcD=3.0, oltcH=3.8;
-  g.appendChild(poly([p(ox-oltcW,oy+1,TH*.5+oltcH*.5),p(ox,oy+1,TH*.5+oltcH*.5),p(ox,oy+1,TH*.5-oltcH*.5),p(ox-oltcW,oy+1,TH*.5-oltcH*.5)],'#3a4c6a','rgba(255,255,255,0.06)',0.6));
-  g.appendChild(poly([p(ox-oltcW,oy+1,TH*.5+oltcH*.5),p(ox-oltcW,oy+1+oltcD,TH*.5+oltcH*.5),p(ox-oltcW,oy+1+oltcD,TH*.5-oltcH*.5),p(ox-oltcW,oy+1,TH*.5-oltcH*.5)],'#303e58','rgba(255,255,255,0.05)',0.5));
-  g.appendChild(poly([p(ox-oltcW,oy+1,TH*.5+oltcH*.5),p(ox,oy+1,TH*.5+oltcH*.5),p(ox,oy+1+oltcD,TH*.5+oltcH*.5),p(ox-oltcW,oy+1+oltcD,TH*.5+oltcH*.5)],'#425674','rgba(255,255,255,0.07)',0.6));
-  // OLTC label
-  const olp=p(ox-oltcW*.5,oy+1+oltcD*.5,TH*.5+oltcH*.5+.3);
-  const olt=E('text',{x:olp.sx,y:olp.sy,'text-anchor':'middle','font-size':'6.5',fill:'#6888b0','font-weight':'700','font-family':"'JetBrains Mono',monospace",'pointer-events':'none'});
-  olt.textContent='OLTC'; g.appendChild(olt);
-
-  // ── MARSHALLING BOX (at HV base) ──
-  g.appendChild(poly([p(ox+1.5,oy-.6,1.3),p(ox+3.5,oy-.6,1.3),p(ox+3.5,oy-.6,0),p(ox+1.5,oy-.6,0)],'#2a3858','rgba(255,255,255,0.05)',0.5));
-  g.appendChild(poly([p(ox+1.5,oy-.6,1.3),p(ox+3.5,oy-.6,1.3),p(ox+3.5,oy,1.3),p(ox+1.5,oy,1.3)],'#344562','rgba(255,255,255,0.05)',0.5));
-  const mbp=p(ox+2.5,oy-.3,1.5);
-  const mbt=E('text',{x:mbp.sx,y:mbp.sy,'text-anchor':'middle','font-size':'5.5',fill:'#5a7098','font-weight':'600','font-family':"'JetBrains Mono',monospace",'pointer-events':'none'});
-  mbt.textContent='MB'; g.appendChild(mbt);
+  // ── MARSHALLING BOX ──
+  g.add(box(2.0,1.2,0.6,M.cbMech,cx-halfW+1.5,0.6,z-halfD-0.35));
 
   // ── OIL CONSERVATOR (horizontal cylinder on top) ──
-  const csx=ox+3.5, csLen=4.5, csZ=TH+.5, csR=.75;
-  g.appendChild(poly([p(csx,oy,csZ+csR),p(csx+csLen,oy,csZ+csR),p(csx+csLen,oy,csZ-csR),p(csx,oy,csZ-csR)],'#3a5070','rgba(255,255,255,0.06)',0.5));
-  g.appendChild(poly([p(csx+csLen,oy,csZ+csR),p(csx+csLen,oy+1.5,csZ+csR),p(csx+csLen,oy+1.5,csZ-csR),p(csx+csLen,oy,csZ-csR)],'#2e4060','rgba(255,255,255,0.05)',0.4));
-  g.appendChild(poly([p(csx,oy,csZ+csR),p(csx+csLen,oy,csZ+csR),p(csx+csLen,oy+1.5,csZ+csR),p(csx,oy+1.5,csZ+csR)],'#4a647c','rgba(255,255,255,0.07)',0.5));
-  // end cap ellipse
-  g.appendChild(E('ellipse',{cx:p(csx,oy+.75,csZ).sx,cy:p(csx,oy+.75,csZ).sy,rx:'10',ry:'6',fill:'#2a3c58','stroke':'#3a4e6a','stroke-width':'0.5'}));
-  // sight glass / oil level gauge
-  const sgp=p(csx+2,oy,csZ);
-  g.appendChild(E('rect',{x:(sgp.sx-4).toFixed(1),y:(sgp.sy-5).toFixed(1),width:'11',height:'10',rx:'2',fill:'#0f2040','stroke':'#2a4878','stroke-width':'0.8',opacity:'0.9'}));
-  // conservator support brackets
-  [csx+.8, csx+3.5].forEach(bx2=>{
-    g.appendChild(ln(bx2,oy+.75,TH,bx2,oy+.75,csZ-csR,'#38485a',2.5));
-  });
-  // breather pipe (Buchholz)
-  g.appendChild(ln(ox+7.5,oy+TD*.5,TH,ox+7.5,oy+TD*.5,csZ,'#30404a',1.8,'3,2'));
-  const bzp=p(ox+7.5,oy+TD*.5,TH+.8);
-  g.appendChild(E('ellipse',{cx:bzp.sx,cy:bzp.sy,rx:'5',ry:'2.5',fill:'#405060','stroke':'#507080','stroke-width':'0.5'}));
-
-  // ── HV BUSHINGS (33KV, 3-phase, on HV face y=oy) ──
-  // 3 tall porcelain insulator stacks sticking UP from top of tank face
-  const hvX=[ox+2, ox+5, ox+8];
-  hvX.forEach((bx2)=>{
-    // mount flange
-    g.appendChild(E('ellipse',{cx:p(bx2,oy,TH).sx,cy:p(bx2,oy,TH).sy,rx:'7',ry:'3.5',fill:'#3a5070','stroke':'#4a6080','stroke-width':'0.7'}));
-    // insulator (6 sheds, 4.2m tall) — cream/ivory color
-    insStr(g,bx2,oy,TH,4.2,6,'#ece8de','#d4d0c6');
-    // terminal cap at top (gold/copper color — live terminal)
-    const tp=p(bx2,oy,TH+4.4);
-    g.appendChild(E('circle',{cx:tp.sx,cy:tp.sy,r:'4.5',fill:'#b8a020','stroke':'#d4bc28','stroke-width':'0.8'}));
+  const consLen=4.5, consR=0.8;
+  const consX=cx-halfW+2+consLen/2;
+  const cons=cyl(consR,consR,consLen,16,M.cons,consX,TH+0.5+consR,z);
+  cons.rotation.z=Math.PI/2;
+  g.add(cons);
+  // end caps
+  g.add(cyl(consR,consR,0.15,16,M.steelDark,consX-consLen/2,TH+0.5+consR,z));
+  g.add(cyl(consR,consR,0.15,16,M.steelDark,consX+consLen/2,TH+0.5+consR,z));
+  // oil level sight glass
+  g.add(box(0.1,consR*1.2,0.4,M.consGlass,consX,TH+0.5+consR,z-consR-0.05));
+  // support brackets
+  [consX-consLen*0.3, consX+consLen*0.3].forEach(bx2=>{
+    g.add(box(0.15,TH*0.2,0.15,M.steel,bx2,TH+TH*0.1,z));
   });
 
-  // ── LV BUSHINGS (11KV, 3-phase, on LV face y=oy+TD) ──
-  const lvX=[ox+2, ox+5, ox+8];
-  lvX.forEach((bx2)=>{
-    g.appendChild(E('ellipse',{cx:p(bx2,oy+TD,TH).sx,cy:p(bx2,oy+TD,TH).sy,rx:'6',ry:'3',fill:'#304858','stroke':'#405868','stroke-width':'0.7'}));
-    // insulator (4 sheds, 3.0m tall) — LV bushings shorter
-    insStr(g,bx2,oy+TD,TH,3.0,4,'#e8e4da','#d0ccc2');
-    const tp=p(bx2,oy+TD,TH+3.2);
-    g.appendChild(E('circle',{cx:tp.sx,cy:tp.sy,r:'4',fill:'#2a9040','stroke':'#38c050','stroke-width':'0.8'}));
+  // ── BUCHHOLZ RELAY ──
+  g.add(cyl(0.18,0.18,0.3,8,M.galv,cx+halfW-2,TH+0.3,z));
+  g.add(box(0.4,0.4,0.15,M.cbMech,cx+halfW-2,TH+0.5,z));
+
+  // ── PRV (Pressure Relief Valve) ──
+  g.add(cyl(0.14,0.14,0.5,8,M.galv,cx+halfW-1,TH+0.25,z-halfD+1));
+  g.add(cyl(0.25,0.18,0.2,8,M.cbCap,cx+halfW-1,TH+0.55,z-halfD+1));
+
+  // ── HV BUSHINGS (33KV, 3-phase on HV face z=z-halfD) ──
+  const hvXs=[cx-3, cx, cx+3];
+  const hvY0=TH;
+  hvXs.forEach(bx=>{
+    // mount flange on top
+    g.add(cyl(0.7,0.7,0.18,12,M.bushFlange,bx,hvY0+0.09,z-halfD));
+    // insulator stack (6 sheds, 4.2m tall, tapered)
+    const stack=new THREE.Group();
+    const sh=4.2, stepH=sh/7;
+    // core
+    stack.add(cyl(0.1,0.1,sh,8,M.laMetal,0,sh/2,0));
+    // 6 sheds, progressively larger toward bottom
+    for(let i=0;i<6;i++){
+      const sy=sh-i*stepH-0.3;
+      const sr=0.38+i*0.04;
+      stack.add(cyl(sr,sr*0.85,0.1,16,M.hvBush,0,sy,0));
+      stack.add(cyl(sr*0.88,sr*0.7,0.08,16,M.hvBushShd,0,sy-0.06,0));
+    }
+    // HV terminal cap (brass/copper)
+    stack.add(cyl(0.32,0.28,0.3,10,M.bushCap,0,sh+0.15,0));
+    stack.position.set(bx,hvY0+0.18,z-halfD);
+    g.add(stack);
   });
 
-  // ── STATUS INDICATOR ──
-  const sp=p(ox+TW*.5,oy+TD*.5,TH+5.5);
-  const ci=E('circle',{cx:sp.sx,cy:sp.sy,r:'5',fill:sc,'pointer-events':'none'});
-  if(st==='fault'){ci.appendChild(E('animate',{attributeName:'opacity',values:'1;0.1;1',dur:'1s',repeatCount:'indefinite'}));}
-  g.appendChild(ci);
+  // ── LV BUSHINGS (11KV, 3-phase on LV face z=z+halfD) ──
+  const lvXs=[cx-3, cx, cx+3];
+  lvXs.forEach(bx=>{
+    g.add(cyl(0.55,0.55,0.15,12,M.bushFlange,bx,hvY0+0.075,z+halfD));
+    const stack=new THREE.Group();
+    const sh=3.0;
+    stack.add(cyl(0.08,0.08,sh,8,M.laMetal,0,sh/2,0));
+    for(let i=0;i<4;i++){
+      const sy=sh-i*(sh/5)-0.25;
+      const sr=0.3+i*0.03;
+      stack.add(cyl(sr,sr*0.85,0.09,14,M.lvBush,0,sy,0));
+      stack.add(cyl(sr*0.88,sr*0.7,0.07,14,M.hvBushShd,0,sy-0.05,0));
+    }
+    stack.add(cyl(0.25,0.22,0.25,10,M.lvCap,0,sh+0.125,0));
+    stack.position.set(bx,hvY0+0.15,z+halfD);
+    g.add(stack);
+  });
+
+  // ── STATUS BALL ──
+  g.add(statusBall(status,cx,TH+6.0,z));
+
+  return g;
 }
 
-// ── PTR LABEL (separate from PTR group, drawn on top) ──
-function ptrLabel(ox,oy,TH,label,sub,col){
-  const lp=p(ox+5,oy+3.5,TH+7.0);
-  const bg=E('rect',{x:(lp.sx-38).toFixed(1),y:(lp.sy-9).toFixed(1),width:'76',height:'18',rx:'4',fill:'rgba(0,0,0,0.65)',stroke:col+'66','stroke-width':'0.8'});
-  svg.appendChild(bg);
-  const t=E('text',{x:lp.sx,y:(lp.sy-1).toFixed(1),'text-anchor':'middle','font-size':'8.5',fill:'#e6edf3','font-weight':'700','font-family':"'JetBrains Mono',monospace",'pointer-events':'none'});
-  t.textContent=label; svg.appendChild(t);
-  const st=E('text',{x:lp.sx,y:(lp.sy+8).toFixed(1),'text-anchor':'middle','font-size':'7',fill:col,'font-weight':'600','font-family':"'JetBrains Mono',monospace",'pointer-events':'none'});
-  st.textContent=sub; svg.appendChild(st);
-}
+// ═══════════════════════════════════════════════════
+//  11KV LV PANEL BUILDING
+// ═══════════════════════════════════════════════════
+function makeLVBuilding(x,z,nCubs,fdrSt){
+  const g=new THREE.Group();
+  g.userData={id:'lvbldg'};
+  clickables.push(g);
 
-// ════════════════════════════════════════════════════════════
-//  11KV FEEDER PANEL CUBICLE BUILDING
-// ════════════════════════════════════════════════════════════
-function lvBuilding(ox,oy,nCubs,fdrLabels,fdrSt){
-  const g=E('g'); svg.appendChild(g);
-  const cW=2.2, bD=4.5, bH=4.2;
+  const cW=2.2, bD=5.0, bH=4.5;
   const bW=nCubs*cW;
+  const cx=x+bW/2, cz=z+bD/2;
 
-  // floor
-  g.appendChild(poly([p(ox,oy),p(ox+bW,oy),p(ox+bW,oy+bD),p(ox,oy+bD)],'#121820','rgba(255,255,255,0.02)',0.8));
-  // back wall
-  g.appendChild(poly([p(ox,oy+bD,bH),p(ox+bW,oy+bD,bH),p(ox+bW,oy+bD,0),p(ox,oy+bD,0)],'#1c2838','rgba(255,255,255,0.04)',0.5));
-  // side walls
-  g.appendChild(poly([p(ox,oy,bH),p(ox,oy+bD,bH),p(ox,oy+bD,0),p(ox,oy,0)],'#182030','rgba(255,255,255,0.04)',0.6));
-  g.appendChild(poly([p(ox+bW,oy,bH),p(ox+bW,oy+bD,bH),p(ox+bW,oy+bD,0),p(ox+bW,oy,0)],'#182030','rgba(255,255,255,0.04)',0.6));
-  // roof
-  g.appendChild(poly([p(ox,oy,bH),p(ox+bW,oy,bH),p(ox+bW,oy+bD,bH),p(ox,oy+bD,bH)],'#1e2c42','rgba(255,255,255,0.06)',0.7));
-  g.appendChild(ln(ox-.2,oy-.2,bH,ox+bW+.2,oy-.2,bH,'#2a3c58',2.5)); // roof edge
+  // Floor slab
+  g.add(box(bW+0.4,0.2,bD+0.4,M.concrete,cx,0.1,cz));
+  // Rear wall
+  g.add(box(bW,bH,0.3,M.lvBldg,cx,bH/2,cz+bD/2+0.15));
+  // Side walls
+  g.add(box(0.3,bH,bD,M.lvBldg,x-0.15,bH/2,cz));
+  g.add(box(0.3,bH,bD,M.lvBldg,x+bW+0.15,bH/2,cz));
+  // Roof
+  g.add(box(bW+0.6,0.3,bD+0.5,M.lvRoof,cx,bH+0.15,cz));
+  // Roof overhang front lip
+  g.add(box(bW+0.8,0.2,0.4,M.steelDark,cx,bH+0.1,cz-bD/2-0.35));
 
-  // cubicle fronts
-  const stC={live:'#3fb950',warn:'#d29922',fault:'#f85149',off:'#6e7681',maint:'#58a6ff'};
+  // Front face — individual cubicle panels
+  const stCols={live:0x2ecc71,warn:0xf0a500,fault:0xe74c3c,off:0x5a6578,maint:0x4a9eff};
   for(let c=0;c<nCubs;c++){
-    const cx=ox+c*cW;
-    const st=fdrSt[c]||'live';
-    const sc=stC[st]||stC.live;
-    // cubicle face
-    g.appendChild(poly([p(cx,oy,bH),p(cx+cW,oy,bH),p(cx+cW,oy,0),p(cx,oy,0)],'#1e2c44','rgba(255,255,255,0.07)',0.8));
-    // division line
-    g.appendChild(ln(cx,oy,bH,cx,oy,0,'rgba(255,255,255,0.06)',0.8));
+    const pcx=x+c*cW+cW/2;
+    const pcz=cz-bD/2;
+    // panel door (slightly recessed)
+    g.add(box(cW-0.1,bH-0.1,0.18,M.lvPanel,pcx,bH/2,pcz-0.09));
+    // vertical division groove
+    g.add(box(0.05,bH,0.22,M.steelDark,x+c*cW,bH/2,pcz));
     // CB indicator lamp
-    const lz=bH-1.0;
-    const lp2=p(cx+cW*.5,oy,lz);
-    g.appendChild(E('circle',{cx:lp2.sx,cy:lp2.sy,r:'4',fill:sc,opacity:'0.92','stroke':sc,'stroke-width':'1.5'}));
-    if(st==='live'||st==='warn')g.appendChild(E('circle',{cx:lp2.sx,cy:lp2.sy,r:'7',fill:'none','stroke':sc,'stroke-width':'0.5',opacity:'0.35'}));
-    if(st==='fault'){const a=E('animate',{attributeName:'opacity',values:'1;0.2;1',dur:'1s',repeatCount:'indefinite'});g.lastChild.appendChild(a);}
+    const st=fdrSt[c]||'live';
+    const ledMat=st==='live'?M.ledGreen:st==='fault'?M.ledRed:st==='warn'?M.ledAmber:M.sOff;
+    g.add(cyl(0.12,0.12,0.06,8,ledMat,pcx,bH-0.8,pcz-0.22));
     // door handle
-    const hp=p(cx+cW*.72,oy,bH*.42);
-    g.appendChild(E('rect',{x:(hp.sx-2).toFixed(1),y:(hp.sy-5).toFixed(1),width:'4',height:'11',rx:'2',fill:'#354862','stroke':'#456090','stroke-width':'0.5'}));
+    g.add(box(0.07,0.5,0.1,M.galv,pcx+cW*0.28,bH*0.45,pcz-0.23));
     // view window
-    const wp=p(cx+cW*.38,oy,bH*.7);
-    g.appendChild(E('rect',{x:(wp.sx-5).toFixed(1),y:(wp.sy-4).toFixed(1),width:'12',height:'8',rx:'2',fill:'#0a1c2e','stroke':'#243850','stroke-width':'0.6'}));
-    // label
-    const lbp=p(cx+cW*.5,oy,bH*.22);
-    const lbt=E('text',{x:lbp.sx,y:lbp.sy,'text-anchor':'middle','font-size':'6',fill:'#7090c0','font-weight':'700','font-family':"'JetBrains Mono',monospace",'pointer-events':'none'});
-    lbt.textContent=fdrLabels[c]||`F${c+1}`; g.appendChild(lbt);
+    const wMat=mat(0x0a1830,0.1,0.0);
+    g.add(box(0.7,0.5,0.05,wMat,pcx-cW*0.1,bH*0.72,pcz-0.21));
+    // name plate (small box)
+    g.add(box(0.6,0.12,0.04,M.steelDark,pcx,bH*0.22,pcz-0.22));
   }
+
+  return g;
 }
 
-// ════════════════════════════════════════════════════════════
-//  EQUIPMENT DATA  (from actual Golconda SS SLD)
-// ════════════════════════════════════════════════════════════
-const EQ={
-  hv1:{name:'HV-I Bay (33KV Incomer-I)',icon:'⚡',status:'live',action:'View HV-I Bay Details',
-    rows:[['Source','132KV Asifnagar → 33KV Golconda'],['CB Type','33KV SF6 VCB'],['CB Serial','ASF-33-CB-001'],['CB Status','CLOSED'],['Bus Isolator','CLOSED'],['Line Isolator','CLOSED'],['CT Ratio','600-800/1A, CL-0.2'],['LA Rating','30KV ZnO Type'],['Voltage','33.1 KV'],['Current','198 A']]},
-  hv2:{name:'HV-II Bay (33KV Incomer-II)',icon:'⚡',status:'live',action:'View HV-II Bay Details',
-    rows:[['Source','132KV Asifnagar → 33KV Shaikpet'],['CB Type','33KV SF6 VCB'],['CB Serial','ASF-33-CB-002'],['CB Status','CLOSED'],['Bus Isolator','CLOSED'],['Line Isolator','CLOSED'],['CT Ratio','600-800/1A, CL-0.2'],['LA Rating','30KV ZnO Type'],['Voltage','33.0 KV'],['Current','145 A']]},
-  hv3:{name:'HV-III Bay (33KV Incomer-III)',icon:'⚡',status:'live',action:'View HV-III Bay Details',
-    rows:[['Source','132KV Jubilee Hills → 33KV Golconda'],['CB Type','33KV SF6 VCB'],['CB Status','CLOSED'],['Bus Isolator','CLOSED'],['Line Isolator','CLOSED'],['CT Ratio','600-800/1A'],['Current','122 A']]},
-  hv4:{name:'HV-IV Bay (33KV Incomer-IV)',icon:'⚡',status:'live',action:'View HV-IV Bay Details',
-    rows:[['Source','400KV Raidurg SS → 33KV Sandhya Feeder'],['CB Type','33KV SF6 VCB'],['CB Status','CLOSED'],['Bus Isolator','CLOSED'],['Line Isolator','CLOSED'],['CT Ratio','600-800/1A'],['Current','98 A']]},
-  ptr1:{name:'Power Transformer — PTR-I (12.5 MVA)',icon:'🔄',status:'warn',action:'View PTR-I Full Details',
-    rows:[['Rating','12.5 MVA, 33/11 KV'],['Make','BHEL / CTR-125'],['Year Commissioned','2018'],['Sr. No.','BHE-2018-0471'],['Loading','87% (10.9 MVA) ⚠'],['Oil Temperature','72°C  ⚠ (Limit 85°C)'],['Winding Temp.','81°C'],['OLTC Position','Tap 5 → 11.2 KV'],['Buchholz Relay','Normal'],['PRV Status','Normal'],['Silica Gel Breather','OK']]},
-  ptr2:{name:'Power Transformer — PTR-II (12.5 MVA)',icon:'🔄',status:'live',action:'View PTR-II Full Details',
-    rows:[['Rating','12.5 MVA, 33/11 KV'],['Make','TELK / TR-125'],['Year Commissioned','2021'],['Sr. No.','TLK-2021-1124'],['Loading','64% (8.0 MVA)'],['Oil Temperature','58°C (Normal)'],['Winding Temp.','65°C'],['OLTC Position','Tap 4 → 11.0 KV'],['Buchholz Relay','Normal'],['PRV Status','Normal']]},
-  ptr3:{name:'Power Transformer — PTR-III (12.5 MVA)',icon:'🔄',status:'live',action:'View PTR-III Full Details',
-    rows:[['Rating','12.5 MVA, 33/11 KV'],['Make','BHEL'],['Year Commissioned','2019'],['Loading','58% (7.3 MVA)'],['Oil Temperature','55°C (Normal)'],['Winding Temp.','61°C'],['OLTC Position','Tap 4 → 11.0 KV'],['Buchholz Relay','Normal']]},
-  ptr4:{name:'Power Transformer — PTR-IV (12.5 MVA)',icon:'🔄',status:'live',action:'View PTR-IV Full Details',
-    rows:[['Rating','12.5 MVA, 33/11 KV'],['Make','TELK'],['Year Commissioned','2020'],['Loading','41% (5.1 MVA)'],['Oil Temperature','51°C (Normal)'],['Winding Temp.','57°C'],['OLTC Position','Tap 3 → 10.8 KV'],['Buchholz Relay','Normal']]},
-  bc33:{name:'33KV Bus Coupler',icon:'🔗',status:'off',action:'View Bus Coupler',
-    rows:[['CB Status','OPEN (Normal Condition)'],['Bus-A Voltage','33.1 KV'],['Bus-B Voltage','33.0 KV'],['Configuration','Sectionalised']]},
-  ctrl:{name:'Control Room / Relay & Protection',icon:'🖥️',status:'maint',action:'View Control Room',
-    rows:[['SCADA RTU','ABB RTU-560 — Active'],['Protection Relays','SEL-311 (O/C, E/F, Diff)'],['DC System','110V, 200Ah VRLA — Float'],['AC UPS','10 KVA — Online'],['Last Maintenance','Jan-2026']]},
-};
+// ═══════════════════════════════════════════════════
+//  CONTROL ROOM BUILDING
+// ═══════════════════════════════════════════════════
+function makeCtrlRoom(x,z){
+  const g=new THREE.Group();
+  g.userData={id:'ctrl'};
+  clickables.push(g);
 
-// ════════════════════════════════════════════════════════════
-//  RENDER  — Full Golconda SS Layout per SLD
-//  Layout: 4 PTRs in a row (x=0..43), y zones:
-//   33KV:        y=[0..10]
-//   Xformer Yrd: y=[12..26]
-//   11KV Panel:  y=[28..36]
-// ════════════════════════════════════════════════════════════
-function render(){
-  svg.innerHTML='';
+  const W=10,H=4,D=7;
+  g.add(box(W,H,D,M.ctrlWall,x,H/2,z));
+  g.add(box(W+0.4,0.3,D+0.4,M.ctrlRoof,x,H+0.15,z));
+  // door
+  g.add(box(1.4,2.5,0.15,M.lvDoor,x,1.25,z-D/2-0.07));
+  // windows (3)
+  [-3,0,3].forEach(dx=>{
+    g.add(box(1.4,1.0,0.1,mat(0x1a3048,0.1,0.0),x+dx,H*0.7,z-D/2-0.05));
+  });
+  // AC units on roof
+  g.add(box(1.5,0.5,1.0,M.steelDark,x-3,H+0.4,z-D/2+0.8));
+  g.add(box(1.5,0.5,1.0,M.steelDark,x+3,H+0.4,z-D/2+0.8));
+  // antenna mast
+  const mast=cyl(0.06,0.06,2.5,6,M.galv,x,H+1.4,z-1);
+  g.add(mast);
+  g.add(statusBall('maint',x,H+1,z));
+  return g;
+}
 
-  // ── FLOORS ──
-  floor(-1,-1,47,40,'#0d1117');
-  floor(-1,-1,47,12,'#0f151e');       // 33KV outdoor yard
-  floor(-1,12,47,16,'#0d1320');       // transformer yard
-  floor(-1,28,47,10,'#0c1318');       // 11KV indoor area
+// ═══════════════════════════════════════════════════
+//  BUILD FULL SUBSTATION
+// ═══════════════════════════════════════════════════
+const substationGroup = new THREE.Group();
+scene.add(substationGroup);
 
-  // ── COMPOUND WALLS (perimeter) ──
-  wall(-1,-1,46,-1,2,'#1e2838','#172030');
-  wall(-1,-1,-1,38,2,'#172030','#1c2838');
-  wall(46,-1,46,38,2,'#172030','#1c2838');
-  wall(-1,38,46,38,2,'#1e2838','#172030');
+function buildSubstation(){
+  const sg = substationGroup;
 
-  // ── SECTION BANNERS ──
-  banner(22,-1.2,.5,'◈  33 KV  OUTDOOR  INCOMER  BAYS','#58a6ff');
-  banner(22,11.5,.5,'◈  TRANSFORMER  YARD  —  4 × 12.5 MVA  PTRs','#d29922');
-  banner(22,27.5,.5,'◈  11 KV  LV  INDOOR  SWITCHGEAR  PANEL','#3fb950');
+  // ── GROUND / COMPOUND FLOOR ──
+  const groundW=90, groundD=70;
+  // Main compound floor (gravel / screed)
+  sg.add(box(groundW,0.15,groundD,M.ground,0,0,0,0,0,0,false));
+  // 33KV yard section (textured slightly diff)
+  sg.add(box(groundW,0.05,25,M.gravel,0,0.08,-22,0,0,0,false));
+  // Transformer yard
+  sg.add(box(groundW,0.05,20,M.ground,0,0.08,0,0,0,0,false));
+  // 11KV section
+  sg.add(box(groundW,0.05,20,M.concrete,0,0.08,20,0,0,0,false));
 
-  // ── 33KV BUS BAR (runs along y=5, z=7.5) ──
-  bus(0,44,5,7.5,'#3fb950',4.5);
-  busLbl(22,5,7.5,'33 KV BUS  —  33.1 KV','#3fb950');
-
-  // ── GANTRY PORTALS ──
-  [0,11,22,33,44].forEach(gx=>gantry(gx,1.5,8.5,8));
-
-  // ─────────────────────────────────────────────────────────
-  //  HV BAYS  (each bay centered in 11m span)
-  // ─────────────────────────────────────────────────────────
-  // Incomer lines from outside (dashed, entering from top)
-  const srcCols=['#58a6ff','#7c9cff','#a090ff','#9090e0'];
-  const bCx=[5,16,27,38];
-  const srcLbls=['132KV Asifnagar','132KV Asifnagar-Shaipet','132KV Jubilee Hills','400KV Raidurg SS'];
-  const hvIds=['hv1','hv2','hv3','hv4'];
-
-  bCx.forEach((cx,i)=>{
-    const col=srcCols[i];
-    // incoming line from top (external source)
-    svg.appendChild(ln(cx,1.5,7.5,cx,-2,7.5,col,2.5,'6,3'));
-    // source label
-    const sp=p(cx,-2.5,7.5);
-    const srect=E('rect',{x:(sp.sx-45).toFixed(1),y:(sp.sy-8).toFixed(1),width:'90',height:'15',rx:'3',fill:'rgba(0,0,0,0.6)',stroke:col+'66','stroke-width':'0.8'});
-    svg.appendChild(srect);
-    const st=E('text',{x:sp.sx,y:(sp.sy+2).toFixed(1),'text-anchor':'middle',fill:col,'font-size':'7','font-family':"'JetBrains Mono',monospace",'pointer-events':'none','font-weight':'600'});
-    st.textContent=srcLbls[i]; svg.appendChild(st);
-
-    // LA bank (3-phase)
-    la3(cx-2,1.5,0);
-    // Line Isolator
-    iso3(cx,1.5,0);
-    // CT bank
-    ct3(cx+1.5,1.5,0);
-    // SF6 CB (clickable, labeled)
-    cbSF6(cx,4,0,'live',hvIds[i]);
-    // Bus Isolator
-    iso3(cx,4,0);
-    // Jump wire CB → bus
-    [1.5,2.9,4.3].forEach((dy,ph)=>svg.appendChild(ln(cx,1.5+dy,5.5,cx,5,7.5,col,1.5,'4,3')));
-
-    // HV CB label
-    const lp2=p(cx,5.5,8.2);
-    const ll=E('text',{x:lp2.sx,y:lp2.sy,'text-anchor':'middle','font-size':'7.5',fill:'#a0c0e0','font-weight':'700','font-family':"'JetBrains Mono',monospace",'pointer-events':'none'});
-    ll.textContent=`HV-${['I','II','III','IV'][i]}`; svg.appendChild(ll);
+  // Compound boundary walls
+  const wallH=2.0;
+  [
+    [groundW,wallH,0.3,0,wallH/2,-groundD/2-0.15],
+    [groundW,wallH,0.3,0,wallH/2,+groundD/2+0.15],
+    [0.3,wallH,groundD+0.6,-groundW/2-0.15,wallH/2,0],
+    [0.3,wallH,groundD+0.6,+groundW/2+0.15,wallH/2,0],
+  ].forEach(([w,h,d,x2,y2,z2])=>{
+    sg.add(box(w,h,d,M.concrete,x2,y2,z2,0,0,0,false));
+    // wall top coping
+    sg.add(box(w+0.1,0.15,d+0.1,M.steelDark,x2,wallH+0.075,z2,0,0,0,false));
   });
 
-  // Bus coupler (between bay 2 & 3)
-  ct3(21.5,3,0);
-  cbSF6(21.5,5,0,'off','bc33');
+  // Internal access road
+  sg.add(box(groundW,0.08,3.5,M.road,0,0.09,-10,0,0,0,false));
+  sg.add(box(groundW,0.08,3.5,M.road,0,0.09,12,0,0,0,false));
 
-  // ─────────────────────────────────────────────────────────
-  //  POWER TRANSFORMERS  (4 PTRs, equally spaced in yard)
-  //  PTR position: ox=[0,11,22,33], oy=13
-  // ─────────────────────────────────────────────────────────
-  const ptrOx=[0,11,22,33], ptrOy=13;
+  // ── 33KV GANTRY PORTALS (5 portals, 18m apart along x) ──
+  const gantryXs=[-36,-18,0,18,36];
+  gantryXs.forEach(gx=>{
+    sg.add(makeGantry(gx,-26,8.5,14));
+  });
+
+  // ── 33KV BUS BAR at y=8.5m (running full x range) ──
+  sg.add(makeBus(-42,42,8.5,-26));
+
+  // ── 4 HV BAYS ──
+  const hvXs=[-27,-9,9,27];
+  const hvIds=['hv1','hv2','hv3','hv4'];
+  const hvSt=['live','live','live','live'];
+  const hvSrcCols=[0x4a9eff,0x7a9cff,0xa090ff,0x9090e0];
+
+  hvXs.forEach((hx,i)=>{
+    // Incoming line (from above/outside) — rendered as a glowing vertical conductor
+    const incMat=mat(hvSrcCols[i],0.2,0.5,hvSrcCols[i],0.15);
+    sg.add(condLine(new THREE.Vector3(hx,8.5,-26),new THREE.Vector3(hx,8.5,-35),incMat,0.18));
+    sg.add(condLine(new THREE.Vector3(hx,8.5,-35),new THREE.Vector3(hx,2.0,-38),incMat,0.18));
+
+    // LA bank
+    const la=makeLA(hx,-35); sg.add(la);
+    // Line Isolator
+    sg.add(makeIso(hx,-32,false));
+    // CT bank
+    sg.add(makeCT(hx,-30));
+    // SF6 CB
+    const cb=makeCB(hx,-28,hvSt[i],hvIds[i]); sg.add(cb);
+    // Bus Isolator
+    sg.add(makeIso(hx,-27,false));
+    // Jump wire CB to busbar
+    [-1.3,0,1.3].forEach(dz=>{
+      sg.add(condLine(
+        new THREE.Vector3(hx,5.0,-28+dz),
+        new THREE.Vector3(hx,8.5,-26),
+        mat(hvSrcCols[i],0.2,0.5,hvSrcCols[i],0.12),0.14));
+    });
+  });
+
+  // Bus coupler CB (between bay 2 & 3)
+  sg.add(makeCT(0,-22));
+  sg.add(makeCB(0,-20,'off','bc33'));
+  sg.add(makeIso(0,-22,true));
+  sg.add(makeIso(0,-20,true));
+
+  // ── 4 POWER TRANSFORMERS ──
+  const ptrXs=[-33,-11,11,33];
   const ptrSt=['warn','live','live','live'];
   const ptrIds=['ptr1','ptr2','ptr3','ptr4'];
-  const ptrLoad=['87% ⚠','64%','58%','41%'];
-  const ptrLoadCol=['#d29922','#3fb950','#3fb950','#3fb950'];
+  ptrXs.forEach((px,i)=>{
+    sg.add(makePTR(px,0,ptrSt[i],ptrIds[i]));
 
-  ptrOx.forEach((ox,i)=>{
-    ptr(ox,ptrOy,ptrSt[i],ptrIds[i]);
-  });
+    // HV bushing → 33KV bus connections (3 phase)
+    const ptrHalfD=3.5;
+    [-3,0,3].forEach(dx=>{
+      sg.add(condLine(
+        new THREE.Vector3(px+dx,5.2+4.2+0.3,-ptrHalfD),
+        new THREE.Vector3(hvXs[i],8.5,-26),
+        mat(0x88c020,0.2,0.5,0x88ff20,0.12),0.14));
+    });
 
-  // PTR labels (drawn after PTRs for z-order)
-  ptrOx.forEach((ox,i)=>{
-    ptrLabel(ox,ptrOy,5.2,`PTR-${['I','II','III','IV'][i]}  12.5MVA`,ptrLoad[i],ptrLoadCol[i]);
-  });
-
-  // HV bus → HV bushing connection (33KV bus to PTR HV terminal)
-  // HV bushing centres are at ox+2, ox+5, ox+8 (3 phases) at (y=ptrOy, z=TH+4.4)
-  ptrOx.forEach((ox,i)=>{
-    const TH=5.2;
-    [ox+2, ox+5, ox+8].forEach((bx,ph)=>{
-      // from 33KV bus down to PTR HV bushing terminal
-      svg.appendChild(ln(bCx[i],5+ph*1.4,7.5,bx,ptrOy,TH+4.4,srcCols[i],1.5,'4,3'));
+    // LV bushing → 11KV bus connections
+    const lvBusY=2.0;
+    [-3,0,3].forEach(dx=>{
+      sg.add(condLine(
+        new THREE.Vector3(px+dx,5.2+3.0+0.25,ptrHalfD),
+        new THREE.Vector3(px+dx,lvBusY,14),
+        mat(0x30c060,0.2,0.5,0x30ff70,0.10),0.14));
     });
   });
 
-  // ─────────────────────────────────────────────────────────
-  //  11KV LV SECTION
-  // ─────────────────────────────────────────────────────────
-  // 11KV bus bars (4 separate LV bus sections, one per PTR)
-  const lvBusY=27.8, lvBusZ=2.5;
-  ptrOx.forEach((ox,i)=>{
-    bus(ox,ox+10,lvBusY,lvBusZ,'#3fb950',3.5);
-    busLbl(ox+5,lvBusY,lvBusZ,`11KV Bus-${['I','II','III','IV'][i]}`,'#3fb950');
+  // ── 11KV BUS BARS (4 sections at y=2m, z=14) ──
+  const lvBusZ=14;
+  sg.add(makeBus(-43,43,2.0,lvBusZ));
+
+  // ── LV INCOMER CBs (4, one per PTR) ──
+  ptrXs.forEach((px,i)=>{
+    sg.add(makeCB(px,13,ptrSt[i],null));
   });
 
-  // LV bushing → 11KV bus conductors (LV bushing at ox+2,5,8; y=ptrOy+7=20; z=TH+3.2=8.4)
-  const TH=5.2;
-  ptrOx.forEach((ox,i)=>{
-    [ox+2, ox+5, ox+8].forEach((bx,ph)=>{
-      svg.appendChild(ln(bx,ptrOy+7,TH+3.2,bx,lvBusY,lvBusZ,'#3fb950',1.5,'5,3'));
-    });
-    // LV incomer CB (box near 11KV bus)
-    const lviX=ox+5;
-    cbSF6(lviX,26,0,'live',null);
-  });
-
-  // 11KV feeder panels (one group per PTR)
-  // PTR-I feeds: Motmahal, Aditya Nagar UG, Darga OH, Cable Feeder → 4 feeders
-  // PTR-II feeds: Shaikpet WW, Aparna One, DU Colony, Aditya Nagar OH, Darga UG → 5 feeders
-  // PTR-III feeds: QQ Toombs, Brundavan Colony, Darga UG → 3 feeders
-  // PTR-IV feeds: Narayanamma + others → 3 feeders
-  const fdrGroups=[
-    {ox:0,  labels:['LVI-I','Motmahal','Aditya-UG','Darga-OH','Cable-F'],   st:['live','live','live','live','live']},
-    {ox:11, labels:['LVI-II','Shaik-WW','AparnaOne','DU-Col','AditNaOH'], st:['live','live','fault','live','live']},
-    {ox:22, labels:['LVI-III','QQTombs','Brundhavn','Darga-UG'],          st:['live','live','live','off']},
-    {ox:33, labels:['LVI-IV','Narayana','Works-F','Spare'],               st:['live','live','live','off']},
+  // ── 11KV LV PANEL BUILDINGS (4 groups) ──
+  const panelGroups=[
+    {x:-42,fdrLabels:['LVI-I','Motmahal','Aditya-UG','Darga-OH','Cable-F'],
+     st:['live','live','live','live','live']},
+    {x:-18,fdrLabels:['LVI-II','Shaik-WW','AparnaOne','DU-Col','Adit-OH'],
+     st:['live','live','fault','live','live']},
+    {x:4,fdrLabels:['LVI-III','QQ-Tombs','Brundhavn','Darga-UG'],
+     st:['live','live','live','off']},
+    {x:24,fdrLabels:['LVI-IV','Narayana','Works-F','Spare'],
+     st:['live','live','live','off']},
   ];
-  fdrGroups.forEach(grp=>{
-    lvBuilding(grp.ox,29,grp.labels.length,grp.labels,grp.st);
-    // Bus → feeder bus connection
-    grp.labels.forEach((_,j)=>{
-      svg.appendChild(ln(grp.ox+j*2.2+1.1,lvBusY,lvBusZ,grp.ox+j*2.2+1.1,29,2.5,'rgba(63,185,80,0.4)',1,'3,3'));
-    });
+  panelGroups.forEach(pg=>{
+    sg.add(makeLVBuilding(pg.x,17,pg.fdrLabels.length,pg.st));
+    // 11KV bus → feeder bus wire
+    const pW=pg.fdrLabels.length*2.2;
+    const pcx=pg.x+pW/2;
+    sg.add(condLine(
+      new THREE.Vector3(pcx,2.0,lvBusZ),
+      new THREE.Vector3(pcx,2.0,17),
+      M.busLive,0.18));
   });
 
   // ── CONTROL ROOM ──
-  const ctg=cg('ctrl',svg);
-  const ctc=['#283858','#1e2e48','#243050'];
-  ctg.appendChild(poly([p(44,28,4.2),p(47,28,4.2),p(47,28,0),p(44,28,0)],ctc[1],'rgba(255,255,255,0.06)',0.7));
-  ctg.appendChild(poly([p(47,28,4.2),p(47,31,4.2),p(47,31,0),p(47,28,0)],ctc[2],'rgba(255,255,255,0.06)',0.7));
-  ctg.appendChild(poly([p(44,28,4.2),p(47,28,4.2),p(47,31,4.2),p(44,31,4.2)],ctc[0],'rgba(255,255,255,0.07)',0.7));
-  const ctrp=p(45.5,29.5,4.5);
-  const ctrlt=E('text',{x:ctrp.sx,y:ctrp.sy,'text-anchor':'middle','font-size':'7',fill:'#7090c0','font-weight':'700','font-family':"'JetBrains Mono',monospace",'pointer-events':'none'});
-  ctrlt.textContent='CTRL\nRM'; ctg.appendChild(ctrlt);
+  sg.add(makeCtrlRoom(38,25));
 
-  // ── INTERNAL ROAD / SEPARATOR LINES ──
-  svg.appendChild(poly([p(-1,11),p(46,11),p(46,12),p(-1,12)],'#111820','rgba(255,255,255,0.015)',0.5));
-  svg.appendChild(poly([p(-1,27),p(46,27),p(46,28),p(-1,28)],'#111820','rgba(255,255,255,0.015)',0.5));
+  // ── DC BATTERY ROOM ──
+  const dr=new THREE.Group();
+  dr.add(box(6,3.5,5,M.ctrlWall,30,1.75,25));
+  dr.add(box(6.3,0.25,5.3,M.ctrlRoof,30,3.65,25));
+  sg.add(dr);
 
-  // ── GRID LINES (faint iso grid on floor) ──
-  for(let xi=0;xi<=44;xi+=11){
-    const a=p(xi,-1,0),b=p(xi,40,0);
-    svg.appendChild(E('line',{x1:a.sx,y1:a.sy,x2:b.sx,y2:b.sy,stroke:'rgba(255,255,255,0.015)','stroke-width':'0.8'}));
-  }
-  for(let yi=0;yi<=38;yi+=5){
-    const a=p(-1,yi,0),b=p(46,yi,0);
-    svg.appendChild(E('line',{x1:a.sx,y1:a.sy,x2:b.sx,y2:b.sy,stroke:'rgba(255,255,255,0.015)','stroke-width':'0.8'}));
-  }
+  // ── ENTRY GATE & ROAD ──
+  // Gate posts
+  sg.add(cyl(0.4,0.4,3,8,M.concrete,-46,1.5,-30));
+  sg.add(cyl(0.4,0.4,3,8,M.concrete,-46,1.5,-26));
+  // Entry road
+  sg.add(box(8,0.08,12,M.road,-42,0.05,-33,0,0,0,false));
 }
 
-// ════════════════════════════════════════════════════════════
-//  POPUP
-// ════════════════════════════════════════════════════════════
-const SC={live:'#3fb950',warn:'#d29922',fault:'#f85149',maint:'#58a6ff',off:'#6e7681'};
+buildSubstation();
+
+// ═══════════════════════════════════════════════════
+//  GRID HELPER
+// ═══════════════════════════════════════════════════
+const gridHelper = new THREE.GridHelper(180, 36, 0x1a2535, 0x101820);
+gridHelper.position.y = -0.05;
+scene.add(gridHelper);
+
+// ═══════════════════════════════════════════════════
+//  CLICK / SELECTION
+// ═══════════════════════════════════════════════════
+const SC={live:'#2ecc71',warn:'#f0a500',fault:'#e74c3c',maint:'#4a9eff',off:'#6e7681'};
 const SL={live:'Energised',warn:'Overloaded ⚠',fault:'FAULT / TRIP',maint:'Under Maintenance',off:'Isolated / Open'};
 
-function showEquip(id,mx,my){
+canvas.addEventListener('click', e=>{
+  if(isDragging) return;
+  const rect=canvas.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(substationGroup.children,true);
+  if(!hits.length){closePanel();return;}
+  // find clickable ancestor
+  let obj=hits[0].object;
+  while(obj && !obj.userData.id) obj=obj.parent;
+  if(obj && obj.userData.id) showPanel(obj.userData.id);
+});
+
+function showPanel(id){
   const eq=EQ[id]; if(!eq) return;
-  const pop=document.getElementById('ep');
-  const wrap=document.getElementById('svgwrap');
-  let px=mx+16,py=my-40;
-  if(px+274>wrap.clientWidth)px=mx-290;
-  if(py<8)py=8;
-  if(py+400>wrap.clientHeight)py=wrap.clientHeight-410;
-  pop.style.left=px+'px'; pop.style.top=py+'px'; pop.style.display='block';
-  document.getElementById('ep-ic').textContent=eq.icon||'⚡';
-  document.getElementById('ep-ic').style.background=(SC[eq.status]||'#6e7681')+'22';
-  document.getElementById('ep-nm').textContent=eq.name;
-  document.getElementById('ep-at').textContent=eq.action||'View Details';
+  const dp=document.getElementById('dp');
+  dp.style.display='block';
+  document.getElementById('dp-ic').textContent=eq.icon||'⚡';
+  document.getElementById('dp-ic').style.background=(SC[eq.status]||'#6e7681')+'22';
+  document.getElementById('dp-nm').textContent=eq.name;
+  document.getElementById('dp-at').textContent=eq.action||'View Details';
   let html='';
-  if(eq.status){const c=SC[eq.status]||'#6e7681';html+=`<div class="ep-row"><span class="ep-k">Status</span><div class="ep-st"><div class="ep-dot" style="background:${c}"></div><span style="color:${c}">${SL[eq.status]}</span></div></div>`;}
-  (eq.rows||[]).forEach(([k,v])=>{html+=`<div class="ep-row"><span class="ep-k">${k}</span><span class="ep-v">${v}</span></div>`;});
-  document.getElementById('ep-bd').innerHTML=html;
-  let rph=`<div style="font-weight:600;margin-bottom:7px;font-size:11.5px">${eq.icon} ${eq.name}</div>`;
-  if(eq.status){const c=SC[eq.status];rph+=`<div class="rp-r"><span class="rp-k">Status</span><span style="color:${c};font-weight:600">${SL[eq.status]}</span></div>`;}
-  (eq.rows||[]).slice(0,6).forEach(([k,v])=>{rph+=`<div class="rp-r"><span class="rp-k">${k}</span><span class="rp-v" style="font-size:10px">${v}</span></div>`;});
-  document.getElementById('rp-sel').innerHTML=`<div class="rp-t">Selected Equipment</div>${rph}`;
+  if(eq.status){
+    const c=SC[eq.status]||'#6e7681';
+    html+=`<div class="dp-row"><span class="dp-k">Status</span><div class="dp-st"><div class="dp-dot" style="background:${c}"></div><span style="color:${c}">${SL[eq.status]}</span></div></div>`;
+  }
+  (eq.rows||[]).forEach(([k,v])=>{html+=`<div class="dp-row"><span class="dp-k">${k}</span><span class="dp-v">${v}</span></div>`;});
+  document.getElementById('dp-bd').innerHTML=html;
 }
-function closePopup(){document.getElementById('ep').style.display='none';}
-document.getElementById('ss').addEventListener('click',closePopup);
+function closePanel(){document.getElementById('dp').style.display='none';}
 
-// ════════════════════════════════════════════════════════════
-//  ZOOM + PAN
-// ════════════════════════════════════════════════════════════
-const VB=[-480,-90,1080,660];
-let cz=1, curVB=VB.slice();
-function setZ(z){
-  cz=Math.max(.3,Math.min(5,z));
-  const cx=VB[0]+VB[2]/2, cy=VB[1]+VB[3]/2;
-  const nw=VB[2]/cz, nh=VB[3]/cz;
-  curVB=[cx-nw/2,cy-nh/2,nw,nh];
-  svg.setAttribute('viewBox',curVB.join(' '));
-  document.getElementById('zlbl').textContent=Math.round(cz*100)+'%';
-}
-function zIn(){setZ(cz*1.3);} function zOut(){setZ(cz/1.3);} function zReset(){setZ(1);curVB=VB.slice();svg.setAttribute('viewBox',VB.join(' '));}
+// ═══════════════════════════════════════════════════
+//  VIEW PRESETS
+// ═══════════════════════════════════════════════════
+const viewPresets={
+  iso:  {theta:45, phi:38, radius:135, px:0, py:0, pz:0, fov:40, label:'ISOMETRIC VIEW'},
+  top:  {theta:0,  phi:88, radius:120, px:0, py:0, pz:0, fov:50, label:'TOP VIEW (PLAN)'},
+  front:{theta:0,  phi:18, radius:130, px:0, py:8, pz:0, fov:38, label:'FRONT ELEVATION'},
+  side: {theta:90, phi:18, radius:120, px:0, py:8, pz:0, fov:38, label:'SIDE ELEVATION'},
+  inside:{theta:180,phi:12, radius:55, px:40, py:4, pz:22, fov:60, label:'11KV PANEL — INSIDE VIEW'},
+};
 
-let autoRotTimer=null;
-function updateRotLabel(){
-  const r=document.getElementById('rotlbl');
-  if(r) r.textContent=((rotDeg%360+360)%360)+'°';
+function setView(name){
+  const v=viewPresets[name]; if(!v) return;
+  theta=v.theta; phi=v.phi; radius=v.radius;
+  panX=v.px; panY=v.py; panZ=v.pz;
+  camera.fov=v.fov; camera.updateProjectionMatrix();
+  document.getElementById('vplbl').textContent=v.label;
+  // update tabs
+  document.querySelectorAll('.vmt').forEach(t=>{
+    t.classList.toggle('act',t.getAttribute('onclick')===`setView('${name}')`);
+  });
 }
-function rerenderKeepView(){
-  const vb=[...curVB];
-  closePopup();
-  render();
-  curVB=vb;
-  svg.setAttribute('viewBox',curVB.join(' '));
-  updateRotLabel();
-}
-function rotLeft(){rotDeg=(rotDeg-15)%360;rerenderKeepView();}
-function rotRight(){rotDeg=(rotDeg+15)%360;rerenderKeepView();}
-function rotReset(){rotDeg=0;rerenderKeepView();}
-function toggleAutoRotate(){
-  if(autoRotTimer){clearInterval(autoRotTimer);autoRotTimer=null;return;}
-  autoRotTimer=setInterval(()=>{rotDeg=(rotDeg+5)%360;rerenderKeepView();},900);
-}
-document.getElementById('svgwrap').addEventListener('wheel',e=>{e.preventDefault();setZ(e.deltaY<0?cz*1.15:cz/1.15);},{passive:false});
-let dragging=false,dragStart={},vbS=[];
-document.getElementById('svgwrap').addEventListener('mousedown',e=>{dragging=true;dragStart={x:e.clientX,y:e.clientY};vbS=[...curVB];});
-document.addEventListener('mousemove',e=>{if(!dragging)return;const w=document.getElementById('svgwrap');const sx=w.clientWidth/curVB[2],sy=w.clientHeight/curVB[3];curVB[0]=vbS[0]-(e.clientX-dragStart.x)/sx;curVB[1]=vbS[1]-(e.clientY-dragStart.y)/sy;svg.setAttribute('viewBox',curVB.join(' '));});
-document.addEventListener('mouseup',()=>{dragging=false;});
 
-function tick(){const n=new Date();document.getElementById('clock').textContent=n.toLocaleTimeString('en-IN',{hour12:false})+' IST';}
+// ═══════════════════════════════════════════════════
+//  WIREFRAME TOGGLE
+// ═══════════════════════════════════════════════════
+let wireMode=false;
+function toggleWire(){
+  wireMode=!wireMode;
+  substationGroup.traverse(o=>{
+    if(o.material) o.material.wireframe=wireMode;
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  DISPLAY MODE
+// ═══════════════════════════════════════════════════
+function setDisplayMode(mode){
+  if(mode==='xray'){toggleWire();}
+  // thermal mode: tint PTRs by temperature
+  if(mode==='thermal'){
+    substationGroup.traverse(o=>{
+      if(o.userData&&o.userData.id&&o.userData.id.startsWith('ptr')){
+        const temps={ptr1:0xff5500,ptr2:0xff8800,ptr3:0xffaa00,ptr4:0xffdd00};
+        const tc=temps[o.userData.id]||0xffffff;
+        o.traverse(c=>{ if(c.material&&c.material!==M.hvBush&&c.material!==M.lvBush) c.material.emissive=new THREE.Color(tc); c.material&&(c.material.emissiveIntensity=0.08);});
+      }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  INSIDE VIEW TOGGLE
+// ═══════════════════════════════════════════════════
+let insideMode=false;
+function toggleInside(){
+  insideMode=!insideMode;
+  if(insideMode){setView('inside');}
+  else{setView('iso');}
+}
+
+// ═══════════════════════════════════════════════════
+//  ZOOM
+// ═══════════════════════════════════════════════════
+function zIn(){radius=Math.max(20,radius*0.8);}
+function zOut(){radius=Math.min(280,radius*1.25);}
+function zReset(){setView('iso');}
+
+// ═══════════════════════════════════════════════════
+//  RESIZE
+// ═══════════════════════════════════════════════════
+function resize(){
+  const vpa=document.getElementById('vpgrid');
+  const W=vpa.clientWidth, H=vpa.clientHeight;
+  renderer.setSize(W,H,false);
+  camera.aspect=W/H;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',resize);
+resize();
+
+// ═══════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════════
+let frame=0;
+function animate(){
+  requestAnimationFrame(animate);
+  frame++;
+  updateCamera();
+  // subtle pulsing on fault status balls
+  substationGroup.traverse(o=>{
+    if(o.material&&o.material.emissiveIntensity>0.5&&o.material.emissive&&
+       o.material.emissive.r>0.8&&o.material.emissive.g<0.3){
+      o.material.emissiveIntensity=0.8+0.4*Math.sin(frame*0.08);
+    }
+  });
+  renderer.render(scene,camera);
+  // update zlbl
+  document.getElementById('zlbl').textContent=Math.round(135/radius*100)+'%';
+}
+animate();
+
+// ─ CLOCK ─
+function tick(){const n=new Date();document.getElementById('clk').textContent=n.toLocaleTimeString('en-IN',{hour12:false})+' IST';}
 tick();setInterval(tick,1000);
-render();updateRotLabel();
+
+// ─ HIDE LOADING ─
+setTimeout(()=>{document.getElementById('loading').style.display='none';},600);
 </script>
 </body>
 </html>
