@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>33/11kV Goshamahal Indoor SS — Single Line Diagram</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #6a7d8e;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  background: rgba(255,255,255,0.96);
+  padding: 9px 18px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+  align-items: center;
+}
+.toolbar .tit {
+  font: 600 12px 'Segoe UI', Arial, sans-serif;
+  color: #1a3a5a;
+  margin-right: 8px;
+}
+.toolbar button {
+  padding: 6px 14px;
+  border: 1.5px solid #2a4a6a;
+  background: #edf3f9;
+  color: #1a3a5a;
+  border-radius: 4px;
+  cursor: pointer;
+  font: 600 13px 'Segoe UI', Arial, sans-serif;
+  transition: background 0.15s;
+}
+.toolbar button:hover { background: #c8daea; }
+#sldWrap {
+  background: white;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.38);
+  transform-origin: top center;
+  transition: transform 0.2s;
+}
+@media print {
+  body { background: white; padding: 0; }
+  .toolbar { display: none; }
+  #sldWrap { box-shadow: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="tit">Goshamahal 33/11kV SS — SLD</span>
+  <button onclick="doZoom(1.25)">⊕ Zoom In</button>
+  <button onclick="doZoom(0.80)">⊖ Zoom Out</button>
+  <button onclick="resetZoom()">↺ Reset</button>
+  <button onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+
+<div id="sldWrap">
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 900 1050"
+     width="900" height="1050">
+
+<!-- ============================================================ -->
+<!--  SYMBOL DEFINITIONS                                           -->
+<!-- ============================================================ -->
+<defs>
+  <style>
+    .b5  { stroke:#000; stroke-width:5;   fill:none }
+    .b4  { stroke:#000; stroke-width:4;   fill:none }
+    .w2  { stroke:#000; stroke-width:2;   fill:none }
+    .w15 { stroke:#000; stroke-width:1.5; fill:none }
+    .s2  { stroke:#000; stroke-width:2;   fill:white }
+    .blk { fill:#000; stroke:#000; stroke-width:0.5 }
+    .grd { stroke:#000; stroke-width:2.5; fill:none }
+    .lbd { font: bold 11px 'Courier New',monospace; fill:#000 }
+    .lsm { font: 8.5px 'Courier New',monospace; fill:#000 }
+    .lxs { font: 7.5px 'Courier New',monospace; fill:#000 }
+    .lptr{ font: bold 12px 'Courier New',monospace; fill:#000 }
+  </style>
+
+  <!-- VCB — 24×24 box with X, centered at origin -->
+  <g id="V">
+    <rect x="-12" y="-12" width="24" height="24" class="s2"/>
+    <line x1="-9" y1="-9" x2="9"  y2="9"  class="w15"/>
+    <line x1="9"  y1="-9" x2="-9" y2="9"  class="w15"/>
+  </g>
+
+  <!-- ISOLATOR — span ±15 on y-axis, open circle contacts -->
+  <g id="IS">
+    <line x1="0" y1="-15" x2="0"  y2="-5.5" class="w2"/>
+    <circle cx="0" cy="-5" r="3.5" class="s2"/>
+    <line x1="0" y1="-5"  x2="11" y2="5"    class="w2"/>
+    <circle cx="0" cy="5"  r="3.5" class="s2"/>
+    <line x1="0" y1="5.5" x2="0"  y2="15"   class="w2"/>
+  </g>
+
+  <!-- FUSE — span ±14 on y-axis -->
+  <g id="FU">
+    <rect x="-9" y="-14" width="18" height="28" class="s2"/>
+    <text x="0" y="5" text-anchor="middle"
+      style="font:bold 9px 'Courier New';fill:#000">F</text>
+  </g>
+
+  <!-- LIGHTNING ARRESTER
+       Local y=0 = connection tap point; ground end ~y=45 -->
+  <g id="LA">
+    <line x1="0" y1="0"  x2="0"  y2="10"  class="w2"/>
+    <polygon points="0,10 -9,26 9,26" class="blk"/>
+    <line x1="0" y1="26" x2="0"  y2="35"  class="w2"/>
+    <line x1="-11" y1="35" x2="11" y2="35" class="grd"/>
+    <line x1="-7"  y1="40" x2="7"  y2="40" class="w2"/>
+    <line x1="-3"  y1="45" x2="3"  y2="45" class="w15"/>
+  </g>
+
+  <!-- BUS PT / CVT
+       Local y=0 = top connection; ground ~y=65 -->
+  <g id="BPT">
+    <line x1="0" y1="0"  x2="0"  y2="11"  class="w2"/>
+    <circle cx="0" cy="20" r="9" class="s2"/>
+    <circle cx="0" cy="38" r="9" class="s2"/>
+    <line x1="0" y1="47" x2="0"  y2="55"  class="w2"/>
+    <line x1="-11" y1="55" x2="11" y2="55" class="grd"/>
+    <line x1="-7"  y1="60" x2="7"  y2="60" class="w2"/>
+    <line x1="-3"  y1="65" x2="3"  y2="65" class="w15"/>
+  </g>
+
+  <!-- POWER TRANSFORMER (PTR)
+       Local y=0 = HV top; y=88 = LV bottom
+       Top circle cy=22 r=22; Bottom circle cy=66 r=22 -->
+  <g id="PTR">
+    <circle cx="0" cy="22" r="22" class="s2"/>
+    <circle cx="0" cy="66" r="22" class="s2"/>
+  </g>
+
+  <!-- STATION DTR
+       Local y=0 = top connection; ground ~y=67 -->
+  <g id="DTR">
+    <line x1="0" y1="0"  x2="0"  y2="11"  class="w2"/>
+    <rect x="-14" y="8" width="28" height="36"
+      style="stroke:#888;stroke-width:1;fill:none;stroke-dasharray:3,2"/>
+    <circle cx="0" cy="20" r="9" class="s2"/>
+    <circle cx="0" cy="38" r="9" class="s2"/>
+    <line x1="0" y1="47" x2="0"  y2="57"  class="w2"/>
+    <line x1="-9"  y1="57" x2="9"  y2="57" class="grd"/>
+    <line x1="-5"  y1="62" x2="5"  y2="62" class="w2"/>
+    <line x1="-2"  y1="67" x2="2"  y2="67" class="w15"/>
+  </g>
+
+  <!-- CAPACITOR BANK
+       Local y=0 = top connection; ground ~y=50 -->
+  <g id="CAP">
+    <line x1="0" y1="0"  x2="0"  y2="14"  class="w2"/>
+    <rect x="-16" y="14" width="32" height="6" class="blk"/>
+    <rect x="-16" y="24" width="32" height="6" class="blk"/>
+    <line x1="0" y1="30" x2="0"  y2="40"  class="w2"/>
+    <line x1="-11" y1="40" x2="11" y2="40" class="grd"/>
+    <line x1="-7"  y1="45" x2="7"  y2="45" class="w2"/>
+    <line x1="-3"  y1="50" x2="3"  y2="50" class="w15"/>
+  </g>
+
+</defs>
+
+<!-- ============================================================ -->
+<!--  PAGE BORDER (white fill, 2.5px black outline)                -->
+<!-- ============================================================ -->
+<rect x="4" y="4" width="892" height="1042"
+  style="stroke:#000;stroke-width:2.5;fill:white"/>
+
+<!-- ============================================================ -->
+<!--  TITLE BLOCK — right strip x=825 to x=896                    -->
+<!-- ============================================================ -->
+<line x1="825" y1="4"    x2="825" y2="1046"
+  style="stroke:#000;stroke-width:2"/>
+<!-- Horizontal dividers within title block -->
+<line x1="825" y1="830"  x2="896" y2="830"  style="stroke:#000;stroke-width:1.5"/>
+<line x1="825" y1="888"  x2="896" y2="888"  style="stroke:#000;stroke-width:1.5"/>
+<line x1="825" y1="944"  x2="896" y2="944"  style="stroke:#000;stroke-width:1.5"/>
+<line x1="825" y1="1000" x2="896" y2="1000" style="stroke:#000;stroke-width:1.5"/>
+<!-- Main title (rotated) -->
+<text transform="translate(863,690) rotate(-90)" text-anchor="middle"
+  style="font:bold 13.5px 'Courier New',monospace;fill:#000">
+  Single Line Diagram of 33/11kV Goshamahal Indoor Sub Station
+</text>
+<text transform="translate(843,640) rotate(-90)" text-anchor="middle"
+  style="font:8px 'Courier New',monospace;fill:#555">
+  TGSPDCL — James Street Sub Division — SCADA Circle
+</text>
+<!-- Metadata rows -->
+<text transform="translate(863,863) rotate(-90)" text-anchor="middle" class="lsm">Drawn: SCADA Circle</text>
+<text transform="translate(863,920) rotate(-90)" text-anchor="middle" class="lsm">Date: April 2025</text>
+<text transform="translate(863,976) rotate(-90)" text-anchor="middle" class="lsm">Scale: NTS</text>
+<text transform="translate(863,1030) rotate(-90)" text-anchor="middle" class="lsm">Rev: 00</text>
+
+<!-- ============================================================ -->
+<!--  33 KV SECTION HEADER                                         -->
+<!-- ============================================================ -->
+<text x="16" y="18" class="lbd">— 33 KV SECTION —</text>
+
+<!-- ============================================================ -->
+<!--  INCOMER 1 — 33kV Imlibun–Goshamahal  (x = 200)             -->
+<!-- ============================================================ -->
+<text x="204" y="14" class="lxs">33kV Imlibun</text>
+<text x="204" y="25" class="lxs">Goshamahal</text>
+<!-- Filled downward arrow = power from grid into SS -->
+<polygon points="192,30 208,30 200,46" class="blk"/>
+<!-- Wire: arrow tip → LA tap -->
+<line x1="200" y1="46" x2="200" y2="75" class="w2"/>
+<!-- Horizontal tap → LA -->
+<line x1="200" y1="75" x2="229" y2="75" class="w15"/>
+<use href="#LA" transform="translate(229,75)"/>
+<text x="243" y="71" class="lxs">33kV LA</text>
+<!-- Wire: tap → top isolator -->
+<line x1="200" y1="75" x2="200" y2="92" class="w2"/>
+<!-- Top isolator, center y=107 -->
+<use href="#IS" transform="translate(200,107)"/>
+<!-- Wire → VCB -->
+<line x1="200" y1="122" x2="200" y2="140" class="w2"/>
+<!-- I/C VCB, center y=152 -->
+<use href="#V" transform="translate(200,152)"/>
+<text x="215" y="150" class="lxs">I/C VCB</text>
+<!-- Wire → bottom isolator -->
+<line x1="200" y1="164" x2="200" y2="182" class="w2"/>
+<!-- Bottom isolator, center y=197 -->
+<use href="#IS" transform="translate(200,197)"/>
+<!-- Wire → 33kV Bus -->
+<line x1="200" y1="212" x2="200" y2="230" class="w2"/>
+
+<!-- ============================================================ -->
+<!--  IMLIBUN–SITARAMBAGH TIE  (x = 340, dashed outgoing)         -->
+<!-- ============================================================ -->
+<text x="344" y="14" class="lxs">33kV Imlibun-</text>
+<text x="344" y="25" class="lxs">Sitarambagh</text>
+<!-- Open upward arrowhead (outgoing / tie) -->
+<line x1="332" y1="42" x2="340" y2="30" class="w15"/>
+<line x1="348" y1="42" x2="340" y2="30" class="w15"/>
+<!-- Dashed line from arrowhead to 33kV Bus -->
+<line x1="340" y1="42" x2="340" y2="230"
+  class="w15" stroke-dasharray="6,4"/>
+
+<!-- ============================================================ -->
+<!--  INCOMER 2 — 33kV Sitarambagh–Goshamahal  (x = 490)         -->
+<!-- ============================================================ -->
+<text x="494" y="14" class="lxs">33kV Sitarambagh-</text>
+<text x="494" y="25" class="lxs">Goshamahal</text>
+<polygon points="482,30 498,30 490,46" class="blk"/>
+<line x1="490" y1="46" x2="490" y2="75" class="w2"/>
+<line x1="490" y1="75" x2="519" y2="75" class="w15"/>
+<use href="#LA" transform="translate(519,75)"/>
+<text x="533" y="71" class="lxs">33kV LA</text>
+<line x1="490" y1="75" x2="490" y2="92" class="w2"/>
+<use href="#IS" transform="translate(490,107)"/>
+<line x1="490" y1="122" x2="490" y2="140" class="w2"/>
+<use href="#V" transform="translate(490,152)"/>
+<text x="505" y="150" class="lxs">I/C VCB</text>
+<line x1="490" y1="164" x2="490" y2="182" class="w2"/>
+<use href="#IS" transform="translate(490,197)"/>
+<line x1="490" y1="212" x2="490" y2="230" class="w2"/>
+
+<!-- ============================================================ -->
+<!--  INCOMER 3 — 33kV Imlibun–Exhibition Ckt2  (x = 680)        -->
+<!-- ============================================================ -->
+<text x="684" y="14" class="lxs">33kV Imlibun-</text>
+<text x="684" y="25" class="lxs">Exhibition Ckt2</text>
+<polygon points="672,30 688,30 680,46" class="blk"/>
+<line x1="680" y1="46" x2="680" y2="75" class="w2"/>
+<line x1="680" y1="75" x2="709" y2="75" class="w15"/>
+<use href="#LA" transform="translate(709,75)"/>
+<text x="723" y="71" class="lxs">33kV LA</text>
+<line x1="680" y1="75" x2="680" y2="92" class="w2"/>
+<use href="#IS" transform="translate(680,107)"/>
+<line x1="680" y1="122" x2="680" y2="140" class="w2"/>
+<use href="#V" transform="translate(680,152)"/>
+<text x="695" y="150" class="lxs">I/C VCB</text>
+<line x1="680" y1="164" x2="680" y2="182" class="w2"/>
+<use href="#IS" transform="translate(680,197)"/>
+<line x1="680" y1="212" x2="680" y2="230" class="w2"/>
+
+<!-- ============================================================ -->
+<!--  33kV BUS-1  |  BUS COUPLER  |  BUS-2                        -->
+<!-- Bus-1: x=15→393   Coupler VCB: center (405,230)   Bus-2: x=417→820 -->
+<!-- ============================================================ -->
+<line x1="15"  y1="230" x2="393" y2="230" class="b5"/>
+<line x1="417" y1="230" x2="820" y2="230" class="b5"/>
+<text x="16"  y="226" class="lbd">33kV Bus-1</text>
+<text x="432" y="226" class="lbd">33kV Bus-2</text>
+<!-- Bus coupler VCB fills the 393–417 gap -->
+<use href="#V" transform="translate(405,230)"/>
+<text x="405" y="215" text-anchor="middle" class="lxs">33kV Bus Coupler</text>
+
+<!-- 33kV Bus PTs (tap directly off bus, body hangs below) -->
+<!-- Bus PT1 at x=100 -->
+<use href="#BPT" transform="translate(100,230)"/>
+<text x="108" y="306" class="lxs">33kV Bus PT1</text>
+<!-- Bus PT2 at x=760 -->
+<use href="#BPT" transform="translate(760,230)"/>
+<text x="768" y="306" class="lxs">33kV Bus PT2</text>
+
+<!-- ============================================================ -->
+<!--  PTR-1  (12.5 MVA)  —  x = 270                               -->
+<!--  HV1 taps Bus-1 at y=230; LV1 feeds 11kV Bus at y=500        -->
+<!--  PTR body: top y=326, bottom y=414  (centered y=370)         -->
+<!-- ============================================================ -->
+<!-- HV1 chain: Bus → ISO → FUSE → PTR top -->
+<line x1="270" y1="230" x2="270" y2="262" class="w2"/>
+<use href="#IS" transform="translate(270,277)"/><!-- center y=277 -->
+<line x1="270" y1="292" x2="270" y2="294" class="w2"/>
+<use href="#FU" transform="translate(270,308)"/><!-- center y=308, top 294 bot 322 -->
+<text x="295" y="287" class="lxs">HV1</text>
+<line x1="270" y1="322" x2="270" y2="326" class="w2"/>
+<!-- PTR-1 body (translate to top connection point) -->
+<use href="#PTR" transform="translate(270,326)"/>
+<text x="298" y="358" class="lptr">12.5 MVA</text>
+<text x="298" y="374" class="lptr">PTR-1</text>
+<text x="295" y="420" class="lxs">LV1</text>
+<!-- LV1 chain: PTR bottom → FUSE → ISO → 11kV Bus -->
+<line x1="270" y1="414" x2="270" y2="422" class="w2"/>
+<use href="#FU" transform="translate(270,436)"/><!-- center y=436, top 422 bot 450 -->
+<line x1="270" y1="450" x2="270" y2="465" class="w2"/>
+<use href="#IS" transform="translate(270,480)"/><!-- center y=480 -->
+<line x1="270" y1="495" x2="270" y2="500" class="w2"/>
+
+<!-- ============================================================ -->
+<!--  PTR-2  (12.5 MVA)  —  x = 600                               -->
+<!-- ============================================================ -->
+<line x1="600" y1="230" x2="600" y2="262" class="w2"/>
+<use href="#IS" transform="translate(600,277)"/>
+<line x1="600" y1="292" x2="600" y2="294" class="w2"/>
+<use href="#FU" transform="translate(600,308)"/>
+<text x="625" y="287" class="lxs">HV2</text>
+<line x1="600" y1="322" x2="600" y2="326" class="w2"/>
+<use href="#PTR" transform="translate(600,326)"/>
+<text x="628" y="358" class="lptr">12.5 MVA</text>
+<text x="628" y="374" class="lptr">PTR-2</text>
+<text x="625" y="420" class="lxs">LV2</text>
+<line x1="600" y1="414" x2="600" y2="422" class="w2"/>
+<use href="#FU" transform="translate(600,436)"/>
+<line x1="600" y1="450" x2="600" y2="465" class="w2"/>
+<use href="#IS" transform="translate(600,480)"/>
+<line x1="600" y1="495" x2="600" y2="500" class="w2"/>
+
+<!-- ============================================================ -->
+<!--  11kV BUS-1  |  BUS COUPLER  |  BUS-2                        -->
+<!-- Bus-1: x=15→393   Coupler VCB: center (405,500)   Bus-2: x=417→820 -->
+<!-- ============================================================ -->
+<line x1="15"  y1="500" x2="393" y2="500" class="b4"/>
+<line x1="417" y1="500" x2="820" y2="500" class="b4"/>
+<text x="16"  y="496" class="lbd">11kV Bus-1</text>
+<text x="432" y="496" class="lbd">11kV Bus-2</text>
+<!-- Bus coupler VCB -->
+<use href="#V" transform="translate(405,500)"/>
+<text x="405" y="480" text-anchor="middle" class="lxs">11kV Bus Coupler</text>
+
+<!-- 11kV Bus PTs -->
+<!-- Bus PT1 at x=75 -->
+<use href="#BPT" transform="translate(75,500)"/>
+<text x="83" y="576" class="lxs">11kV Bus PT1</text>
+<!-- Bus PT2 at x=730 -->
+<use href="#BPT" transform="translate(730,500)"/>
+<text x="738" y="576" class="lxs">11kV Bus PT2</text>
+
+<!-- Station DTR — tap from 11kV Bus-1 at x=355 -->
+<use href="#DTR" transform="translate(355,500)"/>
+<text x="362" y="580" class="lxs">Stn. DTR</text>
+
+<!-- 1 MVAr Capacitor Bank — tap from 11kV Bus-2 at x=455 -->
+<use href="#CAP" transform="translate(455,500)"/>
+<text x="463" y="562" class="lxs">1 MVAr Cap Bank</text>
+
+<!-- ============================================================ -->
+<!--  11kV FEEDERS — BUS-1                                         -->
+<!--  Feeder element y-levels (from Bus at y=500):                 -->
+<!--    Wire       : 500 → 520                                     -->
+<!--    Top ISO    : center 535   (span 520–550)                   -->
+<!--    Wire       : 550 → 562                                     -->
+<!--    VCB        : center 574   (span 562–586)                   -->
+<!--    Wire       : 586 → 598                                     -->
+<!--    Bot ISO    : center 613   (span 598–628)                   -->
+<!--    Wire       : 628 → 643                                     -->
+<!--    Arrow ←    : y = 643                                       -->
+<!--    Label ↓    : starts y = 648                                -->
+<!-- ============================================================ -->
+
+<!-- FEEDER: 11kV MJ Market  (x = 115) -->
+<line x1="115" y1="500" x2="115" y2="520" class="w2"/>
+<use href="#IS" transform="translate(115,535)"/>
+<line x1="115" y1="550" x2="115" y2="562" class="w2"/>
+<use href="#V"  transform="translate(115,574)"/>
+<line x1="115" y1="586" x2="115" y2="598" class="w2"/>
+<use href="#IS" transform="translate(115,613)"/>
+<line x1="115" y1="628" x2="115" y2="643" class="w2"/>
+<line x1="115" y1="643" x2="72"  y2="643" class="w2"/>
+<polygon points="72,643 86,637 86,649" class="blk"/>
+<text transform="translate(121,649) rotate(90)"
+  class="lsm" text-anchor="start">11kV MJ Market</text>
+
+<!-- FEEDER: 11kV Hindi Nagar  (x = 162) -->
+<line x1="162" y1="500" x2="162" y2="520" class="w2"/>
+<use href="#IS" transform="translate(162,535)"/>
+<line x1="162" y1="550" x2="162" y2="562" class="w2"/>
+<use href="#V"  transform="translate(162,574)"/>
+<line x1="162" y1="586" x2="162" y2="598" class="w2"/>
+<use href="#IS" transform="translate(162,613)"/>
+<line x1="162" y1="628" x2="162" y2="643" class="w2"/>
+<line x1="162" y1="643" x2="119" y2="643" class="w2"/>
+<polygon points="119,643 133,637 133,649" class="blk"/>
+<text transform="translate(168,649) rotate(90)"
+  class="lsm" text-anchor="start">11kV Hindi Nagar</text>
+
+<!-- FEEDER: 11kV Gyanbagh Colony  (x = 212) -->
+<line x1="212" y1="500" x2="212" y2="520" class="w2"/>
+<use href="#IS" transform="translate(212,535)"/>
+<line x1="212" y1="550" x2="212" y2="562" class="w2"/>
+<use href="#V"  transform="translate(212,574)"/>
+<line x1="212" y1="586" x2="212" y2="598" class="w2"/>
+<use href="#IS" transform="translate(212,613)"/>
+<line x1="212" y1="628" x2="212" y2="643" class="w2"/>
+<line x1="212" y1="643" x2="169" y2="643" class="w2"/>
+<polygon points="169,643 183,637 183,649" class="blk"/>
+<text transform="translate(218,649) rotate(90)"
+  class="lsm" text-anchor="start">11kV Gyanbagh Colony</text>
+
+<!-- FEEDER: 11kV Hakeem Baba  (x = 312) -->
+<line x1="312" y1="500" x2="312" y2="520" class="w2"/>
+<use href="#IS" transform="translate(312,535)"/>
+<line x1="312" y1="550" x2="312" y2="562" class="w2"/>
+<use href="#V"  transform="translate(312,574)"/>
+<line x1="312" y1="586" x2="312" y2="598" class="w2"/>
+<use href="#IS" transform="translate(312,613)"/>
+<line x1="312" y1="628" x2="312" y2="643" class="w2"/>
+<line x1="312" y1="643" x2="269" y2="643" class="w2"/>
+<polygon points="269,643 283,637 283,649" class="blk"/>
+<text transform="translate(318,649) rotate(90)"
+  class="lsm" text-anchor="start">11kV Hakeem Baba</text>
+
+<!-- ============================================================ -->
+<!--  11kV FEEDERS — BUS-2                                         -->
+<!-- ============================================================ -->
+
+<!-- FEEDER: 11kV Feel Khana  (x = 515) -->
+<line x1="515" y1="500" x2="515" y2="520" class="w2"/>
+<use href="#IS" transform="translate(515,535)"/>
+<line x1="515" y1="550" x2="515" y2="562" class="w2"/>
+<use href="#V"  transform="translate(515,574)"/>
+<line x1="515" y1="586" x2="515" y2="598" class="w2"/>
+<use href="#IS" transform="translate(515,613)"/>
+<line x1="515" y1="628" x2="515" y2="643" class="w2"/>
+<line x1="515" y1="643" x2="472" y2="643" class="w2"/>
+<polygon points="472,643 486,637 486,649" class="blk"/>
+<text transform="translate(521,649) rotate(90)"
+  class="lsm" text-anchor="start">11kV Feel Khana</text>
+
+<!-- FEEDER: 11kV Shivakumar Lal Stadium  (x = 560) -->
+<line x1="560" y1="500" x2="560" y2="520" class="w2"/>
+<use href="#IS" transform="translate(560,535)"/>
+<line x1="560" y1="550" x2="560" y2="562" class="w2"/>
+<use href="#V"  transform="translate(560,574)"/>
+<line x1="560" y1="586" x2="560" y2="598" class="w2"/>
+<use href="#IS" transform="translate(560,613)"/>
+<line x1="560" y1="628" x2="560" y2="643" class="w2"/>
+<line x1="560" y1="643" x2="517" y2="643" class="w2"/>
+<polygon points="517,643 531,637 531,649" class="blk"/>
+<text transform="translate(566,649) rotate(90)"
+  class="lsm" text-anchor="start">11kV Shivakumar Lal Stadium</text>
+
+<!-- FEEDER: 11kV Goshamahal  (x = 660) -->
+<line x1="660" y1="500" x2="660" y2="520" class="w2"/>
+<use href="#IS" transform="translate(660,535)"/>
+<line x1="660" y1="550" x2="660" y2="562" class="w2"/>
+<use href="#V"  transform="translate(660,574)"/>
+<line x1="660" y1="586" x2="660" y2="598" class="w2"/>
+<use href="#IS" transform="translate(660,613)"/>
+<line x1="660" y1="628" x2="660" y2="643" class="w2"/>
+<line x1="660" y1="643" x2="617" y2="643" class="w2"/>
+<polygon points="617,643 631,637 631,649" class="blk"/>
+<text transform="translate(666,649) rotate(90)"
+  class="lsm" text-anchor="start">11kV Goshamahal</text>
+
+<!-- ============================================================ -->
+<!--  LEGEND BOX                                                    -->
+<!-- ============================================================ -->
+<line x1="15" y1="820" x2="820" y2="820"
+  style="stroke:#000;stroke-width:1.5"/>
+<text x="16" y="836" class="lbd">LEGEND / SYMBOLS:</text>
+
+<!-- Row 1 -->
+<use href="#V"   transform="translate(48,858)"/>
+<text x="64" y="863" class="lsm">= Circuit Breaker / VCB</text>
+
+<use href="#IS"  transform="translate(200,858)"/>
+<text x="216" y="863" class="lsm">= Isolator / Disconnector</text>
+
+<use href="#LA"  transform="translate(380,848)"/>
+<text x="396" y="863" class="lsm">= Lightning Arrester (LA)</text>
+
+<use href="#FU"  transform="translate(560,858)"/>
+<text x="576" y="863" class="lsm">= Fuse</text>
+
+<!-- Row 2 -->
+<use href="#BPT" transform="translate(48,908)"/>
+<text x="64" y="916" class="lsm">= Bus PT / CVT</text>
+
+<use href="#CAP" transform="translate(200,908)"/>
+<text x="216" y="916" class="lsm">= Capacitor Bank</text>
+
+<use href="#DTR" transform="translate(380,908)"/>
+<text x="396" y="916" class="lsm">= Station DTR</text>
+
+<!-- PTR in legend at reduced scale -->
+<g transform="translate(560,906) scale(0.44)">
+  <use href="#PTR"/>
+</g>
+<text x="576" y="916" class="lsm">= Power Transformer (PTR)</text>
+
+<!-- ============================================================ -->
+<!--  INFO BOX                                                      -->
+<!-- ============================================================ -->
+<line x1="15" y1="958" x2="820" y2="958"
+  style="stroke:#000;stroke-width:1"/>
+<text x="16" y="973" class="lsm">SUBSTATION   : 33/11kV Goshamahal Indoor Sub Station  |  TYPE: Indoor (GIS)</text>
+<text x="16" y="988" class="lsm">TRANSFORMERS : PTR-1 = 12.5 MVA  |  PTR-2 = 12.5 MVA  |  Station DTR</text>
+<text x="16" y="1003" class="lsm">33kV INCOMERS: Imlibun-Goshamahal (VCB)  |  Sitarambagh-Goshamahal (VCB)  |  Imlibun-Exhibition Ckt2 (VCB)</text>
+<text x="16" y="1018" class="lsm">11kV FEEDERS : MJ Market  |  Hindi Nagar  |  Gyanbagh Colony  |  Hakeem Baba  |  Feel Khana  |  Shivakumar Lal Stadium  |  Goshamahal</text>
+<text x="16" y="1033" class="lsm">REACTIVE COMP: 1 MVAr Cap Bank on 11kV Bus-2  |  Station DTR on 11kV Bus-1</text>
+<text x="16" y="1043" class="lsm">TGSPDCL — James Street Sub Division — SCADA Circle — Hyderabad</text>
+
+</svg>
+</div><!-- #sldWrap -->
+
+<script>
+let sc = 1;
+const wrap = document.getElementById('sldWrap');
+function doZoom(f) {
+  sc = Math.min(Math.max(sc * f, 0.3), 4);
+  wrap.style.transform = `scale(${sc.toFixed(2)})`;
+}
+function resetZoom() {
+  sc = 1;
+  wrap.style.transform = 'scale(1)';
+}
+</script>
+</body>
+</html>
