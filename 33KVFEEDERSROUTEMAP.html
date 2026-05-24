@@ -1098,7 +1098,7 @@ path.feeder-flow-overlay{stroke-dasharray:4 20!important;stroke-linecap:round!im
 </div>
 
 <div id="topbar">
-  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">build 22-May-2026 / r5 (scadagridmap)</span></div>
+  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">build 24-May-2026 / r6 (SS-hierarchy)</span></div>
   <div class="tb-sep"></div>
   <div class="tb-title">SCADA 33KV FEEDER ROUTE MAP</div>
   <div id="coordPickBtn" onclick="toggleCoordPicker()" title="Pick coordinates on map">📍 PICK COORDS</div>
@@ -5478,29 +5478,74 @@ async function migrateLegacyToHierarchy(){
 // from feeder uploads. Structure:
 //
 //   substations/
-//     ss33_11kv/
+//     eht/                 ← EHT SS (132 / 220 / 400 KV)
 //       <SS_NAME_safekey>/
-//         name, lat, lng, division, sub_division, section,
-//         capacity, savedAt, updatedAt
-//     eht/
-//       <EHT_NAME_safekey>/
-//         name, lat, lng, division, sub_division, capacity,
-//         feeders, savedAt, updatedAt
+//         name, lat, lng, division, sub_division, capacity, feeders, savedAt
+//     ss_33_11kv/          ← 33 / 11 KV substations
+//       <SS_NAME_safekey>/
+//         name, lat, lng, division, sub_division, section, capacity, savedAt
+//     ht_33kv/             ← 33 KV HT services (industrial consumers, traction etc.)
+//       <SS_NAME_safekey>/
+//         name, lat, lng, division, sub_division, section, capacity, consumer_type
+//     ht_11kv/             ← 11 KV HT services
+//       <SS_NAME_safekey>/
+//         name, lat, lng, division, sub_division, section, capacity, consumer_type
+//     others/              ← catch-all (renewables, generation, misc.)
+//       <SS_NAME_safekey>/
+//         name, lat, lng, category, ...
 //
-// On startup, anything in this tree is merged into the in-memory
-// STATIC_SS33 / STATIC_EHT arrays, so the user can manage SS coords
-// from Firebase without editing the HTML file.
+// Behaviour on load:
+//   • If a Firebase entry's name matches a baked-in static entry,
+//     the Firebase value OVERRIDES (lat / lon / div / sub / section all
+//     get replaced). This lets users update any existing coordinate
+//     just by uploading a fresh row.
+//   • If no static entry matches, the Firebase entry is ADDED.
+//   • HT services (33 KV / 11 KV / others) live only in Firebase —
+//     no static fallback array.
 // ═════════════════════════════════════════════════════════════════
 const FB_SUBSTATIONS_PATH = 'substations';
 
+// Bucket map — string label → Firebase node name
+const FB_SS_BUCKETS = {
+  eht:        'eht',
+  ss33_11kv:  'ss_33_11kv',
+  ht_33kv:    'ht_33kv',
+  ht_11kv:    'ht_11kv',
+  other:      'others'
+};
+
+// Static arrays for HT services — empty by default, filled from Firebase.
+let STATIC_HT_33KV = [];
+let STATIC_HT_11KV = [];
+let STATIC_OTHERS  = [];
+
+// Map a user-supplied "type" string to the correct bucket. Tolerant of
+// variations like "33", "33KV", "ss 33/11", "ht-33kv", "EHT", "132 KV"…
+function _ssTypeToBucket(typeStr, name){
+  const t = String(typeStr||'').toLowerCase().replace(/[\s_\-/]/g,'');
+  if (t === 'eht' || t.startsWith('eht')) return 'eht';
+  if (t === '33' || t === 'ss' || t === 'ss33' || t === 'ss3311' || t === 'ss3311kv' || t.startsWith('ss33')) return 'ss33_11kv';
+  if (t === 'ht33' || t === 'ht33kv' || t === '33ht' || t === '33htservice' || t === '33kvht') return 'ht_33kv';
+  if (t === 'ht11' || t === 'ht11kv' || t === '11ht' || t === '11htservice' || t === '11kvht') return 'ht_11kv';
+  if (t === 'other' || t === 'others' || t === 'misc') return 'other';
+  // Auto-detect from name: voltage prefix like "132 KV …"
+  const m = String(name||'').match(/^(\d+)\s*KV/i);
+  if (m){
+    const v = parseInt(m[1]);
+    if (v >= 66) return 'eht';
+    if (v === 33) return 'ss33_11kv';
+    if (v === 11) return 'ht_11kv';   // any "11 KV …" line is treated as HT service
+  }
+  return 'ss33_11kv';   // safe default
+}
+
 async function fbSaveSubstation(ssData){
   if (!ssData || !ssData.name) throw new Error('substation name required');
-  if (typeof ssData.lat !== 'number' || typeof ssData.lng !== 'number') {
+  if (typeof ssData.lat !== 'number' || typeof ssData.lng !== 'number'){
     throw new Error('lat/lng must be numbers for '+ssData.name);
   }
-  const isEHT = (ssData.type||'').toLowerCase().startsWith('eht') ||
-                /^\d+\s*KV/i.test(ssData.name) && ssData.type !== '33';
-  const bucket = isEHT ? 'eht' : 'ss33_11kv';
+  const bucketKey = _ssTypeToBucket(ssData.type, ssData.name);
+  const bucket    = FB_SS_BUCKETS[bucketKey] || FB_SS_BUCKETS.other;
   const path = `${FB_SUBSTATIONS_PATH}/${bucket}/${safeFbKey(ssData.name)}`;
   const payload = {
     name: String(ssData.name),
@@ -5510,7 +5555,9 @@ async function fbSaveSubstation(ssData){
     sub_division: String(ssData.sub_division||ssData.sub_div||''),
     section: String(ssData.section||''),
     capacity: String(ssData.capacity||ssData.ptr_cap||''),
-    feeders: ssData.feeders!==undefined ? Number(ssData.feeders) : null,
+    consumer_type: String(ssData.consumer_type||''),
+    feeders: ssData.feeders!==undefined && ssData.feeders!==null && ssData.feeders!=='' ? Number(ssData.feeders) : null,
+    category: String(ssData.category||bucketKey),
     savedAt: new Date().toISOString()
   };
   const res = await fetch(`${FIREBASE_URL}/${path}.json`, {
@@ -5519,72 +5566,128 @@ async function fbSaveSubstation(ssData){
     body: JSON.stringify(payload)
   });
   if (!res.ok) throw new Error('HTTP '+res.status);
+  console.log(`✓ Substation saved → substations/${bucket}/${safeFbKey(ssData.name)}`);
   return { bucket, path };
+}
+
+async function fbDeleteSubstation(name, type){
+  const bucketKey = _ssTypeToBucket(type, name);
+  const bucket    = FB_SS_BUCKETS[bucketKey] || FB_SS_BUCKETS.other;
+  const path = `${FB_SUBSTATIONS_PATH}/${bucket}/${safeFbKey(name)}`;
+  try {
+    const r = await fetch(`${FIREBASE_URL}/${path}.json`, {method:'DELETE'});
+    return r.ok || r.status === 404;
+  } catch (e){ return false; }
 }
 
 async function fbLoadSubstations(){
   try {
     const res = await fetch(`${FIREBASE_URL}/${FB_SUBSTATIONS_PATH}.json?cb=${Date.now()}`);
-    if (!res.ok) return { ss33: 0, eht: 0 };
+    if (!res.ok) return { ss33:0, eht:0, ht33:0, ht11:0, others:0 };
     const data = await res.json();
-    if (!data) return { ss33: 0, eht: 0 };
+    if (!data) return { ss33:0, eht:0, ht33:0, ht11:0, others:0 };
 
-    let added33 = 0, addedEHT = 0;
-    const tracker = new Set((STATIC_SS33||[]).map(s => (s.name||'').toUpperCase().trim()));
-    const ehtTracker = new Set((STATIC_EHT||[]).map(s => (s.name||'').toUpperCase().trim()));
-
-    // 33/11 kV substations
-    const ss33Nodes = data.ss33_11kv || {};
-    Object.values(ss33Nodes).forEach(s => {
-      if (!s || !s.name || typeof s.lat !== 'number' || typeof s.lng !== 'number') return;
-      const key = s.name.toUpperCase().trim();
-      if (tracker.has(key)) return;
-      tracker.add(key);
-      STATIC_SS33.push({
-        name: s.name, lat: s.lat, lon: s.lng,
-        section: s.section || '',
-        division: s.division || '',
-        sub_div: s.sub_division || '',
-        capacity: s.capacity || ''
+    // Upsert helper — Firebase data overrides matching static entry
+    function upsertInto(arr, items, mapper){
+      let added=0, updated=0;
+      items.forEach(s => {
+        if (!s || !s.name || typeof s.lat !== 'number' || typeof s.lng !== 'number') return;
+        const key = (s.name||'').toUpperCase().trim();
+        const idx = arr.findIndex(x => (x.name||'').toUpperCase().trim() === key);
+        const mapped = mapper(s);
+        if (idx >= 0){
+          // OVERRIDE — Firebase wins. Keeps any fields not in the new payload.
+          Object.assign(arr[idx], mapped);
+          updated++;
+        } else {
+          arr.push(mapped);
+          added++;
+        }
       });
-      added33++;
-    });
-
-    // EHT substations
-    const ehtNodes = data.eht || {};
-    Object.values(ehtNodes).forEach(s => {
-      if (!s || !s.name || typeof s.lat !== 'number' || typeof s.lng !== 'number') return;
-      const key = s.name.toUpperCase().trim();
-      if (ehtTracker.has(key)) return;
-      ehtTracker.add(key);
-      STATIC_EHT.push({
-        name: s.name, lat: s.lat, lon: s.lng,
-        division: s.division || '',
-        sub_div: s.sub_division || '',
-        feeders: s.feeders || 0,
-        ptr_cap: s.capacity || ''
-      });
-      addedEHT++;
-    });
-
-    console.log(`Substations loaded from Firebase: +${added33} 33/11kV, +${addedEHT} EHT`);
-    if (added33 + addedEHT > 0){
-      // Re-render SS markers if rendering already happened
-      if (typeof renderStaticSS === 'function') {
-        // Clear and re-render — simple approach
-        if (typeof renderSSList === 'function') renderSSList();
-      }
+      return { added, updated };
     }
-    return { ss33: added33, eht: addedEHT };
-  } catch (err) {
+
+    // 33/11 KV — node renamed to ss_33_11kv but legacy ss33_11kv still read for back-compat
+    const s33 = upsertInto(STATIC_SS33, Object.values(data.ss_33_11kv || data.ss33_11kv || {}), s => ({
+      name: s.name, lat: s.lat, lon: s.lng,
+      division: s.division || '', sub_div: s.sub_division || '',
+      section: s.section || '', capacity: s.capacity || ''
+    }));
+
+    // EHT
+    const eht = upsertInto(STATIC_EHT, Object.values(data.eht || {}), s => ({
+      name: s.name, lat: s.lat, lon: s.lng,
+      division: s.division || '', sub_div: s.sub_division || '',
+      feeders: s.feeders || 0, ptr_cap: s.capacity || ''
+    }));
+
+    // 33 KV HT services — fresh array; no static counterpart
+    STATIC_HT_33KV = [];
+    const ht33 = upsertInto(STATIC_HT_33KV, Object.values(data.ht_33kv || {}), s => ({
+      name: s.name, lat: s.lat, lon: s.lng,
+      division: s.division || '', sub_div: s.sub_division || '',
+      section: s.section || '', capacity: s.capacity || '',
+      consumer_type: s.consumer_type || ''
+    }));
+
+    // 11 KV HT services
+    STATIC_HT_11KV = [];
+    const ht11 = upsertInto(STATIC_HT_11KV, Object.values(data.ht_11kv || {}), s => ({
+      name: s.name, lat: s.lat, lon: s.lng,
+      division: s.division || '', sub_div: s.sub_division || '',
+      section: s.section || '', capacity: s.capacity || '',
+      consumer_type: s.consumer_type || ''
+    }));
+
+    // Others (catch-all)
+    STATIC_OTHERS = [];
+    const others = upsertInto(STATIC_OTHERS, Object.values(data.others || {}), s => ({
+      name: s.name, lat: s.lat, lon: s.lng,
+      category: s.category || 'other',
+      division: s.division || '', sub_div: s.sub_division || ''
+    }));
+
+    console.log('Substations loaded from Firebase:');
+    console.log(`  ss_33_11kv : +${s33.added} new, ${s33.updated} updated`);
+    console.log(`  eht        : +${eht.added} new, ${eht.updated} updated`);
+    console.log(`  ht_33kv    : ${ht33.added} loaded`);
+    console.log(`  ht_11kv    : ${ht11.added} loaded`);
+    console.log(`  others     : ${others.added} loaded`);
+
+    // Re-render the SS list panel so changes are reflected.
+    if (typeof renderSSList === 'function') renderSSList();
+    // Re-render map markers if those layers exist
+    if (typeof refreshSubstationLayers === 'function') refreshSubstationLayers();
+
+    return {
+      ss33: s33.added + s33.updated, eht: eht.added + eht.updated,
+      ht33: ht33.added, ht11: ht11.added, others: others.added
+    };
+  } catch (err){
     console.error('Substation load error:', err);
-    return { ss33: 0, eht: 0 };
+    return { ss33:0, eht:0, ht33:0, ht11:0, others:0 };
   }
 }
 
-// Upload a CSV/XLSX of substation coordinates. Expected columns:
-//   name, lat, lng (or longitude), type (33 or eht), division, sub_division,
-//   section, capacity (or ptr_cap), feeders
+// Upload a CSV/XLSX of substation coordinates. Expected columns
+// (case-insensitive, optional ones may be left blank):
+//
+//   name          ← required, e.g. "33/11KV ESI SS"
+//   lat           ← required, decimal degrees
+//   lng           ← required (alias: longitude, long, lon)
+//   type          ← optional, one of:
+//                     eht | 33 | ht_33kv | ht_11kv | other
+//                   (auto-detected from name if omitted —
+//                   "132 KV …" → eht, "33/11 KV …" → ss_33_11kv)
+//   division
+//   sub_division
+//   section
+//   capacity      ← e.g. "3.15 MVA" or "80 MVA"
+//   consumer_type ← for HT services, e.g. "RAILWAYS", "STEEL PLANT"
+//   feeders       ← for EHT SS only, count of 33 KV feeders out
+//
+// Updates: if NAME matches an existing entry (including the baked-in
+// static list), the Firebase upload OVERRIDES the lat/lon/etc.
 function handleSubstationUpload(input){
   const file = input.files[0];
   if (!file) return;
@@ -5594,7 +5697,7 @@ function handleSubstationUpload(input){
   reader.onload = async function(e){
     let rows = [];
     if (isXLSX){
-      try{
+      try {
         const wb = XLSX.read(e.target.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
@@ -5626,11 +5729,12 @@ function handleSubstationUpload(input){
       try {
         await fbSaveSubstation({
           name, lat, lng,
-          type: r.type || (/^\d+\s*KV/i.test(name) ? 'eht' : '33'),
+          type: r.type || r.category,
           division: r.division,
           sub_division: r.sub_division || r['sub division'] || r.subdivision,
           section: r.section,
           capacity: r.capacity || r.ptr_cap || r['ptr cap'],
+          consumer_type: r.consumer_type || r['consumer type'],
           feeders: r.feeders ? parseInt(r.feeders) : null
         });
         ok++;
@@ -5639,8 +5743,8 @@ function handleSubstationUpload(input){
         fail++;
       }
     }
-    toast(`⚡ ${ok} substation(s) saved · ${fail} failed`, 3500);
-    // Re-load so map reflects newly-added SSes
+    toast(`⚡ ${ok} substation(s) saved/updated · ${fail} failed`, 4000);
+    // Re-load so the map and panel reflect newly-added / updated SSes
     await fbLoadSubstations();
   };
   if (isXLSX) reader.readAsArrayBuffer(file);
