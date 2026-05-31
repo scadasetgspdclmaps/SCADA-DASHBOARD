@@ -531,7 +531,117 @@ path.feeder-flow-overlay{stroke-dasharray:4 20!important;stroke-linecap:round!im
 #coordPickBtn:hover{background:rgba(0,200,255,.18);color:#fff}
 #coordPickBtn.picking{background:rgba(255,171,0,.18);border-color:rgba(255,171,0,.5);color:#ffab00}
 
-/* ── RULER button + readout (added 21 May 2026) ── */
+/* ── UI POLISH PASS (26 May 2026 per Naresh) — additive only ── */
+/* ── Substation popup polish (29 May 2026) ── */
+.leaflet-popup.ss-popup .leaflet-popup-content-wrapper{
+  border-radius:14px;
+  box-shadow:0 8px 28px -4px rgba(15,23,42,.32),0 2px 8px rgba(15,23,42,.08);
+  border:1px solid rgba(226,232,240,.9);
+  padding:2px;
+}
+.leaflet-popup.ss-popup .leaflet-popup-content{
+  margin:14px 16px;
+  font-family:var(--sans);
+}
+.leaflet-popup.ss-popup .leaflet-popup-tip{
+  box-shadow:0 8px 28px -4px rgba(15,23,42,.18);
+}
+/* Scrollbar inside feeder list */
+.leaflet-popup.ss-popup .leaflet-popup-content > div > div[style*="overflow-y"]::-webkit-scrollbar{width:5px}
+.leaflet-popup.ss-popup .leaflet-popup-content > div > div[style*="overflow-y"]::-webkit-scrollbar-thumb{
+  background:#cbd5e1;border-radius:3px;
+}
+.leaflet-popup.ss-popup .leaflet-popup-content > div > div[style*="overflow-y"]::-webkit-scrollbar-thumb:hover{
+  background:#94a3b8;
+}
+
+/* ── Smoother map feel (Google-Maps-style) ── */
+.leaflet-zoom-animated{
+  transition:transform .22s cubic-bezier(.4,0,.2,1) !important;
+}
+.leaflet-tile-loaded{
+  transition:opacity .25s ease-in !important;
+}
+.leaflet-fade-anim .leaflet-tile{transition:opacity .25s ease-in !important}
+.leaflet-pane{will-change:transform}
+/* Snappier popups */
+.leaflet-popup{transition:opacity .2s ease !important}
+
+
+/* Smoother panel entry, refined shadow language, focus rings for accessibility. */
+.lpanel,.fsp,#substationPanel,#dataFilesPanel{
+  transition:transform .35s cubic-bezier(.16,.84,.44,1),opacity .35s ease,box-shadow .35s ease;
+}
+.lpanel,#substationPanel,#dataFilesPanel{
+  box-shadow:0 10px 40px -8px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.08);
+}
+/* Crisper buttons across the app */
+button,.btn,.tb-btn,.bm-tab,.tab-btn{
+  transition:background .15s ease,color .15s ease,box-shadow .15s ease,
+             transform .12s cubic-bezier(.4,0,.2,1),border-color .15s ease;
+}
+button:active,.btn:active,.tb-btn:active{ transform:translateY(1px) }
+button:focus-visible,.btn:focus-visible,.tb-btn:focus-visible,
+input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid rgba(0,200,255,.55); outline-offset:1px;
+}
+/* Hierarchy tree — clearer separation + smoother expand */
+.hier-div,.hier-sub,.hier-sec{
+  transition:background .2s ease;
+}
+.hier-div-body,.hier-sub-body,.hier-sec-body{
+  transition:max-height .28s cubic-bezier(.4,0,.2,1),opacity .22s ease;
+}
+.hier-div-hd,.hier-sub-hd,.hier-sec-hd{
+  position:relative;
+}
+.hier-div-hd::after{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,#3b82f6,#1d4ed8);
+  border-radius:3px 0 0 3px;opacity:0;transition:opacity .2s ease;
+}
+.hier-div-hd:not(.collapsed)::after{ opacity:1 }
+/* Status dot — gentle pulse on breakdown */
+@keyframes statusPulse{
+  0%,100%{ box-shadow:0 0 0 0 rgba(255,23,68,.55) }
+  50%    { box-shadow:0 0 0 5px rgba(255,23,68,0) }
+}
+.feeder-row[data-status="breakdown"] .status-dot,
+.fsd-item .status-dot-breakdown{ animation:statusPulse 1.6s ease-in-out infinite }
+/* Toast pop — slightly more lively */
+#toast{
+  transition:opacity .25s ease,transform .35s cubic-bezier(.16,.84,.44,1) !important;
+}
+#toast.show{
+  transform:translateX(-50%) translateY(0) scale(1) !important;
+}
+/* Empty-state styling for SS panel when nothing matches */
+.ss-empty{
+  padding:14px 12px;text-align:center;color:#94a3b8;
+  font-family:var(--mono);font-size:10px;letter-spacing:.8px;
+  background:rgba(148,163,184,.06);border-radius:8px;margin:8px;
+}
+/* Slight refinement to basemap tabs row — keeps the 3D yellow group cohesive */
+#bm-tabs{
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  background:linear-gradient(180deg,rgba(13,18,30,.86),rgba(13,18,30,.72));
+}
+.bm-tab{
+  letter-spacing:.6px;
+  transition:background .18s ease,color .18s ease,border-color .18s ease,transform .12s ease;
+}
+.bm-tab:hover{ transform:translateY(-1px) }
+.bm-tab.active{ font-weight:700 }
+/* Action buttons in Data Files panel — soft elevation */
+#dataFilesPanel button{
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+#dataFilesPanel button:hover{
+  box-shadow:0 4px 12px rgba(0,0,0,.10);
+  transform:translateY(-1px);
+}
+
 #rulerBtn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:16px;
   border:1px solid rgba(255,200,0,.35);background:rgba(255,200,0,.07);color:#ffcc40;
   font-family:var(--mono);font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .2s;flex-shrink:0}
@@ -1093,12 +1203,12 @@ path.feeder-flow-overlay{stroke-dasharray:4 20!important;stroke-linecap:round!im
 <body>
 <div id="loader">
   <div class="ld-logo">TGSPDCL</div>
-  <div class="ld-sub">SCADA 33KV FEEDER ROUTE MAP</div>
+  <div class="ld-sub">KALYANNAGAR SECTION · 33KV</div>
   <div class="ld-bar"><div class="ld-fill" id="ldfill"></div></div>
 </div>
 
 <div id="topbar">
-  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">build 24-May-2026 / r6 (SS-hierarchy)</span></div>
+  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">build 29-May-2026 / r9 (smooth+colors)</span></div>
   <div class="tb-sep"></div>
   <div class="tb-title">SCADA 33KV FEEDER ROUTE MAP</div>
   <div id="coordPickBtn" onclick="toggleCoordPicker()" title="Pick coordinates on map">📍 PICK COORDS</div>
@@ -1389,11 +1499,16 @@ path.feeder-flow-overlay{stroke-dasharray:4 20!important;stroke-linecap:round!im
 const map = L.map('map',{
   center:[17.4400,78.3900], zoom:14, zoomControl:false,
   preferCanvas:false,
+  // ── Google-Maps-style smoothness tuning (29 May 2026 per Naresh) ──
+  // Softer inertia deceleration → glides further like Google Maps.
+  // Smaller zoomDelta + zoomSnap=0 → continuous-feel zoom on wheel.
+  // Tighter wheelDebounceTime → faster response without skipping.
   zoomAnimation:true, zoomAnimationThreshold:4,
   fadeAnimation:true, markerZoomAnimation:true,
-  inertia:true, inertiaDeceleration:3500, inertiaMaxSpeed:Infinity,
-  scrollWheelZoom:true, wheelDebounceTime:24, wheelPxPerZoomLevel:80,
-  zoomSnap:0.25, zoomDelta:0.5,
+  inertia:true, inertiaDeceleration:2200, inertiaMaxSpeed:1800,
+  scrollWheelZoom:'center', wheelDebounceTime:14, wheelPxPerZoomLevel:90,
+  zoomSnap:0, zoomDelta:0.5,
+  bounceAtZoomLimits:false,
   doubleClickZoom:true, keyboard:true, keyboardPanDelta:80,
 });
 
@@ -1515,7 +1630,7 @@ const _CR=L.canvas({padding:0.5,tolerance:8});
 // ══════════════════════════════════════════════════
 // STATIC SS / EHT DATA (always visible, embedded from CSV)
 // ══════════════════════════════════════════════════
-const STATIC_SS33 = [{"name": "33/11KV MYTRIVANAM SS", "lat": 17.437044, "lon": 78.446111, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV BEGUMPET SS", "lat": 17.446029, "lon": 78.451288, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV ESI SS", "lat": 17.448805, "lon": 78.439773, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV HPS SS", "lat": 17.441499, "lon": 78.454672, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV GREENLANDS SS", "lat": 17.433452, "lon": 78.455205, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV KUNDANBAGH SS", "lat": 17.433794, "lon": 78.459437, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV CM CAMP OFFICE SS", "lat": 17.430214, "lon": 78.454473, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV ALLWYN SS", "lat": 17.456834, "lon": 78.436389, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV LODHA SS", "lat": 17.453191, "lon": 78.44905, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV JANAPRIYA SS", "lat": 17.4572459, "lon": 78.42903, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV MOTHINAGAR SS", "lat": 17.4541046, "lon": 78.42444, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV BORABANDA SS", "lat": 17.4523523, "lon": 78.407794, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV IDPL SS", "lat": 17.471054, "lon": 78.43404, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV HAL SS", "lat": 17.4772202, "lon": 78.45306, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV PRASANTH NAGAR SS", "lat": 17.476159, "lon": 78.42572, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV PRAGATOOLS SS", "lat": 17.481728, "lon": 78.44355, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV HMT SS", "lat": 17.50009, "lon": 78.45194, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV SRI NAGAR COLONY SS", "lat": 17.430521, "lon": 78.442009, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV YELLAREDDY GUDA SS", "lat": 17.433748, "lon": 78.43712, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV KALYAN NAGAR SS", "lat": 17.44382, "lon": 78.4275, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV YOUSUFGUDA SS", "lat": 17.44598476, "lon": 78.4119583, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV SRI KRISHNA NAGAR ( SK NAGAR) SS", "lat": 17.43354088, "lon": 78.42587046, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV B.HILLS RD.NO.2 SS", "lat": 17.426515, "lon": 78.4351, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV LV PRASAD SS", "lat": 17.424646, "lon": 78.4262, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV MUFFAKAMZHA SS", "lat": 17.42754, "lon": 78.44215, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV SPR HILLS SS", "lat": 17.447827, "lon": 78.41376, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV NIMS SS", "lat": 17.42154, "lon": 78.4492, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV FILM NAGAR SS", "lat": 17.411365, "lon": 78.40783, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV NEW MLA COLONY SS", "lat": 17.411137, "lon": 78.42394, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11 KV B.HILLS RD.NO:12 SS", "lat": 17.408674, "lon": 78.43826, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV B.HILLS RD.NO 13 SS", "lat": 17.408635, "lon": 78.44848, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV COMMAND CONTROL CENTRE SS", "lat": 17.41444, "lon": 78.42664, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV PRASHASAN NAGAR SS", "lat": 17.421798, "lon": 78.398985, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV JUBILEE HILLS SS", "lat": 17.429544, "lon": 78.403782, "division": "Banjara Hills", "sub_div": "Madhapur", "section": "Madhapur"}, {"name": "33/11KV MADHAPUR SS", "lat": 17.442588, "lon": 78.376654, "division": "Banjara Hills", "sub_div": "Madhapur", "section": "Madhapur"}, {"name": "33/11KV MINDSPACE SS", "lat": 17.43937, "lon": 78.37963, "division": "Banjara Hills", "sub_div": "Madhapur", "section": "Madhapur"}, {"name": "33/11KV B.HILLS RD.NO.22 SS", "lat": 17.43505, "lon": 78.40703, "division": "Banjara Hills", "sub_div": "Madhapur", "section": "Madhapur"}, {"name": "33/11KV RAVINDRA SOCIETY SS", "lat": 17.44499, "lon": 78.40185, "division": "Banjara Hills", "sub_div": "Madhapur", "section": "Madhapur"}, {"name": "33/11KV GOLKONDA SS", "lat": 17.39802, "lon": 78.4, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV MOTHIMAHAL SS", "lat": 17.38456, "lon": 78.40654, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV ASIFNAGAR SS", "lat": 17.395681, "lon": 78.42954, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV SANDHYA SS", "lat": 17.422718, "lon": 78.38473, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV SD HOSPITAL SS", "lat": 17.400532, "lon": 78.44504, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV TOLICHOWKI SS", "lat": 17.408278, "lon": 78.42021, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV ADITHYA SS", "lat": 17.402375, "lon": 78.40441, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV GUDIMALKAPUR SS", "lat": 17.387913, "lon": 78.43638, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV LANGAR HOUSE SS", "lat": 17.377625, "lon": 78.425562, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV ALLURI SEETHARAMAJU SS", "lat": 17.38134, "lon": 78.43504, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV KARWAN SS", "lat": 17.374304, "lon": 78.42969, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV ZIYAGUDA SS", "lat": 17.3667846, "lon": 78.44431, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV SEETARAMBAGH SS", "lat": 17.382671, "lon": 78.46044, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV KULSHUMPURA SS", "lat": 17.375593, "lon": 78.455133, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV EXHIBITION SS", "lat": 17.3860676, "lon": 78.46908, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV AC GUARDS SS", "lat": 17.402627, "lon": 78.45805, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV NAMPALLY SS", "lat": 17.3934231, "lon": 78.46375, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV MALLE PALLY I.T.I SS", "lat": 17.3953954, "lon": 78.45704, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV ENT SS", "lat": 17.3836631, "lon": 78.4818, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV KOTI WOMENS COLLEGE SS", "lat": 17.3808559, "lon": 78.48884, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV OSMANIA HOSPITAL SS", "lat": 17.3714043, "lon": 78.47254, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV GOSHAMAHAL SS", "lat": 17.3803219, "lon": 78.47171, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV HUSSAINSAGAR SS", "lat": 17.411744, "lon": 78.467869, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV PUBLIC GARDEN SS", "lat": 17.399632, "lon": 78.468141, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV LUMBINI PARK SS", "lat": 17.40920584, "lon": 78.47386076, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV ZP OFFICE SS", "lat": 17.41242, "lon": 78.4571, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV LAKE VIEW SS", "lat": 17.4161294, "lon": 78.45904, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV ERRAMANZIL SS", "lat": 17.4208411, "lon": 78.45403, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV HYDERGUDA (CENTRAL) SS", "lat": 17.3982066, "lon": 78.48224, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV NIZAM COLLEGE SS", "lat": 17.4004682, "lon": 78.47617, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV INDIRA PARK SS", "lat": 17.4149471, "lon": 78.48498, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV JAWAHAR NAGAR SS", "lat": 17.4093492, "lon": 78.49366, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV AIRPORT SS", "lat": 17.4477409, "lon": 78.47025, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV PRAKASHNAGAR SS", "lat": 17.4420336, "lon": 78.46764, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV GUNROCK SS", "lat": 17.47156, "lon": 78.50174, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV TIRUMALGIRI SS", "lat": 17.4777, "lon": 78.5081634, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV BHUDEVINAGAR SS", "lat": 17.485901, "lon": 78.50332, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV ALWAL SS", "lat": 17.501983, "lon": 78.497286, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV BOWENPALLY SS", "lat": 17.46202, "lon": 78.4671624, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV CHINNA THOKKATA SS", "lat": 17.469327, "lon": 78.485301, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV NEW BOWENPALLY SS", "lat": 17.46191, "lon": 78.46744, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV BANSILALPET SS", "lat": 17.4267838, "lon": 78.49225, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV JAMESSTREET SS", "lat": 17.4411153, "lon": 78.48731, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV PATIGADDA SS", "lat": 17.4333494, "lon": 78.48411543, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV SANJEEVAIAH PARK SS", "lat": 17.435812, "lon": 78.47735, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV KIMS SS", "lat": 17.437779, "lon": 78.48172, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV CLOCKTOWER SS", "lat": 17.4413497, "lon": 78.49863, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV MONDA MARKET SS", "lat": 17.4332424, "lon": 78.49779, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11 KV ADDAGUTTA SS", "lat": 17.444916, "lon": 78.512786, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV NEHRUNAGAR SS", "lat": 17.44317469, "lon": 78.50321, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV MAREDPALLY SS", "lat": 17.454324, "lon": 78.51169, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV GYMKHANA SS", "lat": 17.453092, "lon": 78.49511, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV HAKEEMPET SS", "lat": 17.526634, "lon": 78.52302, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV MACHA BOLLARAM SS", "lat": 17.5185136, "lon": 78.50993, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV RP NILAYAM SS", "lat": 17.4962035, "lon": 78.51392, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV NARAYANGUDA SS", "lat": 17.3999411, "lon": 78.49886, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV ZAMISTANPUR SS", "lat": 17.418062, "lon": 78.507944, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV CHILKALGUDA SS", "lat": 17.4208, "lon": 78.50187, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV OSMANIA UNIVERSITY SS", "lat": 17.4232061, "lon": 78.52733, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV IICT SS", "lat": 17.4251062, "lon": 78.54212, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV SEETAPHALMANDI SS", "lat": 17.426395, "lon": 78.517681, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV LALAGUDA SS", "lat": 17.431055, "lon": 78.534778, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV VITTALWADI SS", "lat": 17.397034, "lon": 78.489118, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV INDUSTRIAL AREA SS", "lat": 17.40342, "lon": 78.505399, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV FEVER HOSPITAL SS", "lat": 17.3959217, "lon": 78.50005, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV BATHUKAMMAKUNTA SS", "lat": 17.3949961, "lon": 78.51139, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV AMBERPET SS", "lat": 17.384368, "lon": 78.517689, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV DURGA NAGAR SS", "lat": 17.379739, "lon": 78.522309, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV GOLNAKA SS", "lat": 17.386826, "lon": 78.50675, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV SULTANBAZAR SS", "lat": 17.385874, "lon": 78.487815, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV CRPF SS", "lat": 17.315105, "lon": 78.478462, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV FALAKNUMA SS", "lat": 17.330938, "lon": 78.47065, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV KANDIKALGATE SS", "lat": 17.332215, "lon": 78.477981, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV MIIRALAM SS", "lat": 17.341917, "lon": 78.453268, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV ALIABAD SS", "lat": 17.343135, "lon": 78.467571, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV MIRALAM FILTER BED SS", "lat": 17.341164, "lon": 78.450757, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV KHILWATH SS", "lat": 17.357899, "lon": 78.470866, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV DEVIBAGH SS", "lat": 17.360324, "lon": 78.45672, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV PANJESHA SS", "lat": 17.361928, "lon": 78.47807, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV SALARJUNG SS", "lat": 17.370706, "lon": 78.47799, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV PETLABURJ SS", "lat": 17.36876, "lon": 78.46655, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV HYDERGUDA (SOUTH) SS", "lat": 17.365519, "lon": 78.4147, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV CHANDULALBARADARI SS", "lat": 17.35033, "lon": 78.45731, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV ATTAPUR SS", "lat": 17.360778, "lon": 78.43993, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV MALAKPET B-BLOCK SS", "lat": 17.364361, "lon": 78.50738, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV MOOSARAM BAGH SS", "lat": 17.37539, "lon": 78.51792, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV TEEGALGUDA SS", "lat": 17.38091, "lon": 78.512144, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV ASMANGADH SS", "lat": 17.36386, "lon": 78.515863, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV MALAKPET SS", "lat": 17.37836, "lon": 78.494409, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV CHANCHALGUDA SS", "lat": 17.363884, "lon": 78.50275, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV MALAKPET GUNZ SS", "lat": 17.375473, "lon": 78.50702, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV ARUNDHATI COLONY SS", "lat": 17.341681, "lon": 78.49179, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV LAXMINAGAR SS", "lat": 17.354286, "lon": 78.51249, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV YAKUTHPURA SS", "lat": 17.3575062, "lon": 78.4909, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV SANTOSH NAGAR SS", "lat": 17.3473465, "lon": 78.5002, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV MIDHANI SS", "lat": 17.339517, "lon": 78.50448, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV MADANNAPET SS", "lat": 17.353329, "lon": 78.50523, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV DABEERPURA SS", "lat": 17.36790774, "lon": 78.48954582, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}];
+const STATIC_SS33 = [{"name": "33/11KV MYTRIVANAM SS", "lat": 17.437044, "lon": 78.446111, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV BEGUMPET SS", "lat": 17.446029, "lon": 78.451288, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV ESI SS", "lat": 17.448805, "lon": 78.439773, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV HPS SS", "lat": 17.441499, "lon": 78.454672, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV GREENLANDS SS", "lat": 17.433452, "lon": 78.455205, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV KUNDANBAGH SS", "lat": 17.433794, "lon": 78.459437, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV CM CAMP OFFICE SS", "lat": 17.430214, "lon": 78.454473, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV ALLWYN SS", "lat": 17.456834, "lon": 78.436389, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV LODHA SS", "lat": 17.453191, "lon": 78.44905, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV JANAPRIYA SS", "lat": 17.4572459, "lon": 78.42903, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "Allwyn"}, {"name": "33/11KV MOTHINAGAR SS", "lat": 17.4541046, "lon": 78.42444, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV BORABANDA SS", "lat": 17.4523523, "lon": 78.407794, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV IDPL SS", "lat": 17.471054, "lon": 78.43404, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV HAL SS", "lat": 17.4772202, "lon": 78.45306, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV PRASANTH NAGAR SS", "lat": 17.476159, "lon": 78.42572, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV PRAGATOOLS SS", "lat": 17.481728, "lon": 78.44355, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV HMT SS", "lat": 17.50009, "lon": 78.45194, "division": "Banjara Hills", "sub_div": "Allwyn", "section": "IDPL"}, {"name": "33/11KV SRI NAGAR COLONY SS", "lat": 17.430521, "lon": 78.442009, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV YELLAREDDY GUDA SS", "lat": 17.433748, "lon": 78.43712, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV KALYAN NAGAR SS", "lat": 17.44382, "lon": 78.4275, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV YOUSUFGUDA SS", "lat": 17.44598476, "lon": 78.4119583, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV SRI KRISHNA NAGAR ( SK NAGAR) SS", "lat": 17.43354088, "lon": 78.42587046, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV B.HILLS RD.NO.2 SS", "lat": 17.426515, "lon": 78.4351, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV LV PRASAD SS", "lat": 17.424646, "lon": 78.4262, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV MUFFAKAMZHA SS", "lat": 17.42754, "lon": 78.44215, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV SPR HILLS SS", "lat": 17.447827, "lon": 78.41376, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "Kalyan nagar"}, {"name": "33/11KV NIMS SS", "lat": 17.42154, "lon": 78.4492, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV FILM NAGAR SS", "lat": 17.411365, "lon": 78.40783, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV NEW MLA COLONY SS", "lat": 17.411137, "lon": 78.42394, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11 KV B.HILLS RD.NO:12 SS", "lat": 17.408674, "lon": 78.43826, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV B.HILLS RD.NO 13 SS", "lat": 17.408635, "lon": 78.44848, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV COMMAND CONTROL CENTRE SS", "lat": 17.41444, "lon": 78.42664, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV PRASHASAN NAGAR SS", "lat": 17.421798, "lon": 78.398985, "division": "Banjara Hills", "sub_div": "Kalyan nagar", "section": "NIMS"}, {"name": "33/11KV JUBILEE HILLS SS", "lat": 17.429544, "lon": 78.403782, "division": "Banjara Hills", "sub_div": "Madhapur", "section": "Madhapur"}, {"name": "33/11KV MADHAPUR SS", "lat": 17.442588, "lon": 78.376654, "division": "Banjara Hills", "sub_div": "Madhapur", "section": "Madhapur"}, {"name": "33/11KV MINDSPACE SS", "lat": 17.43937, "lon": 78.37963, "division": "Banjara Hills", "sub_div": "Madhapur", "section": "Madhapur"}, {"name": "33/11KV B.HILLS RD.NO.22 SS", "lat": 17.43505, "lon": 78.40703, "division": "Banjara Hills", "sub_div": "Madhapur", "section": "Madhapur"}, {"name": "33/11KV RAVINDRA SOCIETY SS", "lat": 17.44499, "lon": 78.40185, "division": "Banjara Hills", "sub_div": "Madhapur", "section": "Madhapur"}, {"name": "33/11KV GOLKONDA SS", "lat": 17.39802, "lon": 78.4, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV MOTHIMAHAL SS", "lat": 17.38456, "lon": 78.40654, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV ASIFNAGAR SS", "lat": 17.395681, "lon": 78.42954, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV SANDHYA SS", "lat": 17.422718, "lon": 78.38473, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV SD HOSPITAL SS", "lat": 17.400532, "lon": 78.44504, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV TOLICHOWKI SS", "lat": 17.408278, "lon": 78.42021, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV ADITHYA SS", "lat": 17.402375, "lon": 78.40441, "division": "Central", "sub_div": "Asifnagar", "section": "Asif nagar"}, {"name": "33/11KV GUDIMALKAPUR SS", "lat": 17.387913, "lon": 78.43638, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV LANGAR HOUSE SS", "lat": 17.377625, "lon": 78.425562, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV ALLURI SEETHARAMAJU SS", "lat": 17.38134, "lon": 78.43504, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV KARWAN SS", "lat": 17.374304, "lon": 78.42969, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV ZIYAGUDA SS", "lat": 17.3667846, "lon": 78.44431, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV SEETARAMBAGH SS", "lat": 17.382671, "lon": 78.46044, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV KULSHUMPURA SS", "lat": 17.375593, "lon": 78.455133, "division": "Central", "sub_div": "Asifnagar", "section": "Gudimalkapur"}, {"name": "33/11KV EXHIBITION SS", "lat": 17.3860676, "lon": 78.46908, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV AC GUARDS SS", "lat": 17.402627, "lon": 78.45805, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV NAMPALLY SS", "lat": 17.3934231, "lon": 78.46375, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV MALLE PALLY I.T.I SS", "lat": 17.3953954, "lon": 78.45704, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV ENT SS", "lat": 17.3836631, "lon": 78.4818, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV KOTI WOMENS COLLEGE SS", "lat": 17.3808559, "lon": 78.48884, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV OSMANIA HOSPITAL SS", "lat": 17.3714043, "lon": 78.47254, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV GOSHAMAHAL SS", "lat": 17.3803219, "lon": 78.47171, "division": "Central", "sub_div": "Asifnagar", "section": "Osmania Hospital"}, {"name": "33/11KV HUSSAINSAGAR SS", "lat": 17.411744, "lon": 78.467869, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV PUBLIC GARDEN SS", "lat": 17.399632, "lon": 78.468141, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV LUMBINI PARK SS", "lat": 17.40920584, "lon": 78.47386076, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV ZP OFFICE SS", "lat": 17.41242, "lon": 78.4571, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV LAKE VIEW SS", "lat": 17.4161294, "lon": 78.45904, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV ERRAMANZIL SS", "lat": 17.4208411, "lon": 78.45403, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV HYDERGUDA (CENTRAL) SS", "lat": 17.3982066, "lon": 78.48224, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV NIZAM COLLEGE SS", "lat": 17.4004682, "lon": 78.47617, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV INDIRA PARK SS", "lat": 17.4149471, "lon": 78.48498, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV JAWAHAR NAGAR SS", "lat": 17.4093492, "lon": 78.49366, "division": "Central", "sub_div": "Hussainsagar", "section": "Hussain sagar"}, {"name": "33/11KV AIRPORT SS", "lat": 17.4477409, "lon": 78.47025, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV PRAKASHNAGAR SS", "lat": 17.4420336, "lon": 78.46764, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV GUNROCK SS", "lat": 17.47156, "lon": 78.50174, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV TIRUMALGIRI SS", "lat": 17.4777, "lon": 78.5081634, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV BHUDEVINAGAR SS", "lat": 17.485901, "lon": 78.50332, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV ALWAL SS", "lat": 17.501983, "lon": 78.497286, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV BOWENPALLY SS", "lat": 17.46202, "lon": 78.4671624, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV CHINNA THOKKATA SS", "lat": 17.469327, "lon": 78.485301, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV NEW BOWENPALLY SS", "lat": 17.46191, "lon": 78.46744, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "Bowenpally"}, {"name": "33/11KV BANSILALPET SS", "lat": 17.4267838, "lon": 78.49225, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV JAMESSTREET SS", "lat": 17.4411153, "lon": 78.48731, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV PATIGADDA SS", "lat": 17.4333494, "lon": 78.48411543, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV SANJEEVAIAH PARK SS", "lat": 17.435812, "lon": 78.47735, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV KIMS SS", "lat": 17.437779, "lon": 78.48172, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV CLOCKTOWER SS", "lat": 17.4413497, "lon": 78.49863, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11KV MONDA MARKET SS", "lat": 17.4332424, "lon": 78.49779, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "James street"}, {"name": "33/11 KV ADDAGUTTA SS", "lat": 17.444916, "lon": 78.512786, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV NEHRUNAGAR SS", "lat": 17.44317469, "lon": 78.50321, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV MAREDPALLY SS", "lat": 17.454324, "lon": 78.51169, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV GYMKHANA SS", "lat": 17.453092, "lon": 78.49511, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV HAKEEMPET SS", "lat": 17.526634, "lon": 78.52302, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV MACHA BOLLARAM SS", "lat": 17.5185136, "lon": 78.50993, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV RP NILAYAM SS", "lat": 17.4962035, "lon": 78.51392, "division": "Secunderabad", "sub_div": "Nehrunagar", "section": "R.P.Nilayam"}, {"name": "33/11KV NARAYANGUDA SS", "lat": 17.3999411, "lon": 78.49886, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV ZAMISTANPUR SS", "lat": 17.418062, "lon": 78.507944, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV CHILKALGUDA SS", "lat": 17.4208, "lon": 78.50187, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV OSMANIA UNIVERSITY SS", "lat": 17.4232061, "lon": 78.52733, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV IICT SS", "lat": 17.4251062, "lon": 78.54212, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV SEETAPHALMANDI SS", "lat": 17.426395, "lon": 78.517681, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV LALAGUDA SS", "lat": 17.431055, "lon": 78.534778, "division": "South", "sub_div": "Chilkalguda", "section": "Chilkalguda"}, {"name": "33/11KV VITTALWADI SS", "lat": 17.397034, "lon": 78.489118, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV INDUSTRIAL AREA SS", "lat": 17.40342, "lon": 78.505399, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV FEVER HOSPITAL SS", "lat": 17.3959217, "lon": 78.50005, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV BATHUKAMMAKUNTA SS", "lat": 17.3949961, "lon": 78.51139, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV AMBERPET SS", "lat": 17.384368, "lon": 78.517689, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV DURGA NAGAR SS", "lat": 17.379739, "lon": 78.522309, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV GOLNAKA SS", "lat": 17.386826, "lon": 78.50675, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV SULTANBAZAR SS", "lat": 17.385874, "lon": 78.487815, "division": "South", "sub_div": "Chilkalguda", "section": "Industrial Area"}, {"name": "33/11KV CRPF SS", "lat": 17.315105, "lon": 78.478462, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV FALAKNUMA SS", "lat": 17.330938, "lon": 78.47065, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV KANDIKALGATE SS", "lat": 17.332215, "lon": 78.477981, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV MIIRALAM SS", "lat": 17.341917, "lon": 78.453268, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV ALIABAD SS", "lat": 17.343135, "lon": 78.467571, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV MIRALAM FILTER BED SS", "lat": 17.341164, "lon": 78.450757, "division": "South", "sub_div": "Falaknuma", "section": "Falaknuma"}, {"name": "33/11KV KHILWATH SS", "lat": 17.357899, "lon": 78.470866, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV DEVIBAGH SS", "lat": 17.360324, "lon": 78.45672, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV PANJESHA SS", "lat": 17.361928, "lon": 78.47807, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV SALARJUNG SS", "lat": 17.370706, "lon": 78.47799, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV PETLABURJ SS", "lat": 17.36876, "lon": 78.46655, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV HYDERGUDA (SOUTH) SS", "lat": 17.365519, "lon": 78.4147, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV CHANDULALBARADARI SS", "lat": 17.35033, "lon": 78.45731, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV ATTAPUR SS", "lat": 17.360778, "lon": 78.43993, "division": "South", "sub_div": "Falaknuma", "section": "Salarjung"}, {"name": "33/11KV MALAKPET B-BLOCK SS", "lat": 17.364361, "lon": 78.50738, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV MOOSARAM BAGH SS", "lat": 17.37539, "lon": 78.51792, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV TEEGALGUDA SS", "lat": 17.38091, "lon": 78.512144, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV ASMANGADH SS", "lat": 17.36386, "lon": 78.515863, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV MALAKPET SS", "lat": 17.37836, "lon": 78.494409, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV CHANCHALGUDA SS", "lat": 17.363884, "lon": 78.50275, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV MALAKPET GUNZ SS", "lat": 17.375473, "lon": 78.50702, "division": "South", "sub_div": "Malakpet", "section": "Malakpet"}, {"name": "33/11KV ARUNDHATI COLONY SS", "lat": 17.341681, "lon": 78.49179, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV LAXMINAGAR SS", "lat": 17.354286, "lon": 78.51249, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV YAKUTHPURA SS", "lat": 17.3575062, "lon": 78.4909, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV SANTOSH NAGAR SS", "lat": 17.3473465, "lon": 78.5002, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV MIDHANI SS", "lat": 17.339517, "lon": 78.50448, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV MADANNAPET SS", "lat": 17.353329, "lon": 78.50523, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}, {"name": "33/11KV DABEERPURA SS", "lat": 17.36397318, "lon": 78.51581988, "division": "South", "sub_div": "Malakpet", "section": "Santhosh nagar"}];
 const STATIC_EHT  = [{"name": "132 KV JUBILEE HILLS SS", "lat": 17.429443, "lon": 78.403935, "lvs": "4", "feeders": "31", "ptrs": "2*80 +2*50 MVA", "ptr_cap": "260", "max_load": "192", "per_load": "73.9%"}, {"name": "132 KV MADHAPUR SS", "lat": 17.453161, "lon": 78.374289, "lvs": "3", "feeders": "38", "ptrs": "3*80 MVA", "ptr_cap": "240", "max_load": "181.4", "per_load": "75.6%"}, {"name": "132 KV ERRAGADDA SS", "lat": 17.44432, "lon": 78.425631, "lvs": "4", "feeders": "29", "ptrs": "3*80 MVA", "ptr_cap": "240", "max_load": "124", "per_load": "51.7%"}, {"name": "132 KV BALKAMPET SS", "lat": 17.44591, "lon": 78.451358, "lvs": "2", "feeders": "9", "ptrs": "2*80 MVA", "ptr_cap": "160", "max_load": "77.6", "per_load": "48.5%"}, {"name": "400KV RAIDURGAM SS", "lat": 17.435133, "lon": 78.375277, "lvs": "3", "feeders": "8", "ptrs": "3*80 MVA", "ptr_cap": "240", "max_load": "91.05", "per_load": "37.9%"}, {"name": "132 KV ASIFNAGAR SS", "lat": 17.395373, "lon": 78.428865, "lvs": "2", "feeders": "13", "ptrs": "2*80 MVA", "ptr_cap": "160", "max_load": "136.2", "per_load": "85.1%"}, {"name": "132 KV NIMS SS", "lat": 17.420895, "lon": 78.454282, "lvs": "2", "feeders": "10", "ptrs": "2*80 MVA", "ptr_cap": "160", "max_load": "82.2", "per_load": "51.4%"}, {"name": "132KV NARAYANGUDA SS", "lat": 17.396855, "lon": 78.488924, "lvs": "2", "feeders": "4", "ptrs": "2*50 MVA", "ptr_cap": "100", "max_load": "42", "per_load": "42.0%"}, {"name": "132 KV FEVER HOSPITAL SS", "lat": 17.39581, "lon": 78.500043, "lvs": "2", "feeders": "6", "ptrs": "2*80 MVA", "ptr_cap": "160", "max_load": "59", "per_load": "36.9%"}, {"name": "132 KV HUSSAINSAGAR SS", "lat": 17.412036, "lon": 78.468361, "lvs": "2", "feeders": "7", "ptrs": "1*80+1*50 MVA", "ptr_cap": "130", "max_load": "51", "per_load": "39.2%"}, {"name": "220 KV CHANDRAYANA  GUTTA SS", "lat": 17.335024, "lon": 78.517332, "lvs": "5", "feeders": "23", "ptrs": "2*80 +3*50 MVA", "ptr_cap": "310", "max_load": "135", "per_load": "43.5%"}, {"name": "220 KV CHANCHALGUDA  SS", "lat": 17.36393, "lon": 78.502766, "lvs": "3", "feeders": "10", "ptrs": "3*50 MVA", "ptr_cap": "150", "max_load": "93", "per_load": "62.0%"}, {"name": "132 KV MOOSARAMBAGH SS", "lat": 17.381848, "lon": 78.521541, "lvs": "2", "feeders": "10", "ptrs": "2*80 MVA", "ptr_cap": "160", "max_load": "77.69", "per_load": "48.6%"}, {"name": "132 KV IMLIBAN SS", "lat": 17.376611, "lon": 78.482919, "lvs": "3", "feeders": "17", "ptrs": "3*80 MVA", "ptr_cap": "240", "max_load": "121.65", "per_load": "50.7%"}, {"name": "220KV\u00a0 Shivarampally SS", "lat": 17.327535, "lon": 78.424081, "lvs": "5", "feeders": "18", "ptrs": "3*80 +2*50 MVA", "ptr_cap": "340", "max_load": "246", "per_load": "72.4%"}, {"name": "132 KV MAMIDIPALLY SS", "lat": 17.249305, "lon": 78.476306, "lvs": "3", "feeders": "1", "ptrs": "1*31.5 +2*50 MVA", "ptr_cap": "131.5", "max_load": "81.9", "per_load": "62.3%"}, {"name": "132 KV  MYLARDEVULAPALLY SS", "lat": 17.315492, "lon": 78.445388, "lvs": "3", "feeders": "4", "ptrs": "1*80 +2*50 MVA", "ptr_cap": "180", "max_load": "115.5", "per_load": "64.2%"}, {"name": "132 KV GUNROCK SS", "lat": 17.471265, "lon": 78.502067, "lvs": "4", "feeders": "22", "ptrs": "2*80 +2*50 MVA", "ptr_cap": "260", "max_load": "165", "per_load": "63.5%"}, {"name": "132 KV PATIGADDA SS", "lat": 17.433415, "lon": 78.483746, "lvs": "2", "feeders": "10", "ptrs": "1*80 MVA +1*50 MVA", "ptr_cap": "130", "max_load": "70", "per_load": "53.8%"}, {"name": "132 KV CHINTAL SS", "lat": 17.500198, "lon": 78.450137, "lvs": "2", "feeders": "2", "ptrs": "1*80 MVA +1*50 MVA", "ptr_cap": "130", "max_load": "97.8", "per_load": "75.2%"}, {"name": "132 KV OSMANIA UNIVERSITY SS", "lat": 17.42315, "lon": 78.52735, "lvs": "2", "feeders": "10", "ptrs": "2*80 MVA", "ptr_cap": "160", "max_load": "102", "per_load": "63.7%"}, {"name": "132 KV GIS CHILKALGUDA SS", "lat": 17.424115, "lon": 78.500991, "lvs": "2", "feeders": "8", "ptrs": "2*50 MVA", "ptr_cap": "100", "max_load": "39", "per_load": "39.0%"}, {"name": "132KV IDPL SS", "lat": 17.470171, "lon": 78.433672, "lvs": "2", "feeders": "8", "ptrs": "1*80 MVA +1*50 MVA", "ptr_cap": "130", "max_load": "66", "per_load": "50.8%"}, {"name": "132KV BANDLAGUDA SS", "lat": 17.3655, "lon": 78.5715, "lvs": "3", "feeders": "15", "ptrs": "2*80 +1*50 MVA", "ptr_cap": "210", "max_load": "124", "per_load": "59.1%"}, {"name": "132 KV GIS SEETHARAMBAGH SS", "lat": 17.38191, "lon": 78.46036, "lvs": "2", "feeders": "4", "ptrs": "2*80 MVA", "ptr_cap": "160", "max_load": "30", "per_load": "18.8%"}];
 const staticSSLayers = [];  // separate array so never cleared by feeder uploads
 const staticSSKeyTracker = new Set();
@@ -1555,15 +1670,20 @@ function isABAtSSLocation(lat,lng){
 }
 
 // Cable color: UG=blue, OH=orange.
-// Transition rule (per Naresh, 09 May 2026):
+// Transition rule (per Naresh, hardened 29 May 2026):
 //   "UG TO OH" → ORANGE (destination is OH)
 //   "OH TO UG" → BLUE   (destination is UG)
+// Uses position of UG vs OH inside the normalized type string. The earlier
+// substring approach missed the middle "O" in "UGTOOH" / "OHTOUG".
 function cableColor(typeRaw,isOH){
-  const t=String(typeRaw||'').toUpperCase().replace(/[\s_]/g,'');
-  if(t.includes('UGTOH'))return'#ff9800';   // ending in OH → orange
-  if(t.includes('OHTUG'))return'#2196f3';   // ending in UG → blue
-  if(t==='TRANSITION'||t==='TRANS')return'#ff9800'; // generic trans defaults to OH-side
-  if(isOH||t==='OH'||t==='OVERHEAD')return'#ff9800';
+  const t=String(typeRaw||'').toUpperCase().replace(/[\s_\-/→]/g,'');
+  const ugAt=t.indexOf('UG');
+  const ohAt=t.indexOf('OH');
+  if(ugAt>=0&&ohAt>=0){
+    // Both present → transition; destination side wins
+    return ugAt<ohAt?'#ff9800':'#2196f3';
+  }
+  if(ohAt>=0||t==='OVERHEAD'||t==='OVH'||isOH)return'#ff9800';
   return'#2196f3';
 }
 
@@ -2212,52 +2332,91 @@ function buildHierarchyTree(){
 
 // ── Hierarchy toggle helpers ──
 function toggleDivision(divKey,show){
+  if(!show){
+    // ── UNCHECK = RESET behavior (per Naresh, 26 May 2026) ──
+    // Hide ALL feeders, clear SS focus, collapse tree, start fresh.
+    _ssFocusMode=null; _ssFocusPrevState=null;
+    if(typeof hideSSFocusBanner==='function')hideSSFocusBanner();
+    [...feederNames].forEach(fn=>{feederState[fn]=false;});
+    globalFeederFallback=false;
+    allLayers.forEach(item=>{
+      if(map.hasLayer(item.layer))map.removeLayer(item.layer);
+      if(item.layer.flowLayer&&map.hasLayer(item.layer.flowLayer))map.removeLayer(item.layer.flowLayer);
+      if(item.layer.hitLayer&&map.hasLayer(item.layer.hitLayer))map.removeLayer(item.layer.hitLayer);
+    });
+    updateVisibility();
+    buildFeederChecks();
+    toast(`↺ ${divKey} hidden — tree reset. Pick what you want to view.`,2800);
+    return;
+  }
+  // Re-check / first check on this division — show all its feeders
   let count=0;
   [...feederNames].forEach(fn=>{
     const h=getFeederHierarchy(fn);
     if((h.division||'').toUpperCase()===divKey){
-      feederState[fn]=show;
-      count++;
+      feederState[fn]=true;count++;
     }
   });
-  // Also match uploaded feeders via feederHierarchyMap
   Object.keys(feederHierarchyMap||{}).forEach(fn=>{
     const h=feederHierarchyMap[fn];
     if((h.division||'').toUpperCase()===divKey){
-      feederState[fn]=show;
+      feederState[fn]=true;
     }
   });
   _visRAF=null;
-  // Force immediate layer removal/add without RAF guard
-  allLayers.forEach(item=>{
-    const h=getFeederHierarchy(item.feederName);
-    if((h.division||'').toUpperCase()===divKey){
-      if(!show){
-        if(map.hasLayer(item.layer))map.removeLayer(item.layer);
-        if(item.layer.flowLayer&&map.hasLayer(item.layer.flowLayer))map.removeLayer(item.layer.flowLayer);
-        if(item.layer.hitLayer&&map.hasLayer(item.layer.hitLayer))map.removeLayer(item.layer.hitLayer);
-      }
-    }
-  });
   updateVisibility();
   buildFeederChecks();
 }
+
 function toggleSubDiv(divKey,subKey,show){
+  if(!show){
+    // UNCHECK = RESET (see toggleDivision comment)
+    _ssFocusMode=null; _ssFocusPrevState=null;
+    if(typeof hideSSFocusBanner==='function')hideSSFocusBanner();
+    [...feederNames].forEach(fn=>{feederState[fn]=false;});
+    globalFeederFallback=false;
+    allLayers.forEach(item=>{
+      if(map.hasLayer(item.layer))map.removeLayer(item.layer);
+      if(item.layer.flowLayer&&map.hasLayer(item.layer.flowLayer))map.removeLayer(item.layer.flowLayer);
+      if(item.layer.hitLayer&&map.hasLayer(item.layer.hitLayer))map.removeLayer(item.layer.hitLayer);
+    });
+    updateVisibility();
+    buildFeederChecks();
+    toast(`↺ ${subKey} hidden — tree reset. Pick what you want to view.`,2800);
+    return;
+  }
   [...feederNames].forEach(fn=>{
     const h=getFeederHierarchy(fn);
     if((h.division||'').toUpperCase()===divKey&&(h.sub_division||'').toUpperCase()===subKey){
-      feederState[fn]=show;
+      feederState[fn]=true;
     }
   });
   _visRAF=null;
   updateVisibility();
   buildFeederChecks();
 }
+
 function toggleSection(divKey,subKey,secKey,show){
+  if(!show){
+    // UNCHECK = RESET (see toggleDivision comment)
+    _ssFocusMode=null; _ssFocusPrevState=null;
+    if(typeof hideSSFocusBanner==='function')hideSSFocusBanner();
+    [...feederNames].forEach(fn=>{feederState[fn]=false;});
+    globalFeederFallback=false;
+    allLayers.forEach(item=>{
+      if(map.hasLayer(item.layer))map.removeLayer(item.layer);
+      if(item.layer.flowLayer&&map.hasLayer(item.layer.flowLayer))map.removeLayer(item.layer.flowLayer);
+      if(item.layer.hitLayer&&map.hasLayer(item.layer.hitLayer))map.removeLayer(item.layer.hitLayer);
+    });
+    updateVisibility();
+    buildFeederChecks();
+    toast(`↺ ${secKey} hidden — tree reset. Pick what you want to view.`,2800);
+    return;
+  }
   [...feederNames].forEach(fn=>{
     const h=getFeederHierarchy(fn);
     if((h.division||'').toUpperCase()===divKey&&(h.sub_division||'').toUpperCase()===subKey&&(h.section||'').toUpperCase()===secKey){
-      feederState[fn]=show;
+      feederState[fn]=true;
     }
   });
   _visRAF=null;
@@ -2769,39 +2928,11 @@ function _normalizeSSName(s){
 
 function focusOnSSFeeders(ssData){
   const ssRaw=(ssData&&ssData.name)||'';
-  const ssNorm=_normalizeSSName(ssRaw);
-  const ssOrig=ssRaw.toUpperCase().trim();
-  if(!ssNorm){toast('Could not parse SS name',2000);return;}
+  if(!ssRaw){toast('Could not parse SS name',2000);return;}
 
-  const linked=new Set();
-
-  // Strategy 1: feeder NAME pattern ("EHT_SOURCE-33KV_DEST")
-  [...feederNames].forEach(fn=>{
-    const fnUp=fn.toUpperCase();
-    // The SS name should appear either as source (before "-") or dest (after "-")
-    // We require word-boundary match so "ASIF" doesn't accidentally match "ASIFABAD"
-    const parts=fnUp.split('-');
-    const matchesAnyPart=parts.some(part=>{
-      const partNorm=_normalizeSSName(part);
-      if(!partNorm)return false;
-      // Either side contains the SS as a whole word/segment
-      return partNorm===ssNorm
-          || partNorm.split(/\s+/).join(' ').includes(ssNorm)
-          || ssNorm.split(/\s+/).join(' ').includes(partNorm);
-    });
-    if(matchesAnyPart)linked.add(fn);
-  });
-
-  // Strategy 2: pole-row properties (catches odd-shaped feeder names)
-  allLayers.forEach(item=>{
-    if(!item.reg||!['points','fpoles'].includes(item.reg.type))return;
-    const p=item.layer.feature?.properties||{};
-    const s33=_normalizeSSName(fuzzyGet(p,['name_of_33_11_SS','Name of 33/11 SS','name_of_the_33_11_SS'])||'');
-    const sEHT=_normalizeSSName(fuzzyGet(p,['name_of_eht_ss','EHT_SS','Name of EHT SS','eht_ss','name_of_the_eht_ss'])||'');
-    if((s33&&s33===ssNorm)||(sEHT&&sEHT===ssNorm)){
-      linked.add(item.feederName);
-    }
-  });
+  // Use the shared helper so popup count and filter count always agree.
+  const linkedArr=_findFeedersLinkedToSS(ssData);
+  const linked=new Set(linkedArr);
 
   if(!linked.size){
     toast('No feeders found connected to '+ssRaw,2500);
@@ -2813,7 +2944,7 @@ function focusOnSSFeeders(ssData){
     _ssFocusPrevState={};
     [...feederNames].forEach(fn=>{_ssFocusPrevState[fn]=feederState[fn]!==false;});
   }
-  _ssFocusMode={ssName:ssRaw, ssNorm, linkedFeeders:linked};
+  _ssFocusMode={ssName:ssRaw, linkedFeeders:linked};
 
   // Apply visibility — only linked feeders show
   [...feederNames].forEach(fn=>{
@@ -2824,7 +2955,7 @@ function focusOnSSFeeders(ssData){
 
   // Show banner
   showSSFocusBanner(ssRaw, linked.size);
-  toast(`🎯 Showing ${linked.size} feeder(s) connected to ${ssRaw}`, 2500);
+  toast(`🎯 Showing ${linked.size} feeder(s) feeding ${ssRaw}`, 2500);
 }
 
 function clearSSFocus(){
@@ -3521,9 +3652,11 @@ function attachSegmentDistanceClick(feederName){
       const info=nearestPolesOnFeeder(feederName,e.latlng);
       if(!info){item.layer.openPopup(e.latlng);return;}
       const typeClass=()=>{
-        const t=String(info.p1.type||'').toUpperCase().replace(/\s/g,'');
-        if(t.includes('UGTOH')||t.includes('OHTUG')||t==='TRANS')return'tr';
-        if(t==='OH')return'oh';
+        const t=String(info.p1.type||'').toUpperCase().replace(/[\s_\-/→]/g,'');
+        const ugAt=t.indexOf('UG');
+        const ohAt=t.indexOf('OH');
+        if(ugAt>=0&&ohAt>=0)return'tr';
+        if(ohAt>=0)return'oh';
         return'ug';
       };
       const tc=typeClass();
@@ -4225,24 +4358,84 @@ function downloadCurrentFeederXLSX(){
 // ══════════════════════════════════════════════════
 // SUBSTATION SEARCH
 // ══════════════════════════════════════════════════
-function flyToSS(ss){
-  map.flyTo([ss.lat,ss.lon],17,{animate:true,duration:.8});
-  const linkedFeeders=[];
+// ─────────────────────────────────────────────────────────────
+// SUBSTATION ↔ FEEDER LINKING (refactored 26 May 2026 per Naresh)
+//
+// Used by both flyToSS (popup) and focusOnSSFeeders (map filter).
+// Returns the array of feeder names actually connected to the given SS,
+// using two complementary strategies:
+//   1. Feeder NAME pattern  "<SOURCE_EHT>-<DEST_33KV_SS>"
+//   2. Pole row properties  name_of_33_11_SS / name_of_eht_ss columns
+//
+// The earlier flyToSS implementation used .substring(0,8) of the SS name
+// which caused false positives between similar names (BAHADURPURA vs
+// BAHADURPALLY, JUBILEE HILLS vs JUBILEEHILLS, etc.) — that's the
+// "previous SS's feeders" bug Naresh reported.
+// ─────────────────────────────────────────────────────────────
+function _findFeedersLinkedToSS(ssData){
+  const ssRaw=(ssData&&ssData.name)||'';
+  const ssNorm=_normalizeSSName(ssRaw);
+  if(!ssNorm)return [];
+
+  const linked=new Set();
+
+  // Strategy 1: feeder name pattern
+  [...feederNames].forEach(fn=>{
+    const fnUp=fn.toUpperCase();
+    const parts=fnUp.split(/[-→]/);
+    const matchesAnyPart=parts.some(part=>{
+      const partNorm=_normalizeSSName(part);
+      if(!partNorm)return false;
+      // Require exact or whole-word match — substring matches both ways
+      // catches name variations but rejects unrelated substrings.
+      return partNorm===ssNorm
+          || partNorm.split(/\s+/).includes(ssNorm)
+          || ssNorm.split(/\s+/).includes(partNorm)
+          || (partNorm.length>=ssNorm.length && partNorm.includes(' '+ssNorm))
+          || (ssNorm.length>=partNorm.length && ssNorm.includes(' '+partNorm));
+    });
+    if(matchesAnyPart)linked.add(fn);
+  });
+
+  // Strategy 2: pole-row properties
   allLayers.forEach(item=>{
     if(!item.reg||!['points','fpoles'].includes(item.reg.type))return;
     const p=item.layer.feature?.properties||{};
-    const sn=fuzzyGet(p,['name_of_33_11_SS','name_of_the_33_11_SS','Name of 33/11 SS'])||'';
-    const ssShort=ss.name.replace(/33\/11KV\s*/i,'').replace(/\s*SS$/i,'').trim().substring(0,8).toUpperCase();
-    if(sn.toUpperCase().includes(ssShort)&&!linkedFeeders.includes(item.feederName))
-      linkedFeeders.push(item.feederName);
+    const s33=_normalizeSSName(fuzzyGet(p,['name_of_33_11_SS','Name of 33/11 SS','name_of_the_33_11_SS'])||'');
+    const sEHT=_normalizeSSName(fuzzyGet(p,['name_of_eht_ss','EHT_SS','Name of EHT SS','eht_ss','name_of_the_eht_ss'])||'');
+    if((s33&&s33===ssNorm)||(sEHT&&sEHT===ssNorm)){
+      linked.add(item.feederName);
+    }
   });
+
+  return [...linked];
+}
+
+function flyToSS(ss){
+  map.flyTo([ss.lat,ss.lon],17,{animate:true,duration:.8});
+  const linkedFeeders=_findFeedersLinkedToSS(ss);
   const statusList=linkedFeeders.map(fn=>{
     const s=feederStatus[fn]||'live';
     const col=s==='live'?'#00c853':s==='breakdown'?'#ff1744':'#9e9e9e';
-    return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #f1f5f9"><span style="width:7px;height:7px;border-radius:50%;background:${col};flex-shrink:0"></span><span style="font-size:11px">${fn.split('→')[1]?.trim()||fn}</span></div>`;
+    const sLabel=s.toUpperCase();
+    // ── Show FULL feeder name (no truncation), wrap if long. Per Naresh 29-May-2026. ──
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9">`
+      + `<span style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0;margin-top:4px;box-shadow:0 0 0 2px ${col}22"></span>`
+      + `<div style="flex:1;min-width:0">`
+        + `<div style="font-size:11px;font-weight:600;color:#1e293b;word-break:break-word;line-height:1.35">${fn}</div>`
+        + `<div style="font-size:9px;color:${col};font-family:var(--mono);letter-spacing:.5px;margin-top:2px">${sLabel}</div>`
+      + `</div>`
+      + `</div>`;
   }).join('');
-  L.popup({maxWidth:300}).setLatLng([ss.lat,ss.lon])
-    .setContent(`<div style="font-weight:700;font-size:13px;margin-bottom:6px">${ss.name}</div><div style="font-size:10px;color:#64748b;margin-bottom:8px">${ss.section||''} · ${ss.division||''}</div>${linkedFeeders.length?'<div style="font-size:10px;font-weight:600;color:#94a3b8;margin-bottom:4px">FEEDERS:</div>'+statusList:'<div style="font-size:11px;color:#94a3b8">No feeders linked yet</div>'}`)
+  L.popup({maxWidth:380,minWidth:280,className:'ss-popup'}).setLatLng([ss.lat,ss.lon])
+    .setContent(
+      `<div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#0f172a;line-height:1.3">${ss.name}</div>`+
+      `<div style="font-size:10px;color:#64748b;margin-bottom:10px">${ss.section||''}${ss.section&&ss.division?' · ':''}${ss.division||''}</div>`+
+      (linkedFeeders.length
+        ? `<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:6px;letter-spacing:.6px;font-family:var(--mono)">FEEDERS FEEDING THIS SS (${linkedFeeders.length})</div>`
+          + `<div style="max-height:280px;overflow-y:auto;padding-right:4px">${statusList}</div>`
+        : '<div style="font-size:11px;color:#94a3b8;padding:8px 0">No feeders linked yet — upload section data first</div>')
+    )
     .openOn(map);
 }
 
@@ -4435,19 +4628,61 @@ function _getRowVal(row,...keys){
 
 function parsePoleNo(raw){
   const s=String(raw||'').trim();const sl=s.toLowerCase();
-  // Format 1: "40B1","40b1" — no slash
+
+  // ── Format 1: "40A1" or "40B2" — simple first-level spur, no slash ──
   const m1=sl.match(/^(\d+)([a-z])(\d+)$/);
   if(m1)return{base:parseInt(m1[1]),branchLetter:m1[2].toUpperCase(),branchSeq:parseInt(m1[3]),spurKey:m1[2].toUpperCase(),isMain:false,raw:s};
-  // Format 2: "40/A/1","40/B/2","40/A/3/A/1" — slash separated
+
+  // ── Format 1.5: NESTED concatenated form (added 26 May 2026 per Naresh) ──
+  //   "48A2A1" → base=48, tokens=[A,2,A,1] → spurKey="A2A", branchSeq=1
+  //   "48A2B3C1" → base=48, tokens=[A,2,B,3,C,1] → spurKey="A2B3C", branchSeq=1
+  // The deepest letter (last one, no following number) is the BRANCH IDENTIFIER
+  // of this pole. The final number is its position on that sub-branch.
+  // Parent lookup is done later in _findSpurParent.
+  const mNest=sl.match(/^(\d+)((?:[a-z]+\d+)+)$/);
+  if(mNest){
+    const base=parseInt(mNest[1]);
+    const tail=mNest[2].toUpperCase();
+    const tokens=tail.match(/[A-Z]+|\d+/g)||[];
+    // Need at least 4 tokens for nested: [L, N, L, N]
+    // Less than 4 means this is actually Format 1 (already caught above).
+    if(tokens.length>=4 && tokens.length%2===0){
+      const branchSeq=parseInt(tokens[tokens.length-1]);
+      const spurKey=tokens.slice(0,-1).join('');
+      return {
+        base, branchLetter:tokens[0],
+        branchSeq, spurKey,
+        isMain:false, raw:s
+      };
+    }
+  }
+
+  // ── Format 2: "40/A/1" or "40/A/3/A/1" — slash separated ──
+  // Output spurKey is TOKEN-CONCATENATED (no slashes) so the spur-parent
+  // lookup uses the same algorithm regardless of input format.
   const m2=s.match(/^(\d+)\/(.+)$/i);
   if(m2){
-    const parts=m2[2].split('/');const topBranch=parts[0].toUpperCase();
-    const spurKey=parts.length>2?parts.slice(0,-1).join('/').toUpperCase():topBranch;
-    return{base:parseInt(m2[1]),branchLetter:topBranch,branchSeq:parseInt(parts[parts.length-1])||0,spurKey,isMain:false,raw:s};
+    const parts=m2[2].split('/').filter(Boolean);
+    if(parts.length>=1){
+      const branchSeq=parseInt(parts[parts.length-1])||0;
+      // spurKey = all tokens before the trailing number, joined WITHOUT slashes.
+      // "A/1"     → spurKey="A"
+      // "A/3/B/2" → spurKey="A3B"
+      // "A/3/A/1" → spurKey="A3A"
+      const spurKey=parts.slice(0,-1).join('').toUpperCase()||parts[0].toUpperCase();
+      return{
+        base:parseInt(m2[1]),
+        branchLetter:parts[0].toUpperCase(),
+        branchSeq, spurKey,
+        isMain:false, raw:s
+      };
+    }
   }
-  // Legacy: "40b1" style where letter is mid-string
+
+  // ── Legacy: "40b1" with mid-string letter (broken format, last resort) ──
   const m3=sl.match(/^(\d+)([a-z].*)$/);
   if(m3)return{base:parseInt(m3[1]),branchLetter:m3[2][0].toUpperCase(),branchSeq:parseInt(m3[2].replace(/[^0-9]/g,''))||0,spurKey:m3[2][0].toUpperCase(),isMain:false,raw:s};
+
   const n=parseInt(sl);
   return{base:isNaN(n)?Infinity:n,branchLetter:null,branchSeq:0,spurKey:null,isMain:true,raw:s};
 }
@@ -4455,15 +4690,36 @@ function parsePoleNo(raw){
 // ── Draw a single polyline segment with correct color + flow animation ──
 function _drawSegment(feederName, coords, typeRaw, regLine){
   if(coords.length<2)return;
-  const t=String(typeRaw||'').toUpperCase().replace(/[\s_]/g,'');
-  // New transition rules (per Naresh):
-  //   UG TO OH → ORANGE (destination side)
-  //   OH TO UG → BLUE   (destination side)
-  const isUG2OH=t.includes('UGTOH');
-  const isOH2UG=t.includes('OHTUG');
-  const isOH=isUG2OH||(!isOH2UG&&(t==='OH'||t==='OVERHEAD'));
-  const color=isOH?'#ff9800':'#2196f3';
-  const cable=isOH?'OH':'UG';
+  // ── Color rules (per Naresh, hardened 29 May 2026) ──
+  //   OH                → ORANGE (#ff9800)
+  //   UG                → BLUE   (#2196f3)
+  //   UG → OH transition → ORANGE (destination side wins, OH side)
+  //   OH → UG transition → BLUE   (destination side wins, UG side)
+  //
+  // Earlier bug: the check looked for substrings "UGTOH" and "OHTUG", but
+  // Excel data uses "UG TO OH"/"OH TO UG" which normalize to "UGTOOH"
+  // and "OHTOUG" (two O's). Neither substring matched, so transitions
+  // fell through to the default and got the wrong colour.
+  //
+  // Robust approach: locate UG and OH inside the normalized string. If
+  // both are present, the one appearing LAST is the destination and
+  // determines the colour.
+  const t = String(typeRaw||'').toUpperCase().replace(/[\s_\-/→]/g,'');
+  const ugAt = t.indexOf('UG');
+  const ohAt = t.indexOf('OH');
+  let isOH;
+  if (ugAt >= 0 && ohAt >= 0){
+    // Transition — destination side wins
+    isOH = ugAt < ohAt;   // UG first then OH → OH is destination → orange
+  } else if (ohAt >= 0 || t === 'OVERHEAD' || t === 'OVH'){
+    isOH = true;
+  } else if (ugAt >= 0 || t === 'UNDERGROUND' || t === 'CABLE'){
+    isOH = false;
+  } else {
+    isOH = false;   // unknown → default UG (blue)
+  }
+  const color = isOH ? '#ff9800' : '#2196f3';
+  const cable = isOH ? 'OH'      : 'UG';
 
   const cStatus=feederStatus[feederName]||'live';
 
@@ -4572,9 +4828,11 @@ function renderUploadedRows(rows,sourceFileName){
       const pn=parsePoleNo(rawPoleNo);
       // ── KEY FIX: read type_of_feeder (column P) per individual pole ──
       const typeRaw=getTypeFromRow(row);
-      const tUP=typeRaw.toUpperCase().replace(/[\s_]/g,'');
-      const isTrans=tUP.includes('UGTOH')||tUP.includes('OHTUG')||tUP==='TRANS'||tUP==='TRANSITION';
-      const isOH=!isTrans&&(tUP==='OH'||tUP==='OVERHEAD');
+      const tUP=typeRaw.toUpperCase().replace(/[\s_\-/→]/g,'');
+      const _ugAt=tUP.indexOf('UG');
+      const _ohAt=tUP.indexOf('OH');
+      const isTrans=(_ugAt>=0&&_ohAt>=0)||tUP==='TRANS'||tUP==='TRANSITION';
+      const isOH=!isTrans&&(_ohAt>=0||tUP==='OVERHEAD'||tUP==='OVH');
       return{row,lat,lng,rawPoleNo,pn,typeRaw,isTrans,isOH,valid:!isNaN(lat)&&!isNaN(lng)};
     }).filter(p=>p.valid);
 
@@ -4600,32 +4858,46 @@ function renderUploadedRows(rows,sourceFileName){
     // Sort each group by branchSeq (the number AFTER the last letter)
     Object.values(spurGroups).forEach(g=>g.sort((a,b)=>(a.pn.branchSeq||0)-(b.pn.branchSeq||0)));
 
-    // Helper — for a given (base, spurKey), find the parent pole
+    // Helper — for a given (base, spurKey), find the parent pole.
+    // spurKey is always TOKEN-CONCATENATED (no slashes) as of 26 May 2026.
+    // Examples:
+    //   spurKey="A"     → first-level spur, parent is mainPole at base
+    //   spurKey="A2A"   → nested, parent is at base, spurKey="A", branchSeq=2
+    //                     (i.e. the pole "48A2" is the parent of group "48_A2A")
+    //   spurKey="A2B3C" → parent at base, spurKey="A2B", branchSeq=3
     function _findSpurParent(baseNum, spurKey){
-      // First-level spur: "A" or "B" (no slashes inside)
-      if(!spurKey||!spurKey.includes('/')){
+      if(!spurKey){
         return mainPoles.find(p=>p.pn.base===baseNum);
       }
-      // Nested spur: spurKey like "A/3/B" → parent is at base=baseNum,
-      // spurKey="A", branchSeq=3 (the SECOND-to-last token, which is the
-      // numeric pos of the parent on the path-up branch).
-      // Example: child "A/3/B" parts=['A','3','B']
-      //   parts[length-2] = '3' → parent.branchSeq = 3
-      //   parts.slice(0,-2)  = ['A']  → parent.spurKey  = 'A'
-      // Example: child "A/3/B/5/C" parts=['A','3','B','5','C']
-      //   parts[length-2] = '5' → parent.branchSeq = 5
-      //   parts.slice(0,-2)  = ['A','3','B'] → parent.spurKey = 'A/3/B'
-      const parts=spurKey.split('/');
-      const parentBranchSeq=parseInt(parts[parts.length-2]);
-      const parentSpurKey=parts.length>2 ? parts.slice(0,-2).join('/') : parts[0];
-      // Look in the parent's spur group first
-      const parentGroup=spurGroups[baseNum+'_'+parentSpurKey];
+      const tokens=spurKey.match(/[A-Z]+|\d+/g)||[];
+      // Single letter only → first-level spur, parent is the main pole
+      if(tokens.length<=1){
+        return mainPoles.find(p=>p.pn.base===baseNum);
+      }
+      // Find the LAST numeric token — that's the parent's branchSeq.
+      // Everything BEFORE that number forms the parent's spurKey.
+      let lastNumIdx=-1;
+      for(let i=tokens.length-1;i>=0;i--){
+        if(/^\d+$/.test(tokens[i])){lastNumIdx=i;break;}
+      }
+      if(lastNumIdx<0){
+        // No numbers — malformed, fall back to main
+        return mainPoles.find(p=>p.pn.base===baseNum);
+      }
+      const parentBranchSeq=parseInt(tokens[lastNumIdx]);
+      const parentSpurKey=tokens.slice(0,lastNumIdx).join('');
+      if(!parentSpurKey){
+        return mainPoles.find(p=>p.pn.base===baseNum);
+      }
+      // Look up parent in the spur groups
+      const parentGroupKey=baseNum+'_'+parentSpurKey;
+      const parentGroup=spurGroups[parentGroupKey];
       if(parentGroup){
         const found=parentGroup.find(p=>p.pn.branchSeq===parentBranchSeq);
         if(found)return found;
       }
-      // Last resort — drop back to the main pole at this base so the
-      // branch still attaches somewhere visible.
+      // Last resort — attach to main pole so the branch still has anchor
+      console.warn(`Spur parent not found: base=${baseNum} spurKey=${spurKey} → looked for ${parentGroupKey} seq=${parentBranchSeq}`);
       return mainPoles.find(p=>p.pn.base===baseNum);
     }
 
