@@ -1217,7 +1217,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 </div>
 
 <div id="topbar">
-  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">build 31-May-2026 / r10 (nature+fuzzy)</span></div>
+  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">build 01-Jun-2026 / r11 (column-disambig)</span></div>
   <div class="tb-sep"></div>
   <div class="tb-title">SCADA 33KV FEEDER ROUTE MAP</div>
   <div id="coordPickBtn" onclick="toggleCoordPicker()" title="Pick coordinates on map">📍 PICK COORDS</div>
@@ -1277,9 +1277,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
       <input class="fsearch-input" id="ssSearch" placeholder="Search substations (name / division)…" autocomplete="off" oninput="renderSSList(this.value)"/>
     </div>
     <div class="ss-typebar">
-      <button class="ss-typebtn active" data-sst="all" onclick="setSSTypeFilter('all',this)">ALL <span class="ss-typecnt" id="sst-cnt-all">—</span></button>
-      <button class="ss-typebtn" data-sst="33" onclick="setSSTypeFilter('33',this)">33/11KV <span class="ss-typecnt" id="sst-cnt-33">—</span></button>
-      <button class="ss-typebtn" data-sst="eht" onclick="setSSTypeFilter('eht',this)">EHT <span class="ss-typecnt" id="sst-cnt-eht">—</span></button>
+      <button class="ss-typebtn active" data-sst="33" onclick="setSSTypeFilter('33',this)">33/11 KV SS <span class="ss-typecnt" id="sst-cnt-33">—</span></button>
+      <button class="ss-typebtn" data-sst="eht" onclick="setSSTypeFilter('eht',this)">EHT SS <span class="ss-typecnt" id="sst-cnt-eht">—</span></button>
     </div>
     <div id="ssList" class="ss-list"></div>
   </div>
@@ -2852,7 +2851,7 @@ function _updateRulerReadout(km,nPoints){
 // ─────────────────────────────────────────────────────────────
 // LEFT PANEL TABS — Feeders / Substations (added 09 May 2026)
 // ─────────────────────────────────────────────────────────────
-let _ssTypeFilter='all';
+let _ssTypeFilter='33';
 let _ssListData=[];   // current sorted/filtered list — index used by click handler
 
 function switchLpanelTab(name){
@@ -2903,9 +2902,10 @@ function renderSSList(query){
   // Index every entry so the click handler can look it up
   combined.forEach((s,idx)=>{ s._idx=idx; });
 
-  // Counter
+  // Top-level SUBSTATIONS tab badge: show ONLY 33/11KV count (per Naresh
+  // 01-Jun-2026 — EHT is a separate concern). Falls back to total if zero.
   const ssCntEl=document.getElementById('ltab-cnt-ss');
-  if(ssCntEl)ssCntEl.textContent=ss33.length+ehts.length;
+  if(ssCntEl)ssCntEl.textContent=ss33.length || (ss33.length+ehts.length);
 
   if(!combined.length){
     list.innerHTML='<div class="ss-empty">No substations match.</div>';return;
@@ -3073,7 +3073,7 @@ function _refreshLpanelCounts(){
   const fEl=document.getElementById('ltab-cnt-feeders');
   if(fEl)fEl.textContent=feederNames.size;
   const sEl=document.getElementById('ltab-cnt-ss');
-  if(sEl)sEl.textContent=(STATIC_SS33?.length||0)+(STATIC_EHT?.length||0);
+  if(sEl)sEl.textContent=(STATIC_SS33?.length||0);   // 33/11KV only (per Naresh 01-Jun-2026)
 }
 
 function toggleLyr(key){
@@ -4173,12 +4173,70 @@ function fuzzyGet(row,candidates){
 function getLatFromRow(row){return parseFloat(fuzzyGet(row,['latitude','Latitude','lat','LAT','Lat']));}
 function getLngFromRow(row){return parseFloat(fuzzyGet(row,['longitude','Longitude','lon','lng','LON','LNG','Long','LONG']));}
 function getFeederNameFromRow(row){return fuzzyGet(row,['feeder_name','Feeder Name','feeder name','FEEDER_NAME','FeederName','Feeder_Name','feeder','Feeder']);}
+// ─────────────────────────────────────────────────────────────
+// CABLE TYPE vs FEEDER NATURE — disambiguated 01-Jun-2026 per Naresh
+//
+// User's Excel has TWO columns both effectively named "Type_of_feeder":
+//   • Column F → values are 33KV Feeder / HT Service / Link Line / blank
+//                (this is the FEEDER NATURE — describes the whole feeder)
+//   • Column N → values are OH / UG / UG to OH / OH to UG / blank
+//                (this is the CABLE TYPE — varies per pole)
+//
+// fuzzyGet returns whichever column it finds first, so we now validate by
+// VALUE pattern: if the value matches OH/UG it's cable type; if it matches
+// 33KV/Link/HT it's feeder nature. Failing the named lookup we scan all
+// string values in the row for the pattern.
+// ─────────────────────────────────────────────────────────────
+
+function _isCableTypeValue(v){
+  if (!v || typeof v !== 'string') return false;
+  const t = v.toUpperCase().trim();
+  if (t === 'OH' || t === 'UG' || t === 'OVERHEAD' || t === 'UNDERGROUND' || t === 'OVH' || t === 'CABLE') return true;
+  // "OH TO UG", "UG TO OH", "OH→UG", "UG2OH", etc.
+  return /^(OH|UG)\s*(TO|→|2|-)?\s*(OH|UG)?$/i.test(t.replace(/[_]/g,' '));
+}
+
+function _isFeederNatureValue(v){
+  if (!v || typeof v !== 'string') return false;
+  const t = v.toUpperCase().replace(/[\s_\-]/g,'');
+  return t === '33KVFEEDER' || t === 'LINKLINE' || t === 'HTSERVICE' ||
+         t.startsWith('HTSERV') || t === '33KV' || t === 'LINK';
+}
+
 function getTypeFromRow(row){
-  // Broaden column-name fuzzy lookup — Excel files from different teams use
-  // various spellings of the same column (Gemini's hint, 31 May 2026).
-  let t = fuzzyGet(row,['type_of_feeder','Type of Feeder','Type_of_feeder','feeder_type','FeederType','Type of feeder','cable_type','Cable Type','Cable_Type']);
-  if(!t) t = fuzzyGet(row,['nature_of_feeder','Nature of Feeder','Nature_of_Feeder','line_type','Line Type']);
-  return t;
+  // Returns the CABLE TYPE (OH/UG variant) for a single pole.
+  // Validates value pattern so it can't accidentally pick up a feeder-nature
+  // column (which is also called "Type_of_feeder" in some sheets).
+  const named = fuzzyGet(row, [
+    'type_of_feeder','Type of Feeder','Type_of_feeder','feeder_type','FeederType',
+    'cable_type','Cable Type','Cable_Type','type_of_cable','Type of Cable',
+    'nature_of_feeder','Nature of Feeder'
+  ]);
+  if (_isCableTypeValue(named)) return named;
+  // Scan all values for an OH/UG pattern
+  for (const k of Object.keys(row||{})){
+    const v = row[k];
+    if (_isCableTypeValue(v)) return v;
+  }
+  return named || '';   // last resort — may be empty, _lastType then fills in
+}
+
+function getFeederNatureFromRow(row){
+  // Returns the FEEDER NATURE (33KV Feeder / Link Line / HT Service) for the
+  // whole feeder. Same disambiguation strategy as getTypeFromRow.
+  const named = fuzzyGet(row, [
+    'feeder_nature','Feeder Nature','line_type','Line Type',
+    'nature_of_feeder','Nature of Feeder','Nature_of_Feeder',
+    'type_of_feeder','Type of Feeder','Type_of_feeder',
+    'feeder_type_2','Type of Line','type of line','nature','Nature'
+  ]);
+  if (_isFeederNatureValue(named)) return named;
+  // Scan all values for a feeder-nature label
+  for (const k of Object.keys(row||{})){
+    const v = row[k];
+    if (_isFeederNatureValue(v)) return v;
+  }
+  return '';
 }
 function getPoleNoFromRow(row,idx){return fuzzyGet(row,['pole_number','Pole Number','Pole_Number','pole_no','PoleNo','pole'])||String(idx+1);}
 function getDivisionFromRow(row){return fuzzyGet(row,['division','Division','DIVISION','div']);}
@@ -4443,17 +4501,23 @@ function downloadCurrentFeederXLSX(){
 // SUBSTATION ↔ FEEDER LINKING (refactored 26 May 2026 per Naresh)
 //
 // Used by both flyToSS (popup) and focusOnSSFeeders (map filter).
-// Returns the array of feeder names actually connected to the given SS,
-// using two complementary strategies:
-//   1. Feeder NAME pattern  "<SOURCE_EHT>-<DEST_33KV_SS>"
-//   2. Pole row properties  name_of_33_11_SS / name_of_eht_ss columns
+// Returns the array of feeder names actually connected to the given SS.
 //
-// Now uses FUZZY matching (31 May 2026 per Naresh) — Excel data and the
-// static SS list often have spelling drift (e.g. "SEETARAMBAGH" vs
-// "SEETHARAMBAGH", "DEVIBAGH" vs "DEVIBAUG"). Exact match was missing
-// these. Levenshtein-distance ≤2 for short names / ≤3 for longer names
-// catches the common 1-2 character drifts without producing false matches.
+// Tightened 01-Jun-2026: filter out COMMON-SUFFIX words like NAGAR / PURA /
+// PALLY / etc. Those appear in dozens of feeder names so matching on them
+// alone over-counted KALYAN NAGAR with 54 feeders when only 3 should link.
+// New rule: every DISTINCTIVE word in the SS name must appear (fuzzy) in
+// the candidate feeder part.
 // ─────────────────────────────────────────────────────────────
+
+// Hyderabad-region common suffix words. If the SS name has these AND other
+// distinctive words, only the distinctive parts are used for matching.
+const COMMON_SS_SUFFIXES = new Set([
+  'NAGAR','PURAM','PURA','PALLY','PALEM','PALLI','BAGH','BAUGH','GUDA',
+  'KUNDA','MAHAL','PETA','PETH','HILLS','COLONY','BAZAR','BAZAAR','BASTI',
+  'TOWN','CITY','VILLAGE','PUR','GHAR','GADDA','GUTTA','KHANA','PARK',
+  'ROAD','MARG','LANE','STREET','SS','SUBSTATION','KV','33KV','11KV','132KV','220KV','400KV'
+]);
 
 // Bounded Levenshtein. Returns -1 if distance exceeds maxDist (early exit).
 function _levenshtein(a, b, maxDist){
@@ -4477,21 +4541,39 @@ function _levenshtein(a, b, maxDist){
   return prev[n];
 }
 
-// Fuzzy match for SS names. Tolerates the 1-2 character drift common in
-// utility datasets. Returns true if names are "the same SS".
-function _ssFuzzyMatch(a, b){
+// Fuzzy single-word match — 1–3 char drift tolerance proportional to length
+function _wordFuzzyEqual(a, b){
   if (!a || !b) return false;
   if (a === b) return true;
-  // Substring containment after normalization is a strong signal
-  if (a.length >= 5 && b.length >= 5){
-    if (a.includes(b) || b.includes(a)) return true;
-  }
-  // Levenshtein with length-adaptive threshold
   const maxLen = Math.max(a.length, b.length);
-  if (maxLen < 5) return false;   // too short to fuzzy-match safely
-  const threshold = maxLen <= 7 ? 1 : maxLen <= 12 ? 2 : 3;
+  if (maxLen < 4) return a === b;
+  const threshold = maxLen <= 6 ? 1 : maxLen <= 10 ? 2 : 3;
   const d = _levenshtein(a, b, threshold);
   return d >= 0 && d <= threshold;
+}
+
+// Pick out the DISTINCTIVE words of an SS name — strip common suffixes,
+// require length >= 4.
+function _distinctiveWords(ssNorm){
+  const words = ssNorm.split(/\s+/).filter(w => w.length >= 4 && !COMMON_SS_SUFFIXES.has(w));
+  // If everything got filtered (rare — SS is purely common words), keep
+  // the original tokens so we still have something to match against.
+  if (words.length === 0){
+    return ssNorm.split(/\s+/).filter(w => w.length >= 3);
+  }
+  return words;
+}
+
+// Does this feeder-part name contain ALL of the SS's distinctive words?
+function _ssNameMatchesPart(ssDistinctive, ssNorm, partNorm){
+  if (!partNorm) return false;
+  // Exact whole-string fuzzy is a strong signal (single-word SSes)
+  if (_wordFuzzyEqual(partNorm, ssNorm)) return true;
+  // Otherwise require every distinctive SS word to appear in the part
+  const partWords = partNorm.split(/\s+/);
+  return ssDistinctive.every(sw =>
+    partWords.some(pw => _wordFuzzyEqual(pw, sw))
+  );
 }
 
 function _findFeedersLinkedToSS(ssData){
@@ -4499,40 +4581,30 @@ function _findFeedersLinkedToSS(ssData){
   const ssNorm=_normalizeSSName(ssRaw);
   if(!ssNorm)return [];
 
+  const ssDistinctive = _distinctiveWords(ssNorm);
+  if (!ssDistinctive.length) return [];
+
   const linked=new Set();
 
-  // Strategy 1: feeder name pattern — uses fuzzy SS match
+  // Strategy 1: feeder name pattern — every distinctive SS word must appear
   [...feederNames].forEach(fn=>{
     const fnUp=fn.toUpperCase();
     const parts=fnUp.split(/[-→]/);
     const matchesAnyPart=parts.some(part=>{
       const partNorm=_normalizeSSName(part);
-      if(!partNorm)return false;
-      // Whole-string fuzzy
-      if(_ssFuzzyMatch(partNorm, ssNorm))return true;
-      // Word-level fuzzy — useful when feeder part has prefixes like "33KV"
-      const partWords = partNorm.split(/\s+/);
-      const ssWords   = ssNorm.split(/\s+/);
-      for(const pw of partWords){
-        if(pw.length<5) continue;
-        for(const sw of ssWords){
-          if(sw.length<5) continue;
-          if(_ssFuzzyMatch(pw, sw)) return true;
-        }
-      }
-      return false;
+      return _ssNameMatchesPart(ssDistinctive, ssNorm, partNorm);
     });
     if(matchesAnyPart)linked.add(fn);
   });
 
-  // Strategy 2: pole-row properties (catches names that don't appear in
-  // the feeder name string — uses fuzzy too).
+  // Strategy 2: pole-row properties — same rule
   allLayers.forEach(item=>{
     if(!item.reg||!['points','fpoles'].includes(item.reg.type))return;
     const p=item.layer.feature?.properties||{};
     const s33=_normalizeSSName(fuzzyGet(p,['name_of_33_11_SS','Name of 33/11 SS','name_of_the_33_11_SS'])||'');
     const sEHT=_normalizeSSName(fuzzyGet(p,['name_of_eht_ss','EHT_SS','Name of EHT SS','eht_ss','name_of_the_eht_ss'])||'');
-    if((s33&&_ssFuzzyMatch(s33, ssNorm))||(sEHT&&_ssFuzzyMatch(sEHT, ssNorm))){
+    if((s33&&_ssNameMatchesPart(ssDistinctive, ssNorm, s33))
+     ||(sEHT&&_ssNameMatchesPart(ssDistinctive, ssNorm, sEHT))){
       linked.add(item.feederName);
     }
   });
@@ -4704,14 +4776,12 @@ function handleFileUpload(input){
       feederMetaMap[fn] = Object.assign(feederMetaMap[fn] || {}, { div: hier.div, sub: hier.sub, sec: sec });
 
       // Classify feeder NATURE (33kv / link / ht) — look across all rows
-      // for any line-type/nature column. (Per Naresh 31-May-2026.)
+      // for any cell whose VALUE matches a known feeder-nature pattern.
+      // (Per Naresh 01-Jun-2026 — column F has these values.)
       let _natureRaw = '';
       for (const r of feederRows){
         if (!r) continue;
-        _natureRaw = fuzzyGet(r, ['line_type','Line Type','line type','nature_of_feeder',
-                                  'Nature of Feeder','Nature_of_Feeder','feeder_nature',
-                                  'feeder_type_2','Type of Line','type of line',
-                                  'nature','Nature']) || '';
+        _natureRaw = getFeederNatureFromRow(r);
         if (_natureRaw) break;
       }
       feederNatureMap[fn] = _classifyFeederNature(_natureRaw, fn);
@@ -5797,7 +5867,8 @@ async function fbLoadHierarchical(){
 
   console.log(`═══ Restore done: ${loaded} loaded · ${skippedDeleted} deleted skipped · ${skippedDup} duplicate ═══`);
   if (loaded > 0){
-    // Classify nature for restored feeders (per Naresh 31-May-2026)
+    // Classify nature for restored feeders (per Naresh 31-May-2026,
+    // disambiguated 01-Jun-2026)
     [...feederNames].forEach(fn => {
       if (feederNatureMap[fn]) return;   // already set
       const f = uploadedFiles[fn] || Object.values(uploadedFiles).find(u => u && u.feederName === fn);
@@ -5805,9 +5876,7 @@ async function fbLoadHierarchical(){
       let raw = '';
       for (const r of rows){
         if (!r) continue;
-        raw = fuzzyGet(r, ['line_type','Line Type','line type','nature_of_feeder',
-                           'Nature of Feeder','Nature_of_Feeder','feeder_nature',
-                           'feeder_type_2','Type of Line','type of line','nature','Nature']) || '';
+        raw = getFeederNatureFromRow(r);
         if (raw) break;
       }
       feederNatureMap[fn] = _classifyFeederNature(raw, fn);
