@@ -442,6 +442,22 @@ path.feeder-flow-overlay{stroke-dasharray:4 20!important;stroke-linecap:round!im
 #map.is-interacting .eht-rect{animation-play-state:paused!important}
 #map.is-interacting .feeder-breakdown{animation-play-state:paused!important}
 
+/* ── Pan-glitch hardening (01-Jun-2026 per Naresh's ChatGPT analysis) ── */
+/* During drag/zoom, hide the moving overlay entirely. The static base line */
+/* underneath stays anchored to LatLng so geometry never "floats". The      */
+/* overlay returns instantly on moveend.                                     */
+#map.is-interacting .feeder-flow-overlay,
+#map.is-interacting .feeder-flow-anim-static{visibility:hidden!important}
+
+/* Master kill switch — when user toggles Flow Animation off in Layer Types */
+body.no-anim .feeder-flow-overlay,
+body.no-anim .feeder-flow-anim-static{display:none!important}
+body.no-anim .ss33-ring{animation:none!important;opacity:.5}
+body.no-anim .ss33-core{animation:none!important}
+body.no-anim .eht-rect{animation:none!important}
+body.no-anim .feeder-breakdown{animation:none!important}
+body.no-anim .status-dot{animation:none!important}
+
 
 
 @keyframes energy-flow-v6{to{stroke-dashoffset:-28}}
@@ -1212,12 +1228,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 <body>
 <div id="loader">
   <div class="ld-logo">TGSPDCL</div>
-  <div class="ld-sub">KALYANNAGAR SECTION · 33KV</div>
+  <div class="ld-sub">33KV FEEDERS ROUTE MAP-SCADA</div>
   <div class="ld-bar"><div class="ld-fill" id="ldfill"></div></div>
 </div>
 
 <div id="topbar">
-  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">build 01-Jun-2026 / r11 (column-disambig)</span></div>
+  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">build 01-Jun-2026 / r12 (side-aware+anim)</span></div>
   <div class="tb-sep"></div>
   <div class="tb-title">SCADA 33KV FEEDER ROUTE MAP</div>
   <div id="coordPickBtn" onclick="toggleCoordPicker()" title="Pick coordinates on map">📍 PICK COORDS</div>
@@ -1420,6 +1436,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
         <div class="lswatch legend-icon"><svg width="20" height="14" viewBox="0 0 20 14"><rect x="1.5" y="1.5" width="17" height="11" rx="2" fill="rgba(30,10,0,.85)" stroke="#ff7800" stroke-width="1.6"/><text x="10" y="9" text-anchor="middle" font-size="6" fill="#ff7800" font-weight="700">⚡EHT</text></svg></div>
         <div class="lname">EHT SS</div><div class="lcnt" id="cnt-ehts">—</div><div class="tog"></div></div>
       <div class="lrow" id="lyr-fsegs" onclick="toggleLyr('fsegs')"><div class="lswatch" style="background:#e8718d;height:2px"></div><div class="lname">Feeder Segments</div><div class="lcnt" id="cnt-fsegs">—</div><div class="tog"></div></div>
+
+      <!-- ── ENERGY FLOW ANIMATION toggle (added 01-Jun-2026 per Naresh) ── -->
+      <!-- Off = static lines, faster pan/zoom, no flow shimmer.            -->
+      <div class="lrow" id="lyr-anim" onclick="toggleAnimation()" title="Toggle the moving energy-flow dashes on feeder lines. Turn off if pan feels glitchy or you need maximum performance.">
+        <div class="lswatch legend-icon"><svg width="20" height="6" viewBox="0 0 20 6"><line x1="1" y1="3" x2="19" y2="3" stroke="#00c8ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 2"><animate attributeName="stroke-dashoffset" from="0" to="-12" dur="0.9s" repeatCount="indefinite"/></line></svg></div>
+        <div class="lname">Flow Animation</div><div class="lcnt"></div><div class="tog"></div></div>
 
       <!-- ── FEEDER NATURE FILTERS (added 31 May 2026 per Naresh) ── -->
       <!-- These filter the entire feeder by its line category, distinct from -->
@@ -1684,6 +1706,18 @@ function _refreshNatureCounts(){
   set('cnt-feed33kv',  c['33kv']);
   set('cnt-linkline',  c['link']);
   set('cnt-htservice', c['ht']);
+}
+
+// ── ENERGY FLOW ANIMATION toggle (01-Jun-2026 per Naresh) ──
+// When OFF: all flow overlays are hidden, all status pulses paused,
+// and the map feels lighter — useful on weak machines and avoids the
+// "floating line" sensation during fast pans.
+let _animationOn = true;
+function toggleAnimation(){
+  _animationOn = !_animationOn;
+  document.body.classList.toggle('no-anim', !_animationOn);
+  document.getElementById('lyr-anim')?.classList.toggle('off', !_animationOn);
+  toast(_animationOn ? '✨ Flow animation ON' : '⏸ Flow animation OFF', 1800);
 }
 const LGstate={'ug-lines':true,'oh-lines':true,points:true,dp:true,ab:true,cut:true,ss33:true,ehts:true,fsegs:true};
 let cableFilter='all';
@@ -3654,7 +3688,39 @@ function calcFeederStats(fn){
     if(i.reg.type==='dp')dpCnt++;
     if(i.reg.type==='cut')cutCnt++;
   });
-  return{ugKm,ohKm,trKm,totalKm:ugKm+ohKm+trKm,poles,abCnt,dpCnt,cutCnt};
+  // ── Pole vs cable point split (per Naresh 01-Jun-2026) ──
+  // Count rows from the original feeder upload to capture every survey
+  // entry: each row is one POINT whether it's a pole, a cable joint, a
+  // turning point or a way-point. We then separate "pole points" (rows
+  // with a structure_type / pole_no value) from "cable points" (rows
+  // without a pole — the cuts, turns, route way-points).
+  let polePts = 0, cablePts = 0, totalPts = 0;
+  const f = uploadedFiles[fn] || Object.values(uploadedFiles).find(u => u && u.feederName === fn);
+  if (f && Array.isArray(f.rows)){
+    f.rows.forEach(r => {
+      if (!r) return;
+      // Valid coordinates required
+      const lat = parseFloat(r.latitude || r.Latitude || r.lat);
+      const lng = parseFloat(r.longitude || r.Longitude || r.lng || r.long);
+      if (isNaN(lat) || isNaN(lng)) return;
+      totalPts++;
+      // A "pole point" has either a pole number or a structure type
+      const poleNo = fuzzyGet(r, ['pole_numb','pole_no','Pole Number','pole_number','Pole_No']);
+      const struct = fuzzyGet(r, ['type_of_cable_point','Type of Cable Point','structure_type','Structure Type','pole_type','Pole Type']);
+      const hasPoleNo = poleNo && String(poleNo).trim() && /\d/.test(String(poleNo));
+      const hasStructure = struct && /pole|tower|spun|round/i.test(String(struct));
+      if (hasPoleNo || hasStructure) polePts++;
+      else cablePts++;
+    });
+  }
+  // If we couldn't read rows (rare), fall back to old "poles" count
+  if (totalPts === 0){
+    polePts = poles;
+    totalPts = poles + cutCnt + abCnt + dpCnt;
+    cablePts = totalPts - polePts;
+  }
+  return{ugKm,ohKm,trKm,totalKm:ugKm+ohKm+trKm,poles,abCnt,dpCnt,cutCnt,
+         totalPts, polePts, cablePts};
 }
 
 function showFeederStats(fn){
@@ -3663,14 +3729,16 @@ function showFeederStats(fn){
   const grid=document.getElementById('fscGrid');
   if(!card||!grid)return;
   const items=[
-    {lbl:'POLES / POINTS',val:s.poles,cls:'pole'},
-    {lbl:'TOTAL LENGTH',val:s.totalKm.toFixed(3)+' km',cls:''},
-    {lbl:'UG LENGTH',val:s.ugKm.toFixed(3)+' km',cls:'ug'},
-    {lbl:'OH LENGTH',val:s.ohKm.toFixed(3)+' km',cls:'oh'},
-    {lbl:'TRANS LENGTH',val:s.trKm.toFixed(3)+' km',cls:'tr'},
-    {lbl:'AB SWITCHES',val:s.abCnt,cls:'ab'},
-    {lbl:'DP STRUCTURES',val:s.dpCnt,cls:''},
-    {lbl:'CUT POINTS',val:s.cutCnt,cls:'cut'},
+    {lbl:'TOTAL POINTS', val:s.totalPts, cls:''},
+    {lbl:'POLE POINTS',  val:s.polePts,  cls:'pole'},
+    {lbl:'CABLE POINTS', val:s.cablePts, cls:'cut'},
+    {lbl:'TOTAL LENGTH', val:s.totalKm.toFixed(3)+' km', cls:''},
+    {lbl:'UG LENGTH',    val:s.ugKm.toFixed(3)+' km',    cls:'ug'},
+    {lbl:'OH LENGTH',    val:s.ohKm.toFixed(3)+' km',    cls:'oh'},
+    {lbl:'TRANS LENGTH', val:s.trKm.toFixed(3)+' km',    cls:'tr'},
+    {lbl:'AB SWITCHES',  val:s.abCnt, cls:'ab'},
+    {lbl:'DP STRUCTURES',val:s.dpCnt, cls:''},
+    {lbl:'CUT POINTS',   val:s.cutCnt,cls:'cut'},
   ];
   grid.innerHTML=items.map(it=>`
     <div class="fsc-item">
@@ -4584,28 +4652,56 @@ function _findFeedersLinkedToSS(ssData){
   const ssDistinctive = _distinctiveWords(ssNorm);
   if (!ssDistinctive.length) return [];
 
+  // ── Determine which side of "SOURCE-DEST" pattern to match ──
+  // EHT SS (132/220/400 KV) is the SOURCE of a feeder, so look at parts[0].
+  // 33/11 KV SS is the DESTINATION, so look at parts[1..].
+  // (Per Naresh 01-Jun-2026: 132KV ASIFNAGAR was wrongly grabbing feeders
+  //  destined for 33KV ASIF NAGAR.)
+  let isEHT = ssData?._type === 'eht';
+  if (!isEHT && ssData?._type !== '33'){
+    // No type hint — infer from the SS name itself
+    const n = String(ssRaw).toUpperCase();
+    isEHT = /^(132|220|400)\s*KV/.test(n) || /\bEHT\b/.test(n);
+  }
+  // Also check the in-memory arrays as a tiebreaker
+  if (!isEHT){
+    const isInEHTList = (STATIC_EHT||[]).some(s => s.name === ssRaw);
+    const isIn33List  = (STATIC_SS33||[]).some(s => s.name === ssRaw);
+    if (isInEHTList && !isIn33List) isEHT = true;
+  }
+
   const linked=new Set();
 
-  // Strategy 1: feeder name pattern — every distinctive SS word must appear
+  // Strategy 1: feeder name pattern — SIDE-AWARE
   [...feederNames].forEach(fn=>{
     const fnUp=fn.toUpperCase();
-    const parts=fnUp.split(/[-→]/);
-    const matchesAnyPart=parts.some(part=>{
+    const parts=fnUp.split(/[-→]/).map(p => p.trim());
+    if (parts.length === 0) return;
+    // Pick which parts to test
+    const partsToCheck = isEHT
+      ? parts.slice(0, 1)             // EHT → SOURCE side only
+      : parts.slice(1);               // 33/11KV → DESTINATION side(s)
+    const matchesSide = partsToCheck.some(part=>{
       const partNorm=_normalizeSSName(part);
       return _ssNameMatchesPart(ssDistinctive, ssNorm, partNorm);
     });
-    if(matchesAnyPart)linked.add(fn);
+    if(matchesSide)linked.add(fn);
   });
 
-  // Strategy 2: pole-row properties — same rule
+  // Strategy 2: pole-row properties — uses correct field per type
   allLayers.forEach(item=>{
     if(!item.reg||!['points','fpoles'].includes(item.reg.type))return;
     const p=item.layer.feature?.properties||{};
-    const s33=_normalizeSSName(fuzzyGet(p,['name_of_33_11_SS','Name of 33/11 SS','name_of_the_33_11_SS'])||'');
-    const sEHT=_normalizeSSName(fuzzyGet(p,['name_of_eht_ss','EHT_SS','Name of EHT SS','eht_ss','name_of_the_eht_ss'])||'');
-    if((s33&&_ssNameMatchesPart(ssDistinctive, ssNorm, s33))
-     ||(sEHT&&_ssNameMatchesPart(ssDistinctive, ssNorm, sEHT))){
-      linked.add(item.feederName);
+    if (isEHT){
+      const sEHT=_normalizeSSName(fuzzyGet(p,['name_of_eht_ss','EHT_SS','Name of EHT SS','eht_ss','name_of_the_eht_ss'])||'');
+      if (sEHT && _ssNameMatchesPart(ssDistinctive, ssNorm, sEHT)){
+        linked.add(item.feederName);
+      }
+    } else {
+      const s33=_normalizeSSName(fuzzyGet(p,['name_of_33_11_SS','Name of 33/11 SS','name_of_the_33_11_SS'])||'');
+      if (s33 && _ssNameMatchesPart(ssDistinctive, ssNorm, s33)){
+        linked.add(item.feederName);
+      }
     }
   });
 
@@ -4687,14 +4783,20 @@ function flyToSS(ss){
 
 map.on('zoomend',syncLabels);
 
-// Smoothness: pause animations during pan/zoom so each frame is cheap
+// Smoothness: pause/hide animations during pan/zoom so each frame is cheap
+// and the moving overlay can't "float" off the geometry while the SVG layer
+// is being translated. Resumes 100ms after the last move (per ChatGPT's
+// analysis 01-Jun-2026).
 (function(){
   const c=map.getContainer();
   let _intIdle=null;
   function on(){c.classList.add('is-interacting');clearTimeout(_intIdle);}
-  function off(){clearTimeout(_intIdle);_intIdle=setTimeout(()=>c.classList.remove('is-interacting'),140);}
+  function off(){clearTimeout(_intIdle);_intIdle=setTimeout(()=>c.classList.remove('is-interacting'),100);}
   map.on('movestart zoomstart dragstart',on);
   map.on('moveend zoomend dragend',off);
+  // Catch the very first pixel of a drag, before Leaflet emits movestart
+  c.addEventListener('mousedown',on,{passive:true});
+  c.addEventListener('touchstart',on,{passive:true});
 })();
 document.getElementById('loader').addEventListener('click',dismissLoader);
 
