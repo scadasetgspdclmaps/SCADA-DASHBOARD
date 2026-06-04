@@ -674,22 +674,13 @@ html,body{width:100%;height:100%;overflow:hidden}
         <div class="hcard-arrow" style="color:#1976D2">&#8594;</div>
       </div>
 
-      <!-- 3. 33KV GRID MAP -->
-      <div class="hcard" style="border-top-color:#00695C" onclick="window.location.href='33KV_Grid_Map.html'">
-        <div class="hcard-icon">🗾</div>
-        <div class="hcard-title" style="color:#00695C">33KV GRID MAP</div>
-        <div class="hcard-desc">Interactive feeder map across all 4 divisions. Cascade filter by division, section, feeder. Mark breakdowns and overloaded substations with live blink.</div>
-        <div class="hcard-tags"><span class="hcard-tag">324 FEEDERS</span><span class="hcard-tag">136 SS</span><span class="hcard-tag">1327 KM</span><span class="hcard-tag">BLINK</span></div>
+      <!-- 3. 33KV FEEDER ROUTE MAP -->
+      <div class="hcard" style="border-top-color:#00695C" onclick="window.open('33KVFEEDERSROUTEMAP.html','_blank')">
+        <div class="hcard-icon" style="background:linear-gradient(135deg,#00695C,#00897B);color:#fff;width:64px;height:64px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:0 4px 12px rgba(0,105,92,.35)">⚡</div>
+        <div class="hcard-title" style="color:#00695C">33KV FEEDER ROUTE MAP</div>
+        <div class="hcard-desc">Live interactive feeder route map — 313 feeders across all 4 divisions with pole-level UG/OH coloring, substation linking and breakdown overlay. Real-time sync with Firebase.</div>
+        <div class="hcard-tags"><span class="hcard-tag">313 FEEDERS</span><span class="hcard-tag">136 SS</span><span class="hcard-tag">LIVE STATUS</span><span class="hcard-tag">GIS</span></div>
         <div class="hcard-arrow" style="color:#00695C">&#8594;</div>
-      </div>
-
-      <!-- 4. SUMMER ACTION PLAN -->
-      <div class="hcard" style="border-top-color:#E65100">
-        <div class="hcard-icon">☀️</div>
-        <div class="hcard-title" style="color:#E65100">SUMMER ACTION PLAN</div>
-        <div class="hcard-desc">Summer preparedness works — capacitor banks, cable replacements, PTR augmentation and overload mitigation planned works.</div>
-        <div class="hcard-tags"><span class="hcard-tag">CAPACITORS</span><span class="hcard-tag">AUGMENTATION</span><span class="hcard-tag">WORKS</span></div>
-        <div class="hcard-arrow" style="color:#E65100">&#8594;</div>
       </div>
 
       <!-- 5. SS MASTER DATA -->
@@ -701,42 +692,6 @@ html,body{width:100%;height:100%;overflow:hidden}
         <div class="hcard-arrow" style="color:#D07A00">&#8594;</div>
       </div>
 
-      <!-- 6. SCADA 33KV FEEDERS ROUTE MAP -->
-      <div class="hcard" style="border-top-color:#B71C1C" onclick="window.open('https://scadasetgspdclmaps.github.io/33KV-LINES-MAPS-JAMESSTREET-SECTION/dashboard.html','_blank')">
-        <div class="hcard-icon">🔌</div>
-        <div class="hcard-title" style="color:#B71C1C">SECTION WISE FEEDER ROUTE MAP</div>
-        <div class="hcard-desc">James Street Sub-Division live network — 15 feeders, substation status, breakdown log entry and integrated GIS feeder route map.</div>
-        <div class="hcard-tags"><span class="hcard-tag">JAMES STREET</span><span class="hcard-tag">15 FEEDERS</span><span class="hcard-tag">ROUTE MAP</span><span class="hcard-tag">GIS</span></div>
-        <div class="hcard-arrow" style="color:#B71C1C">&#8594;</div>
-      </div>
-
-      <!-- 7. EHT SS DATA -->
-      <div class="hcard" style="border-top-color:#7B1FA2">
-        <div class="hcard-icon">⚡</div>
-        <div class="hcard-title" style="color:#7B1FA2">EHT SS DATA</div>
-        <div class="hcard-desc">132KV / 220KV / 400KV source substation data — outgoing feeder loads, transformer capacity, bus voltage and incomer details.</div>
-        <div class="hcard-tags"><span class="hcard-tag">21 EHT SS</span><span class="hcard-tag">132KV</span><span class="hcard-tag">220KV</span><span class="hcard-tag">400KV</span></div>
-        <div class="hcard-arrow" style="color:#7B1FA2">&#8594;</div>
-      </div>
-
-      <!-- 8. DMS -->
-      <div class="hcard" style="border-top-color:#0277BD">
-        <div class="hcard-icon">📡</div>
-        <div class="hcard-title" style="color:#0277BD">DMS</div>
-        <div class="hcard-desc">Distribution Management System — network topology, switching order management, fault location and automatic restoration.</div>
-        <div class="hcard-tags"><span class="hcard-tag">TOPOLOGY</span><span class="hcard-tag">SWITCHING</span><span class="hcard-tag">FAULT LOC</span></div>
-        <div class="hcard-arrow" style="color:#0277BD">&#8594;</div>
-      </div>
-
-      <!-- 9. 1912 · ECR -->
-      <div class="hcard" style="border-top-color:#5D4037">
-        <div class="hcard-icon">📞</div>
-        <div class="hcard-title" style="color:#5D4037">1912 · ECR</div>
-        <div class="hcard-desc">Consumer complaint management — 1912 call centre integration, outage complaint mapping, escalation tracking and resolution log.</div>
-        <div class="hcard-tags"><span class="hcard-tag">1912</span><span class="hcard-tag">COMPLAINTS</span><span class="hcard-tag">ECR</span></div>
-        <div class="hcard-arrow" style="color:#5D4037">&#8594;</div>
-      </div>
-
       <!-- 10. SCADA DATA ANALYTICS -->
       <div class="hcard" style="border-top-color:#2E7D32" onclick="switchSection('dash')">
         <div class="hcard-icon">📈</div>
@@ -744,15 +699,6 @@ html,body{width:100%;height:100%;overflow:hidden}
         <div class="hcard-desc">Network-wide statistics, PTR capacity analytics, division breakdowns, section directory and full network asset table.</div>
         <div class="hcard-tags"><span class="hcard-tag">339 PTRs</span><span class="hcard-tag">3744 MVA</span><span class="hcard-tag">18 SECTIONS</span><span class="hcard-tag">CHARTS</span></div>
         <div class="hcard-arrow" style="color:#2E7D32">&#8594;</div>
-      </div>
-
-      <!-- 11. E-AUDIT -->
-      <div class="hcard" style="border-top-color:#37474F">
-        <div class="hcard-icon">🔋</div>
-        <div class="hcard-title" style="color:#37474F">E-AUDIT</div>
-        <div class="hcard-desc">Energy audit — feeder-wise energy input vs sales reconciliation, AT&amp;C loss computation, NRPT data correlation and discrepancy tracking.</div>
-        <div class="hcard-tags"><span class="hcard-tag">ENERGY AUDIT</span><span class="hcard-tag">AT&C LOSS</span><span class="hcard-tag">NRPT</span></div>
-        <div class="hcard-arrow" style="color:#37474F">&#8594;</div>
       </div>
 
     </div>
@@ -3010,7 +2956,7 @@ function switchSection(id) {
     _entryLoaded = true;
     var entryFrame = document.getElementById('entry-frame');
     if (entryFrame) {
-      entryFrame.src = 'Breakdown_Entry.html';
+      entryFrame.src = 'Breakdown_Entry_v3.html';
     }
   }
 }
