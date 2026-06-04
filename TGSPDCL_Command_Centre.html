@@ -618,7 +618,7 @@ html,body{width:100%;height:100%;overflow:hidden}
     <button class="sn-tab active" onclick="switchSection('home')" id="sntab-home">
       <span class="ti">&#127968;</span><div class="tl"><b>Home</b><small>OVERVIEW</small></div>
     </button>
-    <button class="sn-tab" onclick="window.location.href='33KV_Grid_Map.html'" id="sntab-map">
+    <button class="sn-tab" onclick="window.open('33KVFEEDERSROUTEMAP.html','_blank')" id="sntab-map">
       <span class="ti">&#127760;</span><div class="tl"><b>33KV Grid Map</b><small>LIVE FEEDER MAP</small></div>
     </button>
     <button class="sn-tab" onclick="switchSection('dash')" id="sntab-dash">
@@ -700,6 +700,24 @@ html,body{width:100%;height:100%;overflow:hidden}
         <div class="hcard-tags"><span class="hcard-tag">339 PTRs</span><span class="hcard-tag">3744 MVA</span><span class="hcard-tag">18 SECTIONS</span><span class="hcard-tag">CHARTS</span></div>
         <div class="hcard-arrow" style="color:#2E7D32">&#8594;</div>
       </div>
+      <!-- 6. BREAKDOWN ENTRY -->
+      <div class="hcard" style="border-top-color:#B91C1C" onclick="switchSection('entry')">
+        <div class="hcard-icon" style="background:linear-gradient(135deg,#B91C1C,#DC2626);color:#fff;width:64px;height:64px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 4px 12px rgba(185,28,28,.35)">📝</div>
+        <div class="hcard-title" style="color:#B91C1C">BREAKDOWN ENTRY</div>
+        <div class="hcard-desc">NMC 33KV failure entry dashboard — log breakdowns, view alternates with live status, rectify open events, browse historical log with filters.</div>
+        <div class="hcard-tags"><span class="hcard-tag">LOG</span><span class="hcard-tag">FAILURE</span><span class="hcard-tag">RECTIFY</span><span class="hcard-tag">HISTORY</span></div>
+        <div class="hcard-arrow" style="color:#B91C1C">&#8594;</div>
+      </div>
+
+      <!-- 7. MASTER DATA MANAGER -->
+      <div class="hcard" style="border-top-color:#7C3AED" onclick="window.open('master_data_manager.html','_blank')">
+        <div class="hcard-icon" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;width:64px;height:64px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 4px 12px rgba(124,58,237,.35)">⚙️</div>
+        <div class="hcard-title" style="color:#7C3AED">MASTER DATA MANAGER</div>
+        <div class="hcard-desc">Edit PTRs, feeder topology and SS source mappings stored in Firebase. Breakdown Entry form auto-loads these — update once, propagates everywhere.</div>
+        <div class="hcard-tags"><span class="hcard-tag">EDIT</span><span class="hcard-tag">PTRs</span><span class="hcard-tag">TOPOLOGY</span><span class="hcard-tag">FIREBASE</span></div>
+        <div class="hcard-arrow" style="color:#7C3AED">&#8594;</div>
+      </div>
+
 
     </div>
 
