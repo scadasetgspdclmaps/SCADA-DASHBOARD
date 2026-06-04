@@ -385,7 +385,228 @@ html,body{width:100%;height:100%;overflow:hidden}
 </style>
 </head>
 <body>
+<!-- ═══════════════════════════════════════════════════════════════════
+     TGSPDCL COMMAND CENTRE — LIVE DASHBOARD WIRING PATCH (03-Jun-2026)
+     Paste this entire block just BEFORE </body> in TGSPDCL_Command_Centre.html.
+     Populates the Live Dashboard tile from Firebase in real time:
+       • LIVE / BREAKDOWN / IDLE feeder lists + counts
+       • SS-on-regular / alternate / multi-source counts (from topology)
+       • Open breakdown list (with link back to the entry record)
+       • Auto-refreshes via Server-Sent Events
+     ═══════════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  const FIREBASE_URL = "https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app";
 
+  function safeFbKey(name){
+    return String(name||'').toUpperCase()
+      .replace(/[.#$\[\]\/]/g,'_').replace(/\s+/g,'_')
+      .replace(/[^A-Z0-9_-]/g,'').substring(0,180) || 'EMPTY';
+  }
+
+  let MASTER_SS_TOPO = {};      // safekey → {ssName, sourceFeeders:[]}
+  let FEEDER_STATUS  = {};      // safekey → "live" | "breakdown" | "idle"
+  let OPEN_BREAKDOWNS = [];     // array of breakdown records that are still open
+
+  // ───────────────────────────────────────────────────────────────
+  // RENDER — Feeder lists by status
+  // ───────────────────────────────────────────────────────────────
+  function renderFeederLists(){
+    const live = [], breakdown = [], idle = [];
+
+    // Build feeder set from BOTH master topology AND active statuses
+    // (so a feeder shows up even if it's never been flipped)
+    const allFeederNames = new Set();
+    Object.values(MASTER_SS_TOPO).forEach(t => {
+      (t.sourceFeeders || []).forEach(s => allFeederNames.add(s.feederName));
+    });
+    // Also include any feeder that has an active status entry
+    Object.keys(FEEDER_STATUS).forEach(sk => {
+      // We don't have name → safekey reverse here cheaply; resolve by scanning
+      // master topology again
+      let found = null;
+      for (const t of Object.values(MASTER_SS_TOPO)){
+        for (const s of (t.sourceFeeders || [])){
+          if (safeFbKey(s.feederName) === sk){ found = s.feederName; break; }
+        }
+        if (found) break;
+      }
+      if (found) allFeederNames.add(found);
+    });
+
+    allFeederNames.forEach(fn => {
+      const status = FEEDER_STATUS[safeFbKey(fn)] || 'live';
+      if (status === 'breakdown') breakdown.push(fn);
+      else if (status === 'idle') idle.push(fn);
+      else live.push(fn);
+    });
+
+    fillList('sim-live-body', live,      'live');
+    fillList('sim-bkdn-body', breakdown, 'breakdown');
+    fillList('sim-idle-body', idle,      'idle');
+
+    setBadge('sim-live-badge', live.length      + ' LIVE');
+    setBadge('sim-bkdn-badge', breakdown.length + ' ACTIVE');
+    setBadge('sim-idle-badge', idle.length      + ' IDLE');
+  }
+
+  function fillList(elId, names, kind){
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!names.length){
+      const lbl = kind === 'breakdown' ? 'No active breakdowns'
+                : kind === 'idle'      ? 'No idle feeders'
+                : 'No live feeders';
+      el.innerHTML = `<div class="sim-empty">${lbl}</div>`;
+      return;
+    }
+    // Sort alphabetically, cap at 60 for visual sanity
+    const shown = names.slice(0).sort().slice(0, 60);
+    const colour = kind === 'breakdown' ? '#C0392B'
+                 : kind === 'idle'      ? '#4A6580'
+                 : '#0B5C42';
+    el.innerHTML = shown.map(n => `
+      <div style="padding:6px 9px;border-bottom:.5px solid #f1f5f9;
+                  font-size:11.5px;color:${colour};
+                  display:flex;justify-content:space-between;align-items:center">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+                     max-width:75%" title="${n}">${n}</span>
+        <span style="font-size:9px;letter-spacing:.8px;color:#94a3b8">${kind.toUpperCase()}</span>
+      </div>
+    `).join('') + (names.length > 60
+      ? `<div style="padding:6px 9px;font-size:10px;color:#94a3b8;text-align:center">+ ${names.length-60} more…</div>`
+      : '');
+  }
+
+  function setBadge(id, txt){
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // RENDER — SS on Regular / Alternate / Multiple
+  // ───────────────────────────────────────────────────────────────
+  function renderSSSourceCounts(){
+    let onReg = 0, onAlt = 0, onMulti = 0;
+
+    Object.values(MASTER_SS_TOPO).forEach(ss => {
+      const sources = ss.sourceFeeders || [];
+      if (!sources.length) return;
+      // "Regular" = first source (or only source); "Alt" = anything else
+      // Status of each:
+      const liveSources = sources.filter(s => (FEEDER_STATUS[safeFbKey(s.feederName)] || 'live') === 'live');
+      if (liveSources.length === 0) return;            // SS down entirely — skip
+      if (liveSources.length >= 2)      onMulti++;
+      else if (liveSources.length === 1){
+        // Check whether the surviving feeder is the "regular" (first) one
+        const isRegular = liveSources[0].feederName === sources[0].feederName;
+        if (isRegular) onReg++;
+        else onAlt++;
+      }
+    });
+
+    const set = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+    set('sim-ss-reg', onReg);
+    set('sim-ss-alt', onAlt);
+    set('sim-ss-multi', onMulti);
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // BOOTSTRAP + SSE
+  // ───────────────────────────────────────────────────────────────
+  async function bootstrap(){
+    try {
+      const [topo, statuses, breakdowns] = await Promise.all([
+        fetch(`${FIREBASE_URL}/masterData/ssTopology.json`).then(r => r.ok ? r.json() : null),
+        fetch(`${FIREBASE_URL}/feeders.json`).then(r => r.ok ? r.json() : null),
+        fetch(`${FIREBASE_URL}/breakdowns.json`).then(r => r.ok ? r.json() : null),
+      ]);
+      MASTER_SS_TOPO = topo || {};
+      FEEDER_STATUS  = {};
+      if (statuses) Object.keys(statuses).forEach(k => {
+        const s = statuses[k]?.status; if (s) FEEDER_STATUS[k] = s;
+      });
+      OPEN_BREAKDOWNS = breakdowns
+        ? Object.values(breakdowns).filter(b => b && (b.isOpen === true || !b.restorationDateTime))
+        : [];
+
+      console.log(`[CC-LIVE] Master loaded — ${Object.keys(MASTER_SS_TOPO).length} SS topology, ${Object.keys(FEEDER_STATUS).length} active feeders, ${OPEN_BREAKDOWNS.length} open breakdowns`);
+      renderAll();
+      subscribeAll();
+    } catch (err){
+      console.error('[CC-LIVE] Bootstrap failed:', err);
+    }
+  }
+
+  function renderAll(){
+    renderFeederLists();
+    renderSSSourceCounts();
+    // Update last refresh stamp
+    const stamp = document.querySelector('.live-last-refresh, #lastRefreshLabel');
+    if (stamp) stamp.textContent = new Date().toLocaleString();
+  }
+
+  // SSE for live status
+  let _sseFeeders = null, _sseBreakdowns = null;
+  function subscribeAll(){
+    function feedersHandler(evt){
+      try {
+        const p = JSON.parse(evt.data);
+        if (!p || p.data === null) return;
+        const parts = (p.path || '/').split('/').filter(Boolean);
+        if (p.path === '/' && typeof p.data === 'object'){
+          FEEDER_STATUS = {};
+          Object.keys(p.data).forEach(k => {
+            const s = p.data[k]?.status; if (s) FEEDER_STATUS[k] = s;
+          });
+        } else if (parts.length === 1 && typeof p.data === 'object'){
+          FEEDER_STATUS[parts[0]] = p.data.status || 'live';
+        } else if (parts.length === 2 && parts[1] === 'status'){
+          FEEDER_STATUS[parts[0]] = p.data || 'live';
+        }
+        renderAll();
+      } catch(e){ console.warn('[CC-SSE-feeders]', e); }
+    }
+    function breakdownsHandler(evt){
+      // Just re-fetch breakdowns periodically — easier than diffing
+      fetch(`${FIREBASE_URL}/breakdowns.json`).then(r => r.ok ? r.json() : null).then(data => {
+        OPEN_BREAKDOWNS = data
+          ? Object.values(data).filter(b => b && (b.isOpen === true || !b.restorationDateTime))
+          : [];
+        renderAll();
+      }).catch(()=>{});
+    }
+    try {
+      if (_sseFeeders) try { _sseFeeders.close(); } catch(_){}
+      _sseFeeders = new EventSource(`${FIREBASE_URL}/feeders.json`);
+      _sseFeeders.addEventListener('put',   feedersHandler);
+      _sseFeeders.addEventListener('patch', feedersHandler);
+      _sseFeeders.addEventListener('error', () => { try { _sseFeeders.close(); } catch(_){} setTimeout(subscribeAll, 5000); });
+
+      if (_sseBreakdowns) try { _sseBreakdowns.close(); } catch(_){}
+      _sseBreakdowns = new EventSource(`${FIREBASE_URL}/breakdowns.json`);
+      _sseBreakdowns.addEventListener('put',   breakdownsHandler);
+      _sseBreakdowns.addEventListener('patch', breakdownsHandler);
+    } catch (err){
+      console.warn('[CC-LIVE] SSE failed:', err);
+    }
+  }
+
+  // INIT
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bootstrap);
+  } else {
+    bootstrap();
+  }
+
+  window.commandCentreLive = {
+    refresh: bootstrap,
+    topo: () => MASTER_SS_TOPO,
+    statuses: () => FEEDER_STATUS,
+    breakdowns: () => OPEN_BREAKDOWNS
+  };
+})();
+</script>
 <!-- ── TOPNAV ─────────────────────────────────────────────────────────── -->
 <div id="shell-nav">
   <div class="sn-brand">
