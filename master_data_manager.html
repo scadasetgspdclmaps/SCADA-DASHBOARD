@@ -394,6 +394,7 @@
       <div class="field full">
         <label>33/11KV Substation Name <span style="color:#fcd34d">*</span></label>
         <input id="m-ss-name" placeholder="e.g. 33/11KV YOUSUFGUDA SS">
+        <div class="help">Editable — if you change this, the old record will be deleted and a new one created.</div>
       </div>
       <div class="field full">
         <label>Source Feeders (in order: 1st = REGULAR, rest = ALTERNATES)</label>
@@ -567,7 +568,7 @@ function openPTRModal(key){
   const isEdit = !!key;
   $('m-ptr-title').textContent = isEdit ? '✎ Edit PTR Record' : '＋ Add PTR Record';
   $('m-ptr-del').style.display = isEdit ? 'inline-flex' : 'none';
-  $('m-ptr-code').readOnly = isEdit;   // can't change SS code once set
+  $('m-ptr-code').readOnly = false;   // allow rename — cascade handled on save
 
   const fields = ['m-ptr-code','m-ptr-name','m-ptr-div','m-ptr-sub','m-ptr-sec',
                   'm-ptr-opcir','m-ptr-opdiv','m-ptr-opsub'];
@@ -596,6 +597,12 @@ async function savePTR(){
   if (!code){ toast('SS Code is required', true); return; }
   if (!name){ toast('SS Name is required', true); return; }
   if (!_ptrChipCaps.length){ toast('Add at least one PTR capacity', true); return; }
+  // Rename handling: if SS code key changed, we need to delete the old key
+  const newKey = safeFbKey(code);
+  const isRename = EDIT_KEY && EDIT_KEY !== newKey;
+  if (isRename && !confirm(`SS Code changed (${EDIT_KEY} → ${newKey}). This will delete the old record and create a new one. Continue?`)){
+    return;
+  }
 
   const total = _ptrChipCaps.reduce((s,v) => s + v, 0);
   const payload = {
@@ -622,7 +629,14 @@ async function savePTR(){
       body: JSON.stringify(payload)
     });
     DB_PTRS[key] = payload;
-    toast(`✓ Saved PTR record for ${name}`);
+    // If renamed, delete the OLD key
+    if (isRename){
+      await fetch(`${FIREBASE_URL}/masterData/ptrs/${EDIT_KEY}.json`, { method:'DELETE' });
+      delete DB_PTRS[EDIT_KEY];
+      toast(`✓ Renamed: ${EDIT_KEY} → ${key}`);
+    } else {
+      toast(`✓ Saved PTR record for ${name}`);
+    }
     closeModal('m-ptr');
     refreshStats();
     renderPTRs();
@@ -687,7 +701,7 @@ function openTopoModal(key){
   const isEdit = !!key;
   $('m-topo-title').textContent = isEdit ? '✎ Edit Feeder' : '＋ Add Feeder';
   $('m-topo-del').style.display = isEdit ? 'inline-flex' : 'none';
-  $('m-topo-name').readOnly = isEdit;   // can't change feeder name once set
+  $('m-topo-name').readOnly = false;   // allow rename — cascade handled on save
 
   const fields = ['m-topo-name','m-topo-code','m-topo-eht','m-topo-div','m-topo-sub','m-topo-sec','m-topo-feeds'];
   fields.forEach(f => $(f).value = '');
@@ -714,6 +728,12 @@ async function saveTopo(){
   if (!eht){ toast('EHT Source is required', true); return; }
 
   const feeds = $('m-topo-feeds').value.split(',').map(s => s.trim()).filter(Boolean);
+  const newKey = safeFbKey(name);
+  const isRename = EDIT_KEY && EDIT_KEY !== newKey;
+  const oldName = isRename && DB_TOPO[EDIT_KEY] ? DB_TOPO[EDIT_KEY].feederName : null;
+  if (isRename && !confirm(`Feeder name changed. Old name "${oldName}" will be deleted and replaced with "${name}", cascading through all ssTopology entries. Continue?`)){
+    return;
+  }
 
   const payload = {
     feederName: name,
@@ -750,7 +770,31 @@ async function saveTopo(){
       }
     }
 
-    toast(`✓ Saved feeder — cascaded to ${feeds.length} SS mapping(s)`);
+    // Rename cascade: rewrite ssTopology sourceFeeders entries that reference the old name
+    if (isRename){
+      for (const ssk of Object.keys(DB_SS)){
+        const rec = DB_SS[ssk];
+        if (!rec || !Array.isArray(rec.sourceFeeders)) continue;
+        let changed = false;
+        rec.sourceFeeders = rec.sourceFeeders.map(s => {
+          if (s.feederName === oldName){ changed = true; return { ...s, feederName: name }; }
+          return s;
+        });
+        if (changed){
+          await fetch(`${FIREBASE_URL}/masterData/ssTopology/${ssk}.json`, {
+            method:'PUT', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(rec)
+          });
+          DB_SS[ssk] = rec;
+        }
+      }
+      // Delete the old topology key
+      await fetch(`${FIREBASE_URL}/masterData/topology/${EDIT_KEY}.json`, { method:'DELETE' });
+      delete DB_TOPO[EDIT_KEY];
+      toast(`✓ Renamed and cascaded: ${EDIT_KEY} → ${newKey}`);
+    } else {
+      toast(`✓ Saved feeder — cascaded to ${feeds.length} SS mapping(s)`);
+    }
     closeModal('m-topo');
     refreshStats();
     renderTopology();
@@ -855,7 +899,7 @@ function openSSTopoModal(key){
   const isEdit = !!key;
   $('m-ss-title').textContent = isEdit ? '✎ Edit SS Source Mapping' : '＋ Add SS Source Mapping';
   $('m-ss-del').style.display = isEdit ? 'inline-flex' : 'none';
-  $('m-ss-name').readOnly = isEdit;
+  $('m-ss-name').readOnly = false;
   $('m-ss-name').value = '';
   $('m-ss-newsrc').value = '';
   _srcRows = [];
@@ -876,13 +920,23 @@ async function saveSSTopo(){
 
   const payload = { ssName: name, sourceFeeders: _srcRows, updatedAt: new Date().toISOString() };
   const key = safeFbKey(name);
+  const isRename = EDIT_KEY && EDIT_KEY !== key;
+  if (isRename && !confirm(`SS name changed. The old entry "${EDIT_KEY}" will be deleted and replaced with "${key}". Continue?`)){
+    return;
+  }
   try {
     await fetch(`${FIREBASE_URL}/masterData/ssTopology/${key}.json`, {
       method: 'PUT', headers: {'Content-Type':'application/json'},
       body: JSON.stringify(payload)
     });
     DB_SS[key] = payload;
-    toast(`✓ Saved SS source mapping — ${_srcRows.length} source(s)`);
+    if (isRename){
+      await fetch(`${FIREBASE_URL}/masterData/ssTopology/${EDIT_KEY}.json`, { method:'DELETE' });
+      delete DB_SS[EDIT_KEY];
+      toast(`✓ Renamed and saved: ${EDIT_KEY} → ${key} (${_srcRows.length} source(s))`);
+    } else {
+      toast(`✓ Saved SS source mapping — ${_srcRows.length} source(s)`);
+    }
     closeModal('m-ss');
     refreshStats();
     renderSSTopo();
