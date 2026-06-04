@@ -1,1610 +1,1148 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TGSPDCL — Breakdown Entry</title>
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TGSPDCL — NMC Failure Entry Dashboard</title>
 <style>
-  :root {
-    --blue: #1a3a6b;
-    --blue-mid: #1e4d8c;
-    --blue-light: #2d6cc0;
-    --accent: #f59e0b;
-    --red: #dc2626;
-    --green: #16a34a;
-    --bg: #f0f4f8;
-    --card: #ffffff;
-    --border: #d1d9e6;
-    --text: #1e293b;
-    --muted: #64748b;
-    --nav-h: 64px;
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --blue:#1a3a6b; --blue-mid:#2d6cc0; --blue-light:#5b9bd5;
+    --green:#16a34a; --red:#dc2626; --amber:#d97706; --accent:#f59e0b;
+    --bg:#f1f5f9; --card:#fff; --border:#e2e8f0;
+    --text:#0f172a; --muted:#64748b; --mono:'Consolas','Monaco',monospace;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-  /* NAV */
-  nav {
-    background: var(--blue);
-    height: var(--nav-h);
-    display: flex; align-items: center;
-    padding: 0 20px;
-    position: sticky; top: 0; z-index: 999;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-  }
-  .nav-brand { color: #fff; font-size: 18px; font-weight: 800; letter-spacing: 1px; margin-right: 16px; white-space: nowrap; }
-  .nav-label { color: #93c5fd; font-size: 10px; font-weight: 600; letter-spacing: 1px; margin-right: 32px; white-space: nowrap; }
-  .nav-links { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
-  .nav-links a {
-    color: #cbd5e1; text-decoration: none; font-size: 11px; font-weight: 600;
-    letter-spacing: 0.5px; padding: 6px 12px; border-radius: 6px;
-    white-space: nowrap; text-align: center; line-height: 1.3;
-    transition: background 0.15s, color 0.15s;
-  }
-  .nav-links a:hover { background: rgba(255,255,255,0.12); color: #fff; }
-  .nav-links a.active { background: rgba(255,255,255,0.15); color: #fff; border-bottom: 2px solid var(--accent); }
-  .nav-links a .nav-sub { display: block; font-size: 9px; color: #93c5fd; letter-spacing: 0.8px; font-weight: 400; }
-  .nav-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-  .live-badge { background: #16a34a; color: #fff; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 12px; letter-spacing: 0.5px; }
-
-  /* PAGE HEADER */
-  .page-header {
-    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-mid) 60%, #1e4080 100%);
-    color: #fff; padding: 28px 32px 24px; border-bottom: 3px solid var(--accent);
-  }
-  .page-header h1 { font-size: 22px; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px; }
-  .page-header p { font-size: 12px; color: #93c5fd; letter-spacing: 0.8px; }
-  .header-meta { display: flex; gap: 16px; margin-top: 12px; }
-  .header-chip { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #e2e8f0; font-size: 10px; font-weight: 600; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.5px; }
-  .header-chip.red { background: rgba(220,38,38,0.25); border-color: rgba(220,38,38,0.5); color: #fca5a5; }
-
-  /* CONTENT */
-  .content { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
-
-  /* SECTION CARD */
-  .section-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    overflow: hidden;
-  }
-  .section-header {
-    background: linear-gradient(90deg, var(--blue) 0%, var(--blue-mid) 100%);
-    color: #fff; padding: 12px 20px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .section-num {
-    background: var(--accent); color: #7c2d12;
-    font-size: 11px; font-weight: 800; width: 24px; height: 24px;
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  }
-  .section-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
-  .section-body { padding: 20px; }
-
-  /* GRID */
-  .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .form-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
-  .form-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
-  .col-span-2 { grid-column: span 2; }
-  .col-span-3 { grid-column: span 3; }
-  .col-span-4 { grid-column: span 4; }
-
-  /* FIELD */
-  .field { display: flex; flex-direction: column; gap: 5px; }
-  .field label {
-    font-size: 10px; font-weight: 700; color: var(--muted);
-    letter-spacing: 0.6px; text-transform: uppercase;
-    display: flex; align-items: center; gap: 4px;
-  }
-  .field label .req { color: var(--red); font-size: 12px; }
-  .field label .col-num { color: #93c5fd; font-weight: 600; font-size: 9px; }
-  .field input, .field select, .field textarea {
-    border: 1px solid var(--border); border-radius: 7px;
-    padding: 9px 12px; font-size: 13px; color: var(--text);
-    background: #f8fafc; transition: border 0.15s, box-shadow 0.15s;
-    width: 100%; font-family: inherit;
-  }
-  .field input:focus, .field select:focus, .field textarea:focus {
-    outline: none; border-color: var(--blue-light);
-    box-shadow: 0 0 0 3px rgba(45,108,192,0.12);
-    background: #fff;
-  }
-  .field input.auto-fill { background: #f0f9ff; border-color: #bae6fd; color: #0369a1; font-weight: 600; }
-  .field textarea { resize: vertical; min-height: 70px; }
-  .field .hint { font-size: 10px; color: #94a3b8; font-style: italic; }
-
-  /* RADIO GROUP */
-  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
-  .radio-btn {
-    display: flex; align-items: center; gap: 6px;
-    cursor: pointer; padding: 7px 14px; border-radius: 20px;
-    border: 1.5px solid var(--border); font-size: 12px; font-weight: 600;
-    transition: all 0.15s; background: #f8fafc; color: var(--muted);
-  }
-  .radio-btn input[type=radio] { display: none; }
-  .radio-btn.selected { border-color: var(--blue-light); background: rgba(45,108,192,0.08); color: var(--blue); }
-  .radio-btn.red.selected { border-color: var(--red); background: rgba(220,38,38,0.08); color: var(--red); }
-  .radio-btn.green.selected { border-color: var(--green); background: rgba(22,163,74,0.08); color: var(--green); }
-  .radio-btn.amber.selected { border-color: #d97706; background: rgba(217,119,6,0.08); color: #d97706; }
-
-  /* ACTION BAR */
-  .action-bar {
-    display: flex; gap: 12px; align-items: center;
-    padding: 20px; background: var(--card);
-    border: 1px solid var(--border); border-radius: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  }
-  .btn {
-    padding: 10px 22px; border-radius: 8px; font-size: 12px; font-weight: 700;
-    letter-spacing: 0.5px; border: none; cursor: pointer;
-    transition: all 0.15s; display: flex; align-items: center; gap: 6px;
-  }
-  .btn-primary { background: var(--blue); color: #fff; }
-  .btn-primary:hover { background: var(--blue-mid); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,58,107,0.3); }
-  .btn-success { background: var(--green); color: #fff; }
-  .btn-success:hover { background: #15803d; transform: translateY(-1px); }
-  .btn-danger { background: var(--red); color: #fff; }
-  .btn-danger:hover { background: #b91c1c; }
-  .btn-outline { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
-  .btn-outline:hover { border-color: var(--blue-light); color: var(--blue); background: rgba(45,108,192,0.05); }
-  .btn-amber { background: var(--accent); color: #7c2d12; }
-  .btn-amber:hover { background: #d97706; }
-
-  /* TOAST */
-  #toast {
-    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-    background: var(--green); color: #fff; padding: 14px 22px;
-    border-radius: 10px; font-size: 13px; font-weight: 600;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2); transform: translateY(80px);
-    transition: transform 0.3s ease; display: flex; align-items: center; gap: 8px;
-  }
-  #toast.show { transform: translateY(0); }
-
-  /* LOG TABLE */
-  .log-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-  .log-header { background: var(--blue); color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
-  .log-header-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
-  .log-count { background: var(--accent); color: #7c2d12; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 10px; }
-  .log-table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
-  th {
-    background: #f1f5f9; color: var(--muted); font-weight: 700; letter-spacing: 0.5px;
-    font-size: 10px; text-transform: uppercase; padding: 10px 12px;
-    border-bottom: 2px solid var(--border); text-align: left; white-space: nowrap;
-  }
-  td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: var(--text); vertical-align: top; }
-  tr:hover td { background: #f8fafc; }
-  .status-badge {
-    display: inline-block; padding: 2px 10px; border-radius: 10px;
-    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
-  }
-  .badge-red { background: #fee2e2; color: #991b1b; }
-  .badge-green { background: #dcfce7; color: #166534; }
-  .badge-amber { background: #fef3c7; color: #92400e; }
-  .badge-blue { background: #dbeafe; color: #1e40af; }
-  .del-btn { background: none; border: 1px solid #fecaca; color: #dc2626; border-radius: 5px; padding: 3px 8px; cursor: pointer; font-size: 10px; }
-  .del-btn:hover { background: #fee2e2; }
-  .empty-log { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; }
-
-  /* EXPORT BAR */
-  .export-bar { display: flex; gap: 8px; padding: 12px 20px; background: #f8fafc; border-top: 1px solid var(--border); }
-
-  /* DIVIDER */
-  .divider { height: 1px; background: var(--border); margin: 16px 0; }
-
-  @media (max-width: 900px) {
-    .form-grid { grid-template-columns: repeat(2, 1fr); }
-    .form-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
-    .col-span-3, .col-span-4 { grid-column: span 2; }
-    .content { padding: 16px; }
-  }
-  @media (max-width: 600px) {
-    .form-grid { grid-template-columns: 1fr; }
-    .col-span-2, .col-span-3, .col-span-4 { grid-column: span 1; }
-  }
+  body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px}
+  /* ── TOP BAR ── */
+  .topbar{background:linear-gradient(90deg,#1a3a6b,#2d6cc0);color:#fff;padding:14px 28px;display:flex;align-items:center;gap:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  .topbar h1{font-size:18px;font-weight:800;letter-spacing:1px}
+  .topbar .sub{font-size:11px;opacity:.85;letter-spacing:.5px}
+  .topbar .right{margin-left:auto;display:flex;gap:10px;align-items:center}
+  .live-chip{background:rgba(16,185,129,.2);color:#a7f3d0;border:1px solid rgba(16,185,129,.5);padding:4px 12px;border-radius:14px;font-size:10px;letter-spacing:1px;font-weight:700}
+  .live-chip::before{content:'●';margin-right:4px;color:#10b981}
+  #fbSyncChip{background:rgba(148,163,184,.2);color:#cbd5e1;font-size:10px;padding:3px 10px;border-radius:10px;letter-spacing:1px;font-weight:700;transition:.25s}
+  #fbSyncChip.live{background:rgba(0,200,255,.2);color:#bae6fd;box-shadow:0 0 0 0 rgba(0,200,255,.5)}
+  #fbSyncChip.flash{animation:flash .6s ease-out}
+  @keyframes flash{0%{box-shadow:0 0 0 0 rgba(0,200,255,.7)}100%{box-shadow:0 0 0 12px rgba(0,200,255,0)}}
+  /* ── TAB STRIP ── */
+  .tabs{background:#fff;display:flex;padding:0 28px;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:50;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  .tab{padding:14px 22px;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:.2s;display:flex;align-items:center;gap:8px;text-transform:uppercase}
+  .tab:hover{color:var(--blue);background:#f8fafc}
+  .tab.active{color:var(--blue);border-bottom-color:var(--blue);background:#f8fafc}
+  .tab .num{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+  .tab:not(.active) .num{background:#cbd5e1;color:#fff}
+  .tab .badge{background:#dc2626;color:#fff;font-size:9px;padding:1px 7px;border-radius:8px;font-weight:800;letter-spacing:.5px}
+  /* ── MAIN AREA ── */
+  .wrap{max-width:1320px;margin:24px auto;padding:0 24px}
+  .pane{display:none}
+  .pane.active{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  /* ── FORM CARD ── */
+  .section{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:18px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+  .section-hd{background:var(--blue);color:#fff;padding:12px 22px;display:flex;align-items:center;gap:12px}
+  .section-hd .step{background:var(--accent);color:#7c2d12;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+  .section-hd .title{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+  .section-bd{padding:22px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 18px}
+  .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+  .field{display:flex;flex-direction:column}
+  .field.col-span-2{grid-column:span 2}
+  .field.col-span-3{grid-column:span 3}
+  .field label{font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+  .field label .num{color:#94a3b8;font-weight:500;font-size:10px}
+  .field label .req{color:var(--red);font-weight:800}
+  .field input, .field select, .field textarea{padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit;color:var(--text);background:#f8fafc;transition:.15s;width:100%}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--blue-mid);background:#fff;box-shadow:0 0 0 3px rgba(45,108,192,.1)}
+  .field input.auto-fill, .field select.auto-fill{background:linear-gradient(90deg,#f0f9ff,#ecfeff);border-color:#06b6d4;color:#155e75;font-weight:600}
+  .field textarea{resize:vertical;min-height:60px;font-family:inherit}
+  /* ── RADIO/PILL BUTTONS ── */
+  .pill-group{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{padding:8px 14px;border-radius:8px;border:1.5px solid var(--border);background:#f8fafc;color:var(--muted);font-size:11.5px;font-weight:700;letter-spacing:.4px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+  .pill:hover{border-color:var(--blue-light);color:var(--blue)}
+  .pill.selected{background:rgba(45,108,192,.1);color:var(--blue);border-color:var(--blue-mid)}
+  .pill.red.selected{background:rgba(220,38,38,.1);color:var(--red);border-color:var(--red)}
+  .pill.green.selected{background:rgba(22,163,74,.1);color:var(--green);border-color:var(--green)}
+  .pill.amber.selected{background:rgba(217,119,6,.1);color:var(--amber);border-color:var(--amber)}
+  /* ── PTR CHECKBOX CARD ── */
+  .ptr-card{background:linear-gradient(135deg,#fef3c7,#fef9c3);border:1.5px solid #fbbf24;border-radius:10px;padding:14px;margin-top:6px}
+  .ptr-card-hd{font-size:10px;font-weight:800;color:#92400e;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase}
+  .ptr-list{display:flex;flex-wrap:wrap;gap:10px}
+  .ptr-chip{background:#fff;border:1.5px solid #f59e0b;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:700;color:#92400e;transition:.15s}
+  .ptr-chip:hover{background:#fef3c7;transform:translateY(-1px)}
+  .ptr-chip.selected{background:#f59e0b;color:#fff;border-color:#92400e}
+  .ptr-chip input{margin:0}
+  .ptr-total{margin-top:10px;font-size:11px;color:#78350f;font-weight:700;text-align:right}
+  /* ── ALTERNATES PANEL ── */
+  .alt-panel{margin-top:14px;background:#fff;border:2px solid #fbbf24;border-radius:10px;padding:14px 18px}
+  .alt-panel h3{font-size:10px;letter-spacing:1.4px;color:#b45309;font-weight:800;margin-bottom:10px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+  .alt-row{display:grid;grid-template-columns:24px 1fr 80px 80px 70px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:11.5px}
+  .alt-row:last-child{border:none}
+  .alt-num{background:#f1f5f9;color:#475569;text-align:center;border-radius:4px;font-weight:800;padding:3px 0;font-size:10px}
+  .alt-name{color:#1e293b;font-weight:600;word-break:break-word}
+  .alt-status{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:9px;font-size:9.5px;letter-spacing:.5px;font-weight:800;justify-content:center;text-transform:uppercase}
+  .alt-status.live{background:#d1fae5;color:#047857}
+  .alt-status.breakdown{background:#fee2e2;color:#b91c1c}
+  .alt-status.idle{background:#f1f5f9;color:#475569}
+  .alt-status::before{content:'●'}
+  .alt-tag{font-size:8.5px;padding:2px 6px;border-radius:4px;background:#dbeafe;color:#1d4ed8;font-weight:800;letter-spacing:.4px;text-align:center}
+  .alt-tag.regular{background:#d1fae5;color:#047857}
+  .alt-action{background:var(--blue-mid);color:#fff;border:none;padding:5px 8px;border-radius:5px;font-size:9px;font-weight:800;cursor:pointer;letter-spacing:.4px}
+  .alt-action:hover{background:var(--blue)}
+  .alt-action:disabled{background:#cbd5e1;cursor:not-allowed}
+  /* ── ACTION BAR ── */
+  .actions{display:flex;gap:12px;align-items:center;padding:16px 22px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+  .btn{padding:10px 22px;border-radius:8px;font-size:11.5px;font-weight:800;letter-spacing:1px;border:none;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase}
+  .btn-primary{background:var(--blue);color:#fff}
+  .btn-primary:hover{background:var(--blue-mid);transform:translateY(-1px);box-shadow:0 4px 10px rgba(26,58,107,.3)}
+  .btn-success{background:var(--green);color:#fff}
+  .btn-success:hover{background:#15803d;transform:translateY(-1px)}
+  .btn-danger{background:var(--red);color:#fff}
+  .btn-amber{background:var(--accent);color:#7c2d12}
+  .btn-outline{background:transparent;color:var(--muted);border:1.5px solid var(--border)}
+  .btn-outline:hover{border-color:var(--blue-light);color:var(--blue);background:rgba(45,108,192,.05)}
+  /* ── TOAST ── */
+  #toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--green);color:#fff;padding:13px 22px;border-radius:10px;font-size:12px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.2);transform:translateY(80px);transition:transform .3s ease;display:flex;align-items:center;gap:8px;max-width:420px}
+  #toast.show{transform:translateY(0)}
+  #toast.err{background:var(--red)}
+  /* ── TABLES (Open Breakdowns, Historical) ── */
+  .data-section{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.04);margin-bottom:18px}
+  .data-section-hd{background:var(--blue);color:#fff;padding:12px 22px;display:flex;align-items:center;justify-content:space-between}
+  .data-section-hd .title{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+  .data-section-hd .count-pill{background:var(--accent);color:#7c2d12;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:800;letter-spacing:.5px}
+  table{width:100%;border-collapse:collapse;font-size:11.5px}
+  th{background:#f1f5f9;color:var(--muted);font-weight:800;letter-spacing:.4px;font-size:9.5px;padding:10px 12px;border-bottom:2px solid var(--border);text-align:left;text-transform:uppercase;white-space:nowrap}
+  td{padding:10px 12px;border-bottom:1px solid #f1f5f9;color:var(--text);vertical-align:top}
+  tr:hover td{background:#f8fafc}
+  .status-pill{display:inline-block;padding:2px 10px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+  .status-pill.open{background:#fee2e2;color:#b91c1c}
+  .status-pill.closed{background:#d1fae5;color:#047857}
+  .row-btn{background:transparent;border:1.5px solid var(--border);color:var(--muted);padding:4px 9px;border-radius:6px;font-size:9.5px;font-weight:700;cursor:pointer;letter-spacing:.3px}
+  .row-btn:hover{border-color:var(--blue-mid);color:var(--blue)}
+  .row-btn.success{border-color:var(--green);color:var(--green)}
+  .row-btn.success:hover{background:var(--green);color:#fff}
+  /* ── HISTORICAL FILTERS ── */
+  .filt-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--border)}
+  .filt-row .filt-group{display:flex;gap:5px;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;background:#fff}
+  .filt-row .filt-btn{padding:7px 14px;font-size:10.5px;font-weight:700;letter-spacing:.5px;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:.15s;text-transform:uppercase}
+  .filt-row .filt-btn:hover{color:var(--blue)}
+  .filt-row .filt-btn.selected{background:var(--blue);color:#fff}
+  .filt-row select, .filt-row input{padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;background:#fff}
+  .filt-row label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+  /* ── HISTORICAL STATS CARDS ── */
+  .hist-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:16px 20px;background:linear-gradient(135deg,#f0f9ff,#fafaf9);border-bottom:1px solid var(--border)}
+  .hist-stat{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center}
+  .hist-stat-val{font-size:22px;font-weight:800;color:var(--blue);font-variant-numeric:tabular-nums}
+  .hist-stat-lbl{font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:4px;font-weight:700;text-transform:uppercase}
 </style>
-</head>
-<body>
-<!-- ═══════════════════════════════════════════════════════════════════
-     TGSPDCL — BREAKDOWN ENTRY ENHANCEMENT PATCH (03-Jun-2026)
-     Paste this entire block just BEFORE </body> in Breakdown_Entry.html.
-     Adds, without breaking existing functionality:
-       1. Fetches master data (PTRs + topology) from Firebase on load
-          → so future changes via Firebase Console flow into the form
-       2. Replaces hardcoded SOURCES_MAP with live Firebase topology data
-       3. Shows an "ALTERNATE SOURCES AVAILABLE" panel with live status
-          (live / breakdown / idle) per alternate
-       4. Shows PTR info (count + total MVA) for the selected SS
-       5. On submit, writes the breakdown to Firebase
-          /breakdowns/<id> AND flips /feeders/<safekey>/status
-       6. Subscribes to /feeders/* SSE so the alternates panel updates
-          in real time as other operators flip statuses
-       7. Mark-Restored button on each log row
-     ═══════════════════════════════════════════════════════════════════ -->
-<style>
-  /* ALTERNATE SOURCES PANEL */
-  .alt-panel {
-    margin: 18px 0;
-    background: #fff;
-    border: 2px solid #fbbf24;
-    border-radius: 12px;
-    padding: 18px 20px;
-    box-shadow: 0 2px 8px rgba(251,191,36,.15);
-    display: none;
-  }
-  .alt-panel.active { display: block; }
-  .alt-panel h3 {
-    font-size: 11px; letter-spacing: 1.5px; color: #b45309;
-    margin-bottom: 14px; text-transform: uppercase; font-weight: 800;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .alt-panel h3 .count-pill {
-    background: #fbbf24; color: #7c2d12;
-    font-size: 10px; padding: 2px 9px; border-radius: 10px; font-weight: 800;
-  }
-  .alt-row {
-    display: grid; grid-template-columns: 28px 1fr 90px 60px 90px;
-    gap: 10px; align-items: center; padding: 8px 0;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 12px;
-  }
-  .alt-row:last-child { border: none; }
-  .alt-num {
-    background: #f1f5f9; color: #475569; text-align: center;
-    border-radius: 4px; font-weight: 700; padding: 4px 0; font-size: 10px;
-  }
-  .alt-name { color: #1e293b; font-weight: 600; word-break: break-word; }
-  .alt-status {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 9px; border-radius: 10px;
-    font-size: 10px; letter-spacing: .8px; font-weight: 700;
-    justify-content: center; text-transform: uppercase;
-  }
-  .alt-status.live      { background: #d1fae5; color: #047857; }
-  .alt-status.breakdown { background: #fee2e2; color: #b91c1c; }
-  .alt-status.idle      { background: #f1f5f9; color: #475569; }
-  .alt-status::before { content: '●'; }
-  .alt-tag {
-    font-size: 9px; padding: 2px 6px; border-radius: 4px;
-    background: #dbeafe; color: #1d4ed8; font-weight: 700;
-    letter-spacing: .5px; text-align: center;
-  }
-  .alt-tag.regular { background: #d1fae5; color: #047857; }
-  .alt-action {
-    background: #1d4ed8; color: #fff; border: none;
-    padding: 5px 10px; border-radius: 5px;
-    font-size: 9.5px; font-weight: 700; cursor: pointer;
-    letter-spacing: .5px;
-  }
-  .alt-action:hover { background: #1e3a8a; }
-  .alt-action:disabled { background: #cbd5e1; cursor: not-allowed; }
-  .alt-empty {
-    text-align: center; padding: 18px;
-    color: #94a3b8; font-style: italic; font-size: 12px;
-  }
+</head><body>
 
-  /* PTR INFO STRIP */
-  .ptr-strip {
-    display: none;
-    margin-top: 10px;
-    padding: 10px 14px;
-    background: linear-gradient(90deg, #f0f9ff, #ecfeff);
-    border: 1px solid #06b6d4;
-    border-radius: 8px;
-    font-size: 11px;
-    color: #155e75;
-    letter-spacing: .3px;
-  }
-  .ptr-strip.active { display: block; }
-  .ptr-strip strong { color: #0891b2; font-weight: 800; }
-  .ptr-strip .sep { color: #94a3b8; margin: 0 8px; }
-
-  /* SYNC INDICATOR */
-  #fbSyncChip {
-    display: inline-block;
-    background: rgba(148,163,184,.2);
-    color: #64748b;
-    font-size: 10px; padding: 3px 10px; border-radius: 10px;
-    margin-left: 10px; letter-spacing: 1px; font-weight: 700;
-    transition: .25s;
-  }
-  #fbSyncChip.live {
-    background: rgba(16,185,129,.15); color: #047857;
-  }
-  #fbSyncChip.flash {
-    background: #00c8ff; color: #fff;
-  }
-</style>
-
-<script>
-(function(){
-  // ───────────────────────────────────────────────────────────────
-  // CONFIG
-  // ───────────────────────────────────────────────────────────────
-  const FIREBASE_URL = "https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app";
-
-  function safeFbKey(name){
-    return String(name||'').toUpperCase()
-      .replace(/[.#$\[\]\/]/g,'_').replace(/\s+/g,'_')
-      .replace(/[^A-Z0-9_-]/g,'').substring(0,180) || 'EMPTY';
-  }
-  const nowISO = () => new Date().toISOString();
-  const genId  = () => 'BD_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
-
-  // Local cache populated from Firebase
-  let MASTER_PTRS       = {};   // safekey → PTR record
-  let MASTER_SS_TOPO    = {};   // safekey → {ssName, sourceFeeders:[]}
-  let FEEDER_STATUS_NOW = {};   // safekey → "live"|"breakdown"|"idle"
-
-  // ───────────────────────────────────────────────────────────────
-  // BOOTSTRAP — fetch master data once on page load
-  // ───────────────────────────────────────────────────────────────
-  async function bootstrapMasterData(){
-    setSyncChip('loading', 'LOADING MASTER…');
-    try {
-      // Three parallel fetches
-      const [ptrs, topo, statuses] = await Promise.all([
-        fetch(`${FIREBASE_URL}/masterData/ptrs.json`).then(r => r.ok ? r.json() : null),
-        fetch(`${FIREBASE_URL}/masterData/ssTopology.json`).then(r => r.ok ? r.json() : null),
-        fetch(`${FIREBASE_URL}/feeders.json`).then(r => r.ok ? r.json() : null),
-      ]);
-      MASTER_PTRS    = ptrs     || {};
-      MASTER_SS_TOPO = topo     || {};
-      // Rebuild FEEDER_STATUS_NOW from snapshot
-      if (statuses && typeof statuses === 'object'){
-        Object.keys(statuses).forEach(k => {
-          const s = statuses[k]?.status;
-          if (s) FEEDER_STATUS_NOW[k] = s;
-        });
-      }
-      console.log(`[BD-SYNC] Master loaded — ${Object.keys(MASTER_PTRS).length} PTR records, ${Object.keys(MASTER_SS_TOPO).length} SS topology, ${Object.keys(FEEDER_STATUS_NOW).length} active statuses`);
-      setSyncChip('live', '☁ SYNCED');
-      // Start live SSE
-      subscribeFeederStatusLive();
-    } catch (err) {
-      console.error('[BD-SYNC] Master fetch failed:', err);
-      setSyncChip('error', '⚠ NO SYNC');
-    }
-  }
-
-  // ───────────────────────────────────────────────────────────────
-  // LIVE STATUS SUBSCRIPTION (SSE) — flips alternates panel in real time
-  // ───────────────────────────────────────────────────────────────
-  let _sse = null;
-  function subscribeFeederStatusLive(){
-    if (!('EventSource' in window)) return;
-    if (_sse) { try { _sse.close(); } catch(e){} }
-    try {
-      const es = new EventSource(`${FIREBASE_URL}/feeders.json`);
-      const onEvent = (evt) => {
-        try {
-          const payload = JSON.parse(evt.data);
-          if (!payload || payload.data === null) return;
-          const parts = (payload.path || '/').split('/').filter(Boolean);
-          if (payload.path === '/' && typeof payload.data === 'object'){
-            // Initial snapshot — rebuild
-            FEEDER_STATUS_NOW = {};
-            Object.keys(payload.data).forEach(k => {
-              const s = payload.data[k]?.status;
-              if (s) FEEDER_STATUS_NOW[k] = s;
-            });
-          } else if (parts.length === 1 && typeof payload.data === 'object'){
-            FEEDER_STATUS_NOW[parts[0]] = payload.data.status || 'live';
-          } else if (parts.length === 2 && parts[1] === 'status'){
-            FEEDER_STATUS_NOW[parts[0]] = payload.data || 'live';
-          }
-          // Refresh visible panel
-          refreshAlternatesPanel();
-          flashSyncChip();
-        } catch(e){ console.warn('[BD-SSE]', e); }
-      };
-      es.addEventListener('put', onEvent);
-      es.addEventListener('patch', onEvent);
-      es.addEventListener('error', () => {
-        try { es.close(); } catch(_){}
-        _sse = null;
-        setSyncChip('error', '⟳ RECONNECT…');
-        setTimeout(subscribeFeederStatusLive, 5000);
-      });
-      es.addEventListener('open', () => setSyncChip('live', '☁ SYNCED'));
-      _sse = es;
-    } catch (err){
-      console.warn('[BD-SSE] subscribe failed:', err);
-    }
-  }
-
-  function setSyncChip(mode, txt){
-    const el = document.getElementById('fbSyncChip');
-    if (!el) return;
-    el.className = mode === 'live' ? 'live' : '';
-    el.textContent = txt;
-  }
-  function flashSyncChip(){
-    const el = document.getElementById('fbSyncChip');
-    if (!el) return;
-    el.classList.add('flash');
-    setTimeout(() => el.classList.remove('flash'), 500);
-  }
-
-  // ───────────────────────────────────────────────────────────────
-  // CURRENT SELECTED SS — track in module
-  // ───────────────────────────────────────────────────────────────
-  let _currentSS = null;   // { ssName, ssCode, ptrInfo, sources:[] }
-
-  function getCurrentSelectedSS(){
-    // Read from the ss_name dropdown — value is the ss_code
-    const sel = document.getElementById('ss_name');
-    if (!sel || !sel.value) return null;
-    const code = sel.value;
-    // Find display name from SS_DATA (defined in the host page)
-    const ss = (window.SS_DATA || []).find(s => s.ss_code === code);
-    if (!ss) return null;
-    return { ssCode: code, ssName: ss.ss_name };
-  }
-
-  // Best-effort match: look up topology by SS name (Firebase keys are
-  // safeFbKey of full SS name). Try several name variants because
-  // ssTopology was indexed by GIS-mapping name which may differ from
-  // the SS_DATA dropdown name.
-  function findTopologyForSS(ssName){
-    if (!ssName) return null;
-    const candidates = [
-      ssName,
-      ssName.replace(/^33\/11\s*KV\s+/i, '33/11KV '),
-      ssName.replace(/^33\/11\s*KV\s+/i, ''),
-      ssName.replace(/\s+SS$/i, '')
-    ];
-    for (const c of candidates){
-      const k = safeFbKey(c);
-      if (MASTER_SS_TOPO[k]) return MASTER_SS_TOPO[k];
-    }
-    // Fuzzy fallback — match by distinctive word
-    const target = ssName.toUpperCase().replace(/[^A-Z0-9 ]/g,'').split(/\s+/)
-      .filter(w => w.length >= 5 && !['NAGAR','HILLS','COLONY','PALLY','PURAM'].includes(w));
-    if (!target.length) return null;
-    for (const k of Object.keys(MASTER_SS_TOPO)){
-      const rec = MASTER_SS_TOPO[k];
-      const nameUp = (rec.ssName || '').toUpperCase();
-      if (target.every(t => nameUp.includes(t))) return rec;
-    }
-    return null;
-  }
-
-  function findPTRForSS(ssCode, ssName){
-    // Try by SS code first (most reliable)
-    if (ssCode){
-      const k = safeFbKey(ssCode);
-      if (MASTER_PTRS[k]) return MASTER_PTRS[k];
-    }
-    // Then by name
-    if (ssName){
-      const k = safeFbKey(ssName);
-      if (MASTER_PTRS[k]) return MASTER_PTRS[k];
-      // Scan
-      const nUp = ssName.toUpperCase();
-      for (const key of Object.keys(MASTER_PTRS)){
-        const r = MASTER_PTRS[key];
-        if ((r.ssName || '').toUpperCase() === nUp) return r;
-        if ((r.ssCode || '') === ssCode) return r;
-      }
-    }
-    return null;
-  }
-
-  // ───────────────────────────────────────────────────────────────
-  // ALTERNATES PANEL — render
-  // ───────────────────────────────────────────────────────────────
-  function buildAlternatesPanel(){
-    // Insert panel into DOM if not present
-    if (document.getElementById('altPanel')) return;
-    const panel = document.createElement('div');
-    panel.id = 'altPanel';
-    panel.className = 'alt-panel';
-    panel.innerHTML = `
-      <h3>
-        🔀 Source Feeders & Alternate Routing
-        <span class="count-pill" id="altCntPill">0</span>
-      </h3>
-      <div id="ptrStrip" class="ptr-strip"></div>
-      <div id="altList"></div>
-    `;
-    // Place after section 1 (Substation Identification card)
-    const sec1 = document.querySelector('.form-card, .section, .card');
-    if (sec1 && sec1.parentNode) sec1.parentNode.insertBefore(panel, sec1.nextSibling);
-    else document.body.insertBefore(panel, document.body.firstChild);
-  }
-
-  function refreshAlternatesPanel(){
-    const panel = document.getElementById('altPanel');
-    if (!panel) return;
-    const sel = getCurrentSelectedSS();
-    if (!sel){
-      panel.classList.remove('active');
-      return;
-    }
-    const topo = findTopologyForSS(sel.ssName);
-    const ptr  = findPTRForSS(sel.ssCode, sel.ssName);
-
-    // PTR strip
-    const ptrStrip = document.getElementById('ptrStrip');
-    if (ptr && ptrStrip){
-      ptrStrip.classList.add('active');
-      const caps = (ptr.ptrCapacities || []).map(c => c + ' MVA').join(' + ') || '—';
-      ptrStrip.innerHTML = `
-        🔌 <strong>${ptr.ptrCount || 0} PTR(s)</strong>
-        <span class="sep">•</span>
-        Capacities: <strong>${caps}</strong>
-        <span class="sep">•</span>
-        Total: <strong>${ptr.totalCapacityMVA || 0} MVA</strong>
-        <span class="sep">•</span>
-        Op: <strong>${ptr.opCircle || '—'} → ${ptr.opSubDiv || '—'}</strong>
-      `;
-    } else if (ptrStrip){
-      ptrStrip.classList.remove('active');
-      ptrStrip.innerHTML = '';
-    }
-
-    // Alternates list
-    const list = document.getElementById('altList');
-    const cntPill = document.getElementById('altCntPill');
-    if (!list) return;
-
-    // Determine "regular" feeder = the one currently picked in feeder_33kv
-    const regularField = document.getElementById('feeder_33kv');
-    const regularName = (regularField && regularField.value || '').trim();
-
-    // Build alternate list from topology
-    let sources = (topo && topo.sourceFeeders) || [];
-    if (sources.length === 0){
-      panel.classList.add('active');
-      list.innerHTML = `<div class="alt-empty">No source-feeder topology found for ${sel.ssName}.<br>Upload GIS data or add manually in Firebase /masterData/ssTopology/.</div>`;
-      cntPill.textContent = '0';
-      return;
-    }
-
-    // Sort: regular first, then by status (live → idle → breakdown)
-    const statusOrder = { live:0, idle:1, breakdown:2 };
-    sources = [...sources].sort((a,b) => {
-      const aReg = regularName && a.feederName.toUpperCase().includes(regularName.slice(0,20).toUpperCase()) ? 0 : 1;
-      const bReg = regularName && b.feederName.toUpperCase().includes(regularName.slice(0,20).toUpperCase()) ? 0 : 1;
-      if (aReg !== bReg) return aReg - bReg;
-      const aS = FEEDER_STATUS_NOW[safeFbKey(a.feederName)] || 'live';
-      const bS = FEEDER_STATUS_NOW[safeFbKey(b.feederName)] || 'live';
-      return (statusOrder[aS]||1) - (statusOrder[bS]||1);
-    });
-
-    cntPill.textContent = sources.length;
-    panel.classList.add('active');
-
-    list.innerHTML = sources.map((s, i) => {
-      const sk = safeFbKey(s.feederName);
-      const status = FEEDER_STATUS_NOW[sk] || 'live';
-      const isReg = regularName && s.feederName.toUpperCase().includes(regularName.slice(0,15).toUpperCase());
-      const tag = isReg ? '<span class="alt-tag regular">REGULAR</span>' : '<span class="alt-tag">ALT</span>';
-      const canSwitch = status === 'live' && !isReg;
-      return `
-        <div class="alt-row">
-          <span class="alt-num">#${i+1}</span>
-          <span class="alt-name" title="EHT: ${s.ehtSource||'unknown'} • Code: ${s.feederCode||'—'}">
-            ${s.feederName}
-          </span>
-          ${tag}
-          <span class="alt-status ${status}">${status}</span>
-          <button class="alt-action"
-            ${canSwitch ? '' : 'disabled'}
-            onclick="window.bdSwitchToAlternate('${s.feederName.replace(/'/g,"\\'")}')">
-            ${canSwitch ? 'USE THIS' : (isReg ? 'CURRENT' : '–')}
-          </button>
-        </div>`;
-    }).join('');
-  }
-
-  // Click handler for "USE THIS" — copies the alternate into the alt_source dropdown
-  window.bdSwitchToAlternate = function(feederName){
-    const alt = document.getElementById('alt_source');
-    if (alt){
-      // Find or add option
-      let matched = false;
-      for (let i = 0; i < alt.options.length; i++){
-        if (alt.options[i].text === feederName || alt.options[i].value === feederName){
-          alt.selectedIndex = i; matched = true; break;
-        }
-      }
-      if (!matched){
-        const opt = document.createElement('option');
-        opt.value = feederName; opt.textContent = feederName; opt.selected = true;
-        alt.appendChild(opt);
-      }
-    }
-    if (typeof window.showToast === 'function') window.showToast(`Alternate selected: ${feederName.substring(0,40)}…`);
-  };
-
-  // ───────────────────────────────────────────────────────────────
-  // FIREBASE WRITE on form submit
-  // ───────────────────────────────────────────────────────────────
-  async function writeBreakdownToFirebase(){
-    const sel = getCurrentSelectedSS();
-    if (!sel){ console.warn('[BD-WRITE] No SS selected'); return null; }
-    const feederName = (document.getElementById('feeder_33kv')?.value || '').trim();
-    if (!feederName){ console.warn('[BD-WRITE] No feeder name'); return null; }
-
-    const id = genId();
-    const now = nowISO();
-    const fbk = safeFbKey(feederName);
-    const v = (id) => (document.getElementById(id)?.value || '').trim();
-    const restoration = v('restoration_time');
-    const isOpen = !restoration;
-    const newStatus = isOpen ? 'breakdown' : 'live';
-
-    // Detect agency from selected pill
-    const agencyPill = document.querySelector('#agency_group .radio-btn.selected, #agency_group .selected, .agency-btn.active');
-    // Detect outage type
-    const outagePill = document.querySelector('.outage-btn.active, .radio-btn.red.selected, .radio-btn.amber.selected, .radio-btn.green.selected');
-    // Detect nature
-    const naturePill = document.querySelector('input[name="nature"]:checked');
-
-    const payload = {
-      id,
-      feederName, feederCode: '',
-      substationName:    sel.ssName,
-      substationCode:    sel.ssCode,
-      division:          v('lines_division'),
-      sub_division:      v('sub_division'),
-      section:           v('section'),
-      ehtSource:         v('name_eht') || v('eht_substation'),
-      alternativeSource: v('alt_source'),
-      failureDateTime:   v('failure_time') || now,
-      agency:            agencyPill ? agencyPill.textContent.trim() : '',
-      outageType:        outagePill ? outagePill.textContent.trim() : 'BREAKDOWN',
-      operationType:     v('ops_type'),
-      relayIndication:   v('relay'),
-      identifiedFault:   v('identified_fault'),
-      natureOfFault:     naturePill ? naturePill.value : '',
-      weatherCondition:  v('weather'),
-      personResponsible: v('person_responsible'),
-      fpiActed:          v('fpi_location'),
-      rootCause:         v('root_cause'),
-      restorationDateTime: restoration,
-      durationMinutes:   restoration ?
-        Math.max(0, Math.round((new Date(restoration) - new Date(v('failure_time')||now))/60000)) : 0,
-      rectifiedDateTime: v('rectified_time'),
-      rectificationDetails: v('rectification_details'),
-      lcTakenFrom:       v('lc_taken_from'),
-      lcCompleted:       v('lc_completed'),
-      additionalRemarks: v('remarks'),
-      enteredBy:         '',
-      enteredAt:         now,
-      updatedAt:         now,
-      isOpen
-    };
-    try {
-      // 1. Write the breakdown record
-      await fetch(`${FIREBASE_URL}/breakdowns/${id}.json`, {
-        method: 'PUT', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-      // 2. Flip the feeder status
-      await fetch(`${FIREBASE_URL}/feeders/${fbk}.json`, {
-        method: 'PATCH', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          status: newStatus, lastUpdated: now,
-          lastBreakdownId: id, feederName
-        })
-      });
-      console.log(`[BD-WRITE] ✓ ${id} — ${feederName} → ${newStatus.toUpperCase()}`);
-      flashSyncChip();
-      return { ok: true, id, status: newStatus };
-    } catch (err){
-      console.error('[BD-WRITE] Failed:', err);
-      return { ok: false, error: err.message };
-    }
-  }
-
-  // ───────────────────────────────────────────────────────────────
-  // HOOK INTO EXISTING FORM HANDLERS
-  // ───────────────────────────────────────────────────────────────
-  function installHooks(){
-    // 1. After onSSChange, refresh alternates panel
-    if (typeof window.onSSChange === 'function'){
-      const origOnSS = window.onSSChange;
-      window.onSSChange = function(){
-        try { origOnSS.apply(this, arguments); } catch(e){ console.error(e); }
-        setTimeout(refreshAlternatesPanel, 50);   // wait for original to finish
-      };
-    }
-    // 2. After logBreakdown, also write to Firebase
-    if (typeof window.logBreakdown === 'function'){
-      const origLog = window.logBreakdown;
-      window.logBreakdown = async function(){
-        // Call original first (it does the validation + local session log)
-        let result;
-        try { result = origLog.apply(this, arguments); } catch(e){ console.error(e); }
-        // Then push to Firebase
-        const fbResult = await writeBreakdownToFirebase();
-        if (fbResult && fbResult.ok){
-          if (typeof window.showToast === 'function')
-            window.showToast(`☁ Synced to cloud — ${fbResult.id}`);
-        } else if (fbResult && !fbResult.ok){
-          alert('Could not sync to cloud: ' + (fbResult.error || 'unknown'));
-        }
-        return result;
-      };
-    }
-  }
-
-  // ───────────────────────────────────────────────────────────────
-  // SYNC CHIP — inject into header
-  // ───────────────────────────────────────────────────────────────
-  function injectSyncChip(){
-    if (document.getElementById('fbSyncChip')) return;
-    const chip = document.createElement('span');
-    chip.id = 'fbSyncChip';
-    chip.textContent = '☁ INIT…';
-    // Find a header
-    const target = document.querySelector('.live-chip, .header-title, h1, .page-title');
-    if (target && target.parentNode){
-      target.parentNode.insertBefore(chip, target.nextSibling);
-    } else {
-      // Fallback: top of body
-      chip.style.position = 'fixed';
-      chip.style.top = '12px';
-      chip.style.right = '12px';
-      chip.style.zIndex = '9999';
-      document.body.appendChild(chip);
-    }
-  }
-
-  // ───────────────────────────────────────────────────────────────
-  // INIT
-  // ───────────────────────────────────────────────────────────────
-  function init(){
-    injectSyncChip();
-    buildAlternatesPanel();
-    installHooks();
-    bootstrapMasterData();
-  }
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
-  // Expose for debugging
-  window.bdSync = {
-    refresh: refreshAlternatesPanel,
-    rebootstrap: bootstrapMasterData,
-    masterPTRs: () => MASTER_PTRS,
-    masterTopo: () => MASTER_SS_TOPO,
-    statuses: () => FEEDER_STATUS_NOW,
-    writeBreakdown: writeBreakdownToFirebase
-  };
-})();
-</script>
-
-<!-- MAIN CONTENT -->
-<div class="content" style="padding-top:16px">
-
-  <!-- SECTION 1: SS IDENTIFICATION -->
-  <div class="section-card">
-    <div class="section-header">
-      <span class="section-num">1</span>
-      <span class="section-title">SUBSTATION IDENTIFICATION</span>
-    </div>
-    <div class="section-body">
-      <div class="form-grid cols-4">
-
-        <div class="field">
-          <label>Name of Substation <span class="req">*</span> <span class="col-num">(1)</span></label>
-          <select id="ss_name" onchange="onSSChange()">
-            <option value="">— Select Substation —</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>SS Code <span class="col-num">(auto)</span></label>
-          <input type="text" id="ss_code" class="auto-fill" readonly placeholder="Auto-filled"/>
-        </div>
-
-        <div class="field">
-          <label>Operation Circle <span class="req">*</span> <span class="col-num">(2)</span></label>
-          <select id="op_circle" onchange="filterByCircle()">
-            <option value="">— Select Circle —</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>Lines Circle <span class="col-num">(3)</span></label>
-          <input type="text" id="lines_circle" class="auto-fill" readonly placeholder="Auto-filled"/>
-        </div>
-
-        <div class="field">
-          <label>Lines Division <span class="req">*</span> <span class="col-num">(4)</span></label>
-          <select id="lines_division" onchange="filterByDivision()">
-            <option value="">— Select Division —</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>Lines Sub-Division <span class="req">*</span> <span class="col-num">(5)</span></label>
-          <select id="sub_division" onchange="filterBySubDiv()">
-            <option value="">— Select Sub-Division —</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>Lines Section <span class="req">*</span> <span class="col-num">(6)</span></label>
-          <select id="section" onchange="filterBySection()">
-            <option value="">— Select Section —</option>
-          </select>
-        </div>
-
-      </div>
-    </div>
+<!-- ─── TOP BAR ─── -->
+<div class="topbar">
+  <h1>TGSPDCL</h1>
+  <div class="sub">NMC · 33KV FAILURE ENTRY DASHBOARD</div>
+  <div class="right">
+    <span id="fbSyncChip">☁ INIT…</span>
+    <span class="live-chip">LIVE</span>
+    <span id="nowClock" style="font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.85)"></span>
   </div>
-
-  <!-- SECTION 2: FAILURE DETAILS -->
-  <div class="section-card">
-    <div class="section-header">
-      <span class="section-num">2</span>
-      <span class="section-title">FAILURE DETAILS</span>
-    </div>
-    <div class="section-body">
-      <div class="form-grid cols-4">
-
-        <div class="field col-span-2">
-          <label>Failure Date & Time <span class="req">*</span> <span class="col-num">(7)</span></label>
-          <input type="datetime-local" id="failure_time" oninput="calcDuration()"/>
-        </div>
-
-        <div class="field col-span-2">
-          <label>Name of Source EHT Substation <span class="req">*</span> <span class="col-num">(8)</span></label>
-          <select id="eht_substation">
-            <option value="">— Select EHT Source —</option>
-            <option>132 KV GUNROCK SS</option>
-            <option>132 KV PATIGADDA SS</option>
-            <option>132 KV CHILKALGUDA SS</option>
-            <option>132 KV IDPL SS</option>
-            <option>132 KV ERRAGADDA SS</option>
-            <option>132 KV HUSSAINSAGAR SS</option>
-            <option>132 KV BALKAMPET SS</option>
-            <option>132 KV HITECH CITY SS</option>
-            <option>132 KV HYDERABAD SS</option>
-            <option>132 KV SHAMIRPET SS</option>
-            <option>132 KV RAMACHANDRAPURAM SS</option>
-            <option>132 KV FALAKNUMA SS</option>
-            <option>132 KV MALAKPET SS</option>
-            <option>132 KV ASIFNAGAR SS</option>
-            <option>132 KV GOLCONDA SS</option>
-          </select>
-        </div>
-
-        <div class="field col-span-4">
-          <label>Name of 33KV Source (Feeder) <span class="req">*</span> <span class="col-num">(9)</span></label>
-          <input type="text" id="feeder_33kv" placeholder="e.g. GUNROCK → JAMES STREET FEEDER 1"/>
-        </div>
-
-        <div class="field col-span-4">
-          <label>Agency Who Triggered Outage <span class="col-num">(10)</span></label>
-          <div class="radio-group" id="agency_group">
-            <label class="radio-btn" onclick="selectRadio('agency','TRANSCO',this)"><input type="radio" name="agency" value="TRANSCO"/>TRANSCO</label>
-            <label class="radio-btn" onclick="selectRadio('agency','33KV Substation',this)"><input type="radio" name="agency" value="33KV Substation"/>33KV Substation</label>
-            <label class="radio-btn" onclick="selectRadio('agency','Lines Section',this)"><input type="radio" name="agency" value="Lines Section"/>Lines Section</label>
-            <label class="radio-btn" onclick="selectRadio('agency','DISCOM Control Room',this)"><input type="radio" name="agency" value="DISCOM Control Room"/>DISCOM Control Room</label>
-          </div>
-        </div>
-
-        <div class="field col-span-2">
-          <label>Type of Outage <span class="req">*</span> <span class="col-num">(11)</span></label>
-          <div class="radio-group">
-            <label class="radio-btn red" onclick="selectRadio('outage_type','Breakdown',this)"><input type="radio" name="outage_type" value="Breakdown"/>🔴 Breakdown</label>
-            <label class="radio-btn green" onclick="selectRadio('outage_type','Planned',this)"><input type="radio" name="outage_type" value="Planned"/>✅ Planned</label>
-            <label class="radio-btn amber" onclick="selectRadio('outage_type','Emergency',this)"><input type="radio" name="outage_type" value="Emergency"/>⚠ Emergency</label>
-            <label class="radio-btn" onclick="selectRadio('outage_type','Tripping',this)"><input type="radio" name="outage_type" value="Tripping"/>⚡ Tripping</label>
-          </div>
-        </div>
-
-        <div class="field col-span-2">
-          <label>Types of Operations <span class="col-num">(11)</span></label>
-          <select id="ops_type">
-            <option value="">— Select —</option>
-            <option>Auto Reclosing</option>
-            <option>Manual Switching</option>
-            <option>Remote Operation (SCADA)</option>
-            <option>Local Operation</option>
-            <option>Protection Trip</option>
-            <option>Manual Trip</option>
-          </select>
-        </div>
-
-        <div class="field col-span-2">
-          <label>Relay Indication <span class="col-num">(12)</span></label>
-          <select id="relay">
-            <option value="">— None —</option>
-            <option>OC (Over Current)</option>
-            <option>EF (Earth Fault)</option>
-            <option>OC + EF</option>
-            <option>Distance Relay</option>
-            <option>Under Voltage</option>
-            <option>Over Voltage</option>
-            <option>Buchholz</option>
-            <option>No Relay</option>
-            <option>IDMT</option>
-            <option>Differential</option>
-          </select>
-        </div>
-
-        <div class="field col-span-2">
-          <label>Identified Fault <span class="col-num">(13)</span></label>
-          <select id="identified_fault">
-            <option value="">— Select —</option>
-            <option>Cable Fault</option>
-            <option>Overhead Line Fault</option>
-            <option>Equipment Failure</option>
-            <option>Tree Falling</option>
-            <option>Bird / Animal Contact</option>
-            <option>Transformer Failure</option>
-            <option>AB Switch Failure</option>
-            <option>Insulator Failure</option>
-            <option>Jumper Wire Break</option>
-            <option>HT Fuse Blown</option>
-            <option>No Fault Found</option>
-            <option>Under Investigation</option>
-          </select>
-        </div>
-
-        <div class="field col-span-2">
-          <label>Nature of Fault <span class="col-num">(14)</span></label>
-          <div class="radio-group">
-            <label class="radio-btn amber" onclick="selectRadio('fault_nature','Temporary',this)"><input type="radio" name="fault_nature" value="Temporary"/>⏱ Temporary</label>
-            <label class="radio-btn red" onclick="selectRadio('fault_nature','Permanent',this)"><input type="radio" name="fault_nature" value="Permanent"/>🔴 Permanent</label>
-          </div>
-        </div>
-
-        <div class="field col-span-2">
-          <label>Weather Condition <span class="col-num">(15)</span></label>
-          <select id="weather">
-            <option value="">— Select —</option>
-            <option>Clear</option>
-            <option>Rainy</option>
-            <option>Thunderstorm</option>
-            <option>High Wind</option>
-            <option>Foggy</option>
-            <option>Hot / Dry</option>
-            <option>Cloudy</option>
-          </select>
-        </div>
-
-        <div class="field col-span-2">
-          <label>Person Responsible for Outage <span class="col-num">(15)</span></label>
-          <input type="text" id="person_responsible" placeholder="Name / Designation"/>
-        </div>
-
-        <div class="field col-span-2">
-          <label>FPI Acted — Location & Number <span class="col-num">(24)</span></label>
-          <input type="text" id="fpi_location" placeholder="e.g. Pole No. 45, Near XYZ Junction"/>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- SECTION 3: SOURCE & ALTERNATE -->
-  <div class="section-card">
-    <div class="section-header">
-      <span class="section-num">3</span>
-      <span class="section-title">EHT & ALTERNATIVE SOURCE</span>
-    </div>
-    <div class="section-body">
-      <div class="form-grid cols-4">
-
-        <div class="field col-span-2">
-          <label>Name of EHT <span class="col-num">(18)</span></label>
-          <input type="text" id="name_eht" placeholder="e.g. 132/33 KV GUNROCK SS Feeder-2"/>
-        </div>
-
-        <div class="field col-span-2">
-          <label>Name of Alternative Source <span class="col-num">(19)</span></label>
-          <select id="alt_source">
-            <option value="">— None —</option>
-            <option>GUNROCK → JAMES STREET</option>
-            <option>GUNROCK → KIMS</option>
-            <option>PATIGADDA → JAMES STREET</option>
-            <option>CHILKALGUDA → PATIGADDA</option>
-            <option>CHILKALGUDA → CLOCK TOWER</option>
-            <option>KIMS → JAMES STREET</option>
-            <option>MONDAMARKET → CLOCKTOWER</option>
-            <option>CLOCKTOWER → NEHRUNAGAR</option>
-            <option>SEETHAPHALMANDI → MONDAMARKET</option>
-            <option>Other (specify in notes)</option>
-          </select>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- SECTION 4: RESTORATION -->
-  <div class="section-card">
-    <div class="section-header">
-      <span class="section-num">4</span>
-      <span class="section-title">RESTORATION DETAILS</span>
-    </div>
-    <div class="section-body">
-      <div class="form-grid cols-4">
-
-        <div class="field col-span-2">
-          <label>Restoration Date & Time <span class="col-num">(20)</span></label>
-          <input type="datetime-local" id="restoration_time" oninput="calcDuration()"/>
-        </div>
-
-        <div class="field">
-          <label>Duration (Auto-calculated) <span class="col-num">(21)</span></label>
-          <input type="text" id="duration_display" class="auto-fill" readonly placeholder="HH h MM m"/>
-        </div>
-
-        <div class="field">
-          <label>Duration (Minutes)</label>
-          <input type="number" id="duration_min" class="auto-fill" readonly placeholder="Auto"/>
-        </div>
-
-        <div class="field col-span-4">
-          <label>Root Cause for Identified Fault / EHT LC / Lines LC <span class="col-num">(22)</span></label>
-          <textarea id="root_cause" placeholder="Describe the root cause analysis, LC details, EHT line cause..."></textarea>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- SECTION 5: RECTIFICATION -->
-  <div class="section-card">
-    <div class="section-header">
-      <span class="section-num">5</span>
-      <span class="section-title">RECTIFICATION WORK</span>
-    </div>
-    <div class="section-body">
-      <div class="form-grid cols-4">
-
-        <div class="field col-span-2">
-          <label>Rectified Date & Time <span class="col-num">(23)</span></label>
-          <input type="datetime-local" id="rectified_time" oninput="calcLCDuration()"/>
-        </div>
-
-        <div class="field col-span-2">
-          <label>Rectification Work Details <span class="col-num">(24)</span></label>
-          <input type="text" id="rectification_details" placeholder="e.g. Cable joint replaced at 150m from SS, pole repaired"/>
-        </div>
-
-        <div class="field col-span-2">
-          <label>LC Taken From <span class="col-num">(25)</span></label>
-          <input type="text" id="lc_taken_from" placeholder="Name / Designation of officer who issued LC"/>
-        </div>
-
-        <div class="field col-span-2">
-          <label>LC Completed <span class="col-num">(26)</span></label>
-          <input type="datetime-local" id="lc_completed" oninput="calcLCDuration()"/>
-        </div>
-
-        <div class="field">
-          <label>LC Duration (Auto-calculated) <span class="col-num">(27)</span></label>
-          <input type="text" id="lc_duration_display" class="auto-fill" readonly placeholder="HH h MM m"/>
-        </div>
-
-        <div class="field col-span-3">
-          <label>Additional Remarks / Notes</label>
-          <textarea id="remarks" placeholder="Any additional remarks, site conditions, crew details, material used..."></textarea>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- ACTION BAR -->
-  <div class="action-bar">
-    <button class="btn btn-success" onclick="logBreakdown()">✓ LOG BREAKDOWN ENTRY</button>
-    <button class="btn btn-primary" onclick="exportExcel()">⬇ EXPORT TO EXCEL</button>
-    <button class="btn btn-outline" onclick="clearForm()">✕ CLEAR FORM</button>
-    <div style="margin-left:auto;color:var(--muted);font-size:11px;" id="entryStatus">0 entries logged this session</div>
-  </div>
-
-  <!-- LOG TABLE -->
-  <div class="log-section">
-    <div class="log-header">
-      <span class="log-header-title">📋 BREAKDOWN LOG — SESSION ENTRIES</span>
-      <span class="log-count" id="logCountBadge">0</span>
-    </div>
-    <div class="log-table-wrap">
-      <table id="logTable">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Substation</th>
-            <th>Section</th>
-            <th>33KV Source / Feeder</th>
-            <th>EHT Source</th>
-            <th>Failure Time</th>
-            <th>Type</th>
-            <th>Agency</th>
-            <th>Relay</th>
-            <th>Identified Fault</th>
-            <th>Nature</th>
-            <th>Weather</th>
-            <th>Restoration Time</th>
-            <th>Duration</th>
-            <th>Alt Source</th>
-            <th>Root Cause</th>
-            <th>Rect. Time</th>
-            <th>LC From</th>
-            <th>LC Done</th>
-            <th>LC Duration</th>
-            <th>FPI Location</th>
-            <th>Person</th>
-            <th>Remarks</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="logBody">
-          <tr><td colspan="24" class="empty-log">No entries yet. Fill the form above and click LOG BREAKDOWN ENTRY.</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="export-bar">
-      <button class="btn btn-amber" onclick="exportExcel()" style="font-size:11px;padding:7px 16px;">⬇ Export Log to Excel</button>
-      <button class="btn btn-outline" onclick="clearLog()" style="font-size:11px;padding:7px 16px;">🗑 Clear Log</button>
-    </div>
-  </div>
-
 </div>
 
-<!-- TOAST -->
-<div id="toast">✓ Breakdown entry logged successfully!</div>
+<!-- ─── TAB STRIP ─── -->
+<div class="tabs">
+  <div class="tab active" data-pane="log" onclick="switchTab('log')">
+    <span class="num">1</span>LOG ENTRY
+  </div>
+  <div class="tab" data-pane="failure" onclick="switchTab('failure')">
+    <span class="num">2</span>FAILURE ENTRY
+  </div>
+  <div class="tab" data-pane="rect" onclick="switchTab('rect')">
+    <span class="num">3</span>FAILURE RECTIFICATION
+    <span class="badge" id="openCntBadge" style="display:none">0</span>
+  </div>
+  <div class="tab" data-pane="hist" onclick="switchTab('hist')">
+    <span class="num">4</span>HISTORICAL ENTRY
+  </div>
+</div>
 
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 1 · LOG ENTRY — Set up feeder→SS mapping with PTRs and status
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="pane-log" class="pane active">
+  <div class="section">
+    <div class="section-hd"><span class="step">1</span><span class="title">FEEDER SELECTION</span></div>
+    <div class="section-bd">
+      <div class="grid">
+        <div class="field col-span-2">
+          <label>Name of the 33KV Feeder <span class="req">*</span></label>
+          <input type="text" id="log_feeder_search" list="log_feeder_list" placeholder="Type to search 33KV feeder…" oninput="onLogFeederChange()">
+          <datalist id="log_feeder_list"></datalist>
+        </div>
+        <div class="field">
+          <label>Feeder Code <span class="num">(auto)</span></label>
+          <input type="text" id="log_feeder_code" class="auto-fill" readonly>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field">
+          <label>Name of EHT <span class="num">(auto)</span></label>
+          <input type="text" id="log_eht" class="auto-fill" readonly>
+        </div>
+        <div class="field">
+          <label>Lines Division <span class="num">(auto)</span></label>
+          <input type="text" id="log_div" class="auto-fill" readonly>
+        </div>
+        <div class="field">
+          <label>Lines Sub-Division <span class="num">(auto)</span></label>
+          <input type="text" id="log_subdiv" class="auto-fill" readonly>
+        </div>
+        <div class="field">
+          <label>Lines Section <span class="num">(auto)</span></label>
+          <input type="text" id="log_section" class="auto-fill" readonly>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hd"><span class="step">2</span><span class="title">SUBSTATION & PTRs</span></div>
+    <div class="section-bd">
+      <div class="grid">
+        <div class="field col-span-2">
+          <label>Name of the Substation <span class="req">*</span></label>
+          <input type="text" id="log_ss_search" list="log_ss_list" placeholder="Type to search 33/11KV substation…" oninput="onLogSSChange()">
+          <datalist id="log_ss_list"></datalist>
+        </div>
+        <div class="field">
+          <label>SS Code <span class="num">(auto)</span></label>
+          <input type="text" id="log_ss_code" class="auto-fill" readonly>
+        </div>
+      </div>
+
+      <div class="ptr-card" id="log_ptr_card" style="display:none">
+        <div class="ptr-card-hd">⚡ No. of PTRs feeding from this feeder — tick the PTRs this feeder supplies</div>
+        <div class="ptr-list" id="log_ptr_list"></div>
+        <div class="ptr-total" id="log_ptr_total"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hd"><span class="step">3</span><span class="title">FEEDER STATUS</span></div>
+    <div class="section-bd">
+      <div class="pill-group" id="log_status_group">
+        <div class="pill green" data-val="live" onclick="selectPill('log_status_group',this)">⚡ Live</div>
+        <div class="pill amber" data-val="idle" onclick="selectPill('log_status_group',this)">⏸ Idle</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-success" onclick="saveLogEntry()">✓ SAVE LOG ENTRY</button>
+    <button class="btn btn-outline" onclick="clearPane('log')">✕ CLEAR</button>
+    <div style="margin-left:auto;color:var(--muted);font-size:11px" id="log_status_msg"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 2 · FAILURE ENTRY — When a feeder fails
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="pane-failure" class="pane">
+  <div class="section">
+    <div class="section-hd"><span class="step">1</span><span class="title">FAILED FEEDER</span></div>
+    <div class="section-bd">
+      <div class="grid">
+        <div class="field col-span-2">
+          <label>Name of the 33KV Feeder <span class="req">*</span></label>
+          <input type="text" id="fail_feeder_search" list="fail_feeder_list" placeholder="Type to search…" oninput="onFailFeederChange()">
+          <datalist id="fail_feeder_list"></datalist>
+        </div>
+        <div class="field">
+          <label>Failure Date & Time <span class="req">*</span></label>
+          <input type="datetime-local" id="fail_time">
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field">
+          <label>Name of EHT Source <span class="num">(auto)</span></label>
+          <input type="text" id="fail_eht" class="auto-fill" readonly>
+        </div>
+        <div class="field col-span-2">
+          <label>Feeding to 33/11KV Substation(s) <span class="num">(auto)</span></label>
+          <input type="text" id="fail_feeds_to" class="auto-fill" readonly>
+        </div>
+      </div>
+
+      <!-- LIVE ALTERNATES PANEL — shows in real time which alternates are available -->
+      <div class="alt-panel" id="failAltPanel" style="display:none">
+        <h3>🔀 Alternate 33KV Source Feeders Available
+          <span id="alt_count_chip" style="background:#fbbf24;color:#7c2d12;font-size:9px;padding:2px 8px;border-radius:9px;font-weight:800">0</span>
+        </h3>
+        <div id="failAltList"></div>
+      </div>
+
+      <div class="grid" style="margin-top:14px">
+        <div class="field col-span-2">
+          <label>Name of Alternate 33KV Feeder (Selected) <span class="num">(optional)</span></label>
+          <input type="text" id="fail_alt" list="fail_alt_list" placeholder="Pick an alternate from the panel above, or type…">
+          <datalist id="fail_alt_list"></datalist>
+        </div>
+        <div class="field">
+          <label>Name of Alt EHT <span class="num">(auto)</span></label>
+          <input type="text" id="fail_alt_eht" class="auto-fill" readonly>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hd"><span class="step">2</span><span class="title">OUTAGE DETAILS</span></div>
+    <div class="section-bd">
+      <div class="grid cols-2">
+        <div class="field">
+          <label>Agency Who Triggered Outage <span class="req">*</span></label>
+          <div class="pill-group" id="fail_agency_group"><div class="pill" data-val="TRANSCO" onclick="selectPill('fail_agency_group',this)">TRANSCO</div><div class="pill" data-val="LINES" onclick="selectPill('fail_agency_group',this)">LINES</div><div class="pill" data-val="33/11KV SUBSTATION" onclick="selectPill('fail_agency_group',this)">33/11KV SUBSTATION</div><div class="pill" data-val="DISCOM CONTROL ROOM" onclick="selectPill('fail_agency_group',this)">DISCOM CONTROL ROOM</div><div class="pill" data-val="MP" onclick="selectPill('fail_agency_group',this)">MP</div><div class="pill" data-val="Construction" onclick="selectPill('fail_agency_group',this)">Construction</div></div>
+        </div>
+        <div class="field">
+          <label>Type of Outage <span class="req">*</span></label>
+          <select id="fail_outage_type">
+            <option value="">— Select —</option>
+            <option value="Breakdown">Breakdown</option><option value="Tripping">Tripping</option><option value="Hand Tripped">Hand Tripped</option><option value="GC Tripping">GC Tripping</option><option value="Momentary Tripping">Momentary Tripping</option><option value="Planned Line Clear">Planned Line Clear</option><option value="Emergency Line Clear">Emergency Line Clear</option><option value="EHT Line Clear">EHT Line Clear</option><option value="EHT Pullout">EHT Pullout</option><option value="Cable Fault">Cable Fault</option><option value="Feeder Hand Tripped">Feeder Hand Tripped</option><option value="Incoming Supply Failure">Incoming Supply Failure</option><option value="Load Change Over">Load Change Over</option><option value="Loads Normalised">Loads Normalised</option><option value="Change Over">Change Over</option><option value="ISF">ISF</option><option value="Blink">Blink</option><option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field">
+          <label>Type of Operation</label>
+          <select id="fail_op_type">
+            <option value="">— Select —</option>
+            <option value="Change Over">Change Over</option><option value="Normalised">Normalised</option><option value="Restored">Restored</option><option value="LV Side Load Changeover">LV Side Load Changeover</option><option value="Loads Changeover">Loads Changeover</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Relay Indication</label>
+          <select id="fail_relay">
+            <option value="">— Select —</option>
+            <option value="E/L">E/L</option><option value="O/L">O/L</option><option value="E/L+O/L">E/L+O/L</option><option value="E/L R Ph">E/L R Ph</option><option value="E/L Y Ph">E/L Y Ph</option><option value="E/L B Ph">E/L B Ph</option><option value="E/L O/L R Ph">E/L O/L R Ph</option><option value="E/L O/L Y Ph">E/L O/L Y Ph</option><option value="E/L O/L B Ph">E/L O/L B Ph</option><option value="LC">LC</option><option value="IC">IC</option><option value="LT">LT</option><option value="No Indication">No Indication</option><option value="Manual">Manual</option><option value="Others">Others</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Identified Fault</label>
+          <select id="fail_fault">
+            <option value="">— Select —</option>
+            <option value="PMI Work">PMI Work</option><option value="Preventive Maintenance">Preventive Maintenance</option><option value="Endkit Replacement">Endkit Replacement</option><option value="Cable Fault">Cable Fault</option><option value="Cable Joint Failed">Cable Joint Failed</option><option value="HT Consumer End Fault">HT Consumer End Fault</option><option value="AB Switch Maintenance">AB Switch Maintenance</option><option value="Thermovision Scanning">Thermovision Scanning</option><option value="Breaker Maintenance">Breaker Maintenance</option><option value="Pin Insulator Replacement">Pin Insulator Replacement</option><option value="Tree Branches">Tree Branches</option><option value="Bird Hit">Bird Hit</option><option value="Jumper Cut">Jumper Cut</option><option value="Feeder Overload">Feeder Overload</option><option value="Over Load">Over Load</option><option value="No Visible Fault">No Visible Fault</option><option value="Red Hot">Red Hot</option><option value="Safety Purpose">Safety Purpose</option><option value="As per Request of AE/Lines">As per Request of AE/Lines</option><option value="As per Instruction of AE/Lines">As per Instruction of AE/Lines</option><option value="Load Change Over">Load Change Over</option><option value="Loads Normalised">Loads Normalised</option><option value="Others">Others</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Nature of Fault</label>
+          <div class="pill-group" id="fail_nature_group">
+            <div class="pill" data-val="Temporary" onclick="selectPill('fail_nature_group',this)">⏱ Temporary</div>
+            <div class="pill red" data-val="Permanent" onclick="selectPill('fail_nature_group',this)">🔴 Permanent</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Weather Condition</label>
+          <select id="fail_weather">
+            <option value="">— Select —</option>
+            <option value="Normal">Normal</option><option value="Rain">Rain</option><option value="Gale">Gale</option><option value="Rain & Gale">Rain & Gale</option><option value="Wind">Wind</option><option value="Stormy">Stormy</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Fault Current (Amps)</label>
+          <input type="text" id="fail_current" placeholder="e.g. 1500A">
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field">
+          <label>Person Responsible</label>
+          <input type="text" id="fail_person" placeholder="Name / Designation (e.g. AE/L/IDPL)">
+        </div>
+        <div class="field">
+          <label>Phone Number</label>
+          <input type="tel" id="fail_phone" placeholder="10-digit number">
+        </div>
+        <div class="field">
+          <label>FPI Acted — Location</label>
+          <input type="text" id="fail_fpi" placeholder="e.g. Pole No. 45, Near XYZ">
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field col-span-3">
+          <label>Additional Remarks / Notes</label>
+          <textarea id="fail_remarks" placeholder="Any site conditions, crew details, observations…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-danger" onclick="logFailure()">⚡ LOG BREAKDOWN ENTRY</button>
+    <button class="btn btn-outline" onclick="clearPane('failure')">✕ CLEAR</button>
+    <div style="margin-left:auto;color:var(--muted);font-size:11px" id="fail_status_msg"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 3 · FAILURE RECTIFICATION — Close open breakdowns
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="pane-rect" class="pane">
+  <div class="data-section">
+    <div class="data-section-hd">
+      <span class="title">📂 Open Breakdowns / Tripped Feeders — Click to rectify</span>
+      <span class="count-pill" id="rect_count_pill">0 OPEN</span>
+    </div>
+    <div id="rect_open_table_wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Failure Time</th><th>33KV Feeder</th><th>33/11KV SS</th><th>Type</th><th>Duration</th><th>Action</th></tr>
+        </thead>
+        <tbody id="rect_open_tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Loading open breakdowns…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RECTIFICATION FORM (shown when an open breakdown is clicked) -->
+  <div class="section" id="rect_form" style="display:none">
+    <div class="section-hd"><span class="step">✎</span><span class="title">RECTIFY: <span id="rect_target_name" style="font-weight:400">—</span></span></div>
+    <div class="section-bd">
+      <div class="grid">
+        <div class="field">
+          <label>Restoration Date & Time <span class="req">*</span></label>
+          <input type="datetime-local" id="rect_restore_time" oninput="recalcRectDuration()">
+        </div>
+        <div class="field">
+          <label>Duration <span class="num">(auto)</span></label>
+          <input type="text" id="rect_duration" class="auto-fill" readonly placeholder="HH:MM">
+        </div>
+        <div class="field">
+          <label>Rectified Date & Time</label>
+          <input type="datetime-local" id="rect_rectified_time">
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field col-span-2">
+          <label>Rectification Work Details</label>
+          <select id="rect_work">
+            <option value="">— Select rectification work —</option>
+            <option value="Loads normalised done">Loads normalised done</option><option value="Load Change over done">Load Change over done</option><option value="Work completed">Work completed</option><option value="Feeder charged ok">Feeder charged ok</option><option value="Same supply restored">Same supply restored</option><option value="PMI work completed">PMI work completed</option><option value="Thermo vision scanning points attended">Thermo vision scanning points attended</option><option value="Endkit replacement completed">Endkit replacement completed</option><option value="Cable joint completed">Cable joint completed</option><option value="Tree trimming done">Tree trimming done</option><option value="Jumper repaired">Jumper repaired</option><option value="Breaker repaired">Breaker repaired</option><option value="AB switch maintenance done">AB switch maintenance done</option><option value="Pin insulator replaced">Pin insulator replaced</option><option value="Bird-hit cleared">Bird-hit cleared</option><option value="Others">Others</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>LC Taken From</label>
+          <input type="text" id="rect_lc_from" placeholder="Name / Designation">
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field">
+          <label>LC Completed</label>
+          <input type="datetime-local" id="rect_lc_completed">
+        </div>
+        <div class="field col-span-2">
+          <label>Root Cause for Identified Fault</label>
+          <textarea id="rect_root_cause" placeholder="Describe root cause…"></textarea>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field col-span-3">
+          <label>Additional Remarks</label>
+          <textarea id="rect_remarks" placeholder="Crew details, material used, observations…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions" id="rect_actions" style="display:none">
+    <button class="btn btn-success" onclick="saveRectification()">✓ CLOSE & SAVE</button>
+    <button class="btn btn-outline" onclick="cancelRectification()">✕ CANCEL</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 4 · HISTORICAL ENTRY
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="pane-hist" class="pane">
+  <div class="data-section">
+    <div class="data-section-hd">
+      <span class="title">📊 Historical Breakdown Log</span>
+      <button class="btn btn-amber" onclick="exportHistorical()" style="padding:6px 14px;font-size:10px">⬇ EXPORT TO EXCEL</button>
+    </div>
+
+    <div class="filt-row">
+      <label>Period:</label>
+      <div class="filt-group" id="hist_period_group">
+        <button class="filt-btn selected" data-period="all" onclick="setHistFilter('period','all',this)">All</button>
+        <button class="filt-btn" data-period="weekly" onclick="setHistFilter('period','weekly',this)">Weekly</button>
+        <button class="filt-btn" data-period="monthly" onclick="setHistFilter('period','monthly',this)">Monthly</button>
+        <button class="filt-btn" data-period="yearly" onclick="setHistFilter('period','yearly',this)">Yearly</button>
+      </div>
+      <label style="margin-left:14px">Scope:</label>
+      <select id="hist_scope" onchange="applyHistFilters()">
+        <option value="all">All Divisions</option>
+        <optgroup label="By Division" id="hist_scope_div_group"></optgroup>
+        <optgroup label="By Sub-Division" id="hist_scope_sub_group"></optgroup>
+        <optgroup label="By Section" id="hist_scope_sec_group"></optgroup>
+      </select>
+      <label style="margin-left:14px">Outage Type:</label>
+      <select id="hist_outage" onchange="applyHistFilters()">
+        <option value="all">All Types</option>
+        <option value="Breakdown">Breakdown</option><option value="Tripping">Tripping</option><option value="Hand Tripped">Hand Tripped</option><option value="GC Tripping">GC Tripping</option><option value="Momentary Tripping">Momentary Tripping</option><option value="Planned Line Clear">Planned Line Clear</option><option value="Emergency Line Clear">Emergency Line Clear</option><option value="EHT Line Clear">EHT Line Clear</option><option value="EHT Pullout">EHT Pullout</option><option value="Cable Fault">Cable Fault</option><option value="Feeder Hand Tripped">Feeder Hand Tripped</option><option value="Incoming Supply Failure">Incoming Supply Failure</option><option value="Load Change Over">Load Change Over</option><option value="Loads Normalised">Loads Normalised</option><option value="Change Over">Change Over</option><option value="ISF">ISF</option><option value="Blink">Blink</option><option value="Other">Other</option>
+      </select>
+      <label style="margin-left:14px">Status:</label>
+      <select id="hist_status_filter" onchange="applyHistFilters()">
+        <option value="all">All</option>
+        <option value="open">Open</option>
+        <option value="closed">Closed</option>
+      </select>
+      <button class="btn btn-outline" onclick="refreshHistorical()" style="margin-left:auto;padding:6px 12px;font-size:10px">⟳ REFRESH</button>
+    </div>
+
+    <div class="hist-stats" id="hist_stats">
+      <div class="hist-stat"><div class="hist-stat-val" id="hist_total">—</div><div class="hist-stat-lbl">Total Events</div></div>
+      <div class="hist-stat"><div class="hist-stat-val" style="color:#dc2626" id="hist_open">—</div><div class="hist-stat-lbl">Open</div></div>
+      <div class="hist-stat"><div class="hist-stat-val" style="color:#16a34a" id="hist_closed">—</div><div class="hist-stat-lbl">Closed</div></div>
+      <div class="hist-stat"><div class="hist-stat-val" style="color:#d97706" id="hist_avg_dur">—</div><div class="hist-stat-lbl">Avg Duration</div></div>
+      <div class="hist-stat"><div class="hist-stat-val" style="color:#7c3aed" id="hist_feeders">—</div><div class="hist-stat-lbl">Unique Feeders</div></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Date</th><th>Feeder</th><th>SS</th><th>Division</th>
+          <th>Type</th><th>Agency</th><th>Duration</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="hist_tbody"><tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Loading historical data…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCRIPT
+     ═══════════════════════════════════════════════════════════════ -->
 <script>
-// ─── SS DATA ───────────────────────────────────────────────
+const FIREBASE_URL = "https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+// ─── EMBEDDED DATA from existing form ───
 const SS_DATA = [{"ss_code": "1081211401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV SRINAGAR COLONY SS"}, {"ss_code": "1081211402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV YELLAREDDYGUDA SS"}, {"ss_code": "1081212401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV KALYAN NAGAR SS"}, {"ss_code": "1081213401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV YOUSUFGUDA SS"}, {"ss_code": "1081213402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV KRISHNA NAGAR SS"}, {"ss_code": "1081221401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV NIMS SS"}, {"ss_code": "1081221402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV ROAD NO.2(NEW) SS"}, {"ss_code": "1081221403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV L.V.PRASAD (ROAD NO.2) SS"}, {"ss_code": "1081221405", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11 KV MUFFAKAMJAH SS"}, {"ss_code": "1081223401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV FILM NAGAR SS"}, {"ss_code": "1081223402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV MLA COLONY SS"}, {"ss_code": "1081223403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV ROAD NO.12 B'HILLS SS"}, {"ss_code": "1081223404", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV ROAD NO.13 BANJARA HILLS SS"}, {"ss_code": "1081223405", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11 KV COMMAND CONTROL ROOM SS"}, {"ss_code": "1081222401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Madhapur", "section": "Madhapur", "ss_name": "33/11 KV JUBILEE HILLS SS"}, {"ss_code": "1081222402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Madhapur", "section": "Madhapur", "ss_name": "33/11 KV MADHAPUR SS"}, {"ss_code": "1081222403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Madhapur", "section": "Madhapur", "ss_name": "33/11 KV MIND SPACE (RAHEJA) SS"}, {"ss_code": "1081222405", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Madhapur", "section": "Madhapur", "ss_name": "33/11 KV ROAD NO22 (JBH) SS"}, {"ss_code": "1081222406", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Madhapur", "section": "Madhapur", "ss_name": "33/11KV RAVINDER SOCIETY SS"}, {"ss_code": "1081222407", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "NIMS", "ss_name": "33/11KV PRASASAN NAGAR SS"}, {"ss_code": "1081131401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV MYTRIVANAM SS"}, {"ss_code": "1081131402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV BALKAMPET (BEGUMPET) SS"}, {"ss_code": "1081131403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV ESI SS"}, {"ss_code": "1081132401", "op_circle": "Banjara Hills", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV AIRPORT SS"}, {"ss_code": "1081132402", "op_circle": "Banjara Hills", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11KV PRAKASHNAGAR"}, {"ss_code": "1084132401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV HPS SS"}, {"ss_code": "1081133401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV GREENLANDS SS"}, {"ss_code": "1081133402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV KUNDANBAGH SS"}, {"ss_code": "1081133403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV CM CAMP OFFICE"}, {"ss_code": "1081143401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV MOTHINAGAR SS"}, {"ss_code": "1084241401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV BORABANDA INDORE SS"}, {"ss_code": "1081142401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11 KV ALLWYN SS"}, {"ss_code": "1081142403", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11KV LOADHA SS"}, {"ss_code": "1081143402", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "Allwyn", "ss_name": "33/11KV JANAPRIYA SS"}, {"ss_code": "1084244401", "op_circle": "Banjara Hills", "lines_division": "Banjara Hills", "sub_division": "Kalyan nagar", "section": "Kalyan nagar", "ss_name": "33/11KV SPR HILLS SS"}, {"ss_code": "1101511401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV HUSSAIN SAGAR SS"}, {"ss_code": "1101511402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV PUBLIC GARDEN SS"}, {"ss_code": "1101511403", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV LUMBINI PARK SS"}, {"ss_code": "1101512401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV ZP OFFICE SS"}, {"ss_code": "1101513401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV LAKE VIEW SS"}, {"ss_code": "1101513402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV ERAMANZIL SS"}, {"ss_code": "1101531401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV HYDERGUDA SS"}, {"ss_code": "1101531402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV NIZAM COLLEGE SS"}, {"ss_code": "1101533401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV EXHIBITION GROUND SS"}, {"ss_code": "1101721401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV INDIRA PARK SS"}, {"ss_code": "1101722401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Hussainsagar", "section": "Hussain sagar", "ss_name": "33/11 KV JAWAHAR NAGAR SS"}, {"ss_code": "1102411401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV NARAYANGUDA SS"}, {"ss_code": "1102411402", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV VITTALWADI SS"}, {"ss_code": "1102412401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV ZAMISTANPUR SS"}, {"ss_code": "1102421401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV INDUSTRIAL AREA SS"}, {"ss_code": "1102421402", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV FEVER HOSPITAL SS"}, {"ss_code": "1102431401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV BATHAKAMMAKUNTA SS"}, {"ss_code": "1102432401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV AMBERPET SS"}, {"ss_code": "1102432402", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV DURGANAGAR SS"}, {"ss_code": "1102433401", "op_circle": "Hyderabad Central", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11KV GOLNAKA SS"}, {"ss_code": "1103911401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV AC GUARDS SS"}, {"ss_code": "1103912401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV NAMPALLY SS"}, {"ss_code": "1103912402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV ITI MALLEPALLY SS"}, {"ss_code": "1103913401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV GUDIMALKAPUR SS"}, {"ss_code": "1103921401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV GOLCONDA SS"}, {"ss_code": "1103921402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV MOTHIMAHAL SS"}, {"ss_code": "1103922401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV ASIF NAGAR SS"}, {"ss_code": "1103922402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV LANGAR HOUSE SS"}, {"ss_code": "1103923402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV SANDYA HOTEL SS"}, {"ss_code": "1103932401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV ALLURI SITARAMARAJU NAGAR SS"}, {"ss_code": "1103933401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV SD EYE HOSPITAL SS"}, {"ss_code": "1103933402", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11 KV TOLI CHOWKI SS"}, {"ss_code": "1103935401", "op_circle": "Hyderabad Central", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Asif nagar", "ss_name": "33/11KV ADITHYA TOWERS SS"}, {"ss_code": "1091311401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV KHILWATH SS"}, {"ss_code": "1091311402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV DEVIBAGH SS"}, {"ss_code": "1091312401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV PANJASHAH SS"}, {"ss_code": "1091313401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV SALARJUNG MUSEUM SS"}, {"ss_code": "1091313402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV PETLA BURZ SS"}, {"ss_code": "1091321401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV CRPF SS"}, {"ss_code": "1091322401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11KV ARUNDHATI COLONY SS"}, {"ss_code": "1091323401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV FALAKNUMA SS"}, {"ss_code": "1091323402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV KANDIKAL GATE SS"}, {"ss_code": "1091331402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV HYDERGUDA SS (South)"}, {"ss_code": "1091332401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV CHANDULAL BARADARI SS"}, {"ss_code": "1091333401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV MIRALAM SS"}, {"ss_code": "1091333402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV ALIABAD SS"}, {"ss_code": "1091333403", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Falaknuma", "ss_name": "33/11 KV MIRALAM WATER FILTER BED SS"}, {"ss_code": "1091334401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Falaknuma", "section": "Salarjung", "ss_name": "33/11 KV ATTAPUR SS"}, {"ss_code": "1092811401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV MALAKPET B QUARTERS SS"}, {"ss_code": "1092812401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV MOOSARAM BAGH SS"}, {"ss_code": "1092812402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11KV TEEGALAGUDA SS"}, {"ss_code": "1092813401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV ASMAN GADH SS"}, {"ss_code": "1092813402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11KV LAXMI NAGAR SS"}, {"ss_code": "1092822401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11 KV YAKUTPURA SS"}, {"ss_code": "1092823401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11 KV SANTOSH NAGAR SS"}, {"ss_code": "1092823402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11 KV MIDHANI SS"}, {"ss_code": "1092824401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11 KV MADANNAPET SS"}, {"ss_code": "1092831401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV MALAKPET SS"}, {"ss_code": "1092832401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV CHANCHAL GUDA SS"}, {"ss_code": "1092833401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Santhosh nagar", "ss_name": "33/11 KV DEBEERPURA SS"}, {"ss_code": "1092834402", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Malakpet", "section": "Malakpet", "ss_name": "33/11 KV GUNJ SS"}, {"ss_code": "1093211401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV KARWAN SS"}, {"ss_code": "1093211402", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11KV JIYAGUDA SS"}, {"ss_code": "1093212401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV SEETARAM BAGH SS"}, {"ss_code": "1093212402", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Gudimalkapur", "ss_name": "33/11 KV KULSUMPURA SS"}, {"ss_code": "1093221401", "op_circle": "Hyderabad South", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Industrial Area", "ss_name": "33/11 KV SULTAN BAZAR SS"}, {"ss_code": "1093222401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV ENT SS"}, {"ss_code": "1093223401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV KOTI WOMENS COLLEGE SS"}, {"ss_code": "1093231401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV OSMANIA HOSPITAL SS"}, {"ss_code": "1093232401", "op_circle": "Hyderabad South", "lines_division": "Central", "sub_division": "Asifnagar", "section": "Osmania Hospital", "ss_name": "33/11 KV GOSHA MAHAL SS"}, {"ss_code": "1851111401", "op_circle": "Secunderabad", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV CHILKALGUDA SS"}, {"ss_code": "1851112401", "op_circle": "Secunderabad", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV OSMANIA UNIVERSITY SS"}, {"ss_code": "1851112402", "op_circle": "Secunderabad", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV IICT SS"}, {"ss_code": "1851113401", "op_circle": "Secunderabad", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV SEETHAPHALMANDI SS"}, {"ss_code": "1851114401", "op_circle": "Secunderabad", "lines_division": "South", "sub_division": "Chilkalguda", "section": "Chilkalguda", "ss_name": "33/11 KV LALAGUDA SS"}, {"ss_code": "1851114402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV ADDAGUTTA SS"}, {"ss_code": "1851221401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV BANSILALPET SS"}, {"ss_code": "1851222401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV JAMES STREET SS"}, {"ss_code": "1851222402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV PATIGADDA SS"}, {"ss_code": "1851222403", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV SANJEEVAIAH PARK SS"}, {"ss_code": "1851222404", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV KIMS SS"}, {"ss_code": "1851224401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV CLOCK TOWER SS"}, {"ss_code": "1851224402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "James street", "ss_name": "33/11 KV MONDA MARKET SS"}, {"ss_code": "1852111401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV NEHRU NAGAR SS"}, {"ss_code": "1852111402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV MARREDPALLY SS"}, {"ss_code": "1852113401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV GYMKHANA SS"}, {"ss_code": "1852121401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV GUNROCK SS"}, {"ss_code": "1852121403", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV THIRUMALAGIRI SS"}, {"ss_code": "1852121404", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV BHOODEVI NAGAR SS"}, {"ss_code": "1852122401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV HAKIMPET SS"}, {"ss_code": "1852122402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV MACHA BOLLARAM SS"}, {"ss_code": "1852123401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "R.P.Nilayam", "ss_name": "33/11 KV R.P.NILAYAM SS"}, {"ss_code": "1852123403", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV ALWAL"}, {"ss_code": "1853111401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV BOWENPALLY SS"}, {"ss_code": "1853111402", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV CHINNA THOKATTA SS"}, {"ss_code": "1853121401", "op_circle": "Secunderabad", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV IDPL SS"}, {"ss_code": "1853122401", "op_circle": "Secunderabad", "lines_division": "Secunderabad", "sub_division": "Nehrunagar", "section": "Bowenpally", "ss_name": "33/11 KV NEW BOWENPALLY-2 SS"}, {"ss_code": "1853131401", "op_circle": "Secunderabad", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV HAL SS"}, {"ss_code": "1853131402", "op_circle": "Secunderabad", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV PRASHANTH NAGAR SS"}, {"ss_code": "1853132401", "op_circle": "Secunderabad", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV PRAGA TOOLS SS"}, {"ss_code": "1853132402", "op_circle": "Secunderabad", "lines_division": "Banjara Hills", "sub_division": "Allwyn", "section": "IDPL", "ss_name": "33/11 KV HMT SS"}];
-
-// ─── STATE ─────────────────────────────────────────────────
-let entries = [];
-let entryCounter = 0;
-let selectedRadios = {};
-let currentFilter = { circle: '', division: '', subDiv: '', section: '' };
-
-// ─── INIT ───────────────────────────────────────────────────
-function init() {
-  // Populate ss_name dropdown (all 136)
-  const ssSelect = document.getElementById('ss_name');
-  SS_DATA.forEach(ss => {
-    const o = document.createElement('option');
-    o.value = ss.ss_code;
-    o.textContent = ss.ss_name;
-    o.dataset.circle = ss.op_circle;
-    o.dataset.division = ss.lines_division;
-    o.dataset.subDiv = ss.sub_division;
-    o.dataset.section = ss.section;
-    ssSelect.appendChild(o);
-  });
-
-  // Populate op_circle
-  const circles = [...new Set(SS_DATA.map(s => s.op_circle))].sort();
-  const circleSelect = document.getElementById('op_circle');
-  circles.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; circleSelect.appendChild(o); });
-
-  // Clock removed (running inside iframe — parent nav has the clock)
-  loadFromStorage();
-}
-
-// ─── STORAGE BRIDGE ──────────────────────────────────────────
-var LS_KEY = 'tgspdcl_bd_log';
-
-function saveToStorage() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(entries)); } catch(e) {}
-  try { window.parent.postMessage({ type: 'BD_LOG_UPDATE', entries: entries }, '*'); } catch(e) {}
-}
-
-function loadFromStorage() {
-  try {
-    var raw = localStorage.getItem(LS_KEY);
-    if (raw) {
-      var saved = JSON.parse(raw);
-      if (Array.isArray(saved) && saved.length) {
-        entries = saved;
-        entryCounter = saved.reduce(function(mx, e) { return Math.max(mx, e.id || 0); }, 0);
-        renderLog();
-      }
-    }
-  } catch(e) {}
-}
-
-// ─── CASCADE: Circle → Division → SubDiv → Section ──────────
-function filterByCircle() {
-  const circle = document.getElementById('op_circle').value;
-  currentFilter.circle = circle;
-  currentFilter.division = '';
-  currentFilter.subDiv = '';
-  currentFilter.section = '';
-  rebuildDivisions(circle);
-  rebuildSubDivisions('', '');
-  rebuildSections('', '', '');
-  filterSSDropdown();
-}
-
-function rebuildDivisions(circle) {
-  const divs = [...new Set(SS_DATA.filter(s => !circle || s.op_circle === circle).map(s => s.lines_division))].sort();
-  const sel = document.getElementById('lines_division');
-  sel.innerHTML = '<option value="">— Select Division —</option>';
-  divs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
-}
-
-function filterByDivision() {
-  currentFilter.division = document.getElementById('lines_division').value;
-  currentFilter.subDiv = '';
-  currentFilter.section = '';
-  rebuildSubDivisions(currentFilter.circle, currentFilter.division);
-  rebuildSections(currentFilter.circle, currentFilter.division, '');
-  filterSSDropdown();
-}
-
-function rebuildSubDivisions(circle, division) {
-  const subs = [...new Set(SS_DATA.filter(s =>
-    (!circle || s.op_circle === circle) &&
-    (!division || s.lines_division === division)
-  ).map(s => s.sub_division))].sort();
-  const sel = document.getElementById('sub_division');
-  sel.innerHTML = '<option value="">— Select Sub-Division —</option>';
-  subs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
-}
-
-function filterBySubDiv() {
-  currentFilter.subDiv = document.getElementById('sub_division').value;
-  currentFilter.section = '';
-  rebuildSections(currentFilter.circle, currentFilter.division, currentFilter.subDiv);
-  filterSSDropdown();
-}
-
-function rebuildSections(circle, division, subDiv) {
-  const secs = [...new Set(SS_DATA.filter(s =>
-    (!circle || s.op_circle === circle) &&
-    (!division || s.lines_division === division) &&
-    (!subDiv || s.sub_division === subDiv)
-  ).map(s => s.section))].sort();
-  const sel = document.getElementById('section');
-  sel.innerHTML = '<option value="">— Select Section —</option>';
-  secs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
-}
-
-function filterBySection() {
-  currentFilter.section = document.getElementById('section').value;
-  filterSSDropdown();
-}
-
-function filterSSDropdown() {
-  const { circle, division, subDiv, section } = currentFilter;
-  const ssSelect = document.getElementById('ss_name');
-  const currentVal = ssSelect.value;
-  Array.from(ssSelect.options).forEach(opt => {
-    if (!opt.value) return;
-    opt.hidden = (
-      (circle && opt.dataset.circle !== circle) ||
-      (division && opt.dataset.division !== division) ||
-      (subDiv && opt.dataset.subDiv !== subDiv) ||
-      (section && opt.dataset.section !== section)
-    );
-  });
-  // Keep current selection if still visible
-  if (ssSelect.value) onSSChange();
-}
-
-// ─── 33KV SOURCES MAP (from DATABASE.xlsx) ─────────────────
 const SOURCES_MAP = {"1081212401": {"Regular Source": "132 KV ERRAGADDA-33KV KALYAN NAGAR", "Alternate Source-1": "132 KV ERRAGADDA-33KV SCADA", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV HUSSAIN SAGAR (LV 1,2)"}, "1081211401": {"Regular Source": "132 KV ERRAGADDA-33KV SRINAGAR COLONY", "Alternate Source-1": "132 KV ERRAGADDA-33 KV ERRAMANZIL", "Alternate Source-2": "132 KV ERRAGADDA-33KV SRINAGAR COLONY"}, "1081211402": {"Regular Source": "132 KV ERRAGADDA-33KV YELLAREDDY GUDA", "Alternate Source-1": "132 KV ERRAGADDA-33 KV ERRAMANZIL"}, "1081213401": {"Regular Source": "132 KV ERRAGADDA-33 KV SPR HILLS FEEDER", "Alternate Source-1": "132 KV ERRAGADDA-33KV YOUSUFGUDA", "Alternate Source-2": "132 KV ERRAGADDA-33KV MUFFAKHAMZA", "Alternate Source-3": "132 KV JUBILEE HILLS-33KV YOUSUFGUDA"}, "1081221402": {"Regular Source": "132 KV JUBILEE HILLS-33 KV ROAD NO.2(NEW) FEEDER", "Alternate Source-1": "132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION", "Alternate Source-2": "132 KV NIMS-33KV MUFKHAMJAH", "Alternate Source-3": "132 KV JUBILEE HILLS-33KV NIMS"}, "1081221403": {"Regular Source": "132 KV ERRAGADDA-33KV BANJARA HILLS - II (LV PRASAD)", "Alternate Source-1": "132 KV ERRAGADDA-33KV LV PRASAD UG CABLE", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV BANJARA HILLS RD 12"}, "1081221405": {"Regular Source": "132 KV NIMS-33KV ERRAMANJIL", "Alternate Source-1": "132 KV ERRAGADDA-33KV LV PRASAD UG CABLE", "Alternate Source-2": "132 KV NIMS-33KV MUFKHAMJAH"}, "1084244401": {"Regular Source": "132 KV ERRAGADDA-33 KV SPR HILLS FEEDER", "Alternate Source-1": "132 KV ERRAGADDA-33KV MUFFAKHAMZA"}, "1081213402": {"Regular Source": "132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV HUSSAIN SAGAR (LV 1,2)", "Alternate Source-2": "132 KV ERRAGADDA-33KV BANJARA HILLS - II (LV PRASAD)"}, "1081131401": {"Regular Source": "132 KV BALKAMPET-33KV MAITRIVANAM", "Alternate Source-1": "132 KV ERRAGADDA-33KV MAITRIVANAM", "Alternate Source-2": "132 KV ERRAGADDA-33 KV KUNDANBAGH"}, "1081131402": {"Regular Source": "132 KV BALKAMPET-33KV BEGUMPET", "Alternate Source-1": "132 KV ERRAGADDA-33KV BEGUMPET", "Alternate Source-2": "132 KV ERRAGADDA-33KV PATIGADDA"}, "1081131403": {"Regular Source": "132 KV BALKAMPET-33KV ESI", "Alternate Source-1": "132 KV ERRAGADDA-33KV ESI"}, "1084132401": {"Regular Source": "132 KV BALKAMPET-33KV HYDERABAD PUBLIC SCHOOL", "Alternate Source-1": "132 KV ERRAGADDA-33 KV HYDERABAD PUBLIC SCHOOL", "Alternate Source-2": "132 KV BALKAMPET-33KV PATIGADDA"}, "1081133401": {"Regular Source": "132 KV BALKAMPET-33KV GREEN LANDS", "Alternate Source-1": "132 KV ERRAGADDA-33KV ERRAGADDA GREENLANDS", "Alternate Source-2": "LINK LINE NIMS -GREENLANDS"}, "1081133402": {"Regular Source": "132 KV BALKAMPET-33KV PATIGADDA", "Alternate Source-1": "132 KV ERRAGADDA-33 KV KUNDANBAGH", "Alternate Source-2": "LINK LINE NIMS -GREENLANDS"}, "1081133403": {"Regular Source": "132 KV BALKAMPET-33KV CM CAMP OFFICE", "Alternate Source-1": "132 KV NIMS-33KV CM CAMP OFFICE", "Alternate Source-2": "132 KV ERRAGADDA-33 KV KUNDANBAGH"}, "1081142401": {"Regular Source": "132 KV BALKAMPET-33 KV BALKAMPET-ALLWYN FEEDER", "Alternate Source-1": "132 KV BALKAMPET-33KV LODHA", "Alternate Source-2": "132 KV ERRAGADDA-33KV HYD INDUSTRIES", "Alternate Source-3": "132 KV ERRAGADDA-33KV ALLWYN"}, "1081142403": {"Regular Source": "132 KV BALKAMPET-33KV LODHA", "Alternate Source-1": "132 KV BALKAMPET-33 KV BALKAMPET-ALLWYN FEEDER", "Alternate Source-2": "132 KV ERRAGADDA-33KV HYD INDUSTRIES", "Alternate Source-3": "132 KV ERRAGADDA-33KV ALLWYN"}, "1081143402": {"Regular Source": "132 KV ERRAGADDA-33KV JANAPRIYA", "Alternate Source-1": "132 KV ERRAGADDA-33KV ERRAGADDA - IDPL-II"}, "1081222401": {"Regular Source": "132 KV JUBILEE HILLS-33KV GCB-1(LOCAL FEEDERS)JUBILI HILLS", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV GCB (LOCAL FEEDERS) JUBILI HILLS", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV YOUSUFGUDA", "Alternate Source-3": "132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER"}, "1081222402": {"Regular Source": "400 KV RAIDURG SS-33 KV OG-5 FEEDER", "Alternate Source-1": "132 KV MADHAPUR-33KV MADHAPUR", "Alternate Source-2": "132 KV MADHAPUR-33 KV DEVBHOOMI PH-3 FEEDER", "Alternate Source-3": "132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER", "Alternate Source-4": "132 KV MADHAPUR-33KV MADHAPUR - 2", "Alternate Source-5": "132 KV JUBILEE HILLS-33KV INTIME PROPERTIES"}, "1081222403": {"Regular Source": "132 KV JUBILEE HILLS-33 KV MADHAPUR-4 FEEDER", "Alternate Source-1": "132 KV MADHAPUR-33KV SUNDEW", "Alternate Source-2": "132 KV MADHAPUR-33KV RAHEJA IT PARK(H.T)", "Alternate Source-3": "132 KV MADHAPUR-33KV TRION PROPERTY"}, "1081222405": {"Regular Source": "132 KV JUBILEE HILLS-33KV JUBILEE HILLS RD.NO.22", "Alternate Source-1": "132 KV ERRAGADDA-33KV MUFFAKHAMZA", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV YOUSUFGUDA"}, "1081222406": {"Regular Source": "132 KV JUBILEE HILLS-33KV RAVINDRA SOCIETY", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV ASIFNAGAR-I", "Alternate Source-2": "132 KV MADHAPUR-33KV RAVINDRA SOCIETY"}, "1081143401": {"Regular Source": "132 KV ERRAGADDA-33KV MOTINAGAR", "Alternate Source-1": "132 KV ERRAGADDA-33KV IDPL I&II (SYNTHETIC DRUGS)"}, "1084241401": {"Regular Source": "132 KV ERRAGADDA-33KV BORABANDA", "Alternate Source-1": "132 KV ERRAGADDA-33KV KUKATPALLY"}, "1853121401": {"Regular Source": "132KV IDPL-33KV IDPL", "Alternate Source-1": "220 KV SHAPUR NAGAR-33KV IDPL (SYNTHETIC DRUGS)", "Alternate Source-2": "132KV IDPL-33 KV IDPL - 2", "Alternate Source-3": "132 KV GUNROCK-33KV H.M.T."}, "1853131401": {"Regular Source": "132 KV CHINTAL-33KV HAL", "Alternate Source-1": "132KV IDPL-33KV ALLWYN", "Alternate Source-2": "132 KV GUNROCK-33KV H.M.T."}, "1853131402": {"Regular Source": "132KV IDPL-33KV PRASANTHNAGAR", "Alternate Source-1": "220 KV SHAPUR NAGAR-33KV IDPL (SYNTHETIC DRUGS)", "Alternate Source-2": "132KV IDPL-33KV BALAJI NAGAR"}, "1853132401": {"Regular Source": "132KV IDPL-33KV PRAGATOOLS", "Alternate Source-1": "220 KV SHAPUR NAGAR-33KV H.M.T.", "Alternate Source-2": "220 KV SHAPUR NAGAR-33KV JAGADGIRIGUTTA(PRAGA TOOLS)"}, "1853132402": {"Regular Source": "132 KV CHINTAL-33 KV HMT", "Alternate Source-1": "220 KV SHAPUR NAGAR-33KV H.M.T.", "Alternate Source-2": "132 KV GUNROCK-33KV H.M.T."}, "1081221401": {"Regular Source": "132 KV NIMS-33KV NIMS OLD", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV NIMS", "Alternate Source-2": "132 KV ERRAGADDA-33KV LV PRASAD UG CABLE", "Alternate Source-3": "132 KV NIMS-33 KV ROAD NO.13 FEEDER"}, "1081223401": {"Regular Source": "132 KV JUBILEE HILLS-33KV FILM NAGAR", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV GOLCONDA", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV MOTIMAHAL"}, "1081223402": {"Regular Source": "132 KV JUBILEE HILLS-33KV MLA COLONY", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV MPL FEEDER", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV ROAD NO 13"}, "1081223403": {"Regular Source": "132 KV JUBILEE HILLS-33KV ROAD NO 13", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV BANJARA HILLS RD 12", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV MPL FEEDER"}, "1081223404": {"Regular Source": "132 KV JUBILEE HILLS-33KV ROAD NO.13/B", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV ROAD NO 13", "Alternate Source-2": "132 KV NIMS-33 KV ROAD NO.13 FEEDER"}, "1081223405": {"Regular Source": "132 KV JUBILEE HILLS-33KV COMMAND CONTROL CENTER", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV MPL FEEDER", "Alternate Source-2": "132 KV ERRAGADDA-33KV ERRAGADDA-POLICE BATTALION", "Alternate Source-3": "132 KV NIMS-33 KV ROAD NO.13 FEEDER"}, "1081222407": {"Regular Source": "132 KV JUBILEE HILLS-33KV PRASHASAN NAGAR", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV GCB-1(LOCAL FEEDERS)JUBILI HILLS"}, "1101511401": {"Regular Source": "132 KV PATIGADDA-33KV ZP OFFICE", "Alternate Source-1": "132 KV NIMS-33KV ERRAMANJIL", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - I", "Alternate Source-3": "132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN", "Alternate Source-4": "132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)"}, "1103911401": {"Regular Source": "132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)", "Alternate Source-1": "132 KV NIMS-33KV AC GUARDS"}, "1103912401": {"Regular Source": "132 KV NIMS-33KV AC GUARDS", "Alternate Source-1": "132 KV IMLIBAN SS-33KV EXHIBITION", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)", "Alternate Source-3": "132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN"}, "1103912402": {"Regular Source": "132 KV ASIFNAGAR-33KV ITI MALLEPALLY", "Alternate Source-1": "132 KV HUSSAINSAGAR-33KV AC GUARDS (NEW)", "Alternate Source-2": "132 KV ASIFNAGAR-33KV SEETARAMBAGH"}, "1103913401": {"Regular Source": "132 KV ASIFNAGAR-33KV GUDIMALKAPUR", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV KARWAN"}, "1103921401": {"Regular Source": "132 KV ASIFNAGAR-33KV GOLCONDA", "Alternate Source-1": "132 KV ASIFNAGAR-SHAIKPET", "Alternate Source-2": "400 KV RAIDURG SS-33 KV SANDHYA FEEDER"}, "1103921402": {"Regular Source": "132 KV ASIFNAGAR-33KV MOTIMAHAL", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV MOTIMAHAL", "Alternate Source-2": "33KV LANGERHOUSE SS -33KV MOTHIMAHALSS (LINK LINE)", "Alternate Source-3": "33KV TOLICHOWKI-33KV MOTHIMAHAL"}, "1103922401": {"Regular Source": "132 KV ASIFNAGAR-33KV ASIFNAGAR", "Alternate Source-1": "132 KV ASIFNAGAR-33KV S.D.HOSPITAL", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV ASIFNAGAR-II"}, "1103922402": {"Regular Source": "132 KV ASIFNAGAR-33KV KARWAN", "Alternate Source-1": "132 KV IMLIBAN SS-33KV JIYAGUDA", "Alternate Source-2": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH", "Alternate Source-3": "132 KV JUBILEE HILLS-33KV MOTIMAHAL"}, "1103923402": {"Regular Source": "400 KV RAIDURG SS-33 KV SANDHYA FEEDER", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV GOLCONDA"}, "1103932401": {"Regular Source": "132 KV ASIFNAGAR-33KV ALLURI SEETHARAM RAJU NAGAR", "Alternate Source-1": "132 KV IMLIBAN SS-33KV JIYAGUDA", "Alternate Source-2": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH"}, "1103933401": {"Regular Source": "132 KV ASIFNAGAR-33KV S.D.HOSPITAL", "Alternate Source-1": "132 KV NIMS-33KV AC GUARDS", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV ASIFNAGAR-II"}, "1103933402": {"Regular Source": "132 KV JUBILEE HILLS-33KV TOLICHOWKI", "Alternate Source-1": "132 KV ASIFNAGAR-TOLICHOWKI", "Alternate Source-2": "132 KV JUBILEE HILLS-33KV MOTIMAHAL"}, "1103935401": {"Regular Source": "132 KV ASIFNAGAR-33 KV ADITYA TOWERS FEEDER", "Alternate Source-1": "132 KV JUBILEE HILLS-33KV GOLCONDA"}, "1093211401": {"Regular Source": "132KV SHIVRAMPALLY-33KV KARWAN", "Alternate Source-1": "132 KV IMLIBAN SS-33KV JIYAGUDA", "Alternate Source-2": "132 KV ASIFNAGAR-33KV KARWAN", "Alternate Source-3": "132 KV ASIFNAGAR-33KV GUDIMALKAPUR"}, "1093211402": {"Regular Source": "132 KV IMLIBAN SS-33KV JIYAGUDA", "Alternate Source-1": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH", "Alternate Source-2": "132 KV ASIFNAGAR-33KV ALLURI SEETHARAM RAJU NAGAR", "Alternate Source-3": "132KV SHIVRAMPALLY-33KV KARWAN"}, "1093212401": {"Regular Source": "132 KV ASIFNAGAR-33KV SEETARAMBAGH", "Alternate Source-1": "132 KV IMLIBAN SS-33KV GOSHAMAHAL", "Alternate Source-2": "132 KV ASIFNAGAR-33KV KULSUMPURA"}, "1093212402": {"Regular Source": "132 KV ASIFNAGAR-33KV KULSUMPURA", "Alternate Source-1": "132 KV IMLIBAN SS-33KV GOSHAMAHAL", "Alternate Source-2": "132 KV ASIFNAGAR-33KV SEETARAMBAGH"}, "1093222401": {"Regular Source": "132 KV IMLIBAN SS-33KV ENT", "Alternate Source-1": "132 KV IMLIBAN SS-33KV EXHIBITION"}, "1093223401": {"Regular Source": "132 KV IMLIBAN SS-33KV SULTANBAZAR (OLD BREAKER)", "Alternate Source-1": "132 KV IMLIBAN SS-33KV SULTANBAZAR (OLD BREAKER)", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)"}, "1093231401": {"Regular Source": "132 KV IMLIBAN SS-33KV OSMANIA HOSPITAL", "Alternate Source-1": "132 KV ASIFNAGAR-33KV SEETARAMBAGH", "Alternate Source-2": "132 KV IMLIBAN SS-33KV GOSHAMAHAL", "Alternate Source-3": "132 KV IMLIBAN SS-33KV EXHIBITION"}, "1093232401": {"Regular Source": "132 KV IMLIBAN SS-33KV GOSHAMAHAL", "Alternate Source-1": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH", "Alternate Source-2": "132 KV ASIFNAGAR-33KV KULSUMPURA"}, "1101511402": {"Regular Source": "132KV NARAYANGUDA-PUBLICGARDEN", "Alternate Source-1": "132 KV HUSSAINSAGAR-33KV PUBLIC GARDEN", "Alternate Source-2": "132 KV IMLIBAN SS-33KV EXHIBITION"}, "1101511403": {"Regular Source": "132 KV HUSSAINSAGAR-33KV INDIRA PARK /H.S.S.III", "Alternate Source-1": "132 KV PATIGADDA-INDIRAPARK", "Alternate Source-2": "132 KV OSMANIA UNIVERSITY-33KV INDIRAPARK"}, "1101512401": {"Regular Source": "132 KV NIMS-33KV ZP OFFICE", "Alternate Source-1": "132 KV ERRAGADDA-33KV ZP OFFICE"}, "1101513401": {"Regular Source": "132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II", "Alternate Source-1": "132 KV NIMS-33KV LAKE VIEW", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - I", "Alternate Source-3": "132 KV NIMS-33KV ERRAMANJIL"}, "1101513402": {"Regular Source": "132 KV NIMS-33KV ERRAMANJIL", "Alternate Source-1": "132 KV ERRAGADDA-33 KV ERRAMANZIL", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II", "Alternate Source-3": "132 KV PATIGADDA-33KV ZP OFFICE"}, "1101531401": {"Regular Source": "132KV NARAYANGUDA-HYDERGUDA", "Alternate Source-1": "132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)", "Alternate Source-2": "132 KV FEVER HOSPITAL-33KV SULTAN BAZAR"}, "1101531402": {"Regular Source": "132KV NARAYANGUDA-NIZAM COLLEGE", "Alternate Source-1": "132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HUSSAIN SAGAR - II"}, "1101533401": {"Regular Source": "132 KV IMLIBAN SS-33KV EXHIBITION", "Alternate Source-1": "33KV PUBLIC GARDEN-33KV EXHIBITION LINKLINE"}, "1101721401": {"Regular Source": "132 KV PATIGADDA-INDIRAPARK", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV INDIRA PARK", "Alternate Source-2": "132 KV OSMANIA UNIVERSITY-33KV INDIRAPARK"}, "1101722401": {"Regular Source": "132 KV FEVER HOSPITAL-33KV JAWAHAR NAGAR", "Alternate Source-1": "132 KV HUSSAINSAGAR-33KV INDIRA PARK /H.S.S.III"}, "1081132402": {"Regular Source": "132 KV PATIGADDA-33KV PRAKASH NAGAR", "Alternate Source-1": "132 KV PATIGADDA-33KV AIRPORT"}, "1851114402": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33 KV ADDAGUTTA FEEDER", "Alternate Source-1": "132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI", "Alternate Source-2": "132 KV GUNROCK-33KV NEW MARREDPALL(UG)"}, "1851221401": {"Regular Source": "132 KV GIS CHILKALGUDA-33KV PATIGADDA", "Alternate Source-1": "132 KV PATIGADDA-33KV BANSILALPET"}, "1851222401": {"Regular Source": "132 KV PATIGADDA-JAMES STREET", "Alternate Source-1": "132 KV GUNROCK-33KV JAMES STREET", "Alternate Source-2": "132 KV GUNROCK-33KV AIRPORT", "Alternate Source-3": "132 KV PATIGADDA-33KV KIMS"}, "1851222402": {"Regular Source": "132 KV PATIGADDA-33KV PATIGADDA", "Alternate Source-1": "132 KV PATIGADDA-33KV BANSILALPET", "Alternate Source-2": "132 KV PATIGADDA-33KV AIRPORT", "Alternate Source-3": "132 KV GIS CHILKALGUDA-33KV PATIGADDA"}, "1851222403": {"Regular Source": "132 KV PATIGADDA-33KV SANJEEVAOIAH PARK", "Alternate Source-1": "132 KV GUNROCK-33KV AIRPORT", "Alternate Source-2": "132 KV PATIGADDA-33KV PATIGADDA"}, "1851222404": {"Regular Source": "132 KV PATIGADDA-33KV KIMS", "Alternate Source-1": "132 KV GUNROCK-33KV KIMS(GUNROCK SS)", "Alternate Source-2": "132 KV GUNROCK-33KV JAMES STREET", "Alternate Source-3": "132 KV PATIGADDA-JAMES STREET"}, "1851224401": {"Regular Source": "132 KV GIS CHILKALGUDA-33KV CLOCK TOWER", "Alternate Source-1": "132 KV GUNROCK-33KV JAMES STREET"}, "1851224402": {"Regular Source": "132 KV PATIGADDA-MONDA MARKET", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV SEETHAPHALMANDI.", "Alternate Source-2": "132 KV GUNROCK-33KV NEHRU NAGAR"}, "1852111401": {"Regular Source": "132 KV GUNROCK-33KV NEHRU NAGAR", "Alternate Source-1": "132KV CHILKALGUDA SS - MONDAMARKET-NEHRUNAGAR(LINK LINE DEPENDS ON 33/11KV MOONDA MARKET SUPPLY)", "Alternate Source-2": "132 KV GIS CHILKALGUDA-33KV CLOCK TOWER", "Alternate Source-3": "132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI"}, "1852111402": {"Regular Source": "132 KV GUNROCK-33KV NEW MARREDPALL(UG)", "Alternate Source-1": "132 KV GUNROCK-33KV MAREDPALLY--MALKAJGIRI", "Alternate Source-2": "132 KV OSMANIA UNIVERSITY-33 KV ADDAGUTTA FEEDER", "Alternate Source-3": "132 KV GUNROCK-33KV NEHRU NAGAR"}, "1852113401": {"Regular Source": "132 KV GUNROCK-33KV GYMKHANA", "Alternate Source-1": "132 KV GUNROCK-33KV KIMS(GUNROCK SS)", "Alternate Source-2": "132 KV GUNROCK-33KV JAMES STREET"}, "1852121401": {"Regular Source": "132 KV GUNROCK-33KV GUN ROCK", "Alternate Source-1": "132 KV GUNROCK-33KV JAMES STREET", "Alternate Source-2": "132 KV GUNROCK-33KV H.M.T."}, "1852121403": {"Regular Source": "132 KV GUNROCK-33KV THIRUMALAGIRI", "Alternate Source-1": "132 KV GUNROCK-33KV KIMS(GUNROCK SS)", "Alternate Source-2": "132KV GUNROCK - MACHABOLLARAM-TIRUMALGIRI(LINK LINE)"}, "1852121404": {"Regular Source": "132 KV GUNROCK-33KV BHUDEVINAGAR", "Alternate Source-1": "132 KV GUNROCK-33KV H.M.T."}, "1852122401": {"Regular Source": "132 KV GUNROCK-33KV HAKEEMPET UG - II", "Alternate Source-1": "132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER", "Alternate Source-2": "132 KV GUNROCK-33KV R.P. NILAYAM", "Alternate Source-3": "132 KV MALKARAM-33 KV CRPF FEEDER"}, "1852122402": {"Regular Source": "132 KV GUNROCK-33KV MACCHABOLLARAM", "Alternate Source-1": "132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER", "Alternate Source-2": "132 KV MALKARAM-33 KV CRPF FEEDER"}, "1852123401": {"Regular Source": "132 KV GUNROCK-33KV R.P. NILAYAM", "Alternate Source-1": "132 KV GUNROCK-33KV HAKEEMPET UG - II", "Alternate Source-2": "132 KV GUNROCK-33 KV HAKEEMPET CABLE-II FEEDER", "Alternate Source-3": "132 KV GUNROCK-33 KV ALWAL FEEDER"}, "1852123403": {"Regular Source": "132 KV GUNROCK-33 KV ALWAL FEEDER", "Alternate Source-1": "132 KV GUNROCK-33KV HAKEEMPET UG - II"}, "1853111401": {"Regular Source": "132 KV GUNROCK-33KV BOWENPALLY", "Alternate Source-1": "132 KV GUNROCK-33KV H.M.T.", "Alternate Source-2": "132 KV GUNROCK-33KV BOWENPALLY", "Alternate Source-3": "132KV IDPL-33KV ALLWYN"}, "1853111402": {"Regular Source": "132 KV GUNROCK-33KV CHINNA THOKOTTA", "Alternate Source-1": "132 KV GUNROCK-33KV BOWENPALLY", "Alternate Source-2": "132 KV GUNROCK-33 KV NEW BOWENPALLY FEEDER"}, "1853122401": {"Regular Source": "132 KV GUNROCK-33 KV NEW BOWENPALLY FEEDER", "Alternate Source-1": "132 KV GUNROCK-33KV H.M.T.", "Alternate Source-2": "132KV IDPL-33KV ALLWYN"}, "1102411401": {"Regular Source": "132 KV FEVER HOSPITAL-33KV NARAYANGUDA", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA", "Alternate Source-2": "132 KV FEVER HOSPITAL-33KV JAWAHAR NAGAR", "Alternate Source-3": "132KV GIS HUS' SAGAR -SS-3 JAWAHAR NGR"}, "1102411402": {"Regular Source": "132KV NARAYANGUDA-VITTALWADI", "Alternate Source-1": "132 KV IMLIBAN SS-33KV KING KOTI (NEW)", "Alternate Source-2": "132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA"}, "1102412401": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33KV ZAMISTANPURA", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA"}, "1102421401": {"Regular Source": "132 KV FEVER HOSPITAL-33KV INDUSTRIAL AREA", "Alternate Source-1": "132 KV IMLIBAN SS-33KV INDUSTRIAL AREA", "Alternate Source-2": "132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA", "Alternate Source-3": "220 KV MOULA-ALI-33 KV AZAMABAD FEEDER"}, "1102421402": {"Regular Source": "132 KV FEVER HOSPITAL-33KV FEVER HOSPITAL", "Alternate Source-1": "132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA", "Alternate Source-2": "220 KV MOULA-ALI-33 KV AZAMABAD FEEDER"}, "1102431401": {"Regular Source": "132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA", "Alternate Source-1": "220 KV MOULA-ALI-33 KV AZAMABAD FEEDER", "Alternate Source-2": "132 KV MOOSARAMBAGH-33KV GOLNAKA"}, "1102432401": {"Regular Source": "132 KV MOOSARAMBAGH-33KV AMBERPET", "Alternate Source-1": "132 KV MOOSARAMBAGH-33KV DURGANAGAR", "Alternate Source-2": "132 KV BANDLAGUDA-33KV AMBERPET"}, "1102432402": {"Regular Source": "132 KV MOOSARAMBAGH-33KV DURGANAGAR", "Alternate Source-1": "132 KV MOOSARAMBAGH-33KV WATER WORKS", "Alternate Source-2": "132 KV IMLIBAN SS-33KV DURGANAGAR"}, "1102433401": {"Regular Source": "132 KV MOOSARAMBAGH-33KV GOLNAKA", "Alternate Source-1": "132 KV IMLIBAN SS-33KV INDUSTRIAL AREA", "Alternate Source-2": "132 KV FEVER HOSPITAL-33KV BATHKAMMAKUNTA"}, "1093221401": {"Regular Source": "132 KV FEVER HOSPITAL-33KV SULTAN BAZAR", "Alternate Source-1": "132 KV FEVER HOSPITAL-33KV SULTAN BAZAR", "Alternate Source-2": "132 KV HUSSAINSAGAR-33KV HYDERGUDA (NEW)", "Alternate Source-3": "132 KV IMLIBAN SS-33KV KING KOTI (NEW)"}, "1851111401": {"Regular Source": "132 KV GIS CHILKALGUDA-33KV CHILAKALAGUDA", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV INDUSTRIAL AREA", "Alternate Source-2": "132 KV IMLIBAN SS-33KV INDUSTRIAL AREA"}, "1851112401": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33KV OSMANIA UNIVERSITY", "Alternate Source-1": "132 KV OSMANIA UNIVERSITY-33KV LALAGUDA", "Alternate Source-2": "33KV CHILKALGUDA SS -33KV O.U. INTERLINK LINE", "Alternate Source-3": "33KV SEETHAPHALMANDI-33KV O.U INTERLINK LINE"}, "1851112402": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33KV IICT", "Alternate Source-1": "220 KV MOULA-ALI-33 KV AZAMABAD FEEDER", "Alternate Source-2": "132 KV OSMANIA UNIVERSITY-33KV LALAGUDA"}, "1851113401": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33KV SEETHAPHALMANDI", "Alternate Source-1": "132 KV GIS CHILKALGUDA-33KV SEETHAPHALMANDI.", "Alternate Source-2": "33KV O.U-33KV SEETHAPHALMANDI LINK LINE"}, "1851114401": {"Regular Source": "132 KV OSMANIA UNIVERSITY-33KV LALAGUDA", "Alternate Source-1": "132 KV OSMANIA UNIVERSITY-33KV SCR"}, "1091311401": {"Regular Source": "132 KV IMLIBAN SS-33KV SALARJUNG---KILWATH UG CABLE", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI", "Alternate Source-2": "MAILAR DEVI PALLY-DEVI BAGH", "Alternate Source-3": "132KV SHIVRAMPALLY-33 KV CHANDULALBARADARI UG CABLE FEEDER"}, "1091311402": {"Regular Source": "MAILAR DEVI PALLY-DEVI BAGH", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI", "Alternate Source-2": "132 KV IMLIBAN SS-33KV PETLABURZ"}, "1091312401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV PANJESHA FEEDER", "Alternate Source-1": "132 KV IMLIBAN SS-33KV PANJESHA"}, "1091313401": {"Regular Source": "132 KV IMLIBAN SS-33KV SALARJUNJ O/H", "Alternate Source-1": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH"}, "1091313402": {"Regular Source": "132 KV IMLIBAN SS-33KV PETLABURZ", "Alternate Source-1": "MAILAR DEVI PALLY-DEVI BAGH", "Alternate Source-2": "132 KV IMLIBAN SS-33KV SEETHARAMBAGH"}, "1091321401": {"Regular Source": "132 KV MAMIDIPALLY-33 KV CRPF", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV CRPF", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV FALAKNUMA", "Alternate Source-3": "132KV MD PALLY-KANDIKAGATE-CRPF LINK LINE"}, "1091323401": {"Regular Source": "MAILAR DEVI PALLY-FALAKNAMA", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV FALAKNUMA", "Alternate Source-2": "MAILAR DEVI PALLY-ALIABAD"}, "1091323402": {"Regular Source": "MAILAR DEVI PALLY-KANDIKAL GATE", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV KANDIKAL GATE", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV CRPF"}, "1091331402": {"Regular Source": "132KV SHIVRAMPALLY-33 KV SHIVARAMPALLY-HYDERGUDA UG FEEDER", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV HYDERGUDA", "Alternate Source-2": "132KV SHIVRAMPALLY-33KV KARWAN", "Alternate Source-3": "132KV SHIVRAMPALLY-33KV ATTAPUR"}, "1091332401": {"Regular Source": "132KV SHIVRAMPALLY-33 KV CHANDULALBARADARI UG CABLE FEEDER", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI", "Alternate Source-2": "132 KV IMLIBAN SS-33KV SALARJUNG---KILWATH UG CABLE"}, "1091333401": {"Regular Source": "132KV SHIVRAMPALLY-33KV MIRALAM", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI", "Alternate Source-2": "132KV SHIVRAMPALLY-33KV SHAMSHABAD(SHIVARAMPALLY SS)"}, "1091333402": {"Regular Source": "MAILAR DEVI PALLY-ALIABAD", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV SHAMSHABAD(SHIVARAMPALLY SS)"}, "1091333403": {"Regular Source": "MAILAR DEVI PALLY-NPA", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI", "Alternate Source-2": "MAILAR DEVI PALLY-DEVI BAGH"}, "1091334401": {"Regular Source": "132KV SHIVRAMPALLY-33KV ATTAPUR", "Alternate Source-1": "132KV SHIVRAMPALLY-33KV HYDERGUDA", "Alternate Source-2": "132KV SHIVRAMPALLY-33KV CHANDULAL BARADRI"}, "1091322401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV ARUNDATHI NAGAR COLONY FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-II", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV CRPF"}, "1092811401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV MALAKPET B QUATERS FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV LAXMI NAGAR", "Alternate Source-2": "132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER"}, "1092812401": {"Regular Source": "132 KV MOOSARAMBAGH-33KV MOOSARAMBAGH", "Alternate Source-1": "132 KV MOOSARAMBAGH-33KV ASMANGADH", "Alternate Source-2": "132 KV BANDLAGUDA-33KV MOOSARAMBAGH", "Alternate Source-3": "220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA"}, "1092812402": {"Regular Source": "132 KV MOOSARAMBAGH-33KV TEEGALAGUA", "Alternate Source-1": "132 KV BANDLAGUDA-33KV MOOSARAMBAGH", "Alternate Source-2": "33KV DURGA NAGAR-33KV TEEGALGUDA LINKLINE(DEPENDS ON 33/11KV DURGANAGARSS SUPPLY)", "Alternate Source-3": "220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA"}, "1092813401": {"Regular Source": "132 KV MOOSARAMBAGH-33KV ASMANGADH", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV ASMANGADH", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV MALAKPETGUNJ", "Alternate Source-3": "220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER"}, "1092813402": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV LAXMI NAGAR FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV LAXMI NAGAR", "Alternate Source-2": "132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER", "Alternate Source-3": "220 KV CHANDRAYANA GUTTA-33KV CRPF"}, "1092822401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV YAKUTHPURA FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I", "Alternate Source-2": "132 KV IMLIBAN SS-33KV YAKUTHPURA"}, "1092823401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV SANTOSH NAGAR FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR -UG", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I", "Alternate Source-3": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-II"}, "1092823402": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV MIDHANI FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV SANTOSH NAGAR-I", "Alternate Source-2": "220 KV CHANDRAYANA GUTTA-33KV KANCHANBAGH"}, "1092824401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV MADANNAPET FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-MADANNAPET", "Alternate Source-2": "220/33 KV CHANCHALGUDA SS-33 KV SANTOSH NAGAR FEEDER"}, "1092831401": {"Regular Source": "132 KV MOOSARAMBAGH-MALAKPET", "Alternate Source-1": "132 KV IMLIBAN SS-33KV MALAKPET", "Alternate Source-2": "132 KV IMLIBAN SS-33KV DURGANAGAR"}, "1092832401": {"Regular Source": "220/33 KV CHANCHALGUDA SS-33 KV CHANCHALGUDA FEEDER", "Alternate Source-1": "220 KV CHANDRAYANA GUTTA-33KV CHANCHALGUDA", "Alternate Source-2": "220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER"}, "1092833401": {"Regular Source": "132 KV IMLIBAN SS-33KV YAKUTHPURA", "Alternate Source-1": "220/33 KV CHANCHALGUDA SS-33 KV ASMANGADH FEEDER"}, "1092834402": {"Regular Source": "220 KV CHANDRAYANA GUTTA-33KV MALAKPETGUNJ", "Alternate Source-1": "132 KV IMLIBAN SS-33KV MALAKPET GUNJ", "Alternate Source-2": "132 KV MOOSARAMBAGH-33KV MALAKPET B QUARTER"}};
+const DROPDOWNS = {"agency": ["TRANSCO", "LINES", "33/11KV SUBSTATION", "DISCOM CONTROL ROOM", "MP", "Construction"], "typeOfOutage": ["Breakdown", "Tripping", "Hand Tripped", "GC Tripping", "Momentary Tripping", "Planned Line Clear", "Emergency Line Clear", "EHT Line Clear", "EHT Pullout", "Cable Fault", "Feeder Hand Tripped", "Incoming Supply Failure", "Load Change Over", "Loads Normalised", "Change Over", "ISF", "Blink", "Other"], "typeOfOperation": ["Change Over", "Normalised", "Restored", "LV Side Load Changeover", "Loads Changeover"], "relayIndication": ["E/L", "O/L", "E/L+O/L", "E/L R Ph", "E/L Y Ph", "E/L B Ph", "E/L O/L R Ph", "E/L O/L Y Ph", "E/L O/L B Ph", "LC", "IC", "LT", "No Indication", "Manual", "Others"], "identifiedFault": ["PMI Work", "Preventive Maintenance", "Endkit Replacement", "Cable Fault", "Cable Joint Failed", "HT Consumer End Fault", "AB Switch Maintenance", "Thermovision Scanning", "Breaker Maintenance", "Pin Insulator Replacement", "Tree Branches", "Bird Hit", "Jumper Cut", "Feeder Overload", "Over Load", "No Visible Fault", "Red Hot", "Safety Purpose", "As per Request of AE/Lines", "As per Instruction of AE/Lines", "Load Change Over", "Loads Normalised", "Others"], "natureOfFault": ["Temporary", "Permanent"], "weatherCondition": ["Normal", "Rain", "Gale", "Rain & Gale", "Wind", "Stormy"], "rectificationWork": ["Loads normalised done", "Load Change over done", "Work completed", "Feeder charged ok", "Same supply restored", "PMI work completed", "Thermo vision scanning points attended", "Endkit replacement completed", "Cable joint completed", "Tree trimming done", "Jumper repaired", "Breaker repaired", "AB switch maintenance done", "Pin insulator replaced", "Bird-hit cleared", "Others"]};
 
-function onSSChange() {
-  const ssSelect = document.getElementById('ss_name');
-  const code = ssSelect.value;
-  if (!code) {
-    document.getElementById('ss_code').value = '';
-    document.getElementById('lines_circle').value = '';
-    return;
-  }
-  const ss = SS_DATA.find(s => s.ss_code === code);
-  if (!ss) return;
-  document.getElementById('ss_code').value = ss.ss_code;
-  document.getElementById('lines_circle').value = ss.lines_division;
-  // Auto-fill cascade hierarchy if not already set
-  if (!document.getElementById('op_circle').value) {
-    document.getElementById('op_circle').value = ss.op_circle;
-    filterByCircle();
-    document.getElementById('lines_division').value = ss.lines_division;
-    filterByDivision();
-    document.getElementById('sub_division').value = ss.sub_division;
-    filterBySubDiv();
-    document.getElementById('section').value = ss.section;
-  }
-  // ── Auto-fill 33KV sources from DATABASE ──────────────────────
-  const src = SOURCES_MAP[code] || {};
-  const reg = src['Regular Source'] || '';
-  const alt1 = src['Alternate Source-1'] || '';
-  const alt2 = src['Alternate Source-2'] || '';
-  const alt3 = src['Alternate Source-3'] || '';
+// ─── Firebase-loaded master data ───
+let MASTER_PTRS    = {};   // by ss code safekey → PTR record
+let MASTER_TOPO    = {};   // by feeder safekey → {feedsTo, ehtSource, ...}
+let MASTER_SS_TOPO = {};   // by SS safekey → {sourceFeeders: [...]}
+let FEEDER_STATUS  = {};   // by feeder safekey → "live"|"breakdown"|"idle"
+let BREAKDOWNS     = {};   // by id → record
+let CURRENT_RECT_ID = null;   // currently rectifying breakdown id
 
-  // Extract EHT (132KV SS) from regular source string
-  const ehtMatch = reg.match(/^(132 KV [^-]+)/i);
-  const ehtSS = ehtMatch ? ehtMatch[1].trim() : '';
+// ─── helpers ───
+function safeFbKey(name){
+  return String(name||'').toUpperCase()
+    .replace(/[.#$\[\]\/]/g,'_').replace(/\s+/g,'_')
+    .replace(/[^A-Z0-9_-]/g,'').substring(0,180) || 'EMPTY';
+}
+const nowISO = () => new Date().toISOString();
+const $ = id => document.getElementById(id);
 
-  // Set 33KV source feeder field
-  const feeder33 = document.getElementById('feeder_33kv');
-  if (feeder33 && !feeder33.value && reg) feeder33.value = reg;
-
-  // Set name_eht field
-  const nameEHT = document.getElementById('name_eht');
-  if (nameEHT && !nameEHT.value && reg) nameEHT.value = reg;
-
-  // Populate EHT substation dropdown
-  const ehtSel = document.getElementById('eht_substation');
-  if (ehtSel && ehtSS) {
-    // Try to find exact match first, then partial
-    let matched = false;
-    for (let i = 0; i < ehtSel.options.length; i++) {
-      if (ehtSel.options[i].text.toUpperCase().includes(ehtSS.toUpperCase().replace('132 KV ',''))) {
-        ehtSel.selectedIndex = i; matched = true; break;
-      }
-    }
-    // If no match, add a temporary option
-    if (!matched && ehtSS) {
-      const opt = document.createElement('option');
-      opt.value = ehtSS; opt.textContent = ehtSS; opt.selected = true;
-      ehtSel.appendChild(opt);
-    }
-  }
-
-  // Populate alt_source dropdown
-  const altSel = document.getElementById('alt_source');
-  if (altSel && !altSel.value && alt1) {
-    // Try to match existing options
-    let matched = false;
-    for (let i = 0; i < altSel.options.length; i++) {
-      if (altSel.options[i].text.toUpperCase().includes(alt1.slice(-15).toUpperCase())) {
-        altSel.selectedIndex = i; matched = true; break;
-      }
-    }
-    if (!matched && alt1) {
-      const opt = document.createElement('option');
-      opt.value = alt1; opt.textContent = alt1; opt.selected = true;
-      altSel.appendChild(opt);
-    }
-  }
-
-  // Show source badge below the SS selector
-  let badge = document.getElementById('ss-source-badge');
-  if (!badge) {
-    badge = document.createElement('div');
-    badge.id = 'ss-source-badge';
-    badge.style.cssText = 'margin-top:6px;padding:8px 12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;font-size:10px;color:#0369a1;line-height:1.8';
-    const ssField = document.getElementById('ss_name').parentElement;
-    ssField.appendChild(badge);
-  }
-  let html = '';
-  if (reg)  html += '<div><strong>Regular:</strong> ' + reg + '</div>';
-  if (alt1) html += '<div><strong>Alt-1:</strong> ' + alt1 + '</div>';
-  if (alt2) html += '<div><strong>Alt-2:</strong> ' + alt2 + '</div>';
-  if (alt3) html += '<div><strong>Alt-3:</strong> ' + alt3 + '</div>';
-  badge.innerHTML = html || '<span style="color:#94a3b8">No source data</span>';
+function toast(msg, isErr=false){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.toggle('err', !!isErr);
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 3200);
 }
 
-// ─── RADIO ──────────────────────────────────────────────────
-function selectRadio(name, value, el) {
-  selectedRadios[name] = value;
-  document.querySelectorAll(`[onclick*="selectRadio('${name}'"]`).forEach(btn => btn.classList.remove('selected'));
+function setSyncChip(mode, txt){
+  const el = $('fbSyncChip');
+  if (!el) return;
+  el.className = mode === 'live' ? 'live' : '';
+  el.textContent = txt;
+}
+function flashSync(){ const el = $('fbSyncChip'); if (el){ el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 600); } }
+
+// ─── Pill selection helper ───
+function selectPill(groupId, el){
+  const g = $(groupId);
+  if (!g) return;
+  g.querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
   el.classList.add('selected');
 }
+function getPillValue(groupId){
+  const g = $(groupId);
+  return g ? (g.querySelector('.pill.selected')?.dataset.val || '') : '';
+}
 
-// ─── DURATION CALC ──────────────────────────────────────────
-function calcDuration() {
-  const f = document.getElementById('failure_time').value;
-  const r = document.getElementById('restoration_time').value;
-  if (f && r) {
-    const diff = (new Date(r) - new Date(f)) / 60000;
-    if (diff >= 0) {
-      const h = Math.floor(diff / 60), m = Math.floor(diff % 60);
-      document.getElementById('duration_display').value = `${h}h ${m}m`;
-      document.getElementById('duration_min').value = Math.round(diff);
-    } else {
-      document.getElementById('duration_display').value = 'Invalid';
-      document.getElementById('duration_min').value = '';
-    }
+// ─── Clock ───
+function tickClock(){
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  $('nowClock').textContent =
+    `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+setInterval(tickClock, 1000); tickClock();
+
+// ─── Tab switching ───
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.pane === name));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + name));
+  if (name === 'rect')  renderOpenBreakdowns();
+  if (name === 'hist')  applyHistFilters();
+}
+
+// ─── Populate the feeder + SS datalists from SOURCES_MAP and SS_DATA ───
+function populateDatalists(){
+  // Build unique feeder set from SOURCES_MAP values
+  const feeders = new Set();
+  Object.values(SOURCES_MAP).forEach(src => {
+    Object.values(src).forEach(f => { if (f) feeders.add(f); });
+  });
+  // Also include from MASTER_TOPO (richer)
+  Object.values(MASTER_TOPO).forEach(t => { if (t.feederName) feeders.add(t.feederName); });
+
+  const list1 = $('log_feeder_list');
+  const list2 = $('fail_feeder_list');
+  const list3 = $('fail_alt_list');
+  const opts = [...feeders].sort().map(f => `<option value="${f.replace(/"/g,'&quot;')}">`).join('');
+  if (list1) list1.innerHTML = opts;
+  if (list2) list2.innerHTML = opts;
+  if (list3) list3.innerHTML = opts;
+
+  // SS list
+  const ssOpts = SS_DATA.map(s => `<option value="${s.ss_name.replace(/"/g,'&quot;')}" data-code="${s.ss_code}">`).join('');
+  const ssList = $('log_ss_list'); if (ssList) ssList.innerHTML = ssOpts;
+}
+
+// ─── LOG ENTRY (tab 1) auto-fill ───
+function onLogFeederChange(){
+  const fn = $('log_feeder_search').value.trim();
+  if (!fn){ ['log_feeder_code','log_eht','log_div','log_subdiv','log_section'].forEach(id => { if($(id)) $(id).value = ''; }); return; }
+  const sk = safeFbKey(fn);
+  const t = MASTER_TOPO[sk] || {};
+  $('log_feeder_code').value = t.feederCode || '';
+  $('log_eht').value         = t.ehtSource  || '';
+  $('log_div').value         = t.division   || '';
+  $('log_subdiv').value      = t.sub_division || '';
+  $('log_section').value     = t.section    || '';
+}
+
+function onLogSSChange(){
+  const ssName = $('log_ss_search').value.trim();
+  if (!ssName){ $('log_ss_code').value = ''; $('log_ptr_card').style.display = 'none'; return; }
+  // Find SS
+  const ss = SS_DATA.find(s => s.ss_name === ssName) ||
+             SS_DATA.find(s => s.ss_name.toUpperCase() === ssName.toUpperCase());
+  if (!ss){ $('log_ss_code').value = ''; $('log_ptr_card').style.display = 'none'; return; }
+  $('log_ss_code').value = ss.ss_code;
+
+  // Find PTR info
+  const ptr = MASTER_PTRS[safeFbKey(ss.ss_code)]
+           || Object.values(MASTER_PTRS).find(p => p.ssCode === ss.ss_code)
+           || Object.values(MASTER_PTRS).find(p => (p.ssName||'').toUpperCase() === ssName.toUpperCase());
+  if (ptr && Array.isArray(ptr.ptrCapacities) && ptr.ptrCapacities.length){
+    $('log_ptr_card').style.display = 'block';
+    $('log_ptr_list').innerHTML = ptr.ptrCapacities.map((cap, i) => {
+      const num = ['I','II','III','IV','V','VI','VII','VIII','IX','X'][i] || (i+1);
+      return `<label class="ptr-chip" onclick="event.preventDefault();this.classList.toggle('selected');this.querySelector('input').checked=this.classList.contains('selected');updatePTRTotal()">
+        <input type="checkbox" data-cap="${cap}"> PTR-${num} — ${cap} MVA
+      </label>`;
+    }).join('');
+    $('log_ptr_total').textContent = `Total installed: ${ptr.totalCapacityMVA || 0} MVA across ${ptr.ptrCount || 0} PTR(s)`;
+  } else {
+    $('log_ptr_card').style.display = 'none';
   }
 }
 
-function calcLCDuration() {
-  const f = document.getElementById('rectified_time').value;
-  const r = document.getElementById('lc_completed').value;
-  if (f && r) {
-    const diff = (new Date(r) - new Date(f)) / 60000;
-    if (diff >= 0) {
-      const h = Math.floor(diff / 60), m = Math.floor(diff % 60);
-      document.getElementById('lc_duration_display').value = `${h}h ${m}m`;
-    } else {
-      document.getElementById('lc_duration_display').value = 'Invalid';
-    }
+function updatePTRTotal(){
+  const checked = $('log_ptr_list').querySelectorAll('input:checked');
+  let selSum = 0;
+  checked.forEach(cb => selSum += parseFloat(cb.dataset.cap || 0));
+  const orig = $('log_ptr_total').textContent.split(' • ')[0];
+  $('log_ptr_total').textContent = `${orig} • Selected: ${selSum} MVA (${checked.length} PTR)`;
+}
+
+async function saveLogEntry(){
+  const fn = $('log_feeder_search').value.trim();
+  const ssName = $('log_ss_search').value.trim();
+  const status = getPillValue('log_status_group') || 'live';
+  if (!fn){ toast('Pick a 33KV Feeder', true); return; }
+  if (!ssName){ toast('Pick a Substation', true); return; }
+  const selPTRs = [...$('log_ptr_list').querySelectorAll('input:checked')].map(cb => parseFloat(cb.dataset.cap));
+  const fbk = safeFbKey(fn);
+  const now = nowISO();
+  try {
+    await fetch(`${FIREBASE_URL}/feeders/${fbk}.json`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        feederName: fn, status, lastUpdated: now,
+        feedsToSS: ssName, ptrsConnected: selPTRs
+      })
+    });
+    toast(`✓ Saved log entry — ${fn.substring(0,40)}…`);
+    $('log_status_msg').textContent = `Last saved: ${new Date().toLocaleString()}`;
+  } catch (err){
+    toast('Save failed: ' + err.message, true);
   }
 }
 
-// ─── LOG ENTRY ──────────────────────────────────────────────
-function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
-
-function logBreakdown() {
-  if (!getVal('ss_name')) { alert('Please select a Substation.'); return; }
-  if (!getVal('failure_time')) { alert('Please enter Failure Date & Time.'); return; }
-  if (!getVal('feeder_33kv')) { alert('Please enter 33KV Source / Feeder.'); return; }
-
-  entryCounter++;
-  const entry = {
-    id: entryCounter,
-    ss_name: document.getElementById('ss_name').options[document.getElementById('ss_name').selectedIndex].text,
-    ss_code: getVal('ss_code'),
-    op_circle: getVal('op_circle'),
-    lines_division: getVal('lines_division'),
-    sub_division: getVal('sub_division'),
-    section: getVal('section'),
-    failure_time: getVal('failure_time'),
-    eht_substation: getVal('eht_substation'),
-    feeder_33kv: getVal('feeder_33kv'),
-    agency: selectedRadios['agency'] || '',
-    outage_type: selectedRadios['outage_type'] || '',
-    ops_type: getVal('ops_type'),
-    relay: getVal('relay'),
-    identified_fault: getVal('identified_fault'),
-    fault_nature: selectedRadios['fault_nature'] || '',
-    weather: getVal('weather'),
-    person_responsible: getVal('person_responsible'),
-    fpi_location: getVal('fpi_location'),
-    name_eht: getVal('name_eht'),
-    alt_source: getVal('alt_source'),
-    restoration_time: getVal('restoration_time'),
-    duration: getVal('duration_display'),
-    duration_min: getVal('duration_min'),
-    root_cause: getVal('root_cause'),
-    rectified_time: getVal('rectified_time'),
-    rectification_details: getVal('rectification_details'),
-    lc_taken_from: getVal('lc_taken_from'),
-    lc_completed: getVal('lc_completed'),
-    lc_duration: getVal('lc_duration_display'),
-    remarks: getVal('remarks')
-  };
-  entries.push(entry);
-  saveToStorage();
-  renderLog();
-  showToast();
-  clearForm();
+function clearPane(name){
+  if (name === 'log'){
+    ['log_feeder_search','log_feeder_code','log_eht','log_div','log_subdiv','log_section','log_ss_search','log_ss_code'].forEach(id => { if($(id)) $(id).value = ''; });
+    $('log_ptr_card').style.display = 'none';
+    document.querySelectorAll('#log_status_group .pill.selected').forEach(p => p.classList.remove('selected'));
+  } else if (name === 'failure'){
+    ['fail_feeder_search','fail_time','fail_eht','fail_feeds_to','fail_alt','fail_alt_eht','fail_outage_type','fail_op_type','fail_relay','fail_fault','fail_weather','fail_current','fail_person','fail_phone','fail_fpi','fail_remarks'].forEach(id => { if($(id)) $(id).value = ''; });
+    $('failAltPanel').style.display = 'none';
+    document.querySelectorAll('#fail_agency_group .pill.selected, #fail_nature_group .pill.selected').forEach(p => p.classList.remove('selected'));
+  }
 }
 
-function renderLog() {
-  const tbody = document.getElementById('logBody');
-  document.getElementById('logCountBadge').textContent = entries.length;
-  document.getElementById('entryStatus').textContent = `${entries.length} entr${entries.length === 1 ? 'y' : 'ies'} logged this session`;
+// ─── FAILURE ENTRY (tab 2) ───
+function onFailFeederChange(){
+  const fn = $('fail_feeder_search').value.trim();
+  if (!fn){ ['fail_eht','fail_feeds_to'].forEach(id => $(id).value = ''); $('failAltPanel').style.display = 'none'; return; }
+  const sk = safeFbKey(fn);
+  const t = MASTER_TOPO[sk];
+  if (t){
+    $('fail_eht').value      = t.ehtSource || '';
+    $('fail_feeds_to').value = (t.feedsTo || []).join(', ');
+  } else {
+    $('fail_eht').value = '';
+    $('fail_feeds_to').value = '';
+  }
+  refreshFailAlternates();
+}
 
-  if (!entries.length) {
-    tbody.innerHTML = '<tr><td colspan="24" class="empty-log">No entries yet.</td></tr>';
+function refreshFailAlternates(){
+  // For each SS this feeder feeds to, list other source feeders + their statuses
+  const fn = $('fail_feeder_search').value.trim();
+  if (!fn){ $('failAltPanel').style.display = 'none'; return; }
+  const sk = safeFbKey(fn);
+  const t = MASTER_TOPO[sk];
+  if (!t || !t.feedsTo || !t.feedsTo.length){ $('failAltPanel').style.display = 'none'; return; }
+
+  // Collect alternate feeders that feed any of the SSes this feeder feeds
+  const altMap = new Map();   // feederName → ehtSource
+  t.feedsTo.forEach(ssName => {
+    const ssRec = MASTER_SS_TOPO[safeFbKey(ssName)];
+    if (!ssRec || !ssRec.sourceFeeders) return;
+    ssRec.sourceFeeders.forEach(s => {
+      if (s.feederName !== fn) altMap.set(s.feederName, s.ehtSource || '');
+    });
+  });
+
+  if (altMap.size === 0){
+    $('failAltPanel').style.display = 'block';
+    $('failAltList').innerHTML = `<div style="color:#94a3b8;padding:10px;font-style:italic;font-size:11px">No alternate feeders found in master topology for this SS. Either no alternates exist, or the SS isn't yet in /masterData/ssTopology.</div>`;
+    $('alt_count_chip').textContent = '0';
     return;
   }
 
-  tbody.innerHTML = entries.map((e, i) => {
-    const typeBadge = e.outage_type === 'Breakdown' ? 'badge-red' : e.outage_type === 'Planned' ? 'badge-green' : e.outage_type === 'Emergency' ? 'badge-amber' : 'badge-blue';
-    const natureBadge = e.fault_nature === 'Permanent' ? 'badge-red' : 'badge-amber';
-    const ft = e.failure_time ? e.failure_time.replace('T', ' ') : '—';
-    const rt = e.restoration_time ? e.restoration_time.replace('T', ' ') : '—';
-    const rct = e.rectified_time ? e.rectified_time.replace('T', ' ') : '—';
-    const lct = e.lc_completed ? e.lc_completed.replace('T', ' ') : '—';
+  $('failAltPanel').style.display = 'block';
+  $('alt_count_chip').textContent = altMap.size;
+
+  const rows = [...altMap.entries()].map(([feederName, eht], i) => {
+    const stSk = safeFbKey(feederName);
+    const st = FEEDER_STATUS[stSk] || 'live';
+    const canPick = (st === 'live');
+    return `<div class="alt-row">
+      <span class="alt-num">#${i+1}</span>
+      <span class="alt-name" title="EHT: ${eht || 'unknown'}">${feederName}</span>
+      <span class="alt-tag">ALT</span>
+      <span class="alt-status ${st}">${st}</span>
+      <button class="alt-action" ${canPick?'':'disabled'} onclick="pickAlternate('${feederName.replace(/'/g,"\\'")}','${eht.replace(/'/g,"\\'")}')">${canPick?'USE':'—'}</button>
+    </div>`;
+  }).join('');
+  $('failAltList').innerHTML = rows;
+}
+
+window.pickAlternate = function(feederName, eht){
+  $('fail_alt').value = feederName;
+  $('fail_alt_eht').value = eht || '';
+  toast(`Selected alternate: ${feederName.substring(0,40)}…`);
+};
+
+async function logFailure(){
+  const fn = $('fail_feeder_search').value.trim();
+  if (!fn){ toast('Pick the failed 33KV Feeder', true); return; }
+  const failTime = $('fail_time').value;
+  if (!failTime){ toast('Set the Failure Date & Time', true); return; }
+  const agency = getPillValue('fail_agency_group');
+  const outage = $('fail_outage_type').value;
+  if (!agency){ toast('Select the Agency', true); return; }
+  if (!outage){ toast('Select the Type of Outage', true); return; }
+
+  const id = 'BD_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+  const now = nowISO();
+  const fbk = safeFbKey(fn);
+  const ssTarget = $('fail_feeds_to').value;
+  const ssArr = ssTarget ? ssTarget.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const primarySS = ssArr[0] || '';
+  const ss = primarySS ? SS_DATA.find(s => s.ss_name === primarySS) : null;
+
+  const payload = {
+    id,
+    feederName: fn,
+    feederCode: (MASTER_TOPO[fbk] || {}).feederCode || '',
+    substationName: primarySS,
+    substationCode: ss ? ss.ss_code : '',
+    division:     ss ? ss.lines_division : (MASTER_TOPO[fbk]||{}).division || '',
+    sub_division: ss ? ss.sub_division   : (MASTER_TOPO[fbk]||{}).sub_division || '',
+    section:      ss ? ss.section        : (MASTER_TOPO[fbk]||{}).section || '',
+    ehtSource:    $('fail_eht').value,
+    alternativeSource: $('fail_alt').value,
+    alternativeEHT:    $('fail_alt_eht').value,
+    failureDateTime:   new Date(failTime).toISOString(),
+    agency,
+    outageType: outage,
+    operationType:    $('fail_op_type').value,
+    relayIndication:  $('fail_relay').value,
+    identifiedFault:  $('fail_fault').value,
+    natureOfFault: getPillValue('fail_nature_group'),
+    weatherCondition: $('fail_weather').value,
+    faultCurrent:     $('fail_current').value,
+    personResponsible:$('fail_person').value,
+    phoneNumber:      $('fail_phone').value,
+    fpiActed:         $('fail_fpi').value,
+    additionalRemarks:$('fail_remarks').value,
+    enteredAt: now,
+    updatedAt: now,
+    isOpen: true,
+    feedsAllSS: ssArr
+  };
+
+  try {
+    await fetch(`${FIREBASE_URL}/breakdowns/${id}.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    await fetch(`${FIREBASE_URL}/feeders/${fbk}.json`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        status: 'breakdown', lastUpdated: now,
+        lastBreakdownId: id, feederName: fn
+      })
+    });
+    toast(`⚡ Breakdown logged: ${id}`);
+    $('fail_status_msg').textContent = `Logged ${id} at ${new Date().toLocaleString()}`;
+    flashSync();
+    clearPane('failure');
+  } catch (err){
+    toast('Log failed: ' + err.message, true);
+  }
+}
+
+// ─── RECTIFICATION (tab 3) ───
+function renderOpenBreakdowns(){
+  const tb = $('rect_open_tbody');
+  if (!tb) return;
+  const open = Object.values(BREAKDOWNS).filter(b => b && (b.isOpen === true || !b.restorationDateTime))
+    .sort((a,b) => (b.failureDateTime||'').localeCompare(a.failureDateTime||''));
+
+  $('rect_count_pill').textContent = open.length + ' OPEN';
+  const badge = $('openCntBadge');
+  if (badge){ badge.style.display = open.length ? '' : 'none'; badge.textContent = open.length; }
+
+  if (!open.length){
+    tb.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">No open breakdowns 🎉</td></tr>`;
+    return;
+  }
+  tb.innerHTML = open.map((b,i) => {
+    const failT = new Date(b.failureDateTime || 0);
+    const dur = b.failureDateTime ? humanDuration(Date.now() - failT.getTime()) : '—';
     return `<tr>
-      <td><strong>${e.id}</strong></td>
-      <td style="white-space:nowrap;font-weight:600;color:#1e3a6b">${e.ss_name}</td>
-      <td>${e.section || '—'}</td>
-      <td>${e.feeder_33kv || '—'}</td>
-      <td>${e.eht_substation || '—'}</td>
-      <td style="white-space:nowrap">${ft}</td>
-      <td><span class="status-badge ${typeBadge}">${e.outage_type || '—'}</span></td>
-      <td>${e.agency || '—'}</td>
-      <td>${e.relay || '—'}</td>
-      <td>${e.identified_fault || '—'}</td>
-      <td><span class="status-badge ${natureBadge}">${e.fault_nature || '—'}</span></td>
-      <td>${e.weather || '—'}</td>
-      <td style="white-space:nowrap">${rt}</td>
-      <td><strong>${e.duration || '—'}</strong></td>
-      <td>${e.alt_source || '—'}</td>
-      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.root_cause || '—'}</td>
-      <td style="white-space:nowrap">${rct}</td>
-      <td>${e.lc_taken_from || '—'}</td>
-      <td style="white-space:nowrap">${lct}</td>
-      <td>${e.lc_duration || '—'}</td>
-      <td>${e.fpi_location || '—'}</td>
-      <td>${e.person_responsible || '—'}</td>
-      <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.remarks || '—'}</td>
-      <td><button class="del-btn" onclick="deleteEntry(${i})">✕</button></td>
+      <td>${i+1}</td>
+      <td style="white-space:nowrap;font-variant-numeric:tabular-nums">${failT.toLocaleString()}</td>
+      <td title="${b.feederName||''}" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.feederName||'—'}</td>
+      <td>${b.substationName||'—'}</td>
+      <td><span class="status-pill open">${b.outageType||'BREAKDOWN'}</span></td>
+      <td style="font-variant-numeric:tabular-nums">${dur}</td>
+      <td><button class="row-btn success" onclick="openRectification('${b.id}')">✎ RECTIFY</button></td>
     </tr>`;
   }).join('');
 }
 
-function deleteEntry(i) {
-  entries.splice(i, 1);
-  saveToStorage();
-  renderLog();
+function humanDuration(ms){
+  if (!ms || ms < 0) return '—';
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60);
+  return `${h}h ${m}m`;
 }
 
-function clearLog() {
-  if (entries.length && !confirm('Clear all logged entries?')) return;
-  entries = [];
-  entryCounter = 0;
-  saveToStorage();
-  renderLog();
+window.openRectification = function(id){
+  const b = BREAKDOWNS[id]; if (!b){ toast('Record not found', true); return; }
+  CURRENT_RECT_ID = id;
+  $('rect_form').style.display = 'block';
+  $('rect_actions').style.display = '';
+  $('rect_target_name').textContent = `${b.feederName} → ${b.substationName||'?'}  (${b.outageType||'BREAKDOWN'})`;
+  $('rect_restore_time').value = '';
+  $('rect_duration').value = '';
+  $('rect_rectified_time').value = '';
+  $('rect_work').value = '';
+  $('rect_lc_from').value = '';
+  $('rect_lc_completed').value = '';
+  $('rect_root_cause').value = '';
+  $('rect_remarks').value = '';
+  $('rect_form').scrollIntoView({behavior:'smooth', block:'start'});
+};
+
+function cancelRectification(){
+  CURRENT_RECT_ID = null;
+  $('rect_form').style.display = 'none';
+  $('rect_actions').style.display = 'none';
 }
 
-// ─── FORM CLEAR ─────────────────────────────────────────────
-function clearForm() {
-  ['ss_name','ss_code','op_circle','lines_circle','lines_division','sub_division','section',
-   'failure_time','eht_substation','feeder_33kv','ops_type','relay','identified_fault',
-   'weather','person_responsible','fpi_location','name_eht','alt_source','restoration_time',
-   'duration_display','duration_min','root_cause','rectified_time','rectification_details',
-   'lc_taken_from','lc_completed','lc_duration_display','remarks'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
+function recalcRectDuration(){
+  const b = BREAKDOWNS[CURRENT_RECT_ID]; if (!b) return;
+  const start = new Date(b.failureDateTime || 0).getTime();
+  const end = new Date($('rect_restore_time').value).getTime();
+  if (!start || !end || end < start){ $('rect_duration').value = ''; return; }
+  $('rect_duration').value = humanDuration(end - start);
+}
+
+async function saveRectification(){
+  if (!CURRENT_RECT_ID){ toast('No record open', true); return; }
+  const b = BREAKDOWNS[CURRENT_RECT_ID];
+  const restore = $('rect_restore_time').value;
+  if (!restore){ toast('Set Restoration Date & Time', true); return; }
+  const now = nowISO();
+  const restoreISO = new Date(restore).toISOString();
+  const failISO = b.failureDateTime;
+  const dur = (new Date(restoreISO) - new Date(failISO)) / 60000;
+  const patch = {
+    restorationDateTime: restoreISO,
+    durationMinutes: Math.max(0, Math.round(dur)),
+    rectifiedDateTime:  $('rect_rectified_time').value ? new Date($('rect_rectified_time').value).toISOString() : '',
+    rectificationDetails: $('rect_work').value,
+    lcTakenFrom: $('rect_lc_from').value,
+    lcCompleted: $('rect_lc_completed').value ? new Date($('rect_lc_completed').value).toISOString() : '',
+    rootCause: $('rect_root_cause').value,
+    additionalRemarks: ($('rect_remarks').value || b.additionalRemarks || ''),
+    updatedAt: now,
+    isOpen: false
+  };
+  try {
+    await fetch(`${FIREBASE_URL}/breakdowns/${CURRENT_RECT_ID}.json`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(patch)
+    });
+    await fetch(`${FIREBASE_URL}/feeders/${safeFbKey(b.feederName)}.json`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ status:'live', lastUpdated: now })
+    });
+    Object.assign(BREAKDOWNS[CURRENT_RECT_ID], patch);
+    toast(`✓ Rectification saved — ${b.feederName.substring(0,30)}…`);
+    flashSync();
+    cancelRectification();
+    renderOpenBreakdowns();
+  } catch (err){ toast('Save failed: ' + err.message, true); }
+}
+
+// ─── HISTORICAL (tab 4) ───
+let HIST_FILT = { period:'all', scope:'all', outage:'all', status:'all' };
+
+function setHistFilter(key, val, btn){
+  HIST_FILT[key] = val;
+  if (btn){
+    const group = btn.parentElement;
+    group.querySelectorAll('.filt-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+  applyHistFilters();
+}
+
+function applyHistFilters(){
+  HIST_FILT.scope  = $('hist_scope').value;
+  HIST_FILT.outage = $('hist_outage').value;
+  HIST_FILT.status = $('hist_status_filter').value;
+
+  // Period cutoffs
+  const now = Date.now();
+  const cutoffs = { weekly: 7*86400e3, monthly: 30*86400e3, yearly: 365*86400e3 };
+  const cutoff = cutoffs[HIST_FILT.period] ? (now - cutoffs[HIST_FILT.period]) : 0;
+
+  const list = Object.values(BREAKDOWNS).filter(b => {
+    if (!b) return false;
+    const ts = new Date(b.failureDateTime || 0).getTime();
+    if (cutoff && ts < cutoff) return false;
+    if (HIST_FILT.outage !== 'all' && b.outageType !== HIST_FILT.outage) return false;
+    if (HIST_FILT.status === 'open' && !b.isOpen) return false;
+    if (HIST_FILT.status === 'closed' && b.isOpen) return false;
+    // Scope filter — match against division/sub_division/section
+    if (HIST_FILT.scope && HIST_FILT.scope !== 'all'){
+      const sc = HIST_FILT.scope;
+      if (b.division !== sc && b.sub_division !== sc && b.section !== sc) return false;
+    }
+    return true;
+  }).sort((a,b) => (b.failureDateTime||'').localeCompare(a.failureDateTime||''));
+
+  // Stats
+  $('hist_total').textContent  = list.length;
+  $('hist_open').textContent   = list.filter(b => b.isOpen).length;
+  $('hist_closed').textContent = list.filter(b => !b.isOpen).length;
+  const closed = list.filter(b => !b.isOpen && b.durationMinutes);
+  $('hist_avg_dur').textContent = closed.length
+    ? humanDuration(Math.round(closed.reduce((s,b)=>s+b.durationMinutes,0)/closed.length * 60000))
+    : '—';
+  $('hist_feeders').textContent = new Set(list.map(b => b.feederName)).size;
+
+  // Render table — cap at 200 rows
+  const tb = $('hist_tbody');
+  if (!list.length){ tb.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">No records match filters</td></tr>`; return; }
+  tb.innerHTML = list.slice(0, 200).map((b,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td style="white-space:nowrap;font-variant-numeric:tabular-nums">${b.failureDateTime ? new Date(b.failureDateTime).toLocaleString() : '—'}</td>
+      <td title="${b.feederName||''}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.feederName||'—'}</td>
+      <td>${b.substationName||'—'}</td>
+      <td>${b.division||'—'}</td>
+      <td>${b.outageType||'—'}</td>
+      <td>${b.agency||'—'}</td>
+      <td style="font-variant-numeric:tabular-nums">${b.durationMinutes ? humanDuration(b.durationMinutes*60000) : '—'}</td>
+      <td><span class="status-pill ${b.isOpen?'open':'closed'}">${b.isOpen?'OPEN':'CLOSED'}</span></td>
+    </tr>`).join('')
+    + (list.length > 200 ? `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:12px;font-style:italic">+ ${list.length-200} more rows (export to see all)</td></tr>` : '');
+}
+
+function buildScopeOptions(){
+  // Build optgroups from SS_DATA hierarchy
+  const divs = new Set(), subs = new Set(), secs = new Set();
+  SS_DATA.forEach(s => { divs.add(s.lines_division); subs.add(s.sub_division); secs.add(s.section); });
+  const $divG = $('hist_scope_div_group');
+  const $subG = $('hist_scope_sub_group');
+  const $secG = $('hist_scope_sec_group');
+  if ($divG) $divG.innerHTML = [...divs].sort().map(d => `<option value="${d}">${d}</option>`).join('');
+  if ($subG) $subG.innerHTML = [...subs].sort().map(d => `<option value="${d}">${d}</option>`).join('');
+  if ($secG) $secG.innerHTML = [...secs].sort().map(d => `<option value="${d}">${d}</option>`).join('');
+}
+
+function refreshHistorical(){ bootstrap().then(applyHistFilters); }
+
+function exportHistorical(){
+  // Build a CSV from currently visible filtered list
+  const now = Date.now();
+  const cutoffs = { weekly: 7*86400e3, monthly: 30*86400e3, yearly: 365*86400e3 };
+  const cutoff = cutoffs[HIST_FILT.period] ? (now - cutoffs[HIST_FILT.period]) : 0;
+  const list = Object.values(BREAKDOWNS).filter(b => {
+    if (!b) return false;
+    const ts = new Date(b.failureDateTime || 0).getTime();
+    if (cutoff && ts < cutoff) return false;
+    if (HIST_FILT.outage !== 'all' && b.outageType !== HIST_FILT.outage) return false;
+    if (HIST_FILT.status === 'open' && !b.isOpen) return false;
+    if (HIST_FILT.status === 'closed' && b.isOpen) return false;
+    if (HIST_FILT.scope && HIST_FILT.scope !== 'all'){
+      const sc = HIST_FILT.scope;
+      if (b.division !== sc && b.sub_division !== sc && b.section !== sc) return false;
+    }
+    return true;
   });
-  selectedRadios = {};
-  document.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('selected'));
-  currentFilter = { circle: '', division: '', subDiv: '', section: '' };
-  rebuildDivisions('');
-  rebuildSubDivisions('','');
-  rebuildSections('','','');
-  // Re-populate ss dropdown
-  const ssSelect = document.getElementById('ss_name');
-  Array.from(ssSelect.options).forEach(opt => { opt.hidden = false; });
-  // Clear source badge
-  const badge = document.getElementById('ss-source-badge');
-  if (badge) badge.innerHTML = '';
-}
-
-// ─── EXPORT TO EXCEL ────────────────────────────────────────
-function exportExcel() {
-  if (!entries.length) { alert('No entries to export.'); return; }
-  const headers = ['#','SS Name','SS Code','Operation Circle','Lines Division','Sub Division','Section',
-    'Failure Date & Time (7)','EHT Source SS (8)','33KV Source Feeder (9)','Agency (10)','Type of Outage (11)',
-    'Type of Operations','Relay Indication (12)','Identified Fault (13)','Nature of Fault (14)','Weather (15)',
-    'Person Responsible (15)','FPI Location (24)','Name of EHT (18)','Alternative Source (19)',
-    'Restoration Date & Time (20)','Duration (21)','Duration (Min)','Root Cause (22)',
-    'Rectified Date & Time (23)','Rectification Details (24)','LC Taken From (25)','LC Completed (26)','LC Duration (27)','Remarks'];
-
-  const rows = entries.map(e => [
-    e.id, e.ss_name, e.ss_code, e.op_circle, e.lines_division, e.sub_division, e.section,
-    e.failure_time, e.eht_substation, e.feeder_33kv, e.agency, e.outage_type,
-    e.ops_type, e.relay, e.identified_fault, e.fault_nature, e.weather,
-    e.person_responsible, e.fpi_location, e.name_eht, e.alt_source,
-    e.restoration_time, e.duration, e.duration_min, e.root_cause,
-    e.rectified_time, e.rectification_details, e.lc_taken_from, e.lc_completed, e.lc_duration, e.remarks
+  if (!list.length){ toast('Nothing to export', true); return; }
+  const headers = ['#','Failure Time','Feeder','SS Name','SS Code','Division','Sub-Div','Section',
+    'EHT Source','Alt Source','Agency','Outage Type','Operation','Relay','Fault','Nature','Weather',
+    'Person Resp','Phone','Restored At','Duration (min)','Rect Details','LC From','Status'];
+  const rows = list.map((b,i) => [
+    i+1, b.failureDateTime||'', b.feederName||'', b.substationName||'', b.substationCode||'',
+    b.division||'', b.sub_division||'', b.section||'', b.ehtSource||'', b.alternativeSource||'',
+    b.agency||'', b.outageType||'', b.operationType||'', b.relayIndication||'', b.identifiedFault||'',
+    b.natureOfFault||'', b.weatherCondition||'', b.personResponsible||'', b.phoneNumber||'',
+    b.restorationDateTime||'', b.durationMinutes||'', b.rectificationDetails||'',
+    b.lcTakenFrom||'', b.isOpen?'OPEN':'CLOSED'
   ]);
-
-  // Build CSV
-  const csv = [headers, ...rows].map(r =>
-    r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')
-  ).join('\n');
-
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  const d = new Date().toISOString().slice(0,10);
-  a.download = `TGSPDCL_Breakdown_Log_${d}.csv`;
-  a.click();
+  a.href = url; a.download = `breakdown_log_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  toast(`✓ Exported ${list.length} rows to CSV`);
 }
 
-// ─── TOAST ──────────────────────────────────────────────────
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  if (msg) t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+// ─── BOOTSTRAP — load master + statuses + breakdowns ───
+async function bootstrap(){
+  setSyncChip('loading', '☁ LOADING…');
+  try {
+    const [ptrs, topo, ssTopo, statuses, breakdowns] = await Promise.all([
+      fetch(`${FIREBASE_URL}/masterData/ptrs.json`).then(r => r.ok ? r.json() : null),
+      fetch(`${FIREBASE_URL}/masterData/topology.json`).then(r => r.ok ? r.json() : null),
+      fetch(`${FIREBASE_URL}/masterData/ssTopology.json`).then(r => r.ok ? r.json() : null),
+      fetch(`${FIREBASE_URL}/feeders.json`).then(r => r.ok ? r.json() : null),
+      fetch(`${FIREBASE_URL}/breakdowns.json`).then(r => r.ok ? r.json() : null),
+    ]);
+    MASTER_PTRS    = ptrs   || {};
+    MASTER_TOPO    = topo   || {};
+    MASTER_SS_TOPO = ssTopo || {};
+    FEEDER_STATUS  = {};
+    if (statuses) Object.keys(statuses).forEach(k => { const s = statuses[k]?.status; if (s) FEEDER_STATUS[k] = s; });
+    BREAKDOWNS = breakdowns || {};
+    console.log(`[BD] Loaded — ${Object.keys(MASTER_PTRS).length} PTRs, ${Object.keys(MASTER_TOPO).length} feeders, ${Object.keys(BREAKDOWNS).length} breakdowns`);
+    populateDatalists();
+    setSyncChip('live', '☁ SYNCED');
+    subscribeSSE();
+  } catch (err){
+    console.error('Bootstrap failed:', err);
+    setSyncChip('error', '⚠ NO SYNC');
+    populateDatalists();   // still populate from embedded data
+  }
 }
 
-// ─── START ──────────────────────────────────────────────────
-init();
+// ─── SSE subscriptions ───
+let _sseFeeders = null, _sseBreakdowns = null;
+function subscribeSSE(){
+  if (!('EventSource' in window)) return;
+  // Feeders
+  try {
+    if (_sseFeeders) try { _sseFeeders.close(); } catch(_){}
+    _sseFeeders = new EventSource(`${FIREBASE_URL}/feeders.json`);
+    const fh = e => {
+      try {
+        const p = JSON.parse(e.data); if (!p || p.data === null) return;
+        const parts = (p.path||'/').split('/').filter(Boolean);
+        if (p.path === '/' && typeof p.data === 'object'){
+          FEEDER_STATUS = {};
+          Object.keys(p.data).forEach(k => { const s = p.data[k]?.status; if (s) FEEDER_STATUS[k] = s; });
+        } else if (parts.length === 1 && typeof p.data === 'object'){
+          FEEDER_STATUS[parts[0]] = p.data.status || 'live';
+        } else if (parts.length === 2 && parts[1] === 'status'){
+          FEEDER_STATUS[parts[0]] = p.data || 'live';
+        }
+        refreshFailAlternates(); flashSync();
+      } catch(err){ console.warn('SSE-F', err); }
+    };
+    _sseFeeders.addEventListener('put', fh);
+    _sseFeeders.addEventListener('patch', fh);
+    _sseFeeders.addEventListener('error', () => { try { _sseFeeders.close(); } catch(_){} setTimeout(subscribeSSE, 5000); });
+  } catch(err){ console.warn('SSE feeders failed:', err); }
+  // Breakdowns
+  try {
+    if (_sseBreakdowns) try { _sseBreakdowns.close(); } catch(_){}
+    _sseBreakdowns = new EventSource(`${FIREBASE_URL}/breakdowns.json`);
+    const bh = () => {
+      // Re-fetch all breakdowns on any change (simpler than diffing)
+      fetch(`${FIREBASE_URL}/breakdowns.json`).then(r => r.ok ? r.json() : null).then(data => {
+        BREAKDOWNS = data || {};
+        if ($('pane-rect').classList.contains('active')) renderOpenBreakdowns();
+        if ($('pane-hist').classList.contains('active')) applyHistFilters();
+        // Update badge regardless of which tab is active
+        const open = Object.values(BREAKDOWNS).filter(b => b && (b.isOpen === true || !b.restorationDateTime)).length;
+        const badge = $('openCntBadge');
+        if (badge){ badge.style.display = open ? '' : 'none'; badge.textContent = open; }
+      });
+    };
+    _sseBreakdowns.addEventListener('put', bh);
+    _sseBreakdowns.addEventListener('patch', bh);
+  } catch(err){ console.warn('SSE breakdowns failed:', err); }
+}
+
+// ─── Init ───
+buildScopeOptions();
+bootstrap();
+
+// Expose for debugging
+window.bdDash = { bootstrap, BREAKDOWNS:()=>BREAKDOWNS, FEEDER_STATUS:()=>FEEDER_STATUS, MASTER_PTRS:()=>MASTER_PTRS, MASTER_TOPO:()=>MASTER_TOPO };
 </script>
-</body>
-</html>
+</body></html>
