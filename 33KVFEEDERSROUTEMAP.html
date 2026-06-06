@@ -1497,6 +1497,24 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
         <div class="fstat-item"><span class="fstat-lbl">OH LENGTH</span><span class="fstat-val oh" id="st-len-oh">—</span></div>
         <div class="fstat-item"><span class="fstat-lbl">AB SWITCHES</span><span class="fstat-val" id="st-ab-cnt">—</span></div>
       </div>
+      <!-- ── FEEDER TYPE BREAKDOWN (added Jun-2026) ── -->
+      <div style="border-top:1px solid rgba(0,0,0,.08);margin:10px 0 6px;padding-top:8px">
+        <div style="font-family:var(--mono);font-size:9px;color:#4a6fa5;letter-spacing:1px;margin-bottom:6px;font-weight:700">// FEEDER TYPE BREAKDOWN</div>
+        <div class="fstat-grid">
+          <div class="fstat-item" style="background:#eff6ff;border-color:#bfdbfe"><span class="fstat-lbl" style="color:#1d4ed8">33KV FEEDER</span><span class="fstat-val" id="st-ft-33kv" style="color:#1d4ed8">—</span></div>
+          <div class="fstat-item" style="background:#fef3c7;border-color:#fde68a"><span class="fstat-lbl" style="color:#92400e">LINK LINE</span><span class="fstat-val" id="st-ft-link" style="color:#b45309">—</span></div>
+          <div class="fstat-item" style="background:#fdf4ff;border-color:#f0abfc"><span class="fstat-lbl" style="color:#86198f">HT SERVICE</span><span class="fstat-val" id="st-ft-ht" style="color:#a21caf">—</span></div>
+        </div>
+      </div>
+      <!-- ── LIVE STATUS BREAKDOWN (added Jun-2026) ── -->
+      <div style="border-top:1px solid rgba(0,0,0,.08);margin:10px 0 6px;padding-top:8px">
+        <div style="font-family:var(--mono);font-size:9px;color:#4a6fa5;letter-spacing:1px;margin-bottom:6px;font-weight:700">// LIVE STATUS</div>
+        <div class="fstat-grid">
+          <div class="fstat-item" style="background:#f0fdf4;border-color:#bbf7d0"><span class="fstat-lbl" style="color:#15803d">⚡ LIVE</span><span class="fstat-val" id="st-st-live" style="color:#16a34a">—</span></div>
+          <div class="fstat-item" style="background:#fef2f2;border-color:#fecaca"><span class="fstat-lbl" style="color:#b91c1c">🔴 BREAKDOWN</span><span class="fstat-val" id="st-st-bkd" style="color:#dc2626">—</span></div>
+          <div class="fstat-item" style="background:#f8fafc;border-color:#e2e8f0"><span class="fstat-lbl" style="color:#475569">⏸ IDLE</span><span class="fstat-val" id="st-st-idle" style="color:#64748b">—</span></div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="rcard" id="rc-datafiles">
@@ -6711,6 +6729,473 @@ setTimeout(async ()=>{
     <div style="color:#94a3b8;font-size:12px;text-align:center;padding:40px">Select a feeder</div>
   </div>
 </div>
+
+
+<!-- ════ FLOATING BREAKDOWN BADGE — opens panel listing all current breakdowns ════ -->
+<style>
+  #mapBreakdownBadge{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:linear-gradient(135deg,#dc2626,#b91c1c); color:#fff;
+    border:2px solid #fff; border-radius:30px;
+    padding:10px 18px 10px 14px; cursor:pointer; z-index:7000;
+    box-shadow:0 8px 24px rgba(220,38,38,.45), 0 2px 6px rgba(0,0,0,.2);
+    display:none; align-items:center; gap:10px;
+    font-family:var(--mono,Consolas,monospace); font-weight:700; font-size:12px;
+    letter-spacing:.8px; transition:.2s ease; user-select:none;
+    animation: sos-blink 1.2s ease-in-out infinite;
+  }
+  #mapBreakdownBadge:hover{transform:translateX(-50%) translateY(-2px); box-shadow:0 12px 32px rgba(220,38,38,.55)}
+  #mapBreakdownBadge .mbb-icon{font-size:18px}
+  #mapBreakdownBadge .mbb-count{background:rgba(255,255,255,.95); color:#dc2626; padding:3px 10px; border-radius:14px; font-weight:800; font-size:13px; font-variant-numeric:tabular-nums}
+  #mapBreakdownPanel{
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+    background:#fff; border-radius:14px; box-shadow:0 20px 50px rgba(0,0,0,.4);
+    width:min(560px, 92vw); max-height:60vh; overflow:hidden; z-index:7001;
+    display:none; flex-direction:column; border:1px solid #e2e8f0;
+    animation: bpop .2s ease;
+  }
+  @keyframes bpop{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+  #mapBreakdownPanel .mbp-hd{
+    background:linear-gradient(90deg,#dc2626,#ef4444); color:#fff;
+    padding:14px 20px; display:flex; justify-content:space-between; align-items:center;
+  }
+  #mapBreakdownPanel .mbp-hd h3{font-size:13px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; font-family:var(--mono,monospace)}
+  #mapBreakdownPanel .mbp-x{background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; font-weight:700}
+  #mapBreakdownPanel .mbp-x:hover{background:rgba(255,255,255,.35)}
+  #mapBreakdownPanel .mbp-body{padding:0; overflow-y:auto; flex:1}
+  .mbp-row{padding:12px 18px; border-bottom:1px solid #f1f5f9; cursor:pointer; transition:.15s; display:flex; gap:10px; align-items:flex-start}
+  .mbp-row:hover{background:#fef2f2}
+  .mbp-dot{width:10px; height:10px; border-radius:50%; background:#dc2626; flex-shrink:0; margin-top:5px; box-shadow:0 0 0 3px rgba(220,38,38,.2); animation:sos-blink 1s infinite}
+  .mbp-info{flex:1; min-width:0}
+  .mbp-fname{font-size:12px; font-weight:700; color:#0f172a; line-height:1.35; word-break:break-word}
+  .mbp-meta{font-size:10px; color:#64748b; margin-top:3px; font-family:var(--mono,monospace); letter-spacing:.3px}
+  .mbp-dur{font-size:11px; font-weight:700; color:#dc2626; font-variant-numeric:tabular-nums; padding:3px 8px; background:#fee2e2; border-radius:6px; align-self:center; flex-shrink:0}
+  .mbp-empty{padding:30px; text-align:center; color:#94a3b8; font-style:italic; font-size:11px}
+</style>
+<div id="mapBreakdownBadge" onclick="toggleBreakdownPanel()">
+  <span class="mbb-icon">🔴</span>
+  <span>BREAKDOWNS</span>
+  <span class="mbb-count" id="mbb-count">0</span>
+</div>
+<div id="mapBreakdownPanel">
+  <div class="mbp-hd">
+    <h3>🔴 Active Breakdowns — Live</h3>
+    <button class="mbp-x" onclick="toggleBreakdownPanel(false)">✕</button>
+  </div>
+  <div class="mbp-body" id="mbp-body">
+    <div class="mbp-empty">No active breakdowns 🎉</div>
+  </div>
+</div>
+
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     LIVE FIREBASE INTEGRATION — added Jun-2026
+     • Subscribe to /feeders/ via SSE for real-time status updates
+     • Load /masterData/ptrs/ for SS popup PTR info
+     • Compute feeder-type breakdown for stats card
+     • Manage floating breakdown badge + panel
+     • Override flyToSS to include PTR + breakdown details
+     ════════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  // ─── Shared state ───
+  let LIVE_FEEDERS = {};        // safeFbKey → { status, feederName, lastBreakdownId, lastUpdated }
+  let MAP_MASTER_PTRS = {};     // ssCode safekey → PTR record
+  let LIVE_BREAKDOWNS = {};     // id → breakdown record (for badge panel)
+  let _bpOpen = false;
+
+  // ─── Helpers ───
+  const $ = id => document.getElementById(id);
+  function fbSafeKey(name){
+    return String(name||'').toUpperCase()
+      .replace(/[.#$\[\]\/]/g,'_').replace(/\s+/g,'_')
+      .replace(/[^A-Z0-9_-]/g,'').substring(0,180) || 'EMPTY';
+  }
+  // Feeder-name normalization (same rules the breakdown form uses)
+  function normFeederName(name){
+    return String(name||'')
+      .toUpperCase()
+      .replace(/(\d+)\s*KV\b/g, '$1KV')
+      .replace(/\s*-\s*/g, '-')
+      .replace(/\s+FEEDER\s*$/g, '')
+      .replace(/\s+LINK\s+LINE\s*$/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function normSafe(name){ return fbSafeKey(normFeederName(name)); }
+
+  // ─── Resolve a Firebase /feeders/<safekey> entry to the LOCAL feeder name ───
+  // The breakdown form may write a slightly different spelling than what's in the
+  // map's `feederNames` set. Try several lookups to find the match.
+  function resolveLocalFeederName(fbKey, fbRecord){
+    if (!fbKey) return null;
+    // 1. If the record itself carries feederName and it matches one of ours, use it
+    if (fbRecord && fbRecord.feederName){
+      const direct = [...(window.feederNames||[])].find(f => f === fbRecord.feederName);
+      if (direct) return direct;
+      const norm = normSafe(fbRecord.feederName);
+      const byNorm = [...(window.feederNames||[])].find(f => normSafe(f) === norm);
+      if (byNorm) return byNorm;
+    }
+    // 2. Match by safe-key alone
+    const direct = [...(window.feederNames||[])].find(f => fbSafeKey(f) === fbKey);
+    if (direct) return direct;
+    // 3. Match by normalized safe-key
+    const fuzzy = [...(window.feederNames||[])].find(f => normSafe(f) === fbKey);
+    if (fuzzy) return fuzzy;
+    return null;
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // 1) SUBSCRIBE TO /feeders/ — live status + breakdown overlay
+  // ═════════════════════════════════════════════════════════════
+  let _sseFeeders = null;
+  function subscribeFeedersSSE(){
+    if (!('EventSource' in window)) return;
+    if (_sseFeeders) try { _sseFeeders.close(); } catch(_){}
+    try {
+      _sseFeeders = new EventSource(FIREBASE_URL + '/feeders.json');
+      const onMessage = e => {
+        try {
+          const p = JSON.parse(e.data);
+          if (!p) return;
+          const parts = (p.path||'/').split('/').filter(Boolean);
+          if (p.path === '/' && p.data && typeof p.data === 'object'){
+            LIVE_FEEDERS = p.data || {};
+            applyAllFeederStatuses();
+          } else if (parts.length === 1 && p.data && typeof p.data === 'object'){
+            LIVE_FEEDERS[parts[0]] = p.data;
+            applyOneFeederStatus(parts[0], p.data);
+          } else if (parts.length === 2 && p.data !== null){
+            // patch on a single subfield
+            LIVE_FEEDERS[parts[0]] = LIVE_FEEDERS[parts[0]] || {};
+            LIVE_FEEDERS[parts[0]][parts[1]] = p.data;
+            applyOneFeederStatus(parts[0], LIVE_FEEDERS[parts[0]]);
+          }
+          updateMapStatusStats();
+        } catch(err){ console.warn('[map] SSE feeders parse error:', err); }
+      };
+      _sseFeeders.addEventListener('put', onMessage);
+      _sseFeeders.addEventListener('patch', onMessage);
+      _sseFeeders.addEventListener('error', () => {
+        try { _sseFeeders.close(); } catch(_){}
+        setTimeout(subscribeFeedersSSE, 5000);
+      });
+      console.log('[map] SSE subscribed to /feeders');
+    } catch(err){ console.warn('[map] SSE failed:', err); }
+  }
+
+  function applyAllFeederStatuses(){
+    Object.keys(LIVE_FEEDERS).forEach(k => applyOneFeederStatus(k, LIVE_FEEDERS[k]));
+  }
+  function applyOneFeederStatus(fbKey, rec){
+    if (!rec || typeof rec !== 'object') return;
+    const status = rec.status || 'live';
+    const localName = resolveLocalFeederName(fbKey, rec);
+    if (!localName) return;   // map doesn't have this feeder uploaded yet — skip
+    if (typeof window.setFeederStatus === 'function'){
+      // call existing setFeederStatus — passes through panel UI and map line styling
+      try { window.setFeederStatus(localName, status, null, true); }
+      catch(err){ console.warn('[map] setFeederStatus error:', err); }
+    } else if (window.feederStatus){
+      window.feederStatus[localName] = status;
+    }
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // 2) LOAD /masterData/ptrs/ — for SS popup PTR info
+  // ═════════════════════════════════════════════════════════════
+  function loadMasterPTRs(){
+    return fetch(FIREBASE_URL + '/masterData/ptrs.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        MAP_MASTER_PTRS = data || {};
+        const cnt = Object.keys(MAP_MASTER_PTRS).length;
+        console.log('[map] Loaded ' + cnt + ' PTR master records');
+      })
+      .catch(err => console.warn('[map] PTR load failed:', err));
+  }
+
+  // Find PTR record for a given SS by name OR code (fuzzy)
+  function findPTRForSS(ss){
+    if (!ss) return null;
+    const ssName = (ss.name || ss.ssName || '').toUpperCase().trim();
+    const ssCode = (ss.code || ss.ssCode || '').trim();
+    // 1. By SS code (the cleanest key)
+    if (ssCode){
+      const sk = fbSafeKey(ssCode);
+      if (MAP_MASTER_PTRS[sk]) return MAP_MASTER_PTRS[sk];
+      const byCode = Object.values(MAP_MASTER_PTRS).find(p => (p.ssCode||'').trim() === ssCode);
+      if (byCode) return byCode;
+    }
+    // 2. By exact SS name
+    if (ssName){
+      const byName = Object.values(MAP_MASTER_PTRS).find(p => (p.ssName||'').toUpperCase().trim() === ssName);
+      if (byName) return byName;
+      // 3. Distinctive-token fuzzy match
+      const stripped = ssName.replace(/^33\/11KV\s+|\s+SS$|\s+33\/11KV\s+SS$/g,'').trim();
+      if (stripped){
+        const byContains = Object.values(MAP_MASTER_PTRS).find(p => {
+          const n = (p.ssName||'').toUpperCase();
+          return n.includes(stripped) || stripped.includes(n.replace(/^33\/11KV\s+|\s+SS$/g,'').trim());
+        });
+        if (byContains) return byContains;
+      }
+    }
+    return null;
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // 3) FEEDER-TYPE BREAKDOWN — extend updateCounts
+  // ═════════════════════════════════════════════════════════════
+  function computeFeederTypeBreakdown(){
+    const types = { '33KV': 0, 'LINK': 0, 'HT': 0 };
+    // Iterate through unique feeders, get their feeder_type from any sample row
+    (window.feederNames || new Set()).forEach(fn => {
+      let ftype = '';
+      // Look at first matching layer for this feeder
+      const sample = (window.allLayers || []).find(i => i.feederName === fn && !i._deleted);
+      if (sample && sample.layer && sample.layer.feature){
+        const p = sample.layer.feature.properties || {};
+        ftype = (p.feeder_type || p.FeederType || p['Feeder Type'] || '').toString().trim().toUpperCase();
+      }
+      // Also try feederHierarchyMap for cached metadata
+      if (!ftype && window.feederHierarchyMap && window.feederHierarchyMap[fn]){
+        ftype = (window.feederHierarchyMap[fn].feeder_type || '').toString().trim().toUpperCase();
+      }
+      if (/^33\s*KV/.test(ftype) || /FEEDER/.test(ftype)) types['33KV']++;
+      else if (/LINK/.test(ftype)) types['LINK']++;
+      else if (/HT\s*SERVICE/.test(ftype) || /HT\s*SVC/.test(ftype)) types['HT']++;
+      else types['33KV']++;   // default bucket
+    });
+    if ($('st-ft-33kv')) $('st-ft-33kv').textContent = types['33KV'];
+    if ($('st-ft-link')) $('st-ft-link').textContent = types['LINK'];
+    if ($('st-ft-ht'))   $('st-ft-ht').textContent   = types['HT'];
+  }
+
+  function updateMapStatusStats(){
+    let live = 0, bkd = 0, idle = 0;
+    (window.feederNames || new Set()).forEach(fn => {
+      const s = (window.feederStatus || {})[fn] || 'live';
+      if (s === 'breakdown') bkd++;
+      else if (s === 'idle') idle++;
+      else live++;
+    });
+    if ($('st-st-live')) $('st-st-live').textContent = live;
+    if ($('st-st-bkd'))  $('st-st-bkd').textContent  = bkd;
+    if ($('st-st-idle')) $('st-st-idle').textContent = idle;
+    refreshBreakdownBadge();
+  }
+
+  // Hook into existing updateCounts so our stats refresh whenever it runs
+  if (typeof window.updateCounts === 'function'){
+    const _origUpdateCounts = window.updateCounts;
+    window.updateCounts = function(){
+      _origUpdateCounts.apply(this, arguments);
+      try { computeFeederTypeBreakdown(); } catch(_){}
+      try { updateMapStatusStats(); } catch(_){}
+    };
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // 4) BREAKDOWN BADGE + PANEL
+  // ═════════════════════════════════════════════════════════════
+  function refreshBreakdownBadge(){
+    const items = [];
+    Object.keys(LIVE_FEEDERS).forEach(k => {
+      const rec = LIVE_FEEDERS[k] || {};
+      if (rec.status === 'breakdown'){
+        items.push({
+          fbKey: k,
+          feederName: rec.feederName || resolveLocalFeederName(k, rec) || k,
+          lastUpdated: rec.lastUpdated || '',
+          lastBreakdownId: rec.lastBreakdownId || ''
+        });
+      }
+    });
+    const badge = $('mapBreakdownBadge');
+    const cnt = $('mbb-count');
+    if (!badge || !cnt) return;
+    if (items.length === 0){
+      badge.style.display = 'none';
+      if (!_bpOpen) $('mapBreakdownPanel').style.display = 'none';
+    } else {
+      badge.style.display = 'inline-flex';
+      cnt.textContent = items.length;
+    }
+    // Rebuild panel body — sorted by most recent first
+    items.sort((a,b) => (b.lastUpdated||'').localeCompare(a.lastUpdated||''));
+    const body = $('mbp-body');
+    if (body){
+      if (!items.length){
+        body.innerHTML = '<div class="mbp-empty">No active breakdowns 🎉</div>';
+      } else {
+        body.innerHTML = items.map(it => {
+          const dur = it.lastUpdated ? humanAgo(Date.now() - new Date(it.lastUpdated).getTime()) : '—';
+          const meta = it.lastBreakdownId ? ('ID: ' + it.lastBreakdownId.substring(0,20)) : '';
+          return '<div class="mbp-row" onclick="window.zoomToBreakdown(' + JSON.stringify(it.feederName).replace(/"/g,'&quot;') + ')">'
+            + '<span class="mbp-dot"></span>'
+            + '<div class="mbp-info">'
+              + '<div class="mbp-fname">' + escapeHtml(it.feederName) + '</div>'
+              + '<div class="mbp-meta">' + escapeHtml(meta) + '</div>'
+            + '</div>'
+            + '<span class="mbp-dur">' + dur + '</span>'
+          + '</div>';
+        }).join('');
+      }
+    }
+  }
+  function humanAgo(ms){
+    if (!ms || ms < 0) return '—';
+    const s = Math.floor(ms/1000);
+    if (s < 60) return s + 's';
+    const m = Math.floor(s/60);
+    if (m < 60) return m + 'm';
+    const h = Math.floor(m/60);
+    if (h < 24) return h + 'h ' + (m%60) + 'm';
+    return Math.floor(h/24) + 'd';
+  }
+  function escapeHtml(s){
+    return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  window.toggleBreakdownPanel = function(force){
+    const panel = $('mapBreakdownPanel');
+    if (!panel) return;
+    _bpOpen = (force === undefined) ? !_bpOpen : !!force;
+    panel.style.display = _bpOpen ? 'flex' : 'none';
+  };
+  window.zoomToBreakdown = function(feederName){
+    if (!feederName || typeof window.focusFeeder !== 'function') return;
+    window.toggleBreakdownPanel(false);
+    try { window.focusFeeder(feederName); } catch(_){}
+    // Try to fit the bounds of this feeder
+    try {
+      const pts = (window.allLayers||[]).filter(i => i.feederName === feederName && i.layer && i.layer.getLatLngs);
+      if (pts.length){
+        const lls = pts.flatMap(i => {
+          const ll = i.layer.getLatLngs();
+          return Array.isArray(ll[0]) ? ll.flat() : ll;
+        });
+        if (lls.length && typeof L !== 'undefined' && window.map){
+          window.map.flyToBounds(L.latLngBounds(lls), {padding:[60,60], maxZoom:17, animate:true, duration:.7});
+        }
+      }
+    } catch(_){}
+  };
+
+  // ═════════════════════════════════════════════════════════════
+  // 5) ENHANCED SS POPUP — overrides flyToSS to include PTR card
+  // ═════════════════════════════════════════════════════════════
+  if (typeof window.flyToSS === 'function'){
+    const _origFlyToSS = window.flyToSS;
+    window.flyToSS = function(ss){
+      // Run the original to set the popup
+      _origFlyToSS.call(this, ss);
+      // After a tick, the popup is open — augment its content with PTR info
+      setTimeout(() => {
+        try { enhanceSSPopupWithPTR(ss); } catch(err){ console.warn('[map] SS popup enhance failed:', err); }
+      }, 50);
+    };
+  }
+
+  function enhanceSSPopupWithPTR(ss){
+    // Find the open popup
+    const popups = document.querySelectorAll('.leaflet-popup.ss-popup .leaflet-popup-content');
+    if (!popups.length) return;
+    const popup = popups[popups.length - 1];   // newest popup
+    if (popup.dataset.ptrAdded === '1') return;
+    popup.dataset.ptrAdded = '1';
+
+    const ptr = findPTRForSS(ss);
+    // Linked feeders (already computed by the underlying flyToSS)
+    const linked = (typeof window._findFeedersLinkedToSS === 'function')
+      ? window._findFeedersLinkedToSS(ss) : [];
+
+    // Stat breakdown for the linked feeders
+    let liveC = 0, bkdC = 0, idleC = 0;
+    linked.forEach(fn => {
+      const s = (window.feederStatus || {})[fn] || 'live';
+      if (s === 'breakdown') bkdC++;
+      else if (s === 'idle') idleC++;
+      else liveC++;
+    });
+
+    const ptrCardHtml = ptr ? (
+      '<div style="background:linear-gradient(135deg,#fef3c7,#fef9c3);border:1.5px solid #fbbf24;border-radius:10px;padding:12px;margin:10px 0">'
+      + '<div style="font-size:9px;font-weight:800;color:#92400e;letter-spacing:1.2px;margin-bottom:8px;font-family:Consolas,monospace">⚡ PTRs FROM MASTER DATA</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+        + (ptr.ptrCapacities||[]).map((cap,i) => {
+            const roman = ['I','II','III','IV','V','VI','VII','VIII','IX','X'][i] || (i+1);
+            return '<span style="background:#fff;border:1.5px solid #f59e0b;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;color:#92400e">PTR-' + roman + ' · ' + cap + ' MVA</span>';
+          }).join('')
+      + '</div>'
+      + '<div style="font-size:10px;color:#78350f;font-weight:700;text-align:right">Total: ' + (ptr.totalCapacityMVA||0) + ' MVA across ' + (ptr.ptrCount||0) + ' PTR(s)</div>'
+      + (ptr.linesDivision ? '<div style="font-size:10px;color:#78350f;margin-top:6px;font-family:Consolas,monospace;border-top:1px solid #fbbf24;padding-top:6px">' + ptr.linesDivision + ' › ' + (ptr.linesSubDiv||'') + ' › ' + (ptr.linesSection||'') + '</div>' : '')
+      + '</div>'
+    ) : (
+      '<div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;padding:10px;margin:10px 0;font-size:10px;color:#94a3b8;font-style:italic;text-align:center">No PTR master data found for this SS. Add via Master Data Manager.</div>'
+    );
+
+    // Feeder status mini-summary
+    const statusSummaryHtml = linked.length ? (
+      '<div style="display:flex;gap:6px;margin:8px 0 10px;flex-wrap:wrap">'
+      + (liveC > 0 ? '<span style="background:#dcfce7;color:#15803d;padding:3px 9px;border-radius:8px;font-size:10px;font-weight:700;letter-spacing:.4px">⚡ ' + liveC + ' LIVE</span>' : '')
+      + (bkdC > 0 ? '<span style="background:#fee2e2;color:#b91c1c;padding:3px 9px;border-radius:8px;font-size:10px;font-weight:700;letter-spacing:.4px;animation:sos-blink 1s infinite">🔴 ' + bkdC + ' DOWN</span>' : '')
+      + (idleC > 0 ? '<span style="background:#f1f5f9;color:#475569;padding:3px 9px;border-radius:8px;font-size:10px;font-weight:700;letter-spacing:.4px">⏸ ' + idleC + ' IDLE</span>' : '')
+      + '</div>'
+    ) : '';
+
+    // Inject PTR card before the FEEDERS section
+    const feederHeading = [...popup.querySelectorAll('div')].find(d => /FEEDERS\s+FEEDING\s+THIS\s+SS/i.test(d.textContent));
+    if (feederHeading){
+      const wrap = document.createElement('div');
+      wrap.innerHTML = statusSummaryHtml + ptrCardHtml;
+      feederHeading.parentNode.insertBefore(wrap, feederHeading);
+    } else {
+      // No feeders heading — just append at end
+      const wrap = document.createElement('div');
+      wrap.innerHTML = statusSummaryHtml + ptrCardHtml;
+      popup.appendChild(wrap);
+    }
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // 6) BOOTSTRAP — start integration after page is ready
+  // ═════════════════════════════════════════════════════════════
+  function bootstrapLiveIntegration(){
+    loadMasterPTRs().then(() => {
+      subscribeFeedersSSE();
+      // Initial pulls so badge / stats reflect current state immediately
+      fetch(FIREBASE_URL + '/feeders.json')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          LIVE_FEEDERS = data || {};
+          applyAllFeederStatuses();
+          updateMapStatusStats();
+          if (typeof window.updateCounts === 'function') window.updateCounts();
+          console.log('[map] Live integration bootstrapped — ' + Object.keys(LIVE_FEEDERS).length + ' feeders tracked');
+        })
+        .catch(err => console.warn('[map] Initial /feeders pull failed:', err));
+    });
+  }
+
+  // Start after a brief delay so all the existing init code has run
+  if (document.readyState === 'complete') setTimeout(bootstrapLiveIntegration, 1500);
+  else window.addEventListener('load', () => setTimeout(bootstrapLiveIntegration, 1500));
+
+  // Expose debug handle
+  window.mapLive = {
+    feeders: () => LIVE_FEEDERS,
+    ptrs: () => MAP_MASTER_PTRS,
+    refresh: bootstrapLiveIntegration,
+    findPTR: findPTRForSS
+  };
+})();
+</script>
 
 </body>
 </html>
