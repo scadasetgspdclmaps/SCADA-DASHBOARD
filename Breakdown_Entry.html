@@ -545,6 +545,83 @@ function safeFbKey(name){
     .replace(/[.#$\[\]\/]/g,'_').replace(/\s+/g,'_')
     .replace(/[^A-Z0-9_-]/g,'').substring(0,180) || 'EMPTY';
 }
+
+// ─── NORMALIZATION: collapse the spelling variants of the same feeder ───
+// The source data has the same feeder in 3-4 different spellings:
+//   "132 KV MAMIDIPALLY-33 KV CRPF FEEDER"  (with spaces, with FEEDER suffix)
+//   "132 KV MAMIDIPALLY-33 KV CRPF"          (with spaces, no suffix)
+//   "132KV MAMIDIPALLY-33KV CRPF"            (no spaces around KV)
+//   "132 KV MAMIDIPALLY - 33 KV CRPF"        (spaces around hyphen)
+// normalizeFeederName collapses these into a SINGLE canonical form for lookup.
+function normalizeFeederName(name){
+  return String(name||'')
+    .toUpperCase()
+    .replace(/(\d+)\s*KV\b/g, '$1KV')         // "132 KV" / "132KV" → "132KV"
+    .replace(/\s*-\s*/g, '-')                 // "X - Y" → "X-Y"
+    .replace(/\s+FEEDER\s*$/g, '')            // strip trailing " FEEDER"
+    .replace(/\s+LINK\s+LINE\s*$/g, '')       // strip trailing "LINK LINE"
+    .replace(/\s+/g, ' ')                     // collapse multiple spaces
+    .trim();
+}
+function normalKey(name){
+  return safeFbKey(normalizeFeederName(name));
+}
+
+// Build a normalized-key → record index over MASTER_TOPO (rebuilt on bootstrap)
+// This lets autofill work even when the typed feeder name has a different spelling
+// from the one stored in /masterData/topology/.
+let _feederNormIndex = {};
+function buildFeederNormIndex(){
+  _feederNormIndex = {};
+  Object.values(MASTER_TOPO).forEach(t => {
+    if (!t || !t.feederName) return;
+    const nk = normalKey(t.feederName);
+    // Keep the first record per normalized key (or prefer richer ones)
+    if (!_feederNormIndex[nk] || (Object.keys(t).length > Object.keys(_feederNormIndex[nk]).length)){
+      _feederNormIndex[nk] = t;
+    }
+  });
+}
+// Lookup any feeder name → topology record (handles spelling variants)
+function lookupTopo(name){
+  if (!name) return null;
+  // 1. Exact safekey match (fastest)
+  const exactSk = safeFbKey(name);
+  if (MASTER_TOPO[exactSk]) return MASTER_TOPO[exactSk];
+  // 2. Normalized match (catches "132 KV" / "132KV" variants)
+  const nk = normalKey(name);
+  if (_feederNormIndex[nk]) return _feederNormIndex[nk];
+  // 3. Last-ditch: contains-match against all topology entries
+  const norm = normalizeFeederName(name);
+  for (const t of Object.values(MASTER_TOPO)){
+    if (!t || !t.feederName) continue;
+    if (normalizeFeederName(t.feederName) === norm) return t;
+  }
+  return null;
+}
+// When MASTER_TOPO has nothing, extract EHT from the feeder name pattern itself.
+// Format examples: "132KV MAMIDIPALLY-33KV CRPF" → EHT = "132KV MAMIDIPALLY"
+//                  "400 KV RAIDURG SS-33 KV OG-5 FEEDER" → EHT = "400 KV RAIDURG SS"
+function extractEhtFromFeederName(name){
+  if (!name) return '';
+  const m = String(name).match(/^([^-]+?)-/);
+  return m ? m[1].trim() : '';
+}
+// Reverse-lookup: from this feeder, find which SS it likely feeds based on SOURCES_MAP
+function reverseLookupSS(feederName){
+  if (!feederName) return null;
+  const target = normalizeFeederName(feederName);
+  for (const ssCode of Object.keys(SOURCES_MAP)){
+    const src = SOURCES_MAP[ssCode];
+    for (const role of Object.keys(src)){
+      if (src[role] && normalizeFeederName(src[role]) === target){
+        return SS_DATA.find(s => s.ss_code === ssCode);
+      }
+    }
+  }
+  return null;
+}
+
 const nowISO = () => new Date().toISOString();
 const $ = id => document.getElementById(id);
 
@@ -596,38 +673,75 @@ function switchTab(name){
 
 // ─── Populate the feeder + SS datalists from SOURCES_MAP and SS_DATA ───
 function populateDatalists(){
-  // Build unique feeder set from SOURCES_MAP values
-  const feeders = new Set();
+  // Collect every feeder name encountered (with all spelling variants)
+  const allFeeders = [];
   Object.values(SOURCES_MAP).forEach(src => {
-    Object.values(src).forEach(f => { if (f) feeders.add(f); });
+    Object.values(src).forEach(f => { if (f) allFeeders.push(f); });
   });
-  // Also include from MASTER_TOPO (richer)
-  Object.values(MASTER_TOPO).forEach(t => { if (t.feederName) feeders.add(t.feederName); });
+  Object.values(MASTER_TOPO).forEach(t => { if (t.feederName) allFeeders.push(t.feederName); });
+
+  // DEDUPE by normalized key — keep the cleanest representative for each canonical feeder
+  // "Cleanest" = longest non-empty name (richest info: usually has the "FEEDER" suffix or fewer abbreviations).
+  // If multiple variants normalize to the same key, we display only one.
+  const bestPerKey = {};
+  allFeeders.forEach(name => {
+    const nk = normalKey(name);
+    if (!nk) return;
+    const existing = bestPerKey[nk];
+    // Prefer the variant that exists in MASTER_TOPO (has live data), else longer name
+    const inTopo = !!_feederNormIndex[nk] && _feederNormIndex[nk].feederName === name;
+    if (!existing){
+      bestPerKey[nk] = { name, inTopo, len: name.length };
+    } else if (inTopo && !existing.inTopo){
+      bestPerKey[nk] = { name, inTopo: true, len: name.length };
+    } else if (existing.inTopo === inTopo && name.length > existing.len){
+      bestPerKey[nk] = { name, inTopo, len: name.length };
+    }
+  });
+  const uniqueFeeders = Object.values(bestPerKey).map(x => x.name).sort();
+  console.log(`[BD] Feeder datalist — collected ${allFeeders.length} raw entries → deduped to ${uniqueFeeders.length} unique`);
 
   const list1 = $('log_feeder_list');
   const list2 = $('fail_feeder_list');
   const list3 = $('fail_alt_list');
-  const opts = [...feeders].sort().map(f => `<option value="${f.replace(/"/g,'&quot;')}">`).join('');
+  const opts = uniqueFeeders.map(f => `<option value="${f.replace(/"/g,'&quot;')}">`).join('');
   if (list1) list1.innerHTML = opts;
   if (list2) list2.innerHTML = opts;
   if (list3) list3.innerHTML = opts;
 
-  // SS list
-  const ssOpts = SS_DATA.map(s => `<option value="${s.ss_name.replace(/"/g,'&quot;')}" data-code="${s.ss_code}">`).join('');
+  // SS list — also dedupe by name (different SS_DATA rows can share names)
+  const ssNames = new Set();
+  const ssOpts = SS_DATA
+    .filter(s => { if (ssNames.has(s.ss_name.toUpperCase())) return false; ssNames.add(s.ss_name.toUpperCase()); return true; })
+    .map(s => `<option value="${s.ss_name.replace(/"/g,'&quot;')}" data-code="${s.ss_code}">`).join('');
   const ssList = $('log_ss_list'); if (ssList) ssList.innerHTML = ssOpts;
 }
 
 // ─── LOG ENTRY (tab 1) auto-fill ───
 function onLogFeederChange(){
   const fn = $('log_feeder_search').value.trim();
-  if (!fn){ ['log_feeder_code','log_eht','log_div','log_subdiv','log_section'].forEach(id => { if($(id)) $(id).value = ''; }); return; }
-  const sk = safeFbKey(fn);
-  const t = MASTER_TOPO[sk] || {};
-  $('log_feeder_code').value = t.feederCode || '';
-  $('log_eht').value         = t.ehtSource  || '';
-  $('log_div').value         = t.division   || '';
-  $('log_subdiv').value      = t.sub_division || '';
-  $('log_section').value     = t.section    || '';
+  const clearAll = () => ['log_feeder_code','log_eht','log_div','log_subdiv','log_section'].forEach(id => { if($(id)) $(id).value = ''; });
+  if (!fn){ clearAll(); return; }
+  // 1. Try normalized topology lookup (handles "132 KV" vs "132KV" spelling)
+  const t = lookupTopo(fn);
+  if (t){
+    $('log_feeder_code').value = t.feederCode || '';
+    $('log_eht').value         = t.ehtSource  || '';
+    $('log_div').value         = t.division   || '';
+    $('log_subdiv').value      = t.sub_division || '';
+    $('log_section').value     = t.section    || '';
+    return;
+  }
+  // 2. Fallback: extract EHT from the feeder name pattern, then use SS_DATA reverse-lookup
+  clearAll();
+  const eht = extractEhtFromFeederName(fn);
+  if (eht) $('log_eht').value = eht;
+  const ss = reverseLookupSS(fn);
+  if (ss){
+    $('log_div').value    = ss.lines_division || '';
+    $('log_subdiv').value = ss.sub_division   || '';
+    $('log_section').value = ss.section       || '';
+  }
 }
 
 function onLogSSChange(){
@@ -705,14 +819,16 @@ function clearPane(name){
 function onFailFeederChange(){
   const fn = $('fail_feeder_search').value.trim();
   if (!fn){ ['fail_eht','fail_feeds_to'].forEach(id => $(id).value = ''); $('failAltPanel').style.display = 'none'; return; }
-  const sk = safeFbKey(fn);
-  const t = MASTER_TOPO[sk];
+  // Use the normalized lookup that handles spelling variants
+  const t = lookupTopo(fn);
   if (t){
     $('fail_eht').value      = t.ehtSource || '';
     $('fail_feeds_to').value = (t.feedsTo || []).join(', ');
   } else {
-    $('fail_eht').value = '';
-    $('fail_feeds_to').value = '';
+    // Fallback: extract EHT from feeder name itself
+    $('fail_eht').value      = extractEhtFromFeederName(fn);
+    const ss = reverseLookupSS(fn);
+    $('fail_feeds_to').value = ss ? ss.ss_name : '';
   }
   refreshFailAlternates();
 }
@@ -721,8 +837,8 @@ function refreshFailAlternates(){
   // For each SS this feeder feeds to, list other source feeders + their statuses
   const fn = $('fail_feeder_search').value.trim();
   if (!fn){ $('failAltPanel').style.display = 'none'; return; }
-  const sk = safeFbKey(fn);
-  const t = MASTER_TOPO[sk];
+  // Use normalized lookup so alternates show even when the typed name has a different spelling
+  const t = lookupTopo(fn);
   if (!t || !t.feedsTo || !t.feedsTo.length){ $('failAltPanel').style.display = 'none'; return; }
 
   // Collect alternate feeders that feed any of the SSes this feeder feeds
@@ -779,20 +895,23 @@ async function logFailure(){
   const id = 'BD_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
   const now = nowISO();
   const fbk = safeFbKey(fn);
+  // Use normalized lookup so we still get topology metadata even when spelling differs
+  const topo = lookupTopo(fn) || {};
   const ssTarget = $('fail_feeds_to').value;
   const ssArr = ssTarget ? ssTarget.split(',').map(s => s.trim()).filter(Boolean) : [];
   const primarySS = ssArr[0] || '';
-  const ss = primarySS ? SS_DATA.find(s => s.ss_name === primarySS) : null;
+  const ss = primarySS ? (SS_DATA.find(s => s.ss_name === primarySS)
+                       || SS_DATA.find(s => s.ss_name.toUpperCase() === primarySS.toUpperCase())) : null;
 
   const payload = {
     id,
     feederName: fn,
-    feederCode: (MASTER_TOPO[fbk] || {}).feederCode || '',
+    feederCode: topo.feederCode || '',
     substationName: primarySS,
     substationCode: ss ? ss.ss_code : '',
-    division:     ss ? ss.lines_division : (MASTER_TOPO[fbk]||{}).division || '',
-    sub_division: ss ? ss.sub_division   : (MASTER_TOPO[fbk]||{}).sub_division || '',
-    section:      ss ? ss.section        : (MASTER_TOPO[fbk]||{}).section || '',
+    division:     ss ? ss.lines_division : (topo.division     || ''),
+    sub_division: ss ? ss.sub_division   : (topo.sub_division || ''),
+    section:      ss ? ss.section        : (topo.section      || ''),
     ehtSource:    $('fail_eht').value,
     alternativeSource: $('fail_alt').value,
     alternativeEHT:    $('fail_alt_eht').value,
@@ -1075,6 +1194,7 @@ async function bootstrap(){
     ]);
     MASTER_PTRS    = ptrs   || {};
     MASTER_TOPO    = topo   || {};
+    buildFeederNormIndex();   // build normalized-key index so autofill works across spelling variants
     MASTER_SS_TOPO = ssTopo || {};
     FEEDER_STATUS  = {};
     if (statuses) Object.keys(statuses).forEach(k => { const s = statuses[k]?.status; if (s) FEEDER_STATUS[k] = s; });
