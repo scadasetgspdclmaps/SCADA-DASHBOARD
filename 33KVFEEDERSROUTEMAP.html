@@ -1244,6 +1244,11 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
     <span class="srch-ic">⌕</span>
   </div>
   <input type="file" id="dfFileInput" accept=".csv,.xlsx,.xls" onchange="handleFileUpload(this)" style="display:none"/>
+  <div id="tbInterruptBtn" class="tb-irr-btn" onclick="toggleInterruptionPanel()" title="Show feeders under breakdown / idle">
+    <span class="tb-irr-ic">⚠</span>
+    <span class="tb-irr-lbl">INTERRUPTION DETAILS</span>
+    <span class="tb-irr-cnt" id="tb-irr-cnt">0</span>
+  </div>
   <div class="fs-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</div>
   <div class="chip chip-live">● LIVE</div>
 </div>
@@ -6731,62 +6736,6 @@ setTimeout(async ()=>{
 </div>
 
 
-<!-- ════ FLOATING BREAKDOWN BADGE — opens panel listing all current breakdowns ════ -->
-<style>
-  #mapBreakdownBadge{
-    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
-    background:linear-gradient(135deg,#dc2626,#b91c1c); color:#fff;
-    border:2px solid #fff; border-radius:30px;
-    padding:10px 18px 10px 14px; cursor:pointer; z-index:7000;
-    box-shadow:0 8px 24px rgba(220,38,38,.45), 0 2px 6px rgba(0,0,0,.2);
-    display:none; align-items:center; gap:10px;
-    font-family:var(--mono,Consolas,monospace); font-weight:700; font-size:12px;
-    letter-spacing:.8px; transition:.2s ease; user-select:none;
-    animation: sos-blink 1.2s ease-in-out infinite;
-  }
-  #mapBreakdownBadge:hover{transform:translateX(-50%) translateY(-2px); box-shadow:0 12px 32px rgba(220,38,38,.55)}
-  #mapBreakdownBadge .mbb-icon{font-size:18px}
-  #mapBreakdownBadge .mbb-count{background:rgba(255,255,255,.95); color:#dc2626; padding:3px 10px; border-radius:14px; font-weight:800; font-size:13px; font-variant-numeric:tabular-nums}
-  #mapBreakdownPanel{
-    position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
-    background:#fff; border-radius:14px; box-shadow:0 20px 50px rgba(0,0,0,.4);
-    width:min(560px, 92vw); max-height:60vh; overflow:hidden; z-index:7001;
-    display:none; flex-direction:column; border:1px solid #e2e8f0;
-    animation: bpop .2s ease;
-  }
-  @keyframes bpop{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-  #mapBreakdownPanel .mbp-hd{
-    background:linear-gradient(90deg,#dc2626,#ef4444); color:#fff;
-    padding:14px 20px; display:flex; justify-content:space-between; align-items:center;
-  }
-  #mapBreakdownPanel .mbp-hd h3{font-size:13px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; font-family:var(--mono,monospace)}
-  #mapBreakdownPanel .mbp-x{background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; font-weight:700}
-  #mapBreakdownPanel .mbp-x:hover{background:rgba(255,255,255,.35)}
-  #mapBreakdownPanel .mbp-body{padding:0; overflow-y:auto; flex:1}
-  .mbp-row{padding:12px 18px; border-bottom:1px solid #f1f5f9; cursor:pointer; transition:.15s; display:flex; gap:10px; align-items:flex-start}
-  .mbp-row:hover{background:#fef2f2}
-  .mbp-dot{width:10px; height:10px; border-radius:50%; background:#dc2626; flex-shrink:0; margin-top:5px; box-shadow:0 0 0 3px rgba(220,38,38,.2); animation:sos-blink 1s infinite}
-  .mbp-info{flex:1; min-width:0}
-  .mbp-fname{font-size:12px; font-weight:700; color:#0f172a; line-height:1.35; word-break:break-word}
-  .mbp-meta{font-size:10px; color:#64748b; margin-top:3px; font-family:var(--mono,monospace); letter-spacing:.3px}
-  .mbp-dur{font-size:11px; font-weight:700; color:#dc2626; font-variant-numeric:tabular-nums; padding:3px 8px; background:#fee2e2; border-radius:6px; align-self:center; flex-shrink:0}
-  .mbp-empty{padding:30px; text-align:center; color:#94a3b8; font-style:italic; font-size:11px}
-</style>
-<div id="mapBreakdownBadge" onclick="toggleBreakdownPanel()">
-  <span class="mbb-icon">🔴</span>
-  <span>BREAKDOWNS</span>
-  <span class="mbb-count" id="mbb-count">0</span>
-</div>
-<div id="mapBreakdownPanel">
-  <div class="mbp-hd">
-    <h3>🔴 Active Breakdowns — Live</h3>
-    <button class="mbp-x" onclick="toggleBreakdownPanel(false)">✕</button>
-  </div>
-  <div class="mbp-body" id="mbp-body">
-    <div class="mbp-empty">No active breakdowns 🎉</div>
-  </div>
-</div>
-
 
 
 <!-- ════════════════════════════════════════════════════════════════
@@ -7196,6 +7145,630 @@ setTimeout(async ()=>{
   };
 })();
 </script>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     ENHANCEMENT BUNDLE (added Jun-2026):
+     • Topbar interruption-details panel (replaces floating badge)
+     • HT Service circle markers + improved type detection
+     • Fuzzy SS↔PTR matching via Levenshtein
+     • Feeder stats export: + code, division, sub-div, section, feeds-to
+     ════════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+
+  function fbSafeKey(name){
+    return String(name||'').toUpperCase()
+      .replace(/[.#$\[\]\/]/g,'_').replace(/\s+/g,'_')
+      .replace(/[^A-Z0-9_-]/g,'').substring(0,180) || 'EMPTY';
+  }
+  function escapeHtml(s){
+    return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function humanAgo(ms){
+    if (!ms || ms < 0) return '—';
+    const s = Math.floor(ms/1000);
+    if (s < 60) return s + 's';
+    const m = Math.floor(s/60);
+    if (m < 60) return m + 'm';
+    const h = Math.floor(m/60);
+    if (h < 24) return h + 'h ' + (m%60) + 'm';
+    return Math.floor(h/24) + 'd';
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // 1) TOPBAR INTERRUPTION DETAILS PANEL — tree by status
+  // ═════════════════════════════════════════════════════════════
+  let _irrOpen = false;
+  let _irrGroupCollapsed = { bk: false, id: false };
+
+  window.toggleInterruptionPanel = function(force){
+    const panel = $('mapInterruptionPanel');
+    if (!panel) return;
+    _irrOpen = (force === undefined) ? !_irrOpen : !!force;
+    panel.style.display = _irrOpen ? 'flex' : 'none';
+    if (_irrOpen) refreshInterruptionPanel();
+  };
+  window.toggleIrrGroup = function(key){
+    _irrGroupCollapsed[key] = !_irrGroupCollapsed[key];
+    refreshInterruptionPanel();
+  };
+  window.zoomToInterruptedFeeder = function(feederName){
+    if (!feederName) return;
+    window.toggleInterruptionPanel(false);
+    try {
+      if (typeof window.focusFeeder === 'function') window.focusFeeder(feederName);
+      const pts = (window.allLayers||[]).filter(i => i.feederName === feederName && i.layer && i.layer.getLatLngs);
+      if (pts.length && typeof L !== 'undefined' && window.map){
+        const lls = pts.flatMap(i => {
+          const ll = i.layer.getLatLngs();
+          return Array.isArray(ll[0]) ? ll.flat() : ll;
+        });
+        if (lls.length) window.map.flyToBounds(L.latLngBounds(lls), {padding:[60,60], maxZoom:17, animate:true, duration:.7});
+      }
+    } catch(err){ console.warn('[map] zoom-to-interrupted error:', err); }
+  };
+
+  function refreshInterruptionPanel(){
+    // Read current state — combine live SSE feeders data + local feederStatus
+    const liveData = (window.mapLive && typeof window.mapLive.feeders === 'function') ? window.mapLive.feeders() : {};
+    const grouped = { breakdown: [], idle: [] };
+
+    // 1. From Firebase /feeders/
+    Object.keys(liveData || {}).forEach(fbKey => {
+      const rec = liveData[fbKey] || {};
+      const status = rec.status || 'live';
+      if (status === 'live') return;
+      const name = rec.feederName || _resolveLocalFeederName(fbKey) || fbKey;
+      grouped[status === 'breakdown' ? 'breakdown' : 'idle'].push({
+        feederName: name,
+        lastUpdated: rec.lastUpdated || '',
+        lastBreakdownId: rec.lastBreakdownId || '',
+        source: 'fb'
+      });
+    });
+    // 2. Local-only manual status changes
+    (window.feederNames || new Set()).forEach(fn => {
+      const s = (window.feederStatus || {})[fn] || 'live';
+      if (s === 'live') return;
+      if (grouped[s] && !grouped[s].some(x => x.feederName === fn)){
+        grouped[s].push({ feederName: fn, lastUpdated: '', source: 'local' });
+      }
+    });
+
+    const total = grouped.breakdown.length + grouped.idle.length;
+    const tbBtn = $('tbInterruptBtn');
+    const tbCnt = $('tb-irr-cnt');
+    if (tbBtn) tbBtn.classList.toggle('has-active', total > 0);
+    if (tbCnt) tbCnt.textContent = total;
+
+    const body = $('mir-body');
+    if (!body) return;
+    if (total === 0){
+      body.innerHTML = '<div class="mir-empty">No interruptions — all feeders live ⚡</div>';
+      return;
+    }
+
+    // Sort each group by most recent
+    ['breakdown','idle'].forEach(k => grouped[k].sort((a,b) => (b.lastUpdated||'').localeCompare(a.lastUpdated||'')));
+
+    const renderGroup = (key, label, icon, items) => {
+      if (items.length === 0) return '';
+      const collapsed = _irrGroupCollapsed[key === 'breakdown' ? 'bk' : 'id'];
+      return '<div class="mir-group ' + (key === 'breakdown' ? 'bk' : 'id') + (collapsed ? ' collapsed' : '') + '">'
+        + '<div class="mir-group-hd" onclick="toggleIrrGroup(\'' + (key === 'breakdown' ? 'bk' : 'id') + '\')">'
+          + '<span>' + icon + ' ' + label + '</span>'
+          + '<span>'
+            + '<span class="mir-grp-cnt">' + items.length + '</span>'
+            + '<span class="mir-tw">▼</span>'
+          + '</span>'
+        + '</div>'
+        + '<div class="mir-tree">'
+          + items.map(it => {
+              const dur = it.lastUpdated ? humanAgo(Date.now() - new Date(it.lastUpdated).getTime()) : '—';
+              const metaPart = it.lastBreakdownId ? ('ID: ' + it.lastBreakdownId.substring(0,18)) : (it.source === 'local' ? 'Local override' : '');
+              return '<div class="mir-row" onclick="zoomToInterruptedFeeder(' + JSON.stringify(it.feederName).replace(/"/g,'&quot;') + ')">'
+                + '<span class="mir-dot"></span>'
+                + '<div class="mir-info">'
+                  + '<div class="mir-fname">' + escapeHtml(it.feederName) + '</div>'
+                  + (metaPart ? '<div class="mir-meta">' + escapeHtml(metaPart) + '</div>' : '')
+                + '</div>'
+                + (it.lastUpdated ? '<span class="mir-dur">' + dur + '</span>' : '')
+              + '</div>';
+            }).join('')
+        + '</div>'
+      + '</div>';
+    };
+
+    body.innerHTML = renderGroup('breakdown', 'Under Breakdown', '🔴', grouped.breakdown)
+                   + renderGroup('idle',      'Idle',             '⏸', grouped.idle);
+  }
+
+  // Helper: resolve safe-key back to local feeder name
+  function _resolveLocalFeederName(fbKey){
+    if (!fbKey) return null;
+    const direct = [...(window.feederNames||[])].find(f => fbSafeKey(f) === fbKey);
+    return direct || null;
+  }
+
+  // Hook refresh into the existing updateMapStatusStats path so the topbar count
+  // stays in sync without polling. The mapLive bootstrap calls updateMapStatusStats
+  // → which we extend via a setInterval fallback too.
+  setInterval(() => { if (_irrOpen) refreshInterruptionPanel(); else { try { refreshInterruptionPanel(); } catch(_){} } }, 4000);
+  // Initial refresh after load
+  setTimeout(refreshInterruptionPanel, 2500);
+
+  // ═════════════════════════════════════════════════════════════
+  // 2) HT SERVICE — improved detection + circle markers at endpoint
+  // ═════════════════════════════════════════════════════════════
+  // Type-checking helpers
+  function classifyFeederType(ftype, feederName){
+    const t = (ftype || '').toString().toUpperCase().trim();
+    const fn = (feederName || '').toUpperCase();
+    // Check HT Service FIRST so "HT SERVICE FEEDER" isn't miscategorised as 33KV
+    if (/HT\s*SERVICE|HT\s*SVC|HTSERVICE|HT-SERVICE/.test(t) || /HT\s*SERVICE/.test(fn) || /^HT\s/.test(fn)) return 'HT';
+    if (/LINK\s*LINE|LINKLINE/.test(t) || /LINK\s*LINE/.test(fn)) return 'LINK';
+    if (/33\s*KV|33KV/.test(t) || /FEEDER/.test(t)) return '33KV';
+    return '33KV';   // default
+  }
+
+  // Get feeder-type for one feeder by looking at its source rows.
+  // Returns one of: '33KV', 'LINK', 'HT'
+  function getFeederClass(feederName){
+    if (!feederName) return '33KV';
+    // 1. Try the feederHierarchyMap cache
+    const cached = (window.feederHierarchyMap || {})[feederName];
+    if (cached && cached.feeder_type){
+      const c = classifyFeederType(cached.feeder_type, feederName);
+      if (c) return c;
+    }
+    // 2. Inspect a sample row
+    const samples = (window.allLayers || []).filter(i =>
+      i.feederName === feederName && !i._deleted && i.layer && i.layer.feature
+    );
+    for (const s of samples){
+      const p = s.layer.feature.properties || {};
+      const t = p.feeder_type || p.FeederType || p['Feeder Type'] || p.Type_of_feeder || '';
+      if (t){
+        return classifyFeederType(t, feederName);
+      }
+    }
+    return classifyFeederType('', feederName);
+  }
+  window.getFeederClass = getFeederClass;
+
+  // Replace the old breakdown counter with the improved one
+  window.computeFeederTypeBreakdown = function(){
+    const types = { '33KV': 0, 'LINK': 0, 'HT': 0 };
+    (window.feederNames || new Set()).forEach(fn => {
+      const c = getFeederClass(fn);
+      if (c === 'HT') types['HT']++;
+      else if (c === 'LINK') types['LINK']++;
+      else types['33KV']++;
+    });
+    if ($('st-ft-33kv')) $('st-ft-33kv').textContent = types['33KV'];
+    if ($('st-ft-link')) $('st-ft-link').textContent = types['LINK'];
+    if ($('st-ft-ht'))   $('st-ft-ht').textContent   = types['HT'];
+  };
+
+  // ─── HT SERVICE CIRCLE MARKERS ───
+  // For each feeder of class 'HT', drop a small circle at the LAST pole of its line(s)
+  // with a label showing the destination name (from feeder_feeding_to / pole_feeding_to).
+  let _htMarkers = [];
+  let _htLayerGroup = null;
+  function clearHTMarkers(){
+    if (_htLayerGroup && window.map){
+      try { _htLayerGroup.clearLayers(); window.map.removeLayer(_htLayerGroup); } catch(_){}
+    }
+    _htMarkers = [];
+  }
+  function getFeederFeedingTo(feederName){
+    // Try multiple paths: hierarchy cache → sample row's feeder_feeding_to → pole_feeding_to
+    const cached = (window.feederHierarchyMap || {})[feederName];
+    if (cached && (cached.feeder_feeding_to || cached.feeding_to)){
+      return (cached.feeder_feeding_to || cached.feeding_to).toString().trim();
+    }
+    const samples = (window.allLayers || []).filter(i =>
+      i.feederName === feederName && !i._deleted && i.layer && i.layer.feature
+    );
+    for (const s of samples){
+      const p = s.layer.feature.properties || {};
+      const v = p.feeder_feeding_to || p['feeder_feeding_to'] || p.Feeding_To || p['feeding_to'] || p.pole_feeding_to || p['Pole Feeding to'] || '';
+      if (v) return String(v).trim();
+    }
+    return '';
+  }
+  function refreshHTMarkers(){
+    if (!window.map || typeof L === 'undefined') return;
+    clearHTMarkers();
+    _htLayerGroup = L.layerGroup().addTo(window.map);
+
+    (window.feederNames || new Set()).forEach(fn => {
+      if (getFeederClass(fn) !== 'HT') return;
+      // Find the LAST point of this feeder's line(s)
+      const items = (window.allLayers || []).filter(i =>
+        i.feederName === fn && !i._deleted && i.reg && i.reg.type === 'lines' && i.layer && i.layer.getLatLngs
+      );
+      if (!items.length) return;
+      // Pick the line with the most points (likely the trunk) and take its tail
+      let bestTail = null;
+      items.forEach(item => {
+        try {
+          const lls = item.layer.getLatLngs();
+          const pts = Array.isArray(lls[0]) ? lls.flat() : lls;
+          if (pts.length && (!bestTail || pts.length > bestTail._count)){
+            bestTail = pts[pts.length-1];
+            bestTail._count = pts.length;
+          }
+        } catch(_){}
+      });
+      if (!bestTail) return;
+      const dest = getFeederFeedingTo(fn) || fn;
+      const safe = escapeHtml(dest);
+
+      // Build the marker — small pink/magenta circle with hover label
+      const ic = L.divIcon({
+        className: 'ht-svc-marker',
+        html: '<div class="ht-svc-circle" title="' + escapeHtml(dest) + '"><div class="ht-svc-pulse"></div><span class="ht-svc-glyph">H</span></div>',
+        iconSize: [14,14], iconAnchor:[7,7]
+      });
+      const marker = L.marker([bestTail.lat, bestTail.lng], {icon: ic, interactive: true, zIndexOffset: 700});
+      marker.bindTooltip(safe + ' <br><span style="font-size:9px;opacity:.7">HT SERVICE · ' + escapeHtml(fn) + '</span>',
+                         {direction:'top', offset:[0,-10], className:'ht-svc-tooltip'});
+      marker.on('click', () => {
+        try { if (typeof window.focusFeeder === 'function') window.focusFeeder(fn); } catch(_){}
+      });
+      _htLayerGroup.addLayer(marker);
+      _htMarkers.push({ feederName: fn, dest, marker });
+    });
+    console.log('[map] HT Service markers: ' + _htMarkers.length);
+  }
+  window.refreshHTMarkers = refreshHTMarkers;
+  // Run it after the initial bootstrap completes; also re-run when uploads happen
+  setTimeout(refreshHTMarkers, 3500);
+
+  // Hook into updateCounts so HT markers stay in sync after upload / delete operations
+  if (typeof window.updateCounts === 'function'){
+    const _origUC = window.updateCounts;
+    window.updateCounts = function(){
+      _origUC.apply(this, arguments);
+      try { refreshHTMarkers(); } catch(err){ console.warn('[map] HT marker refresh failed:', err); }
+    };
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // 3) FUZZY SS↔PTR MATCHING (Levenshtein-based)
+  // ═════════════════════════════════════════════════════════════
+  // Override the findPTRForSS used in the SS popup with one that handles
+  // spelling drift like MUFFAKAMZHA ↔ MUFFAKHAMZA.
+  function levenshtein(a, b, max){
+    a = String(a||''); b = String(b||'');
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    if (max != null && Math.abs(a.length - b.length) > max) return max + 1;
+    const v0 = new Array(b.length + 1);
+    const v1 = new Array(b.length + 1);
+    for (let i = 0; i <= b.length; i++) v0[i] = i;
+    for (let i = 0; i < a.length; i++){
+      v1[0] = i + 1;
+      let rowMin = v1[0];
+      for (let j = 0; j < b.length; j++){
+        const cost = a[i] === b[j] ? 0 : 1;
+        v1[j+1] = Math.min(v1[j] + 1, v0[j+1] + 1, v0[j] + cost);
+        if (v1[j+1] < rowMin) rowMin = v1[j+1];
+      }
+      if (max != null && rowMin > max) return max + 1;
+      for (let j = 0; j <= b.length; j++) v0[j] = v1[j];
+    }
+    return v0[b.length];
+  }
+
+  function normalizeSSName(s){
+    return String(s||'')
+      .toUpperCase()
+      .replace(/[^A-Z0-9 ]/g, ' ')                          // strip punctuation
+      .replace(/^33\s*\/?\s*11\s*KV\b/, '')                 // strip leading 33/11KV
+      .replace(/\b33\s*\/?\s*11\s*KV\b/g, '')               // strip embedded 33/11KV
+      .replace(/\bSS\b/g, '')                               // strip trailing SS token
+      .replace(/\bSUBSTATION\b/g, '')
+      .replace(/\s+/g, ' ').trim();
+  }
+  function distinctiveSSToken(s){
+    const n = normalizeSSName(s);
+    // Take the longest single word
+    const words = n.split(' ').filter(w => w.length >= 4);
+    if (!words.length) return n;
+    return words.sort((a,b) => b.length - a.length)[0];
+  }
+
+  function fuzzyFindPTR(ss){
+    if (!ss) return null;
+    const map = (window.mapLive && typeof window.mapLive.ptrs === 'function') ? window.mapLive.ptrs() : {};
+    if (!map || !Object.keys(map).length) return null;
+    const ssCode = (ss.code || ss.ssCode || '').trim();
+    const ssName = (ss.name || ss.ssName || '').trim();
+    if (!ssName && !ssCode) return null;
+
+    // 1. Exact code key
+    if (ssCode){
+      const sk = fbSafeKey(ssCode);
+      if (map[sk]) return map[sk];
+      const byCode = Object.values(map).find(p => (p.ssCode||'').trim() === ssCode);
+      if (byCode) return byCode;
+    }
+    // 2. Exact name
+    if (ssName){
+      const upper = ssName.toUpperCase().trim();
+      const byName = Object.values(map).find(p => (p.ssName||'').toUpperCase().trim() === upper);
+      if (byName) return byName;
+    }
+    // 3. Normalized exact match
+    const targetNorm = normalizeSSName(ssName);
+    if (targetNorm){
+      const byNorm = Object.values(map).find(p => normalizeSSName(p.ssName) === targetNorm);
+      if (byNorm) return byNorm;
+    }
+    // 4. Distinctive-token match (substring both ways)
+    const targetDist = distinctiveSSToken(ssName);
+    if (targetDist && targetDist.length >= 4){
+      const byDist = Object.values(map).find(p => {
+        const pNorm = normalizeSSName(p.ssName);
+        return pNorm.includes(targetDist) || targetDist.includes(distinctiveSSToken(p.ssName));
+      });
+      if (byDist) return byDist;
+    }
+    // 5. Levenshtein on normalized — accept best match if distance ≤ 25% of length
+    if (targetNorm){
+      let best = null, bestD = Infinity;
+      const maxAllow = Math.max(2, Math.floor(targetNorm.length * 0.25));
+      Object.values(map).forEach(p => {
+        const pNorm = normalizeSSName(p.ssName);
+        if (!pNorm) return;
+        const d = levenshtein(targetNorm, pNorm, maxAllow);
+        if (d <= maxAllow && d < bestD){ best = p; bestD = d; }
+      });
+      if (best){
+        console.log('[map] Fuzzy PTR match: "' + ssName + '" ↔ "' + best.ssName + '" (lev=' + bestD + ')');
+        return best;
+      }
+    }
+    return null;
+  }
+
+  // Override window.mapLive.findPTR + the popup enhancer to use fuzzy logic
+  if (window.mapLive){ window.mapLive.findPTR = fuzzyFindPTR; }
+  window.fuzzyFindPTR = fuzzyFindPTR;
+
+  // Re-wrap the existing enhanced flyToSS — patch its findPTRForSS reference to use fuzzy.
+  // We do this by overriding flyToSS one more time: it calls the previous flyToSS, then
+  // re-runs the PTR-card insertion ONLY IF the previous code displayed the "No PTR master
+  // data found" fallback (i.e. the original exact matcher came up empty).
+  if (typeof window.flyToSS === 'function'){
+    const _prevFly = window.flyToSS;
+    window.flyToSS = function(ss){
+      _prevFly.call(this, ss);
+      // After a slight delay, check whether the popup still has the "No PTR" fallback
+      setTimeout(() => {
+        const popups = document.querySelectorAll('.leaflet-popup.ss-popup .leaflet-popup-content');
+        if (!popups.length) return;
+        const popup = popups[popups.length - 1];
+        const fallbackNode = [...popup.querySelectorAll('div')].find(d => /No PTR master data found/i.test(d.textContent));
+        if (!fallbackNode) return;   // previous code already inserted a real card
+        const ptr = fuzzyFindPTR(ss);
+        if (!ptr) return;   // nothing better found
+        // Rebuild the PTR card and replace the fallback
+        const ptrCardHtml = (
+          '<div style="background:linear-gradient(135deg,#fef3c7,#fef9c3);border:1.5px solid #fbbf24;border-radius:10px;padding:12px;margin:10px 0">'
+          + '<div style="font-size:9px;font-weight:800;color:#92400e;letter-spacing:1.2px;margin-bottom:8px;font-family:Consolas,monospace">⚡ PTRs FROM MASTER DATA <span style="background:#fbbf24;color:#7c2d12;padding:1px 6px;border-radius:5px;margin-left:4px;font-size:8px">FUZZY MATCH: ' + escapeHtml(ptr.ssName||'') + '</span></div>'
+          + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+            + (ptr.ptrCapacities||[]).map((cap,i) => {
+                const roman = ['I','II','III','IV','V','VI','VII','VIII','IX','X'][i] || (i+1);
+                return '<span style="background:#fff;border:1.5px solid #f59e0b;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;color:#92400e">PTR-' + roman + ' · ' + cap + ' MVA</span>';
+              }).join('')
+          + '</div>'
+          + '<div style="font-size:10px;color:#78350f;font-weight:700;text-align:right">Total: ' + (ptr.totalCapacityMVA||0) + ' MVA across ' + (ptr.ptrCount||0) + ' PTR(s)</div>'
+          + (ptr.linesDivision ? '<div style="font-size:10px;color:#78350f;margin-top:6px;font-family:Consolas,monospace;border-top:1px solid #fbbf24;padding-top:6px">' + escapeHtml(ptr.linesDivision) + ' › ' + escapeHtml(ptr.linesSubDiv||'') + ' › ' + escapeHtml(ptr.linesSection||'') + '</div>' : '')
+          + '</div>'
+        );
+        const wrap = document.createElement('div');
+        wrap.innerHTML = ptrCardHtml;
+        fallbackNode.parentNode.replaceChild(wrap.firstElementChild, fallbackNode);
+      }, 90);
+    };
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // 4) ENHANCED FEEDER STATS EXPORT — extra columns
+  // ═════════════════════════════════════════════════════════════
+  // Compute a feederName → [SSes it feeds] reverse index, using existing
+  // _findFeedersLinkedToSS over STATIC_SS33.
+  function buildFeederToSSIndex(){
+    const idx = {};
+    if (!Array.isArray(window.STATIC_SS33) || typeof window._findFeedersLinkedToSS !== 'function') return idx;
+    window.STATIC_SS33.forEach(ss => {
+      try {
+        const linked = window._findFeedersLinkedToSS(ss);
+        linked.forEach(fn => {
+          if (!idx[fn]) idx[fn] = [];
+          if (!idx[fn].includes(ss.name)) idx[fn].push(ss.name);
+        });
+      } catch(_){}
+    });
+    return idx;
+  }
+
+  function getFeederMeta(fn){
+    // Pull all metadata for a feeder from the hierarchy cache + sample rows
+    const cached = (window.feederHierarchyMap || {})[fn] || {};
+    const meta = (window.feederMetaMap || {})[fn] || {};
+    let feederCode = cached.feeder_code || cached.feederCode || meta.code || '';
+    let division   = cached.division || meta.div || '';
+    let subDiv     = cached.sub_division || meta.sub || '';
+    let section    = cached.section || meta.sec || '';
+    let ehtName    = cached.name_of_the_EHT_SS || cached.eht_name || meta.eht || '';
+    if (!feederCode || !division || !subDiv || !section || !ehtName){
+      const sample = (window.allLayers || []).find(i => i.feederName === fn && !i._deleted && i.layer && i.layer.feature);
+      if (sample){
+        const p = sample.layer.feature.properties || {};
+        feederCode = feederCode || p.feeder_code || p.FeederCode || '';
+        division   = division   || p.division || p.Division || '';
+        subDiv     = subDiv     || p.sub_division || p['Sub Division'] || p.SUB_DIVISION || '';
+        section    = section    || p.section || p.Section || '';
+        ehtName    = ehtName    || p.name_of_the_EHT_SS || p['name_of_the_EHT _SS'] || p.eht_ss || '';
+      }
+    }
+    return { feederCode, division, subDiv, section, ehtName };
+  }
+
+  // Override downloadAllFeederStats to include the new columns
+  const _origDownload = window.downloadAllFeederStats;
+  window.downloadAllFeederStats = function(){
+    if (typeof XLSX === 'undefined'){
+      if (typeof toast === 'function') toast('SheetJS not loaded',2000);
+      return;
+    }
+    const feeders = (typeof window.getFilteredFeeders === 'function')
+      ? window.getFilteredFeeders() : [...(window.feederNames||[])];
+    if (!feeders.length){
+      if (typeof toast === 'function') toast('No feeders match filter',2000);
+      return;
+    }
+    const ssIdx = buildFeederToSSIndex();
+    const rows = [];
+    feeders.sort().forEach(fn => {
+      const s = (typeof window.calcFeederStats === 'function') ? window.calcFeederStats(fn) : null;
+      const m = getFeederMeta(fn);
+      const cls = getFeederClass(fn);
+      const typeLabel = cls === 'HT' ? 'HT Service' : (cls === 'LINK' ? 'Link Line' : '33KV Feeder');
+      const feedsTo = (ssIdx[fn] || []).join(' | ');
+      const status = (window.feederStatus || {})[fn] || 'live';
+      rows.push({
+        'Feeder Name': fn,
+        'Feeder Code': m.feederCode,
+        'Feeder Type': typeLabel,
+        'Source EHT Name': m.ehtName || (typeof window.extractEHT === 'function' ? window.extractEHT(fn) : ''),
+        'Feeding to 33/11KV SS(es)': feedsTo,
+        'Division': m.division,
+        'Sub-Division': m.subDiv,
+        'Section': m.section,
+        'Status': status.toUpperCase(),
+        'Poles/Points': s ? s.poles : 0,
+        'Total Length (km)': s ? +s.totalKm.toFixed(3) : 0,
+        'UG Length (km)':    s ? +s.ugKm.toFixed(3)    : 0,
+        'OH Length (km)':    s ? +s.ohKm.toFixed(3)    : 0,
+        'Trans Length (km)': s ? +(s.trKm||0).toFixed(3) : 0,
+        'AB Switches':       s ? s.abCnt : 0,
+        'DP Structures':     s ? s.dpCnt : 0,
+        'Cut Points':        s ? s.cutCnt : 0,
+      });
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      {wch:45}, {wch:14}, {wch:13}, {wch:25}, {wch:42},
+      {wch:18}, {wch:18}, {wch:18}, {wch:11},
+      {wch:12}, {wch:16}, {wch:14}, {wch:14}, {wch:16},
+      {wch:12}, {wch:14}, {wch:12}
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Feeder Stats');
+    XLSX.writeFile(wb, 'Feeder_Stats_Filtered.xlsx');
+    if (typeof toast === 'function') toast('📥 Exported ' + rows.length + ' feeders with full metadata', 2800);
+  };
+  console.log('[map] Enhanced feeder stats export: columns include Feeder Code, Type, Division, Sub-Div, Section, SS feeding to');
+
+})();
+</script>
+
+<!-- HT Service marker styles (must be outside the IIFE to render) -->
+<style>
+  .ht-svc-marker{pointer-events:auto}
+  .ht-svc-circle{
+    position:relative; width:14px; height:14px; border-radius:50%;
+    background:linear-gradient(135deg,#f43f5e,#ec4899);
+    border:2px solid #fff; box-shadow:0 0 0 2px rgba(244,63,94,.45), 0 2px 5px rgba(0,0,0,.4);
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .ht-svc-circle:hover{transform:scale(1.4); transition:.15s}
+  .ht-svc-circle .ht-svc-glyph{
+    color:#fff; font-size:8px; font-weight:900; line-height:1;
+    font-family:Consolas,Monaco,monospace; letter-spacing:.5px;
+    text-shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+  .ht-svc-circle .ht-svc-pulse{
+    position:absolute; inset:-3px; border-radius:50%;
+    background:rgba(244,63,94,.4); animation:htPulse 2.4s ease-out infinite;
+    pointer-events:none; z-index:-1;
+  }
+  @keyframes htPulse{
+    0%{transform:scale(.8); opacity:.7}
+    100%{transform:scale(2.4); opacity:0}
+  }
+  .ht-svc-tooltip{
+    background:#1e293b !important; color:#f43f5e !important; border:1px solid #f43f5e !important;
+    font-family:Consolas,Monaco,monospace !important; font-size:11px !important; font-weight:700 !important;
+    padding:7px 11px !important; border-radius:7px !important; letter-spacing:.4px !important;
+    box-shadow:0 4px 14px rgba(0,0,0,.4) !important;
+  }
+  .ht-svc-tooltip::before{display:none !important}
+</style>
+
+
+<!-- ════ INTERRUPTION DETAILS PANEL (topbar-anchored) ════ -->
+<style>
+  .tb-irr-btn{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;background:linear-gradient(135deg,rgba(220,38,38,.15),rgba(220,38,38,.08));border:1px solid rgba(220,38,38,.4);border-radius:18px;cursor:pointer;color:#fca5a5;font-family:var(--mono,Consolas,monospace);font-size:10px;font-weight:700;letter-spacing:.8px;transition:.18s;user-select:none;text-transform:uppercase;margin-left:6px}
+  .tb-irr-btn:hover{background:linear-gradient(135deg,rgba(220,38,38,.25),rgba(220,38,38,.15));border-color:rgba(220,38,38,.6);color:#fecaca;transform:translateY(-1px)}
+  .tb-irr-btn.has-active{border-color:rgba(220,38,38,.8);color:#fff;background:linear-gradient(135deg,rgba(220,38,38,.35),rgba(220,38,38,.2))}
+  .tb-irr-btn .tb-irr-ic{font-size:13px;line-height:1}
+  .tb-irr-btn .tb-irr-cnt{background:#fff;color:#dc2626;padding:1px 8px;border-radius:10px;font-weight:800;font-size:10px;font-variant-numeric:tabular-nums;min-width:18px;text-align:center}
+  .tb-irr-btn.has-active .tb-irr-cnt{background:#fef2f2;color:#b91c1c}
+  #mapInterruptionPanel{position:fixed;top:54px;right:12px;background:#fff;border-radius:12px;box-shadow:0 18px 42px rgba(0,0,0,.35);width:min(420px,92vw);max-height:72vh;overflow:hidden;z-index:7001;display:none;flex-direction:column;border:1px solid #e2e8f0;animation:irrPop .18s ease}
+  @keyframes irrPop{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+  #mapInterruptionPanel .mir-hd{background:linear-gradient(90deg,#1e293b,#334155);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #f59e0b}
+  #mapInterruptionPanel .mir-hd h3{font-size:11.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono,monospace)}
+  #mapInterruptionPanel .mir-hd .mir-x{background:rgba(255,255,255,.18);border:none;color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:13px;font-weight:700}
+  #mapInterruptionPanel .mir-hd .mir-x:hover{background:rgba(255,255,255,.32)}
+  #mapInterruptionPanel .mir-body{padding:0;overflow-y:auto;flex:1}
+  .mir-group{border-bottom:1px solid #f1f5f9}
+  .mir-group:last-child{border-bottom:none}
+  .mir-group-hd{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:#fafafa;font-family:var(--mono,monospace);font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;transition:.15s}
+  .mir-group-hd:hover{background:#f1f5f9}
+  .mir-group.bk .mir-group-hd{color:#b91c1c;border-left:4px solid #dc2626}
+  .mir-group.id .mir-group-hd{color:#475569;border-left:4px solid #94a3b8}
+  .mir-group-hd .mir-grp-cnt{background:#fff;padding:2px 10px;border-radius:9px;font-size:11px;font-variant-numeric:tabular-nums;border:1px solid #e2e8f0}
+  .mir-group.bk .mir-grp-cnt{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
+  .mir-group.id .mir-grp-cnt{background:#f1f5f9;color:#475569;border-color:#cbd5e1}
+  .mir-group-hd .mir-tw{transition:.2s;font-size:10px;color:#94a3b8;margin-left:6px;display:inline-block}
+  .mir-group.collapsed .mir-tw{transform:rotate(-90deg)}
+  .mir-group.collapsed .mir-tree{display:none}
+  .mir-tree{padding:4px 0 6px}
+  .mir-row{display:flex;align-items:flex-start;gap:8px;padding:8px 16px 8px 28px;cursor:pointer;transition:.12s;border-left:2px solid transparent}
+  .mir-row:hover{background:#fef2f2;border-left-color:#dc2626}
+  .mir-group.id .mir-row:hover{background:#f1f5f9;border-left-color:#94a3b8}
+  .mir-row .mir-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+  .mir-group.bk .mir-row .mir-dot{background:#dc2626;box-shadow:0 0 0 2px rgba(220,38,38,.25)}
+  .mir-group.id .mir-row .mir-dot{background:#94a3b8;box-shadow:0 0 0 2px rgba(148,163,184,.25)}
+  .mir-row .mir-info{flex:1;min-width:0}
+  .mir-row .mir-fname{font-size:11.5px;font-weight:600;color:#0f172a;line-height:1.35;word-break:break-word}
+  .mir-row .mir-meta{font-size:9.5px;color:#64748b;margin-top:2px;font-family:var(--mono,monospace);letter-spacing:.3px}
+  .mir-row .mir-dur{font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;padding:2px 7px;border-radius:5px;align-self:center;flex-shrink:0}
+  .mir-group.bk .mir-row .mir-dur{background:#fee2e2;color:#b91c1c}
+  .mir-group.id .mir-row .mir-dur{background:#f1f5f9;color:#475569}
+  .mir-empty{padding:30px 16px;text-align:center;color:#94a3b8;font-style:italic;font-size:11px}
+</style>
+<div id="mapInterruptionPanel">
+  <div class="mir-hd">
+    <h3>⚠ Interruption Details — Live</h3>
+    <button class="mir-x" onclick="toggleInterruptionPanel(false)">✕</button>
+  </div>
+  <div class="mir-body" id="mir-body">
+    <div class="mir-empty">No interruptions — all feeders live ⚡</div>
+  </div>
+</div>
+
 
 </body>
 </html>
