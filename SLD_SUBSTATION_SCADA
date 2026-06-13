@@ -2,548 +2,954 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>33/11kV Goshamahal Indoor SS — Single Line Diagram</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>TGSPDCL — SLD Studio Pro V5</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  background: #6a7d8e;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
+:root{
+  --bg:#0b0f14; --panel:#141b24; --panel2:#1e2836; --line:#2e3d52;
+  --txt:#f0f4f8; --dim:#8fa0b5; --acc:#ffb300; --grn:#00e676; --red:#ff5252;
+  --cyan:#00e5ff;
 }
-.toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-  background: rgba(255,255,255,0.96);
-  padding: 9px 18px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.22);
-  align-items: center;
-}
-.toolbar .tit {
-  font: 600 12px 'Segoe UI', Arial, sans-serif;
-  color: #1a3a5a;
-  margin-right: 8px;
-}
-.toolbar button {
-  padding: 6px 14px;
-  border: 1.5px solid #2a4a6a;
-  background: #edf3f9;
-  color: #1a3a5a;
-  border-radius: 4px;
-  cursor: pointer;
-  font: 600 13px 'Segoe UI', Arial, sans-serif;
-  transition: background 0.15s;
-}
-.toolbar button:hover { background: #c8daea; }
-#sldWrap {
-  background: white;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.38);
-  transform-origin: top center;
-  transition: transform 0.2s;
-}
-@media print {
-  body { background: white; padding: 0; }
-  .toolbar { display: none; }
-  #sldWrap { box-shadow: none; }
-}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font:12px 'Segoe UI',-apple-system,Arial,sans-serif;background:var(--bg);color:var(--txt);
+  height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+button,select,input,textarea{font-family:inherit}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--panel2);border-radius:4px}
+
+/* ============ HEADER ============ */
+#topbar{display:flex;align-items:center;gap:6px;padding:8px 12px;
+  background:linear-gradient(180deg,#18222e,var(--panel));
+  border-bottom:2px solid var(--acc);overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+#topbar::-webkit-scrollbar{display:none}
+.logo{font-weight:900;color:var(--acc);font-size:14px;white-space:nowrap;
+  letter-spacing:.5px;margin-right:6px;display:flex;align-items:center;gap:6px}
+.logo .bolt{filter:drop-shadow(0 0 6px #ffb30099)}
+#ssName{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+  padding:7px 10px;border-radius:7px;width:215px;font-weight:600;font-size:13px}
+#ssName:focus{outline:none;border-color:var(--acc)}
+.sep{width:1px;height:26px;background:var(--line);margin:0 4px;flex-shrink:0}
+.tb{background:var(--panel2);color:var(--txt);border:1px solid var(--line);
+  border-radius:7px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:500;
+  white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:5px;transition:all .15s ease}
+.tb:hover{background:var(--line);border-color:var(--dim)}
+.tb:active{transform:scale(.97)}
+.tb.on{background:var(--acc);color:#0b0f14;font-weight:700;border-color:var(--acc);
+  box-shadow:0 0 14px #ffb30055}
+.tb.lock-on{background:var(--red);color:#fff;border-color:var(--red);font-weight:700}
+.tb:disabled{opacity:.25;cursor:default;pointer-events:none}
+.themeSelect{background:var(--panel2);color:var(--txt);border:1px solid var(--line);
+  border-radius:7px;padding:8px 10px;font-size:12px;cursor:pointer;flex-shrink:0}
+
+/* SECONDARY RIBBON */
+#toolrow{display:flex;align-items:center;gap:6px;padding:6px 12px;
+  background:var(--panel2);border-bottom:1px solid var(--line);
+  overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+#toolrow::-webkit-scrollbar{display:none}
+.hintText{font-size:11px;color:var(--dim);white-space:nowrap;margin-left:auto}
+
+/* ============ LAYOUT ============ */
+#main{flex:1;display:flex;overflow:hidden;position:relative}
+#palette{width:180px;background:var(--panel);border-right:1px solid var(--line);
+  overflow-y:auto;flex-shrink:0;transition:margin-left .25s cubic-bezier(.4,0,.2,1)}
+#palette.hidden{margin-left:-180px}
+.acc{border-bottom:1px solid var(--line)}
+.acc>header{display:flex;justify-content:space-between;align-items:center;
+  padding:12px 14px;cursor:pointer;font-size:11px;font-weight:700;
+  color:var(--acc);text-transform:uppercase;letter-spacing:.08em;user-select:none;
+  background:rgba(0,0,0,.15)}
+.acc>header .car{transition:transform .2s;color:var(--dim);font-size:9px}
+.acc.open>header .car{transform:rotate(90deg)}
+.acc>.items{display:none;padding:8px;grid-template-columns:1fr 1fr;gap:8px}
+.acc.open>.items{display:grid}
+.palItem{display:flex;flex-direction:column;align-items:center;gap:4px;
+  background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+  padding:10px 4px;cursor:pointer;transition:all .12s ease}
+.palItem:hover,.palItem.armed{border-color:var(--acc);background:#263547;box-shadow:0 0 10px #ffb30033}
+.palItem svg{pointer-events:none}
+.palItem span{font-size:10px;color:var(--dim);text-align:center;line-height:1.2}
+
+#canvasWrap{flex:1;position:relative;overflow:hidden;background:#11171e}
+#svgHost{width:100%;height:100%;cursor:default;touch-action:none}
+#svgHost.wiring{cursor:crosshair}
+#svgHost.placing{cursor:copy}
+#fab{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:5}
+#fab button{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);
+  background:var(--panel);color:var(--txt);font-size:16px;cursor:pointer;font-weight:bold;
+  box-shadow:0 4px 12px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+#fab button:hover{background:var(--panel2);color:var(--acc)}
+#legendHint{position:absolute;left:14px;bottom:14px;background:rgba(20,27,36,.85);
+  border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:10.5px;
+  color:var(--dim);backdrop-filter:blur(4px);pointer-events:none;line-height:1.6}
+#legendHint b{color:var(--grn)} #legendHint i{color:var(--red);font-style:normal}
+
+/* PROPS */
+#props{width:292px;background:var(--panel);border-left:1px solid var(--line);
+  overflow-y:auto;padding:14px;flex-shrink:0;display:none}
+#props.open{display:block}
+#props h2{font-size:14px;color:var(--acc);letter-spacing:.3px}
+#props .typ{font-size:11px;color:var(--dim);margin:3px 0 12px;font-family:monospace}
+#props label{display:block;font-size:11px;color:var(--dim);margin:10px 0 4px;font-weight:500}
+#props input,#props textarea,#props select{width:100%;background:var(--panel2);
+  border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:8px;font-size:12px;transition:border .15s}
+#props input:focus,#props select:focus,#props textarea:focus{border-color:var(--acc);outline:none}
+#props textarea{resize:vertical;min-height:60px}
+#props .row{display:flex;gap:8px}#props .row>*{flex:1}
+.sizer{display:flex;align-items:center;gap:6px;margin-top:4px}
+.sizer button{width:38px;height:34px;border-radius:6px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--txt);font-size:16px;cursor:pointer;font-weight:bold}
+.sizer button:hover{background:var(--line)}
+#swStateCtrlBlock{display:none;background:rgba(255,179,0,.06);padding:10px;
+  border-radius:8px;border:1px solid var(--line);margin-top:10px}
+#bToggleSw{width:100%;padding:12px;border-radius:8px;border:none;cursor:pointer;
+  font-weight:800;font-size:13px;letter-spacing:.03em;margin-top:6px}
+#bToggleSw.closed{background:var(--grn);color:#06310f}
+#bToggleSw.open{background:var(--red);color:#fff}
+#props .btns{display:flex;gap:6px;margin-top:16px}
+#props .btns button{flex:1;padding:10px;border-radius:6px;border:none;cursor:pointer;font-weight:600;font-size:12px}
+#bDel{background:var(--red);color:#fff}
+#bRot90,#bDup{background:var(--panel2);color:var(--txt);border:1px solid var(--line)!important}
+.statBox{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:12px}
+.statBox h4{font-size:11px;color:var(--acc);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.statBox .kv{display:flex;justify-content:space-between;font-size:11.5px;padding:4px 0;border-bottom:1px dashed rgba(46,61,82,.5)}
+.statBox .kv b{color:var(--grn)}
+.viewOnlyTag{display:none;background:rgba(255,82,82,.12);color:var(--red);font-size:11px;
+  font-weight:600;border-radius:6px;padding:7px;margin-bottom:12px;text-align:center;border:1px solid var(--red)}
+body.locked .viewOnlyTag{display:block}
+body.locked #props .btns{display:none}
+
+#status{padding:6px 14px;background:var(--panel);border-top:1px solid var(--line);
+  font-size:11px;color:var(--dim);display:flex;gap:18px;overflow-x:auto;flex-shrink:0;white-space:nowrap;scrollbar-width:none}
+#status::-webkit-scrollbar{display:none}
+#status .hot{color:var(--acc);font-weight:bold}
+
+/* ============ SVG THEMES ============ */
+#svgHost{--paper:#0e1318;--sym:#dfe9f2;--symfill:#11171e;--wire:#506f8f;
+  --flow:#ccff90;--energ:#00e676;--dead:#3a4754}
+#svgHost.th-light{--paper:#ffffff;--sym:#000000;--symfill:#ffffff;--wire:#0a0a0a;
+  --flow:#00b0ff;--energ:#0a7a2f;--dead:#9aa7b5}
+#svgHost.th-blue{--paper:#05202f;--sym:#a4d8f8;--symfill:#05202f;--wire:#4f7f9f;
+  --flow:#00e5ff;--energ:#00e676;--dead:#274457}
+#paper{fill:var(--paper);stroke:var(--line)}
+.wire{stroke:var(--wire);stroke-width:2.2;fill:none;cursor:pointer;transition:stroke .15s}
+.wire.sel{stroke:var(--acc)!important;stroke-width:3}
+.wire.busline{stroke-width:6}
+body.anim .wire.flowing{stroke:var(--energ)}
+.flowDots{display:none;fill:none;stroke:var(--flow);stroke-width:2.8;
+  stroke-dasharray:8 16;stroke-linecap:round;animation:fl 1.05s linear infinite;
+  pointer-events:none;filter:drop-shadow(0 0 3px var(--flow))}
+body.anim .flowDots.on{display:inline}
+@keyframes fl{to{stroke-dashoffset:-24}}
+.comp{cursor:move}
+body.locked .comp{cursor:pointer}
+.comp.sel .selBox{display:block}
+.selBox{display:none;fill:none;stroke:var(--acc);stroke-width:1.5;stroke-dasharray:4 3;
+  pointer-events:none;vector-effect:non-scaling-stroke}
+.openMark{pointer-events:none}
+text.lbl{font-family:'Courier New',monospace;font-size:11px;fill:var(--sym);user-select:none}
+text.lblB{font-family:'Courier New',monospace;font-weight:bold;font-size:12px;fill:var(--sym);user-select:none}
+body.anim .comp.dead .symWrap{opacity:.4}
+
+/* ============ MODALS ============ */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
+  align-items:center;justify-content:center;z-index:60;padding:16px;opacity:0;transition:opacity .2s}
+.modal.open{display:flex;opacity:1}
+.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:20px;width:520px;max-width:96vw;max-height:88vh;overflow:auto;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.modal h3{color:var(--acc);margin-bottom:12px;font-size:15px;font-weight:700}
+.modal textarea{width:100%;height:200px;background:var(--panel2);color:var(--txt);
+  border:1px solid var(--line);border-radius:6px;padding:10px;font:11px monospace}
+.modal label{display:block;font-size:11px;color:var(--dim);margin:10px 0 4px;font-weight:500}
+.modal select,.modal input[type=number],.modal input[type=range],.modal input[type=file]{
+  width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+  border-radius:6px;padding:8px;font-size:12px}
+.modal .btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.modal button{padding:9px 16px;border-radius:6px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--txt);cursor:pointer;font-weight:500}
+.modal button.pri{background:var(--acc);color:#0b0f14;font-weight:700;border:none}
+.modal button:hover{background:var(--line)}
+.modal .note{font-size:11px;color:var(--dim);line-height:1.55;margin-top:10px;
+  background:var(--panel2);border-radius:7px;padding:10px}
+.sldRow{display:flex;justify-content:space-between;align-items:center;
+  background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:8px}
+.sldRow .nm{font-weight:600;font-size:13px}.sldRow .dt{font-size:11px;color:var(--dim);margin-top:2px}
+.sldRow .act{display:flex;gap:6px}.sldRow .act button{padding:6px 12px;font-size:11px}
+.uRow{display:flex;gap:8px;align-items:center;margin-top:8px}
+.uRow label{margin:0;flex-shrink:0;width:62px}.uRow input{flex:1}
 </style>
 </head>
-<body>
+<body class="locked">
 
-<div class="toolbar">
-  <span class="tit">Goshamahal 33/11kV SS — SLD</span>
-  <button onclick="doZoom(1.25)">⊕ Zoom In</button>
-  <button onclick="doZoom(0.80)">⊖ Zoom Out</button>
-  <button onclick="resetZoom()">↺ Reset</button>
-  <button onclick="window.print()">🖨 Print / Save PDF</button>
+<div id="topbar">
+  <span class="logo"><span class="bolt">⚡</span>SLD STUDIO PRO <span style="color:var(--dim);font-size:10px">V5</span></span>
+  <input id="ssName" value="33/11KV Golconda SS">
+  <div class="sep"></div>
+  <button class="tb lock-on" id="bLock">🔒 Locked</button>
+  <button class="tb" id="bUndo" disabled>↶</button>
+  <button class="tb" id="bRedo" disabled>↷</button>
+  <div class="sep"></div>
+  <button class="tb on" id="bAnim">⏸ Flow Analysis</button>
+  <select class="themeSelect" id="themeSel">
+    <option value="">● Dark</option>
+    <option value="th-blue" selected>◆ SCADA Blue</option>
+    <option value="th-light">☀ Light</option>
+  </select>
+  <div class="sep"></div>
+  <button class="tb" id="bAutoGen" style="border-color:var(--grn);color:var(--grn)">🤖 Auto Generate</button>
+  <button class="tb" id="bImgLoader">📷 Trace Image/PDF</button>
+  <button class="tb" id="bMySlds">🗂 Diagrams</button>
+  <button class="tb" id="bSave">💾 Save</button>
+  <button class="tb" id="bJson">{} JSON</button>
+  <button class="tb" id="bPrint" style="border-color:var(--cyan);color:var(--cyan)">🖨️ Print / PDF</button>
+  <button class="tb" id="bClear" style="color:var(--red)">✕ New</button>
 </div>
 
-<div id="sldWrap">
-<svg xmlns="http://www.w3.org/2000/svg"
-     viewBox="0 0 900 1050"
-     width="900" height="1050">
+<div id="toolrow">
+  <button class="tb" id="bPal">📦 Switchgear Parts</button>
+  <button class="tb on" id="bSelect">▢ Select</button>
+  <button class="tb" id="bWire">─ Wire</button>
+  <button class="tb" id="bText">A Text</button>
+  <span class="hintText">💡 Wire: tap points → double-tap to finish · Double-tap any switch to OPEN/CLOSE</span>
+</div>
 
-<!-- ============================================================ -->
-<!--  SYMBOL DEFINITIONS                                           -->
-<!-- ============================================================ -->
-<defs>
-  <style>
-    .b5  { stroke:#000; stroke-width:5;   fill:none }
-    .b4  { stroke:#000; stroke-width:4;   fill:none }
-    .w2  { stroke:#000; stroke-width:2;   fill:none }
-    .w15 { stroke:#000; stroke-width:1.5; fill:none }
-    .s2  { stroke:#000; stroke-width:2;   fill:white }
-    .blk { fill:#000; stroke:#000; stroke-width:0.5 }
-    .grd { stroke:#000; stroke-width:2.5; fill:none }
-    .lbd { font: bold 11px 'Courier New',monospace; fill:#000 }
-    .lsm { font: 8.5px 'Courier New',monospace; fill:#000 }
-    .lxs { font: 7.5px 'Courier New',monospace; fill:#000 }
-    .lptr{ font: bold 12px 'Courier New',monospace; fill:#000 }
-  </style>
+<div id="main">
+  <div id="palette" class="hidden">
+    <div class="acc open"><header>Switchgear <span class="car">▶</span></header><div class="items">
+      <div class="palItem" data-type="breaker"><svg width="30" height="28" viewBox="-15 -14 30 28"><rect x="-10" y="-10" width="20" height="20" fill="none" stroke="#cfe3f5" stroke-width="2"/><line x1="-7" y1="-7" x2="7" y2="7" stroke="#cfe3f5" stroke-width="1.4"/><line x1="7" y1="-7" x2="-7" y2="7" stroke="#cfe3f5" stroke-width="1.4"/></svg><span>Breaker/VCB</span></div>
+      <div class="palItem" data-type="isolator"><svg width="26" height="30" viewBox="-13 -15 26 30"><line x1="0" y1="-13" x2="0" y2="-5" stroke="#cfe3f5" stroke-width="1.8"/><circle cx="0" cy="-4" r="2.6" fill="none" stroke="#cfe3f5" stroke-width="1.4"/><line x1="0" y1="-4" x2="9" y2="5" stroke="#cfe3f5" stroke-width="1.8"/><circle cx="0" cy="5" r="2.6" fill="none" stroke="#cfe3f5" stroke-width="1.4"/><line x1="0" y1="5" x2="0" y2="13" stroke="#cfe3f5" stroke-width="1.8"/></svg><span>Isolator</span></div>
+      <div class="palItem" data-type="abswitch"><svg width="26" height="30" viewBox="-13 -15 26 30"><line x1="0" y1="-13" x2="0" y2="-5" stroke="#cfe3f5" stroke-width="1.8"/><line x1="0" y1="-5" x2="10" y2="5" stroke="#cfe3f5" stroke-width="2"/><line x1="6" y1="0" x2="11" y2="4" stroke="#cfe3f5" stroke-width="1.2"/><circle cx="0" cy="5" r="2.2" fill="#cfe3f5"/><line x1="0" y1="5" x2="0" y2="13" stroke="#cfe3f5" stroke-width="1.8"/></svg><span>AB Switch</span></div>
+      <div class="palItem" data-type="fuse"><svg width="22" height="28" viewBox="-11 -14 22 28"><rect x="-6" y="-10" width="12" height="20" fill="none" stroke="#cfe3f5" stroke-width="1.6"/><line x1="0" y1="-14" x2="0" y2="-10" stroke="#cfe3f5" stroke-width="1.8"/><line x1="0" y1="10" x2="0" y2="14" stroke="#cfe3f5" stroke-width="1.8"/><text x="0" y="4" text-anchor="middle" font-size="8" font-weight="bold" fill="#cfe3f5">F</text></svg><span>Fuse</span></div>
+    </div></div>
+    <div class="acc"><header>Transformers <span class="car">▶</span></header><div class="items">
+      <div class="palItem" data-type="ptr"><svg width="30" height="36" viewBox="-15 -2 30 36"><circle cx="0" cy="9" r="8.5" fill="none" stroke="#ff8a80" stroke-width="1.8"/><circle cx="0" cy="22" r="8.5" fill="none" stroke="#ff8a80" stroke-width="1.8"/></svg><span>PTR</span></div>
+      <div class="palItem" data-type="dtr"><svg width="26" height="34" viewBox="-13 -2 26 34"><circle cx="0" cy="8" r="6" fill="none" stroke="#cfe3f5" stroke-width="1.5"/><circle cx="0" cy="18" r="6" fill="none" stroke="#cfe3f5" stroke-width="1.5"/><line x1="0" y1="24" x2="0" y2="28" stroke="#cfe3f5" stroke-width="1.5"/><line x1="-5" y1="28" x2="5" y2="28" stroke="#cfe3f5" stroke-width="1.8"/></svg><span>DTR/Stn Tf</span></div>
+    </div></div>
+    <div class="acc"><header>Protection <span class="car">▶</span></header><div class="items">
+      <div class="palItem" data-type="la"><svg width="24" height="32" viewBox="-12 -2 24 32"><line x1="0" y1="0" x2="0" y2="6" stroke="#cfe3f5" stroke-width="1.6"/><polygon points="0,6 -6,17 6,17" fill="#cfe3f5"/><line x1="0" y1="17" x2="0" y2="22" stroke="#cfe3f5" stroke-width="1.6"/><line x1="-7" y1="22" x2="7" y2="22" stroke="#cfe3f5" stroke-width="2"/><line x1="-4" y1="26" x2="4" y2="26" stroke="#cfe3f5" stroke-width="1.4"/></svg><span>LA</span></div>
+      <div class="palItem" data-type="buspt"><svg width="24" height="36" viewBox="-12 -2 24 36"><line x1="0" y1="0" x2="0" y2="4" stroke="#cfe3f5" stroke-width="1.6"/><circle cx="0" cy="10" r="5.5" fill="none" stroke="#80d8ff" stroke-width="1.5"/><circle cx="0" cy="20" r="5.5" fill="none" stroke="#80d8ff" stroke-width="1.5"/><line x1="0" y1="26" x2="0" y2="29" stroke="#cfe3f5" stroke-width="1.4"/><line x1="-6" y1="29" x2="6" y2="29" stroke="#cfe3f5" stroke-width="1.8"/></svg><span>Bus PT</span></div>
+      <div class="palItem" data-type="ct"><svg width="22" height="28" viewBox="-11 -14 22 28"><line x1="0" y1="-13" x2="0" y2="13" stroke="#cfe3f5" stroke-width="1.8"/><circle cx="0" cy="0" r="7" fill="none" stroke="#cfe3f5" stroke-width="1.6"/></svg><span>CT</span></div>
+      <div class="palItem" data-type="capbank"><svg width="28" height="32" viewBox="-14 -2 28 32"><line x1="0" y1="0" x2="0" y2="8" stroke="#cfe3f5" stroke-width="1.6"/><rect x="-10" y="8" width="20" height="4" fill="#cfe3f5"/><rect x="-10" y="15" width="20" height="4" fill="#cfe3f5"/><line x1="0" y1="19" x2="0" y2="25" stroke="#cfe3f5" stroke-width="1.6"/><line x1="-7" y1="25" x2="7" y2="25" stroke="#cfe3f5" stroke-width="1.8"/></svg><span>Cap Bank</span></div>
+      <div class="palItem" data-type="earth"><svg width="22" height="24" viewBox="-11 -2 22 24"><line x1="0" y1="0" x2="0" y2="8" stroke="#cfe3f5" stroke-width="1.6"/><line x1="-8" y1="8" x2="8" y2="8" stroke="#cfe3f5" stroke-width="2"/><line x1="-5" y1="13" x2="5" y2="13" stroke="#cfe3f5" stroke-width="1.5"/><line x1="-2.5" y1="18" x2="2.5" y2="18" stroke="#cfe3f5" stroke-width="1.1"/></svg><span>Earth</span></div>
+    </div></div>
+    <div class="acc"><header>Network <span class="car">▶</span></header><div class="items">
+      <div class="palItem" data-type="bus"><svg width="36" height="14" viewBox="0 -7 36 14"><line x1="2" y1="0" x2="34" y2="0" stroke="#cfe3f5" stroke-width="5"/></svg><span>Bus Bar</span></div>
+      <div class="palItem" data-type="incomer"><svg width="36" height="18" viewBox="0 -9 36 18"><line x1="2" y1="0" x2="22" y2="0" stroke="#cfe3f5" stroke-width="1.8"/><polygon points="34,0 21,-6 21,6" fill="#42a5f5"/></svg><span>Incomer</span></div>
+      <div class="palItem" data-type="feederarrow"><svg width="36" height="18" viewBox="0 -9 36 18"><line x1="14" y1="0" x2="34" y2="0" stroke="#cfe3f5" stroke-width="1.8"/><polygon points="2,0 15,-6 15,6" fill="#cfe3f5"/></svg><span>Feeder Arrow</span></div>
+      <div class="palItem" data-type="label"><svg width="36" height="18" viewBox="0 0 36 18"><text x="18" y="14" text-anchor="middle" font-size="13" font-weight="bold" fill="#cfe3f5">Aa</text></svg><span>Text</span></div>
+    </div></div>
+  </div>
 
-  <!-- VCB — 24×24 box with X, centered at origin -->
-  <g id="V">
-    <rect x="-12" y="-12" width="24" height="24" class="s2"/>
-    <line x1="-9" y1="-9" x2="9"  y2="9"  class="w15"/>
-    <line x1="9"  y1="-9" x2="-9" y2="9"  class="w15"/>
-  </g>
+  <div id="canvasWrap">
+    <svg id="svgHost" class="th-blue" xmlns="http://www.w3.org/2000/svg">
+      <g id="viewport">
+        <rect id="paper" x="0" y="0" width="1600" height="980" stroke-width="2"/>
+        <image id="underlayImg" x="0" y="0" style="display:none" opacity="0.45" preserveAspectRatio="xMidYMid meet"/>
+        <g id="wiresG"></g><g id="compsG"></g><g id="wireDraftG"></g>
+      </g>
+    </svg>
+    <div id="fab"><button id="bZin">＋</button><button id="bZout">－</button><button id="bZfit">⛶</button></div>
+    <div id="legendHint">⚡ Flow ON: <b>green = energized</b> · <i>red ⊘ = OPEN (blocks flow)</i><br>Double-tap any breaker / isolator / AB switch / fuse to operate it</div>
+  </div>
 
-  <!-- ISOLATOR — span ±15 on y-axis, open circle contacts -->
-  <g id="IS">
-    <line x1="0" y1="-15" x2="0"  y2="-5.5" class="w2"/>
-    <circle cx="0" cy="-5" r="3.5" class="s2"/>
-    <line x1="0" y1="-5"  x2="11" y2="5"    class="w2"/>
-    <circle cx="0" cy="5"  r="3.5" class="s2"/>
-    <line x1="0" y1="5.5" x2="0"  y2="15"   class="w2"/>
-  </g>
+  <div id="props">
+    <div class="viewOnlyTag">🔒 VIEW MODE — switching works, layout locked</div>
+    <h2 id="pTitle">—</h2>
+    <div class="typ" id="pType">—</div>
+    <div id="swStateCtrlBlock">
+      <label style="color:var(--acc);margin-top:0">⚡ Switch Position</label>
+      <button id="bToggleSw" class="closed">⬤ CLOSED — tap to OPEN</button>
+    </div>
+    <label>Label / Annotation</label>
+    <input id="pLabel">
+    <label>Label Text Size (px)</label>
+    <div class="sizer"><button id="lsDn">−</button><input id="pTextSize" type="number" min="6" max="72" step="1" value="11"><button id="lsUp">＋</button></div>
+    <div class="row">
+      <div><label>X</label><input id="pX" type="number"></div>
+      <div><label>Y</label><input id="pY" type="number"></div>
+      <div><label>Rot°</label><select id="pRot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
+    </div>
+    <label>Symbol Scale</label>
+    <div class="sizer"><button id="szDn">−</button><input id="pScale" type="number" step="0.1" min="0.3" max="6" value="1"><button id="szUp">＋</button></div>
+    <div id="busLenRow" style="display:none"><label>Bus Length (px)</label><input id="pBusLen" type="number" min="40" step="10"></div>
+    <div class="statBox">
+      <h4>📋 Equipment Biodata</h4>
+      <label>Make / Manufacturer</label><input id="pMake">
+      <div class="row"><div><label>Rating</label><input id="pRating" placeholder="12.5 MVA / 630A"></div><div><label>Year</label><input id="pYear" placeholder="2020"></div></div>
+      <div class="row"><div><label>Serial No.</label><input id="pSerial"></div><div><label>SAP Equip. No.</label><input id="pSap"></div></div>
+      <label>Last Maintenance</label><input id="pMaint" placeholder="DD-MM-YYYY">
+      <label>Remarks / History</label><textarea id="pRemarks"></textarea>
+    </div>
+    <div class="statBox">
+      <h4>📊 Statistics</h4>
+      <div class="kv"><span>Energized</span><b id="stEnerg">—</b></div>
+      <div class="kv"><span>Load</span><b id="stLoad">—</b></div>
+      <div class="kv"><span>Breakdowns (12m)</span><b id="stBkdn">—</b></div>
+      <div class="kv"><span>Availability</span><b id="stAvail">—</b></div>
+    </div>
+    <div class="btns"><button id="bDup">⧉ Copy</button><button id="bRot90">↻ 90°</button><button id="bDel">🗑 Del</button></div>
+  </div>
+</div>
 
-  <!-- FUSE — span ±14 on y-axis -->
-  <g id="FU">
-    <rect x="-9" y="-14" width="18" height="28" class="s2"/>
-    <text x="0" y="5" text-anchor="middle"
-      style="font:bold 9px 'Courier New';fill:#000">F</text>
-  </g>
+<div id="status">
+  <span id="stMode">Mode: <span class="hot">VIEW 🔒</span></span>
+  <span id="stCoord">x:0 y:0</span>
+  <span id="stCount"></span>
+  <span id="stEnergCt"></span>
+</div>
 
-  <!-- LIGHTNING ARRESTER
-       Local y=0 = connection tap point; ground end ~y=45 -->
-  <g id="LA">
-    <line x1="0" y1="0"  x2="0"  y2="10"  class="w2"/>
-    <polygon points="0,10 -9,26 9,26" class="blk"/>
-    <line x1="0" y1="26" x2="0"  y2="35"  class="w2"/>
-    <line x1="-11" y1="35" x2="11" y2="35" class="grd"/>
-    <line x1="-7"  y1="40" x2="7"  y2="40" class="w2"/>
-    <line x1="-3"  y1="45" x2="3"  y2="45" class="w15"/>
-  </g>
+<div class="modal" id="jsonModal"><div class="box">
+  <h3>Diagram JSON</h3><textarea id="jsonTa" spellcheck="false"></textarea>
+  <div class="btns"><button class="pri" id="jApply">Apply (Import)</button><button id="jCopy">Copy</button><button id="jDl">Download</button><button id="jClose">Close</button></div>
+</div></div>
 
-  <!-- BUS PT / CVT
-       Local y=0 = top connection; ground ~y=65 -->
-  <g id="BPT">
-    <line x1="0" y1="0"  x2="0"  y2="11"  class="w2"/>
-    <circle cx="0" cy="20" r="9" class="s2"/>
-    <circle cx="0" cy="38" r="9" class="s2"/>
-    <line x1="0" y1="47" x2="0"  y2="55"  class="w2"/>
-    <line x1="-11" y1="55" x2="11" y2="55" class="grd"/>
-    <line x1="-7"  y1="60" x2="7"  y2="60" class="w2"/>
-    <line x1="-3"  y1="65" x2="3"  y2="65" class="w15"/>
-  </g>
+<div class="modal" id="sldsModal"><div class="box">
+  <h3>🗂 Saved Diagrams (this browser)</h3><div id="sldList"></div>
+  <div class="btns"><button id="sClose">Close</button></div>
+</div></div>
 
-  <!-- POWER TRANSFORMER (PTR)
-       Local y=0 = HV top; y=88 = LV bottom
-       Top circle cy=22 r=22; Bottom circle cy=66 r=22 -->
-  <g id="PTR">
-    <circle cx="0" cy="22" r="22" class="s2"/>
-    <circle cx="0" cy="66" r="22" class="s2"/>
-  </g>
+<div class="modal" id="printModal"><div class="box">
+  <h3>🖨️ Print / Export PDF — Landscape</h3>
+  <label>Paper Size</label>
+  <select id="prSize">
+    <option value="A4">A4 (297 × 210 mm)</option>
+    <option value="A3" selected>A3 (420 × 297 mm)</option>
+    <option value="A2">A2 (594 × 420 mm)</option>
+    <option value="A1">A1 (841 × 594 mm)</option>
+    <option value="A0">A0 (1189 × 841 mm)</option>
+  </select>
+  <label>Annotation / Text Boost (keeps labels readable at large sizes)</label>
+  <select id="prBoost">
+    <option value="1">1.0× — as drawn</option>
+    <option value="1.3" selected>1.3× — recommended A3</option>
+    <option value="1.6">1.6× — recommended A2</option>
+    <option value="2">2.0× — recommended A1</option>
+    <option value="2.6">2.6× — recommended A0</option>
+  </select>
+  <label>Theme for print</label>
+  <select id="prTheme"><option value="th-light" selected>☀ Light (best on paper)</option><option value="">● Dark</option><option value="th-blue">◆ SCADA Blue</option></select>
+  <div class="note">A print window opens sized exactly to the chosen paper in landscape. In the print dialog pick the same paper size, margins = None/Minimum, then "Save as PDF" — or send A1/A0 to a plotter. All entities &amp; annotations scale to fill the sheet.</div>
+  <div class="btns"><button class="pri" id="prGo">Open Print View</button><button id="prClose">Close</button></div>
+</div></div>
 
-  <!-- STATION DTR
-       Local y=0 = top connection; ground ~y=67 -->
-  <g id="DTR">
-    <line x1="0" y1="0"  x2="0"  y2="11"  class="w2"/>
-    <rect x="-14" y="8" width="28" height="36"
-      style="stroke:#888;stroke-width:1;fill:none;stroke-dasharray:3,2"/>
-    <circle cx="0" cy="20" r="9" class="s2"/>
-    <circle cx="0" cy="38" r="9" class="s2"/>
-    <line x1="0" y1="47" x2="0"  y2="57"  class="w2"/>
-    <line x1="-9"  y1="57" x2="9"  y2="57" class="grd"/>
-    <line x1="-5"  y1="62" x2="5"  y2="62" class="w2"/>
-    <line x1="-2"  y1="67" x2="2"  y2="67" class="w15"/>
-  </g>
+<div class="modal" id="underModal"><div class="box">
+  <h3>📷 Trace From Existing SLD (Image / PDF)</h3>
+  <input type="file" id="uFile" accept="image/*,.pdf">
+  <div class="uRow"><label>Opacity</label><input type="range" id="uOpacity" min="0.1" max="1" step="0.05" value="0.45"></div>
+  <div class="uRow"><label>Width</label><input type="number" id="uW" value="1600" step="50"></div>
+  <div class="uRow"><label>X</label><input type="number" id="uX" value="0" step="10"><label>Y</label><input type="number" id="uY" value="0" step="10"></div>
+  <div class="btns"><button id="uShow">👁 Show/Hide</button><button id="uRemove" style="color:var(--red)">🗑 Remove</button><button id="uClose">Close</button></div>
+  <div class="note"><b>Workflow:</b> load your scanned / Excel / AutoCAD-PDF drawing — it appears faded behind the canvas. Unlock ✏️, then place symbols &amp; wires on top of it (tracing). Hide/remove the underlay when done. Takes ~10–15 min per SS and gives a fully editable, animated, electrically-correct SLD. (True automatic image→SLD isn't reliable offline in a browser; tracing is. You can also send any drawing and I'll return ready-to-import JSON.)</div>
+</div></div>
 
-  <!-- CAPACITOR BANK
-       Local y=0 = top connection; ground ~y=50 -->
-  <g id="CAP">
-    <line x1="0" y1="0"  x2="0"  y2="14"  class="w2"/>
-    <rect x="-16" y="14" width="32" height="6" class="blk"/>
-    <rect x="-16" y="24" width="32" height="6" class="blk"/>
-    <line x1="0" y1="30" x2="0"  y2="40"  class="w2"/>
-    <line x1="-11" y1="40" x2="11" y2="40" class="grd"/>
-    <line x1="-7"  y1="45" x2="7"  y2="45" class="w2"/>
-    <line x1="-3"  y1="50" x2="3"  y2="50" class="w15"/>
-  </g>
+<div class="modal" id="autoGenModal"><div class="box">
+  <h3>🤖 Auto Generate SLD</h3>
 
-</defs>
+  <label>Backend API URL (AI extraction server)</label>
+  <input type="text" id="agUrl" value="http://localhost:8000" placeholder="https://your-backend.onrender.com">
 
-<!-- ============================================================ -->
-<!--  PAGE BORDER (white fill, 2.5px black outline)                -->
-<!-- ============================================================ -->
-<rect x="4" y="4" width="892" height="1042"
-  style="stroke:#000;stroke-width:2.5;fill:white"/>
+  <label>Upload hand-drawn / scanned / AutoCAD PDF or image</label>
+  <input type="file" id="agFile" accept="image/*,.pdf">
 
-<!-- ============================================================ -->
-<!--  TITLE BLOCK — right strip x=825 to x=896                    -->
-<!-- ============================================================ -->
-<line x1="825" y1="4"    x2="825" y2="1046"
-  style="stroke:#000;stroke-width:2"/>
-<!-- Horizontal dividers within title block -->
-<line x1="825" y1="830"  x2="896" y2="830"  style="stroke:#000;stroke-width:1.5"/>
-<line x1="825" y1="888"  x2="896" y2="888"  style="stroke:#000;stroke-width:1.5"/>
-<line x1="825" y1="944"  x2="896" y2="944"  style="stroke:#000;stroke-width:1.5"/>
-<line x1="825" y1="1000" x2="896" y2="1000" style="stroke:#000;stroke-width:1.5"/>
-<!-- Main title (rotated) -->
-<text transform="translate(863,690) rotate(-90)" text-anchor="middle"
-  style="font:bold 13.5px 'Courier New',monospace;fill:#000">
-  Single Line Diagram of 33/11kV Goshamahal Indoor Sub Station
-</text>
-<text transform="translate(843,640) rotate(-90)" text-anchor="middle"
-  style="font:8px 'Courier New',monospace;fill:#555">
-  TGSPDCL — James Street Sub Division — SCADA Circle
-</text>
-<!-- Metadata rows -->
-<text transform="translate(863,863) rotate(-90)" text-anchor="middle" class="lsm">Drawn: SCADA Circle</text>
-<text transform="translate(863,920) rotate(-90)" text-anchor="middle" class="lsm">Date: April 2025</text>
-<text transform="translate(863,976) rotate(-90)" text-anchor="middle" class="lsm">Scale: NTS</text>
-<text transform="translate(863,1030) rotate(-90)" text-anchor="middle" class="lsm">Rev: 00</text>
+  <div class="btns" style="margin-top:12px">
+    <button class="pri" id="agRun">⚙️ Generate from File (AI)</button>
+  </div>
 
-<!-- ============================================================ -->
-<!--  33 KV SECTION HEADER                                         -->
-<!-- ============================================================ -->
-<text x="16" y="18" class="lbd">— 33 KV SECTION —</text>
+  <div style="border-top:1px solid var(--line);margin:14px 0"></div>
 
-<!-- ============================================================ -->
-<!--  INCOMER 1 — 33kV Imlibun–Goshamahal  (x = 200)             -->
-<!-- ============================================================ -->
-<text x="204" y="14" class="lxs">33kV Imlibun</text>
-<text x="204" y="25" class="lxs">Goshamahal</text>
-<!-- Filled downward arrow = power from grid into SS -->
-<polygon points="192,30 208,30 200,46" class="blk"/>
-<!-- Wire: arrow tip → LA tap -->
-<line x1="200" y1="46" x2="200" y2="75" class="w2"/>
-<!-- Horizontal tap → LA -->
-<line x1="200" y1="75" x2="229" y2="75" class="w15"/>
-<use href="#LA" transform="translate(229,75)"/>
-<text x="243" y="71" class="lxs">33kV LA</text>
-<!-- Wire: tap → top isolator -->
-<line x1="200" y1="75" x2="200" y2="92" class="w2"/>
-<!-- Top isolator, center y=107 -->
-<use href="#IS" transform="translate(200,107)"/>
-<!-- Wire → VCB -->
-<line x1="200" y1="122" x2="200" y2="140" class="w2"/>
-<!-- I/C VCB, center y=152 -->
-<use href="#V" transform="translate(200,152)"/>
-<text x="215" y="150" class="lxs">I/C VCB</text>
-<!-- Wire → bottom isolator -->
-<line x1="200" y1="164" x2="200" y2="182" class="w2"/>
-<!-- Bottom isolator, center y=197 -->
-<use href="#IS" transform="translate(200,197)"/>
-<!-- Wire → 33kV Bus -->
-<line x1="200" y1="212" x2="200" y2="230" class="w2"/>
+  <h3 style="font-size:13px">…or build instantly offline (no server)</h3>
+  <label>Substation Name</label>
+  <input type="text" id="agName" value="33/11KV New Substation">
+  <div class="uRow"><label>PTRs</label><input type="number" id="agPtrN" value="2" min="1" max="8">
+       <label>Rating</label><input type="text" id="agPtrR" value="12.5 MVA"></div>
+  <div class="uRow"><label>33kV In</label><input type="number" id="agIncN" value="2" min="1" max="8">
+       <label>Feeders</label><input type="number" id="agFdrN" value="8" min="1" max="20"></div>
+  <label>Feeder names (one per line — optional; blank = auto-numbered)</label>
+  <textarea id="agFdrList" style="width:100%;height:90px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:8px;font-size:12px" placeholder="11KV MARKET FEEDER&#10;11KV COLONY FEEDER"></textarea>
 
-<!-- ============================================================ -->
-<!--  IMLIBUN–SITARAMBAGH TIE  (x = 340, dashed outgoing)         -->
-<!-- ============================================================ -->
-<text x="344" y="14" class="lxs">33kV Imlibun-</text>
-<text x="344" y="25" class="lxs">Sitarambagh</text>
-<!-- Open upward arrowhead (outgoing / tie) -->
-<line x1="332" y1="42" x2="340" y2="30" class="w15"/>
-<line x1="348" y1="42" x2="340" y2="30" class="w15"/>
-<!-- Dashed line from arrowhead to 33kV Bus -->
-<line x1="340" y1="42" x2="340" y2="230"
-  class="w15" stroke-dasharray="6,4"/>
+  <div class="note">AI mode runs OCR on your drawing (needs the backend running). Offline mode builds a clean TGSPDCL-standard layout from these fields — fully editable afterward. Either way the result loads into this same editor and you can rename, move, rotate, add or delete anything.</div>
 
-<!-- ============================================================ -->
-<!--  INCOMER 2 — 33kV Sitarambagh–Goshamahal  (x = 490)         -->
-<!-- ============================================================ -->
-<text x="494" y="14" class="lxs">33kV Sitarambagh-</text>
-<text x="494" y="25" class="lxs">Goshamahal</text>
-<polygon points="482,30 498,30 490,46" class="blk"/>
-<line x1="490" y1="46" x2="490" y2="75" class="w2"/>
-<line x1="490" y1="75" x2="519" y2="75" class="w15"/>
-<use href="#LA" transform="translate(519,75)"/>
-<text x="533" y="71" class="lxs">33kV LA</text>
-<line x1="490" y1="75" x2="490" y2="92" class="w2"/>
-<use href="#IS" transform="translate(490,107)"/>
-<line x1="490" y1="122" x2="490" y2="140" class="w2"/>
-<use href="#V" transform="translate(490,152)"/>
-<text x="505" y="150" class="lxs">I/C VCB</text>
-<line x1="490" y1="164" x2="490" y2="182" class="w2"/>
-<use href="#IS" transform="translate(490,197)"/>
-<line x1="490" y1="212" x2="490" y2="230" class="w2"/>
-
-<!-- ============================================================ -->
-<!--  INCOMER 3 — 33kV Imlibun–Exhibition Ckt2  (x = 680)        -->
-<!-- ============================================================ -->
-<text x="684" y="14" class="lxs">33kV Imlibun-</text>
-<text x="684" y="25" class="lxs">Exhibition Ckt2</text>
-<polygon points="672,30 688,30 680,46" class="blk"/>
-<line x1="680" y1="46" x2="680" y2="75" class="w2"/>
-<line x1="680" y1="75" x2="709" y2="75" class="w15"/>
-<use href="#LA" transform="translate(709,75)"/>
-<text x="723" y="71" class="lxs">33kV LA</text>
-<line x1="680" y1="75" x2="680" y2="92" class="w2"/>
-<use href="#IS" transform="translate(680,107)"/>
-<line x1="680" y1="122" x2="680" y2="140" class="w2"/>
-<use href="#V" transform="translate(680,152)"/>
-<text x="695" y="150" class="lxs">I/C VCB</text>
-<line x1="680" y1="164" x2="680" y2="182" class="w2"/>
-<use href="#IS" transform="translate(680,197)"/>
-<line x1="680" y1="212" x2="680" y2="230" class="w2"/>
-
-<!-- ============================================================ -->
-<!--  33kV BUS-1  |  BUS COUPLER  |  BUS-2                        -->
-<!-- Bus-1: x=15→393   Coupler VCB: center (405,230)   Bus-2: x=417→820 -->
-<!-- ============================================================ -->
-<line x1="15"  y1="230" x2="393" y2="230" class="b5"/>
-<line x1="417" y1="230" x2="820" y2="230" class="b5"/>
-<text x="16"  y="226" class="lbd">33kV Bus-1</text>
-<text x="432" y="226" class="lbd">33kV Bus-2</text>
-<!-- Bus coupler VCB fills the 393–417 gap -->
-<use href="#V" transform="translate(405,230)"/>
-<text x="405" y="215" text-anchor="middle" class="lxs">33kV Bus Coupler</text>
-
-<!-- 33kV Bus PTs (tap directly off bus, body hangs below) -->
-<!-- Bus PT1 at x=100 -->
-<use href="#BPT" transform="translate(100,230)"/>
-<text x="108" y="306" class="lxs">33kV Bus PT1</text>
-<!-- Bus PT2 at x=760 -->
-<use href="#BPT" transform="translate(760,230)"/>
-<text x="768" y="306" class="lxs">33kV Bus PT2</text>
-
-<!-- ============================================================ -->
-<!--  PTR-1  (12.5 MVA)  —  x = 270                               -->
-<!--  HV1 taps Bus-1 at y=230; LV1 feeds 11kV Bus at y=500        -->
-<!--  PTR body: top y=326, bottom y=414  (centered y=370)         -->
-<!-- ============================================================ -->
-<!-- HV1 chain: Bus → ISO → FUSE → PTR top -->
-<line x1="270" y1="230" x2="270" y2="262" class="w2"/>
-<use href="#IS" transform="translate(270,277)"/><!-- center y=277 -->
-<line x1="270" y1="292" x2="270" y2="294" class="w2"/>
-<use href="#FU" transform="translate(270,308)"/><!-- center y=308, top 294 bot 322 -->
-<text x="295" y="287" class="lxs">HV1</text>
-<line x1="270" y1="322" x2="270" y2="326" class="w2"/>
-<!-- PTR-1 body (translate to top connection point) -->
-<use href="#PTR" transform="translate(270,326)"/>
-<text x="298" y="358" class="lptr">12.5 MVA</text>
-<text x="298" y="374" class="lptr">PTR-1</text>
-<text x="295" y="420" class="lxs">LV1</text>
-<!-- LV1 chain: PTR bottom → FUSE → ISO → 11kV Bus -->
-<line x1="270" y1="414" x2="270" y2="422" class="w2"/>
-<use href="#FU" transform="translate(270,436)"/><!-- center y=436, top 422 bot 450 -->
-<line x1="270" y1="450" x2="270" y2="465" class="w2"/>
-<use href="#IS" transform="translate(270,480)"/><!-- center y=480 -->
-<line x1="270" y1="495" x2="270" y2="500" class="w2"/>
-
-<!-- ============================================================ -->
-<!--  PTR-2  (12.5 MVA)  —  x = 600                               -->
-<!-- ============================================================ -->
-<line x1="600" y1="230" x2="600" y2="262" class="w2"/>
-<use href="#IS" transform="translate(600,277)"/>
-<line x1="600" y1="292" x2="600" y2="294" class="w2"/>
-<use href="#FU" transform="translate(600,308)"/>
-<text x="625" y="287" class="lxs">HV2</text>
-<line x1="600" y1="322" x2="600" y2="326" class="w2"/>
-<use href="#PTR" transform="translate(600,326)"/>
-<text x="628" y="358" class="lptr">12.5 MVA</text>
-<text x="628" y="374" class="lptr">PTR-2</text>
-<text x="625" y="420" class="lxs">LV2</text>
-<line x1="600" y1="414" x2="600" y2="422" class="w2"/>
-<use href="#FU" transform="translate(600,436)"/>
-<line x1="600" y1="450" x2="600" y2="465" class="w2"/>
-<use href="#IS" transform="translate(600,480)"/>
-<line x1="600" y1="495" x2="600" y2="500" class="w2"/>
-
-<!-- ============================================================ -->
-<!--  11kV BUS-1  |  BUS COUPLER  |  BUS-2                        -->
-<!-- Bus-1: x=15→393   Coupler VCB: center (405,500)   Bus-2: x=417→820 -->
-<!-- ============================================================ -->
-<line x1="15"  y1="500" x2="393" y2="500" class="b4"/>
-<line x1="417" y1="500" x2="820" y2="500" class="b4"/>
-<text x="16"  y="496" class="lbd">11kV Bus-1</text>
-<text x="432" y="496" class="lbd">11kV Bus-2</text>
-<!-- Bus coupler VCB -->
-<use href="#V" transform="translate(405,500)"/>
-<text x="405" y="480" text-anchor="middle" class="lxs">11kV Bus Coupler</text>
-
-<!-- 11kV Bus PTs -->
-<!-- Bus PT1 at x=75 -->
-<use href="#BPT" transform="translate(75,500)"/>
-<text x="83" y="576" class="lxs">11kV Bus PT1</text>
-<!-- Bus PT2 at x=730 -->
-<use href="#BPT" transform="translate(730,500)"/>
-<text x="738" y="576" class="lxs">11kV Bus PT2</text>
-
-<!-- Station DTR — tap from 11kV Bus-1 at x=355 -->
-<use href="#DTR" transform="translate(355,500)"/>
-<text x="362" y="580" class="lxs">Stn. DTR</text>
-
-<!-- 1 MVAr Capacitor Bank — tap from 11kV Bus-2 at x=455 -->
-<use href="#CAP" transform="translate(455,500)"/>
-<text x="463" y="562" class="lxs">1 MVAr Cap Bank</text>
-
-<!-- ============================================================ -->
-<!--  11kV FEEDERS — BUS-1                                         -->
-<!--  Feeder element y-levels (from Bus at y=500):                 -->
-<!--    Wire       : 500 → 520                                     -->
-<!--    Top ISO    : center 535   (span 520–550)                   -->
-<!--    Wire       : 550 → 562                                     -->
-<!--    VCB        : center 574   (span 562–586)                   -->
-<!--    Wire       : 586 → 598                                     -->
-<!--    Bot ISO    : center 613   (span 598–628)                   -->
-<!--    Wire       : 628 → 643                                     -->
-<!--    Arrow ←    : y = 643                                       -->
-<!--    Label ↓    : starts y = 648                                -->
-<!-- ============================================================ -->
-
-<!-- FEEDER: 11kV MJ Market  (x = 115) -->
-<line x1="115" y1="500" x2="115" y2="520" class="w2"/>
-<use href="#IS" transform="translate(115,535)"/>
-<line x1="115" y1="550" x2="115" y2="562" class="w2"/>
-<use href="#V"  transform="translate(115,574)"/>
-<line x1="115" y1="586" x2="115" y2="598" class="w2"/>
-<use href="#IS" transform="translate(115,613)"/>
-<line x1="115" y1="628" x2="115" y2="643" class="w2"/>
-<line x1="115" y1="643" x2="72"  y2="643" class="w2"/>
-<polygon points="72,643 86,637 86,649" class="blk"/>
-<text transform="translate(121,649) rotate(90)"
-  class="lsm" text-anchor="start">11kV MJ Market</text>
-
-<!-- FEEDER: 11kV Hindi Nagar  (x = 162) -->
-<line x1="162" y1="500" x2="162" y2="520" class="w2"/>
-<use href="#IS" transform="translate(162,535)"/>
-<line x1="162" y1="550" x2="162" y2="562" class="w2"/>
-<use href="#V"  transform="translate(162,574)"/>
-<line x1="162" y1="586" x2="162" y2="598" class="w2"/>
-<use href="#IS" transform="translate(162,613)"/>
-<line x1="162" y1="628" x2="162" y2="643" class="w2"/>
-<line x1="162" y1="643" x2="119" y2="643" class="w2"/>
-<polygon points="119,643 133,637 133,649" class="blk"/>
-<text transform="translate(168,649) rotate(90)"
-  class="lsm" text-anchor="start">11kV Hindi Nagar</text>
-
-<!-- FEEDER: 11kV Gyanbagh Colony  (x = 212) -->
-<line x1="212" y1="500" x2="212" y2="520" class="w2"/>
-<use href="#IS" transform="translate(212,535)"/>
-<line x1="212" y1="550" x2="212" y2="562" class="w2"/>
-<use href="#V"  transform="translate(212,574)"/>
-<line x1="212" y1="586" x2="212" y2="598" class="w2"/>
-<use href="#IS" transform="translate(212,613)"/>
-<line x1="212" y1="628" x2="212" y2="643" class="w2"/>
-<line x1="212" y1="643" x2="169" y2="643" class="w2"/>
-<polygon points="169,643 183,637 183,649" class="blk"/>
-<text transform="translate(218,649) rotate(90)"
-  class="lsm" text-anchor="start">11kV Gyanbagh Colony</text>
-
-<!-- FEEDER: 11kV Hakeem Baba  (x = 312) -->
-<line x1="312" y1="500" x2="312" y2="520" class="w2"/>
-<use href="#IS" transform="translate(312,535)"/>
-<line x1="312" y1="550" x2="312" y2="562" class="w2"/>
-<use href="#V"  transform="translate(312,574)"/>
-<line x1="312" y1="586" x2="312" y2="598" class="w2"/>
-<use href="#IS" transform="translate(312,613)"/>
-<line x1="312" y1="628" x2="312" y2="643" class="w2"/>
-<line x1="312" y1="643" x2="269" y2="643" class="w2"/>
-<polygon points="269,643 283,637 283,649" class="blk"/>
-<text transform="translate(318,649) rotate(90)"
-  class="lsm" text-anchor="start">11kV Hakeem Baba</text>
-
-<!-- ============================================================ -->
-<!--  11kV FEEDERS — BUS-2                                         -->
-<!-- ============================================================ -->
-
-<!-- FEEDER: 11kV Feel Khana  (x = 515) -->
-<line x1="515" y1="500" x2="515" y2="520" class="w2"/>
-<use href="#IS" transform="translate(515,535)"/>
-<line x1="515" y1="550" x2="515" y2="562" class="w2"/>
-<use href="#V"  transform="translate(515,574)"/>
-<line x1="515" y1="586" x2="515" y2="598" class="w2"/>
-<use href="#IS" transform="translate(515,613)"/>
-<line x1="515" y1="628" x2="515" y2="643" class="w2"/>
-<line x1="515" y1="643" x2="472" y2="643" class="w2"/>
-<polygon points="472,643 486,637 486,649" class="blk"/>
-<text transform="translate(521,649) rotate(90)"
-  class="lsm" text-anchor="start">11kV Feel Khana</text>
-
-<!-- FEEDER: 11kV Shivakumar Lal Stadium  (x = 560) -->
-<line x1="560" y1="500" x2="560" y2="520" class="w2"/>
-<use href="#IS" transform="translate(560,535)"/>
-<line x1="560" y1="550" x2="560" y2="562" class="w2"/>
-<use href="#V"  transform="translate(560,574)"/>
-<line x1="560" y1="586" x2="560" y2="598" class="w2"/>
-<use href="#IS" transform="translate(560,613)"/>
-<line x1="560" y1="628" x2="560" y2="643" class="w2"/>
-<line x1="560" y1="643" x2="517" y2="643" class="w2"/>
-<polygon points="517,643 531,637 531,649" class="blk"/>
-<text transform="translate(566,649) rotate(90)"
-  class="lsm" text-anchor="start">11kV Shivakumar Lal Stadium</text>
-
-<!-- FEEDER: 11kV Goshamahal  (x = 660) -->
-<line x1="660" y1="500" x2="660" y2="520" class="w2"/>
-<use href="#IS" transform="translate(660,535)"/>
-<line x1="660" y1="550" x2="660" y2="562" class="w2"/>
-<use href="#V"  transform="translate(660,574)"/>
-<line x1="660" y1="586" x2="660" y2="598" class="w2"/>
-<use href="#IS" transform="translate(660,613)"/>
-<line x1="660" y1="628" x2="660" y2="643" class="w2"/>
-<line x1="660" y1="643" x2="617" y2="643" class="w2"/>
-<polygon points="617,643 631,637 631,649" class="blk"/>
-<text transform="translate(666,649) rotate(90)"
-  class="lsm" text-anchor="start">11kV Goshamahal</text>
-
-<!-- ============================================================ -->
-<!--  LEGEND BOX                                                    -->
-<!-- ============================================================ -->
-<line x1="15" y1="820" x2="820" y2="820"
-  style="stroke:#000;stroke-width:1.5"/>
-<text x="16" y="836" class="lbd">LEGEND / SYMBOLS:</text>
-
-<!-- Row 1 -->
-<use href="#V"   transform="translate(48,858)"/>
-<text x="64" y="863" class="lsm">= Circuit Breaker / VCB</text>
-
-<use href="#IS"  transform="translate(200,858)"/>
-<text x="216" y="863" class="lsm">= Isolator / Disconnector</text>
-
-<use href="#LA"  transform="translate(380,848)"/>
-<text x="396" y="863" class="lsm">= Lightning Arrester (LA)</text>
-
-<use href="#FU"  transform="translate(560,858)"/>
-<text x="576" y="863" class="lsm">= Fuse</text>
-
-<!-- Row 2 -->
-<use href="#BPT" transform="translate(48,908)"/>
-<text x="64" y="916" class="lsm">= Bus PT / CVT</text>
-
-<use href="#CAP" transform="translate(200,908)"/>
-<text x="216" y="916" class="lsm">= Capacitor Bank</text>
-
-<use href="#DTR" transform="translate(380,908)"/>
-<text x="396" y="916" class="lsm">= Station DTR</text>
-
-<!-- PTR in legend at reduced scale -->
-<g transform="translate(560,906) scale(0.44)">
-  <use href="#PTR"/>
-</g>
-<text x="576" y="916" class="lsm">= Power Transformer (PTR)</text>
-
-<!-- ============================================================ -->
-<!--  INFO BOX                                                      -->
-<!-- ============================================================ -->
-<line x1="15" y1="958" x2="820" y2="958"
-  style="stroke:#000;stroke-width:1"/>
-<text x="16" y="973" class="lsm">SUBSTATION   : 33/11kV Goshamahal Indoor Sub Station  |  TYPE: Indoor (GIS)</text>
-<text x="16" y="988" class="lsm">TRANSFORMERS : PTR-1 = 12.5 MVA  |  PTR-2 = 12.5 MVA  |  Station DTR</text>
-<text x="16" y="1003" class="lsm">33kV INCOMERS: Imlibun-Goshamahal (VCB)  |  Sitarambagh-Goshamahal (VCB)  |  Imlibun-Exhibition Ckt2 (VCB)</text>
-<text x="16" y="1018" class="lsm">11kV FEEDERS : MJ Market  |  Hindi Nagar  |  Gyanbagh Colony  |  Hakeem Baba  |  Feel Khana  |  Shivakumar Lal Stadium  |  Goshamahal</text>
-<text x="16" y="1033" class="lsm">REACTIVE COMP: 1 MVAr Cap Bank on 11kV Bus-2  |  Station DTR on 11kV Bus-1</text>
-<text x="16" y="1043" class="lsm">TGSPDCL — James Street Sub Division — SCADA Circle — Hyderabad</text>
-
-</svg>
-</div><!-- #sldWrap -->
+  <div class="btns">
+    <button class="pri" id="agTemplate">🏗 Build Offline Template</button>
+    <button id="agClose">Close</button>
+  </div>
+</div></div>
 
 <script>
-let sc = 1;
-const wrap = document.getElementById('sldWrap');
-function doZoom(f) {
-  sc = Math.min(Math.max(sc * f, 0.3), 4);
-  wrap.style.transform = `scale(${sc.toFixed(2)})`;
+"use strict";
+/* ============================================================
+   SLD STUDIO PRO V4
+   V3 electrical engine (correct connectivity + switching)
+   + Gemini UI polish + 5 fixes (breaker/fuse gating, ⊘ marks,
+     paper-size print w/ boost, real underlay tracing, themes)
+   ============================================================ */
+const SVGNS="http://www.w3.org/2000/svg";
+const svg=document.getElementById('svgHost'),vp=document.getElementById('viewport'),
+ wiresG=document.getElementById('wiresG'),compsG=document.getElementById('compsG'),
+ draftG=document.getElementById('wireDraftG'),uImg=document.getElementById('underlayImg');
+const P=id=>document.getElementById(id);
+
+let state={name:"33/11KV Golconda SS",comps:[],wires:[],underlay:null};
+let view={x:0,y:0,k:.7};
+let locked=true,mode="select",placeType=null,selId=null,draft=[],animOn=false;
+let uid=1;const nid=p=>p+(uid++);
+const SWITCHABLE=new Set(["breaker","isolator","abswitch","fuse"]);
+
+/* ---------- HISTORY ---------- */
+let hist=[],hPtr=-1;
+function pushHist(){
+  hist=hist.slice(0,hPtr+1);
+  hist.push(JSON.stringify({comps:state.comps,wires:state.wires,name:state.name}));
+  if(hist.length>60)hist.shift();
+  hPtr=hist.length-1;updHistBtns();netDirty=true;
 }
-function resetZoom() {
-  sc = 1;
-  wrap.style.transform = 'scale(1)';
+function restore(i){const s=JSON.parse(hist[i]);
+  state.comps=s.comps;state.wires=s.wires;state.name=s.name;
+  P('ssName').value=state.name;selId=null;closeProps();netDirty=true;render();updHistBtns();}
+function undo(){if(hPtr>0){hPtr--;restore(hPtr);}}
+function redo(){if(hPtr<hist.length-1){hPtr++;restore(hPtr);}}
+function updHistBtns(){P('bUndo').disabled=hPtr<=0;P('bRedo').disabled=hPtr>=hist.length-1;}
+P('bUndo').onclick=undo;P('bRedo').onclick=redo;
+
+/* ---------- SYMBOLS ---------- */
+const S='stroke="var(--sym)"',SF='fill="var(--symfill)"',FB='fill="var(--sym)"';
+const SYM={
+breaker:c=>c.open?
+ `<rect x="-11" y="-11" width="22" height="22" ${SF} stroke="#ff5252" stroke-width="2"/>
+  <line x1="0" y1="-16" x2="0" y2="-11" ${S} stroke-width="2"/><line x1="0" y1="11" x2="0" y2="16" ${S} stroke-width="2"/>`
+ :`<rect x="-11" y="-11" width="22" height="22" ${SF} ${S} stroke-width="2"/>
+  <line x1="-8" y1="-8" x2="8" y2="8" ${S} stroke-width="1.5"/><line x1="8" y1="-8" x2="-8" y2="8" ${S} stroke-width="1.5"/>
+  <line x1="0" y1="-16" x2="0" y2="-11" ${S} stroke-width="2"/><line x1="0" y1="11" x2="0" y2="16" ${S} stroke-width="2"/>`,
+isolator:c=>`<line x1="0" y1="-16" x2="0" y2="-5.5" ${S} stroke-width="2"/>
+ <circle cx="0" cy="-5" r="3.2" ${SF} ${S} stroke-width="1.6"/>
+ <line x1="0" y1="-5" x2="${c.open?14:11}" y2="${c.open?-1:5}" ${S} stroke-width="2"/>
+ <circle cx="0" cy="5" r="3.2" ${SF} ${S} stroke-width="1.6"/>
+ <line x1="0" y1="5.5" x2="0" y2="16" ${S} stroke-width="2"/>`,
+abswitch:c=>`<line x1="0" y1="-16" x2="0" y2="-6" ${S} stroke-width="2"/>
+ <line x1="0" y1="-6" x2="${c.open?15:12}" y2="${c.open?-2:6}" ${S} stroke-width="2.2"/>
+ <line x1="${c.open?10:8}" y1="${c.open?-5:0}" x2="${c.open?16:14}" y2="${c.open?0:5}" ${S} stroke-width="1.4"/>
+ <circle cx="0" cy="6" r="2.8" ${FB}/><line x1="0" y1="6" x2="0" y2="16" ${S} stroke-width="2"/>`,
+fuse:c=>`<line x1="0" y1="-16" x2="0" y2="-12" ${S} stroke-width="2"/>
+ <rect x="-7" y="-12" width="14" height="24" ${SF} stroke="${c.open?'#ff5252':'var(--sym)'}" stroke-width="1.8"/>
+ <text x="0" y="4" text-anchor="middle" style="font:bold 9px 'Courier New';fill:${c.open?'#ff5252':'var(--sym)'}">F</text>
+ <line x1="0" y1="12" x2="0" y2="16" ${S} stroke-width="2"/>`,
+ptr:()=>`<circle cx="0" cy="-11" r="15" fill="rgba(255,80,80,.13)" stroke="#e53935" stroke-width="2"/>
+ <circle cx="0" cy="11" r="15" fill="rgba(255,80,80,.13)" stroke="#e53935" stroke-width="2"/>`,
+dtr:()=>`<circle cx="0" cy="-8" r="8" ${SF} ${S} stroke-width="1.7"/><circle cx="0" cy="6" r="8" ${SF} ${S} stroke-width="1.7"/>
+ <line x1="0" y1="14" x2="0" y2="19" ${S} stroke-width="1.7"/><line x1="-7" y1="19" x2="7" y2="19" ${S} stroke-width="2.2"/><line x1="-4" y1="23" x2="4" y2="23" ${S} stroke-width="1.5"/>`,
+la:()=>`<line x1="0" y1="0" x2="0" y2="8" ${S} stroke-width="1.8"/><polygon points="0,8 -8,22 8,22" ${FB}/>
+ <line x1="0" y1="22" x2="0" y2="29" ${S} stroke-width="1.8"/><line x1="-9" y1="29" x2="9" y2="29" ${S} stroke-width="2.2"/><line x1="-6" y1="33" x2="6" y2="33" ${S} stroke-width="1.6"/><line x1="-2.5" y1="37" x2="2.5" y2="37" ${S} stroke-width="1.2"/>`,
+buspt:()=>`<line x1="0" y1="0" x2="0" y2="6" ${S} stroke-width="1.8"/>
+ <circle cx="0" cy="14" r="7.5" fill="rgba(80,180,255,.18)" ${S} stroke-width="1.6"/><circle cx="0" cy="28" r="7.5" fill="rgba(80,180,255,.18)" ${S} stroke-width="1.6"/>
+ <line x1="0" y1="35" x2="0" y2="41" ${S} stroke-width="1.6"/><line x1="-8" y1="41" x2="8" y2="41" ${S} stroke-width="2"/><line x1="-5" y1="45" x2="5" y2="45" ${S} stroke-width="1.4"/>`,
+ct:()=>`<line x1="0" y1="-16" x2="0" y2="16" ${S} stroke-width="2"/><circle cx="0" cy="0" r="9" fill="none" ${S} stroke-width="1.8"/>`,
+capbank:()=>`<line x1="0" y1="0" x2="0" y2="10" ${S} stroke-width="1.8"/><rect x="-13" y="10" width="26" height="5" ${FB}/><rect x="-13" y="19" width="26" height="5" ${FB}/>
+ <line x1="0" y1="24" x2="0" y2="32" ${S} stroke-width="1.8"/><line x1="-9" y1="32" x2="9" y2="32" ${S} stroke-width="2.2"/><line x1="-6" y1="36" x2="6" y2="36" ${S} stroke-width="1.6"/>`,
+earth:()=>`<line x1="0" y1="0" x2="0" y2="10" ${S} stroke-width="1.8"/><line x1="-10" y1="10" x2="10" y2="10" ${S} stroke-width="2.4"/><line x1="-6.5" y1="15" x2="6.5" y2="15" ${S} stroke-width="1.8"/><line x1="-3" y1="20" x2="3" y2="20" ${S} stroke-width="1.3"/>`,
+incomer:()=>`<line x1="-30" y1="0" x2="-4" y2="0" ${S} stroke-width="2.2"/><polygon points="16,0 -6,-9 -6,9" fill="#1e88e5" stroke="#0d47a1" stroke-width="1"/>`,
+feederarrow:()=>`<line x1="30" y1="0" x2="4" y2="0" ${S} stroke-width="2.2"/><polygon points="-16,0 6,-9 6,9" ${FB}/>`,
+};
+const BOX={breaker:[30,32],isolator:[30,38],abswitch:[32,38],fuse:[22,38],
+ ptr:[38,56],dtr:[24,52],la:[24,42],buspt:[24,50],ct:[24,38],
+ capbank:[30,42],earth:[24,26],incomer:[52,22],feederarrow:[52,22],bus:[0,14],label:[0,0]};
+const PORTS={
+ breaker:{p:[[0,-16],[0,16]],series:true},isolator:{p:[[0,-16],[0,16]],series:true},
+ abswitch:{p:[[0,-16],[0,16]],series:true},fuse:{p:[[0,-16],[0,16]],series:true},
+ ct:{p:[[0,-16],[0,16]],series:true},ptr:{p:[[0,-26],[0,26]],series:true},
+ dtr:{p:[[0,-16]],series:false},la:{p:[[0,0]],series:false},buspt:{p:[[0,0]],series:false},
+ capbank:{p:[[0,0]],series:false},earth:{p:[[0,0]],series:false},
+ incomer:{p:[[16,0],[0,0]],series:false,source:true},feederarrow:{p:[[30,0],[0,0]],series:false},
+};
+
+/* ---------- ELECTRICAL NETWORK ---------- */
+let netDirty=true,energWires=new Set(),energComps=new Set();
+const TOL=16;
+function xform(c,p){
+  const a=(c.rot||0)*Math.PI/180,s=c.sc||1;
+  const px=p[0]*s,py=p[1]*s;
+  return [c.x+px*Math.cos(a)-py*Math.sin(a),c.y+px*Math.sin(a)+py*Math.cos(a)];
 }
+function d2seg(p,a,b){
+  const vx=b[0]-a[0],vy=b[1]-a[1],L2=vx*vx+vy*vy;
+  let t=L2?((p[0]-a[0])*vx+(p[1]-a[1])*vy)/L2:0;t=Math.max(0,Math.min(1,t));
+  return Math.hypot(p[0]-(a[0]+t*vx),p[1]-(a[1]+t*vy));
+}
+function nearPoly(p,pts,tol){for(let i=0;i<pts.length-1;i++)if(d2seg(p,pts[i],pts[i+1])<=tol)return true;return false;}
+function buildNet(){
+  const els=[];
+  state.wires.forEach(w=>els.push({k:'w',id:w.id,pts:w.pts,term:w.pts,cond:true}));
+  state.comps.forEach(c=>{
+    if(c.type==='bus'){const e=[xform(c,[0,0]),xform(c,[(c.len||300),0])];
+      els.push({k:'b',id:c.id,pts:e,term:e,cond:true});}
+    else if(PORTS[c.type]){const pd=PORTS[c.type];
+      els.push({k:'c',id:c.id,term:pd.p.map(p=>xform(c,p)),cond:pd.series?!c.open:false,
+        src:!!pd.source,series:pd.series,comp:c});}
+  });
+  const adj=els.map(()=>[]);
+  const touches=(A,B)=>{for(const t of A.term){
+    if(B.pts){if(nearPoly(t,B.pts,TOL))return true;}
+    else for(const u of B.term)if(Math.hypot(t[0]-u[0],t[1]-u[1])<=TOL)return true;}return false;};
+  for(let i=0;i<els.length;i++)for(let j=i+1;j<els.length;j++)
+    if(touches(els[i],els[j])||touches(els[j],els[i])){adj[i].push(j);adj[j].push(i);}
+  const energ=new Array(els.length).fill(false),queue=[];
+  els.forEach((e,i)=>{if(e.src){energ[i]=true;queue.push(i);}});
+  while(queue.length){
+    const i=queue.shift(),e=els[i];
+    const canRelay=e.src||((e.k==='w'||e.k==='b')&&e.cond)||(e.k==='c'&&e.series&&e.cond);
+    if(!canRelay)continue;
+    for(const j of adj[i])if(!energ[j]){energ[j]=true;queue.push(j);}
+  }
+  energWires=new Set();energComps=new Set();
+  els.forEach((e,i)=>{if(energ[i]){if(e.k==='w'||e.k==='b')energWires.add(e.id);else energComps.add(e.id);}});
+  netDirty=false;
+  P('stEnergCt').textContent=`⚡ ${energWires.size} energized conductors`;
+}
+
+/* ---------- RENDER ---------- */
+function render(){
+  if(netDirty)buildNet();
+  wiresG.innerHTML="";
+  state.wires.forEach(w=>{
+    const d="M"+w.pts.map(p=>p.join(",")).join(" L"),on=energWires.has(w.id);
+    const path=document.createElementNS(SVGNS,'path');
+    path.setAttribute("d",d);
+    path.setAttribute("class","wire"+(w.bus?" busline":"")+(animOn&&on?" flowing":"")+(w.id===selId?" sel":""));
+    path.dataset.id=w.id;wiresG.appendChild(path);
+    if(animOn&&on){const fp=document.createElementNS(SVGNS,'path');
+      fp.setAttribute("d",d);fp.setAttribute("class","flowDots on");wiresG.appendChild(fp);}
+  });
+  compsG.innerHTML="";
+  state.comps.forEach(c=>{
+    const g=document.createElementNS(SVGNS,'g'),sc=c.sc||1,on=energComps.has(c.id);
+    g.setAttribute("class","comp"+(c.id===selId?" sel":"")+(animOn&&!on&&c.type!=='label'&&c.type!=='bus'?" dead":""));
+    g.setAttribute("transform",`translate(${c.x},${c.y}) rotate(${c.rot||0}) scale(${sc})`);
+    g.dataset.id=c.id;
+    let inner="";const lblFs=c.textSize||10.5;
+    if(c.type==="bus"){
+      const L=c.len||300;
+      inner=`<g class="symWrap"><line x1="0" y1="0" x2="${L}" y2="0" stroke="${animOn&&on?'var(--energ)':'var(--sym)'}" stroke-width="6"/></g>`;
+      if(animOn&&on)inner+=`<line x1="0" y1="0" x2="${L}" y2="0" class="flowDots on" style="display:inline"/>`;
+      inner+=`<rect class="selBox" x="-6" y="-10" width="${L+12}" height="20"/>`;
+      if(c.label)inner+=`<text class="lblB" style="font-size:${c.textSize||12}px" x="4" y="-9">${esc(c.label)}</text>`;
+    }else if(c.type==="label"){
+      const fs=c.textSize||13;
+      inner=`<text class="lblB" style="font-size:${fs}px" text-anchor="middle">${esc(c.label||"TEXT")}</text>`;
+      const w=(c.label||"TEXT").length*fs*0.62;
+      inner+=`<rect class="selBox" x="${-w/2}" y="-${fs}" width="${w}" height="${fs*1.5}"/>`;
+    }else{
+      inner=`<g class="symWrap">${SYM[c.type]?SYM[c.type](c):""}</g>`;
+      const [bw,bh]=BOX[c.type]||[30,30];
+      if(c.open&&SWITCHABLE.has(c.type))
+        inner+=`<g class="openMark"><circle cx="${bw/2+9}" cy="${-bh/2-2}" r="7.5" fill="#ff5252"/><text x="${bw/2+9}" y="${-bh/2+1.5}" text-anchor="middle" style="font:bold 9px Arial;fill:#fff">⊘</text></g>`;
+      inner+=`<rect class="selBox" x="${-bw/2-3}" y="${-bh/2-3}" width="${bw+6}" height="${bh+6}"/>`;
+      if(c.label)inner+=`<text class="lbl" style="font-size:${lblFs}px" text-anchor="middle" transform="rotate(${-(c.rot||0)}) translate(0,${bh/2+lblFs+3})">${esc(c.label)}</text>`;
+    }
+    g.innerHTML=inner;compsG.appendChild(g);
+  });
+  applyView();
+  P('stCount').textContent=`${state.comps.length} parts · ${state.wires.length} wires`;
+}
+const esc=s=>(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function applyView(){vp.setAttribute("transform",`translate(${view.x},${view.y}) scale(${view.k})`)}
+
+/* ---------- COORDS ---------- */
+function toWorld(ev){const r=svg.getBoundingClientRect();
+  return [(ev.clientX-r.left-view.x)/view.k,(ev.clientY-r.top-view.y)/view.k];}
+const snap=v=>Math.round(v/10)*10;
+
+/* ---------- SELECT / PROPS ---------- */
+const findComp=id=>state.comps.find(c=>c.id===id);
+function closeProps(){P('props').classList.remove('open')}
+function select(id){
+  selId=id;const c=findComp(id);
+  if(c){
+    P('props').classList.add('open');
+    P('pTitle').textContent=c.label||"(unnamed "+c.type+")";
+    P('pType').textContent="Type: "+c.type.toUpperCase()+" • id: "+c.id;
+    P('pLabel').value=c.label||"";
+    P('pTextSize').value=c.textSize||(c.type==='label'?13:10.5);
+    P('pX').value=c.x;P('pY').value=c.y;P('pRot').value=c.rot||0;P('pScale').value=c.sc||1;
+    P('busLenRow').style.display=c.type==="bus"?"block":"none";
+    if(c.type==="bus")P('pBusLen').value=c.len||300;
+    const sw=SWITCHABLE.has(c.type);
+    P('swStateCtrlBlock').style.display=sw?"block":"none";
+    if(sw)updSwBtn(c);
+    const b=c.bio||{};
+    P('pMake').value=b.make||"";P('pRating').value=b.rating||"";P('pYear').value=b.year||"";
+    P('pSerial').value=b.serial||"";P('pSap').value=b.sap||"";P('pMaint').value=b.maint||"";P('pRemarks').value=b.remarks||"";
+    const en=energComps.has(c.id);
+    P('stEnerg').textContent=en?"YES ⚡":"NO";P('stEnerg').style.color=en?"var(--grn)":"var(--red)";
+    P('stLoad').textContent=b.rating?"~"+(40+(c.id.length*7)%45)+"%":"—";
+    P('stBkdn').textContent=(c.id.length*3)%7;P('stAvail').textContent=(97+c.id.length%3)+"."+(c.id.length%9)+"%";
+    P('props').querySelectorAll('input,textarea,select').forEach(el=>el.disabled=locked);
+    P('bToggleSw').disabled=false;
+  }else closeProps();
+  render();
+}
+function updSwBtn(c){
+  P('bToggleSw').className=c.open?"open":"closed";
+  P('bToggleSw').textContent=c.open?"⊘ OPEN — tap to CLOSE":"⬤ CLOSED — tap to OPEN";
+}
+P('bToggleSw').onclick=()=>{const c=findComp(selId);if(!c||!SWITCHABLE.has(c.type))return;
+  c.open=!c.open;netDirty=true;updSwBtn(c);render();select(c.id);pushHist();
+  toast((c.label||c.type.toUpperCase())+(c.open?" OPENED — flow blocked":" CLOSED — flow restored"));};
+["pLabel","pTextSize","pX","pY","pRot","pScale","pBusLen","pMake","pRating","pYear","pSerial","pSap","pMaint","pRemarks"].forEach(id=>{
+  P(id).addEventListener('change',()=>commitProps(true));
+  P(id).addEventListener('input',()=>commitProps(false));});
+function commitProps(final){
+  if(locked)return;const c=findComp(selId);if(!c)return;
+  c.label=P('pLabel').value;c.textSize=Math.min(72,Math.max(6,+P('pTextSize').value||11));
+  c.x=+P('pX').value||0;c.y=+P('pY').value||0;c.rot=+P('pRot').value||0;
+  c.sc=Math.min(6,Math.max(.3,+P('pScale').value||1));
+  if(c.type==="bus")c.len=Math.max(40,+P('pBusLen').value||300);
+  c.bio={make:P('pMake').value,rating:P('pRating').value,year:P('pYear').value,
+    serial:P('pSerial').value,sap:P('pSap').value,maint:P('pMaint').value,remarks:P('pRemarks').value};
+  netDirty=true;render();if(final)pushHist();
+}
+P('szUp').onclick=()=>{if(locked)return;const c=findComp(selId);if(c){c.sc=Math.min(6,(c.sc||1)+0.2);P('pScale').value=c.sc.toFixed(1);netDirty=true;render();pushHist();}};
+P('szDn').onclick=()=>{if(locked)return;const c=findComp(selId);if(c){c.sc=Math.max(.3,(c.sc||1)-0.2);P('pScale').value=c.sc.toFixed(1);netDirty=true;render();pushHist();}};
+P('lsUp').onclick=()=>{if(locked)return;const c=findComp(selId);if(c){c.textSize=Math.min(72,(c.textSize||11)+1);P('pTextSize').value=c.textSize;render();pushHist();}};
+P('lsDn').onclick=()=>{if(locked)return;const c=findComp(selId);if(c){c.textSize=Math.max(6,(c.textSize||11)-1);P('pTextSize').value=c.textSize;render();pushHist();}};
+P('bDel').onclick=()=>delSelected();
+P('bRot90').onclick=()=>{if(locked)return;const c=findComp(selId);if(c){c.rot=((c.rot||0)+90)%360;netDirty=true;select(c.id);pushHist();}};
+P('bDup').onclick=()=>{if(locked)return;const c=findComp(selId);if(c){const n=JSON.parse(JSON.stringify(c));n.id=nid("c");n.x+=40;n.y+=40;state.comps.push(n);netDirty=true;select(n.id);pushHist();}};
+function delSelected(){if(locked||!selId)return;
+  state.comps=state.comps.filter(c=>c.id!==selId);state.wires=state.wires.filter(w=>w.id!==selId);
+  selId=null;closeProps();netDirty=true;render();pushHist();}
+
+/* ---------- POINTER ---------- */
+let drag=null,pan=null,pinch=null,moved=false;const touches=new Map();
+svg.addEventListener('pointerdown',ev=>{
+  touches.set(ev.pointerId,[ev.clientX,ev.clientY]);
+  if(touches.size===2){const pts=[...touches.values()];
+    pinch={d:Math.hypot(pts[0][0]-pts[1][0],pts[0][1]-pts[1][1]),k:view.k,cx:(pts[0][0]+pts[1][0])/2,cy:(pts[0][1]+pts[1][1])/2,vx:view.x,vy:view.y};
+    drag=null;pan=null;return;}
+  const [wx,wy]=toWorld(ev);moved=false;const t=ev.target;
+  if(!locked&&mode==="wire"){draft.push([snap(wx),snap(wy)]);drawDraft();return;}
+  if(!locked&&mode==="text"){const c={id:nid("c"),type:"label",x:snap(wx),y:snap(wy),rot:0,sc:1,label:"NEW TEXT",textSize:14,bio:{}};
+    state.comps.push(c);setMode("select");netDirty=true;select(c.id);pushHist();return;}
+  if(!locked&&mode==="place"&&placeType){const c={id:nid("c"),type:placeType,x:snap(wx),y:snap(wy),rot:0,sc:1,label:"",len:placeType==="bus"?300:undefined,textSize:10.5,bio:{}};
+    state.comps.push(c);setMode("select");netDirty=true;select(c.id);pushHist();return;}
+  const compG=t.closest('.comp');
+  if(compG){const c=findComp(compG.dataset.id);select(c.id);
+    if(!locked){drag={id:c.id,dx:wx-c.x,dy:wy-c.y};svg.setPointerCapture(ev.pointerId);}return;}
+  if(t.classList.contains('wire')){selId=t.dataset.id;closeProps();render();return;}
+  select(null);pan={sx:ev.clientX,sy:ev.clientY,vx:view.x,vy:view.y};svg.setPointerCapture(ev.pointerId);
+});
+svg.addEventListener('pointermove',ev=>{
+  if(touches.has(ev.pointerId))touches.set(ev.pointerId,[ev.clientX,ev.clientY]);
+  if(pinch&&touches.size===2){const pts=[...touches.values()];
+    const f=Math.hypot(pts[0][0]-pts[1][0],pts[0][1]-pts[1][1])/pinch.d;
+    view.k=pinch.k*f;view.x=pinch.cx-(pinch.cx-pinch.vx)*f;view.y=pinch.cy-(pinch.cy-pinch.vy)*f;applyView();return;}
+  const [wx,wy]=toWorld(ev);P('stCoord').textContent=`x:${Math.round(wx)} y:${Math.round(wy)}`;
+  if(drag){moved=true;const c=findComp(drag.id);c.x=snap(wx-drag.dx);c.y=snap(wy-drag.dy);
+    if(c.id===selId){P('pX').value=c.x;P('pY').value=c.y;}netDirty=true;render();return;}
+  if(pan){view.x=pan.vx+(ev.clientX-pan.sx);view.y=pan.vy+(ev.clientY-pan.sy);applyView();return;}
+  if(!locked&&mode==="wire"&&draft.length)drawDraft([snap(wx),snap(wy)]);
+});
+function endPtr(ev){touches.delete(ev.pointerId);if(touches.size<2)pinch=null;if(drag&&moved)pushHist();drag=null;pan=null;}
+svg.addEventListener('pointerup',endPtr);svg.addEventListener('pointercancel',endPtr);
+svg.addEventListener('dblclick',ev=>{
+  const compG=ev.target.closest('.comp');
+  if(compG){const c=findComp(compG.dataset.id);
+    if(c&&SWITCHABLE.has(c.type)){c.open=!c.open;netDirty=true;render();
+      if(c.id===selId)updSwBtn(c);toast((c.label||c.type.toUpperCase())+(c.open?" OPENED":" CLOSED"));pushHist();return;}}
+  if(!locked&&mode==="wire"&&draft.length>=2){state.wires.push({id:nid("w"),pts:draft.slice()});draft=[];drawDraft();netDirty=true;render();pushHist();}
+});
+function drawDraft(cur){draftG.innerHTML="";if(!draft.length)return;
+  const pts=cur?[...draft,cur]:draft;const p=document.createElementNS(SVGNS,'path');
+  p.setAttribute("d","M"+pts.map(q=>q.join(",")).join(" L"));
+  p.setAttribute("style","stroke:#ffb300;stroke-width:2;fill:none;stroke-dasharray:5 4");draftG.appendChild(p);}
+window.addEventListener('keydown',ev=>{
+  if(ev.target.tagName==="INPUT"||ev.target.tagName==="TEXTAREA")return;
+  if(ev.key==="Delete"||ev.key==="Backspace")delSelected();
+  if(ev.key==="Escape"){draft=[];drawDraft();setMode("select");}
+  if(ev.ctrlKey&&ev.key==="z"){ev.preventDefault();undo();}
+  if(ev.ctrlKey&&(ev.key==="y"||(ev.shiftKey&&ev.key==="Z"))){ev.preventDefault();redo();}});
+svg.addEventListener('wheel',ev=>{ev.preventDefault();
+  const f=ev.deltaY<0?1.12:0.89,r=svg.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;
+  view.x=mx-(mx-view.x)*f;view.y=my-(my-view.y)*f;view.k*=f;applyView();},{passive:false});
+
+/* ---------- MODES / LOCK ---------- */
+function setMode(m,ptype){mode=m;placeType=ptype||null;draft=[];drawDraft();
+  ["bSelect","bWire","bText"].forEach(b=>P(b).classList.remove('on'));
+  if(m==="select")P('bSelect').classList.add('on');if(m==="wire")P('bWire').classList.add('on');if(m==="text")P('bText').classList.add('on');
+  document.querySelectorAll('.palItem').forEach(e=>e.classList.remove('armed'));
+  if(m==="place")document.querySelector(`.palItem[data-type="${ptype}"]`)?.classList.add('armed');
+  svg.classList.toggle('wiring',m==="wire");svg.classList.toggle('placing',m==="place"||m==="text");updModeLabel();}
+function updModeLabel(){P('stMode').innerHTML="Mode: <span class='hot'>"+(locked?"VIEW 🔒":(mode==="place"?"PLACE "+placeType.toUpperCase():mode.toUpperCase()))+"</span>";}
+P('bSelect').onclick=()=>setMode("select");P('bWire').onclick=()=>setMode("wire");P('bText').onclick=()=>setMode("text");
+P('bLock').onclick=()=>{locked=!locked;document.body.classList.toggle('locked',locked);
+  P('bLock').classList.toggle('lock-on',locked);P('bLock').innerHTML=locked?"🔒 Locked":"✏️ Editing";
+  P('toolrow').style.display=locked?"none":"flex";
+  if(locked){P('palette').classList.add('hidden');setMode("select");}
+  if(selId)select(selId);updModeLabel();toast(locked?"View mode — layout locked (switching still works)":"Edit mode");};
+P('bPal').onclick=()=>P('palette').classList.toggle('hidden');
+document.querySelectorAll('.acc>header').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('open'));
+document.querySelectorAll('.palItem').forEach(el=>el.addEventListener('click',()=>{if(!locked)setMode("place",el.dataset.type)}));
+P('bAnim').onclick=()=>{animOn=!animOn;P('bAnim').classList.toggle('on',animOn);
+  P('bAnim').innerHTML=animOn?"⏸ Flow Analysis":"▶ Flow Analysis";document.body.classList.toggle('anim',animOn);netDirty=true;render();};
+P('themeSel').onchange=()=>{svg.classList.remove('th-light','th-blue');if(P('themeSel').value)svg.classList.add(P('themeSel').value);};
+P('bZin').onclick=()=>{view.k*=1.2;applyView()};P('bZout').onclick=()=>{view.k*=.83;applyView()};P('bZfit').onclick=fit;
+function fit(){const r=svg.getBoundingClientRect();view.k=Math.min(r.width/1650,r.height/1020);view.x=(r.width-1600*view.k)/2;view.y=(r.height-980*view.k)/2;applyView();}
+P('bClear').onclick=()=>{if(locked){toast("Unlock to edit");return;}if(confirm("Clear the whole diagram?")){state.comps=[];state.wires=[];selId=null;closeProps();netDirty=true;render();pushHist();}};
+P('ssName').addEventListener('input',()=>state.name=P('ssName').value);
+
+/* ---------- UNDERLAY ---------- */
+P('bImgLoader').onclick=()=>P('underModal').classList.add('open');
+P('uClose').onclick=()=>P('underModal').classList.remove('open');
+P('uFile').addEventListener('change',async ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  try{let dataUrl;
+    if(f.type==="application/pdf"||f.name.toLowerCase().endsWith(".pdf")){
+      toast("Rendering PDF page 1…");
+      const buf=await f.arrayBuffer();
+      pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      const pdf=await pdfjsLib.getDocument({data:buf}).promise,page=await pdf.getPage(1);
+      const vpt=page.getViewport({scale:2}),cv=document.createElement('canvas');
+      cv.width=vpt.width;cv.height=vpt.height;
+      await page.render({canvasContext:cv.getContext('2d'),viewport:vpt}).promise;
+      dataUrl=cv.toDataURL("image/png");
+    }else dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
+    state.underlay={src:dataUrl,opacity:.45,w:1600,x:0,y:0,show:true};applyUnderlay();
+    toast("Underlay loaded — unlock ✏️ and trace over it");
+  }catch(e){alert("Could not load file: "+e.message);}
+});
+function applyUnderlay(){const u=state.underlay;
+  if(!u||!u.show){uImg.style.display="none";return;}
+  uImg.setAttribute("href",u.src);uImg.setAttribute("x",u.x);uImg.setAttribute("y",u.y);
+  uImg.setAttribute("width",u.w);uImg.removeAttribute("height");uImg.setAttribute("opacity",u.opacity);uImg.style.display="block";}
+P('uOpacity').oninput=()=>{if(state.underlay){state.underlay.opacity=+P('uOpacity').value;applyUnderlay();}};
+P('uW').onchange=()=>{if(state.underlay){state.underlay.w=+P('uW').value||1600;applyUnderlay();}};
+P('uX').onchange=()=>{if(state.underlay){state.underlay.x=+P('uX').value||0;applyUnderlay();}};
+P('uY').onchange=()=>{if(state.underlay){state.underlay.y=+P('uY').value||0;applyUnderlay();}};
+P('uShow').onclick=()=>{if(state.underlay){state.underlay.show=!state.underlay.show;applyUnderlay();}};
+P('uRemove').onclick=()=>{state.underlay=null;applyUnderlay();};
+
+/* ---------- SAVE / MANAGER ---------- */
+const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"_");
+P('bSave').onclick=async()=>{state.name=P('ssName').value;
+  const rec={ts:Date.now(),data:{...state}};
+  try{localStorage.setItem("sldv4_"+slug(state.name),JSON.stringify(rec));}
+  catch(e){try{localStorage.setItem("sldv4_"+slug(state.name),JSON.stringify({ts:Date.now(),data:{...state,underlay:null}}));toast("Saved (underlay too large — not stored) ✓");}catch(e2){toast("Save failed: storage full");}return;}
+  if(window.FB&&FB.db){try{await FB.db.ref("slds/"+slug(state.name)).set({...state,underlay:null});toast("Saved to browser + Firebase ✓");return;}catch(e){toast("Browser saved ✓ (Firebase: "+e.message+")");return;}}
+  toast("Saved ✓ — manage in 🗂 Diagrams");};
+P('bMySlds').onclick=()=>{renderSldList();P('sldsModal').classList.add('open');};
+P('sClose').onclick=()=>P('sldsModal').classList.remove('open');
+function renderSldList(){const host=P('sldList');host.innerHTML="";
+  const keys=Object.keys(localStorage).filter(k=>/^sldv[234]_|^sld_/.test(k));
+  if(!keys.length){host.innerHTML="<div style='color:var(--dim);padding:10px'>No saved diagrams yet. Use 💾 Save.</div>";return;}
+  keys.sort().forEach(k=>{let rec;try{rec=JSON.parse(localStorage.getItem(k));}catch(e){return;}
+    const data=rec.data||rec,ts=rec.ts?new Date(rec.ts).toLocaleString():"";
+    const row=document.createElement('div');row.className="sldRow";
+    row.innerHTML=`<div><div class="nm">${esc(data.name||k)}</div><div class="dt">${data.comps?.length||0} parts · ${ts}</div></div><div class="act"><button class="pri">✏️ Open</button><button>⬇</button><button style="color:var(--red)">🗑</button></div>`;
+    const [bO,bD,bX]=row.querySelectorAll('button');
+    bO.onclick=()=>{state={underlay:null,...JSON.parse(JSON.stringify(data))};P('ssName').value=state.name;selId=null;closeProps();netDirty=true;applyUnderlay();render();fit();hist=[];hPtr=-1;pushHist();P('sldsModal').classList.remove('open');toast("Opened — toggle ✏️ to edit");};
+    bD.onclick=()=>dl(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}),slug(data.name||k)+".json");
+    bX.onclick=()=>{if(confirm("Delete '"+(data.name||k)+"'?")){localStorage.removeItem(k);renderSldList();}};
+    host.appendChild(row);});
+}
+/* JSON */
+P('bJson').onclick=()=>{P('jsonTa').value=JSON.stringify({...state,underlay:undefined},null,1);P('jsonModal').classList.add('open');};
+P('jClose').onclick=()=>P('jsonModal').classList.remove('open');
+P('jApply').onclick=()=>{try{const s=JSON.parse(P('jsonTa').value);state={underlay:state.underlay,...s};P('ssName').value=state.name||"";selId=null;closeProps();netDirty=true;render();fit();hist=[];hPtr=-1;pushHist();P('jsonModal').classList.remove('open');toast("Imported ✓");}catch(e){alert("Invalid JSON: "+e.message);}};
+P('jCopy').onclick=()=>{P('jsonTa').select();document.execCommand('copy');toast("Copied");};
+P('jDl').onclick=()=>dl(new Blob([P('jsonTa').value],{type:"application/json"}),slug(state.name)+".json");
+
+/* ---------- EXPORT SVG (theme + boost) ---------- */
+function exportSvg(boost,themeKey){
+  boost=boost||1;
+  const clone=vp.cloneNode(true);clone.removeAttribute("transform");
+  clone.querySelectorAll('.selBox,.flowDots,#underlayImg').forEach(n=>n.remove());
+  let html=clone.innerHTML.replace(/font-size:\s*([\d.]+)px/g,(m,v)=>"font-size:"+(parseFloat(v)*boost).toFixed(1)+"px");
+  const themes={"":{paper:"#0e1318",sym:"#dfe9f2",symfill:"#11171e",wire:"#506f8f",energ:"#00e676"},
+    "th-light":{paper:"#ffffff",sym:"#000000",symfill:"#ffffff",wire:"#0a0a0a",energ:"#0a7a2f"},
+    "th-blue":{paper:"#05202f",sym:"#a4d8f8",symfill:"#05202f",wire:"#4f7f9f",energ:"#00e676"}};
+  const T=themes[themeKey!==undefined?themeKey:(svg.classList.contains("th-light")?"th-light":svg.classList.contains("th-blue")?"th-blue":"")];
+  const bl=(11*boost).toFixed(1),bb=(12*boost).toFixed(1);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 980" width="1600" height="980" style="--paper:${T.paper};--sym:${T.sym};--symfill:${T.symfill};--wire:${T.wire};--energ:${T.energ}">
+ <style>text.lbl{font-family:'Courier New',monospace;font-size:${bl}px;fill:var(--sym)}text.lblB{font-family:'Courier New',monospace;font-weight:bold;font-size:${bb}px;fill:var(--sym)}.wire{stroke:var(--wire);stroke-width:2.2;fill:none}.wire.busline{stroke-width:6}.wire.flowing{stroke:var(--energ)}#paper{fill:var(--paper);stroke:var(--sym)}</style>${html}</svg>`;
+}
+/* ---------- PRINT ---------- */
+P('bPrint').onclick=()=>P('printModal').classList.add('open');
+P('prClose').onclick=()=>P('printModal').classList.remove('open');
+const PAPER={A4:[297,210],A3:[420,297],A2:[594,420],A1:[841,594],A0:[1189,841]};
+P('prGo').onclick=()=>{
+  const size=P('prSize').value,boost=+P('prBoost').value,th=P('prTheme').value;
+  const [wmm,hmm]=PAPER[size],svgStr=exportSvg(boost,th);
+  const w=window.open("","_blank");
+  w.document.write(`<!DOCTYPE html><html><head><title>${esc(state.name)} — ${size}</title>
+<style>@page{size:${size} landscape;margin:6mm}html,body{margin:0;padding:0}
+.sheet{width:${wmm-12}mm;height:${hmm-12}mm;display:flex;align-items:center;justify-content:center}
+svg{width:100%;height:100%;object-fit:contain}
+@media screen{body{background:#444;padding:20px}.sheet{background:#fff;box-shadow:0 6px 30px #0008;margin:auto}}
+</style></head><body><div class="sheet">${svgStr}</div><script>setTimeout(()=>window.print(),400)<\/script></body></html>`);
+  w.document.close();P('printModal').classList.remove('open');};
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000);}
+function toast(msg){const d=document.createElement('div');d.textContent=msg;
+  d.style.cssText="position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--acc);color:#0b0f14;font-weight:700;padding:10px 20px;border-radius:7px;z-index:99;box-shadow:0 6px 20px rgba(0,0,0,.6);font-size:12px;max-width:90vw;text-align:center";
+  document.body.appendChild(d);setTimeout(()=>d.remove(),2700);}
+
+/* ============================================================
+   🤖 AUTO-GENERATE MODULE  (V5 addition — isolated)
+   Reuses the EXACT existing import path: assign to state, then
+   closeProps → netDirty → render → fit → reset history → pushHist
+   (same sequence as jApply). Touches nothing in buildNet/render/PORTS.
+   ============================================================ */
+function applyGeneratedSld(json){
+  if(!json||!Array.isArray(json.comps)||!Array.isArray(json.wires)){
+    toast("Generator returned no usable diagram");return;}
+  /* normalize: guarantee every comp has the V4 fields buildNet/render expect */
+  let maxId=0;
+  json.comps.forEach(c=>{
+    c.id=c.id||nid("c");c.rot=c.rot||0;c.sc=c.sc||1;c.label=c.label||"";
+    c.textSize=c.textSize||(c.type==='label'?13:10);c.bio=c.bio||{};
+    const m=/(\d+)$/.exec(c.id);if(m)maxId=Math.max(maxId,+m[1]);
+  });
+  json.wires.forEach(w=>{w.id=w.id||nid("w")});
+  uid=Math.max(uid,maxId+1);                 /* avoid id collisions */
+  state={underlay:state.underlay,name:json.name||"Generated SS",
+         comps:json.comps,wires:json.wires};
+  P('ssName').value=state.name;
+  selId=null;closeProps();netDirty=true;render();fit();
+  hist=[];hPtr=-1;pushHist();
+  P('autoGenModal').classList.remove('open');
+  toast("SLD generated ✓ — unlock ✏️ to rename/move/edit");
+}
+
+/* ---- client-side offline template builder (Phase-1 fallback) ---- */
+function buildTemplateClient(opts){
+  let q=1;const id=p=>"a"+p+(q++);
+  const comps=[],wires=[];
+  const C=(type,x,y,rot,label,extra)=>{const c=Object.assign(
+    {id:id("c"),type,x,y,rot:rot||0,sc:1,label:label||"",
+     textSize:type==='label'?13:10,bio:{}},extra||{});comps.push(c);return c;};
+  const W=pts=>wires.push({id:id("w"),pts});
+  const RIGHT=1480,HVY=300,LVY=640,PTRY=500;
+  const spread=(n,lo,hi)=>n<=0?[]:n===1?[(lo+hi)/2]:
+    Array.from({length:n},(_,i)=>Math.round(lo+i*(hi-lo)/(n-1)));
+
+  C("label",800,36,0,"SINGLE LINE DIAGRAM OF "+opts.name.toUpperCase(),{textSize:22});
+  C("label",800,58,0,"TGSPDCL — SCADA CIRCLE",{textSize:11});
+  C("bus",120,HVY,0,"33 KV BUS",{len:RIGHT-120+20,textSize:13});
+
+  spread(opts.incN,200,RIGHT-160).forEach((x,i)=>{
+    C("label",x,90,0,"33KV INCOMER-"+(i+1),{textSize:11});
+    C("incomer",x,124,90,"");W([[x,140],[x,162]]);
+    C("la",x+34,150,0,"33KV LAs");W([[x,150],[x+34,150]]);
+    C("isolator",x,180,0,"");W([[x,196],[x,216]]);
+    C("breaker",x,228,0,"");W([[x,244],[x,258]]);
+    C("isolator",x,274,0,"");W([[x,290],[x,HVY]]);
+  });
+  C("buspt",146,HVY,0,"33KV BUS PT");
+
+  const roman=["I","II","III","IV","V","VI","VII","VIII"];
+  spread(opts.ptrN,320,RIGHT-200).forEach((x,i)=>{
+    W([[x,HVY],[x,332]]);
+    C("isolator",x,348,0,"");W([[x,364],[x,378]]);
+    C("breaker",x,394,0,"HV");W([[x,410],[x,424]]);
+    C("fuse",x,440,0,"");W([[x,456],[x,474]]);
+    const p=C("ptr",x,PTRY,0,opts.ptrR+" - PTR-"+roman[i]);
+    p.bio={rating:opts.ptrR,remarks:"33/11kV Power Transformer"};
+    W([[x,526],[x,544]]);C("fuse",x,560,0,"");W([[x,576],[x,590]]);
+    C("breaker",x,606,0,"LV");W([[x,622],[x,LVY]]);
+  });
+
+  C("bus",120,LVY,0,"11 KV BUS",{len:RIGHT-120+20,textSize:13});
+  C("buspt",480,LVY,0,"11KV BUS PT");
+
+  spread(opts.fdrN,180,RIGHT-30).forEach((x,i)=>{
+    W([[x,LVY],[x,670]]);
+    C("isolator",x,686,0,"");W([[x,702],[x,716]]);
+    const name=opts.fdrNames[i]||("11KV FEEDER-"+(i+1));
+    const b=C("breaker",x,732,0,"");b.bio={rating:"630A VCB",remarks:name};
+    W([[x,748],[x,764]]);C("isolator",x,780,0,"");W([[x,796],[x,818]]);
+    C("feederarrow",x,818,90,"");C("label",x,910,90,name,{textSize:10});
+  });
+  return {name:opts.name,comps,wires};
+}
+
+P('bAutoGen').onclick=()=>P('autoGenModal').classList.add('open');
+P('agClose').onclick=()=>P('autoGenModal').classList.remove('open');
+
+P('agTemplate').onclick=()=>{
+  const names=P('agFdrList').value.split("\n").map(s=>s.trim()).filter(Boolean);
+  applyGeneratedSld(buildTemplateClient({
+    name:P('agName').value||"33/11KV New Substation",
+    ptrN:Math.max(1,+P('agPtrN').value||2),
+    ptrR:P('agPtrR').value||"12.5 MVA",
+    incN:Math.max(1,+P('agIncN').value||2),
+    fdrN:Math.max(names.length,+P('agFdrN').value||8),
+    fdrNames:names,
+  }));
+};
+
+P('agRun').onclick=async()=>{
+  const f=P('agFile').files[0];
+  if(!f){toast("Choose a PDF or image first");return;}
+  const url=(P('agUrl').value||"").replace(/\/+$/,"")+"/generate-sld";
+  toast("Uploading to AI server… (OCR may take ~10–30s)");
+  try{
+    const fd=new FormData();fd.append("file",f);
+    const res=await fetch(url,{method:"POST",body:fd});
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    const json=await res.json();
+    applyGeneratedSld(json);
+    if(json._note)toast(json._note);
+  }catch(e){
+    toast("Backend unreachable — use Build Offline Template instead");
+  }
+};
+
+
+
+/* ============================================================
+   FIREBASE HOOK (optional): add compat SDKs + config,
+   set window.FB={db:firebase.database()} — Save syncs /slds/<slug>.
+   ============================================================ */
+
+/* ---------- GOLCONDA PRELOAD ---------- */
+function golconda(){
+  const comps=[],wires=[];let q=1;const id=p=>p+"g"+(q++);
+  const C=(type,x,y,rot,label,extra)=>{const c=Object.assign({id:id("c"),type,x,y,rot:rot||0,sc:1,label:label||"",textSize:type==='label'?13:10,bio:{}},extra||{});comps.push(c);return c;};
+  const W=(pts)=>wires.push({id:id("w"),pts});
+  C("label",800,36,0,"SINGLE LINE DIAGRAM OF 33/11KV GOLCONDA SS",{textSize:22});
+  C("label",800,58,0,"TGSPDCL — SCADA CIRCLE — BANJARA HILLS",{textSize:11});
+  C("bus",120,300,0,"33 KV BUS",{len:1380,textSize:13});
+  const inc=[[200,"132KV ASIFNAGAR-","33KV GOLCONDA"],[480,"132KV ASIFNAGAR-","33KV SHAIKPET"],[760,"132KV JUBILEE HILLS-","33KV GOLCONDA"],[1040,"132KV ASIFNAGAR-","33KV SHAIKPET"],[1320,"400KV RAIDURG SS-","33KV SANDHYA FDR"]];
+  inc.forEach(([x,l1,l2])=>{C("label",x,86,0,l1,{textSize:11});C("label",x,100,0,l2,{textSize:11});
+    C("incomer",x,124,90,"");W([[x,140],[x,162]]);
+    C("la",x+34,150,0,"33KV LAs");W([[x,150],[x+34,150]]);
+    C("isolator",x,180,0,"");W([[x,196],[x,216]]);C("breaker",x,228,0,"");W([[x,244],[x,258]]);
+    C("isolator",x,274,0,"");W([[x,290],[x,300]]);});
+  C("buspt",146,300,0,"33KV BUS PT");
+  const bays=[[320,"PTR-I","HV-I","LV-I"],[640,"PTR-II","HV-II","LV-II"],[960,"PTR-III","HV-III","LV-III"],[1280,"PTR-IV","HV-IV","LV-IV"]];
+  bays.forEach(([x,ptr,hv,lv])=>{W([[x,300],[x,332]]);
+    C("isolator",x,348,0,"");W([[x,364],[x,378]]);C("breaker",x,394,0,hv);W([[x,410],[x,424]]);
+    C("fuse",x,440,0,"Fuse");W([[x,456],[x,474]]);
+    const p=C("ptr",x,500,0,"12.5 MVA - "+ptr);p.bio={rating:"12.5 MVA",remarks:"33/11kV Power Transformer"};
+    W([[x,526],[x,544]]);C("fuse",x,560,0,"");W([[x,576],[x,590]]);C("breaker",x,606,0,lv);W([[x,622],[x,640]]);});
+  C("bus",120,640,0,"11 KV BUS",{len:1380,textSize:13});
+  C("buspt",480,640,0,"11KV BUS PT");C("buspt",800,640,0,"11KV BUS PT");C("buspt",1120,640,0,"11KV BUS PT");
+  const fdr=[[180,"11KV GOLCONDA OH FDR"],[280,"11KV MOTIMAHAL FDR"],[380,"11KV ADITYA NAGAR UG"],[520,"11KV DARGA OH FDR"],[620,"11KV GOLCONDA CABLE"],[720,"11KV SHAIKPET W.WORKS"],[860,"11KV APARNA ONE"],[950,"11KV OU COLONY FDR"],[1040,"11KV ADITYA NAGAR OH"],[1180,"11KV DARGA UG FDR"],[1270,"11KV QQ TOOMBS FDR"],[1360,"11KV BRUNDHAVAN COL."],[1450,"11KV NARAYANAMMA FDR"]];
+  fdr.forEach(([x,name])=>{W([[x,640],[x,670]]);
+    C("isolator",x,686,0,"");W([[x,702],[x,716]]);
+    const b=C("breaker",x,732,0,"");b.bio={rating:"630A VCB",remarks:name};
+    W([[x,748],[x,764]]);C("isolator",x,780,0,"");W([[x,796],[x,818]]);
+    C("feederarrow",x,818,90,"");C("la",x+26,672,0,"11KV LAs");W([[x,672],[x+26,672]]);
+    C("label",x,910,90,name,{textSize:10});});
+  W([[1530,640],[1530,678]]);
+  const st=C("dtr",1530,694,0,"100kVA St.Tf");st.bio={rating:"100 kVA",remarks:"Station auxiliary transformer"};
+  return {name:"33/11KV Golconda SS",comps,wires,underlay:null};
+}
+
+/* ---------- INIT ---------- */
+state=golconda();
+P('ssName').value=state.name;
+P('toolrow').style.display="none";
+netDirty=true;render();fit();pushHist();
+animOn=true;document.body.classList.add('anim');render();
+toast("Golconda SS — Flow ON. Double-tap any breaker/isolator/AB switch/fuse to OPEN/CLOSE ⚡");
 </script>
 </body>
 </html>
