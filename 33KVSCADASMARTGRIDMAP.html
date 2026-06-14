@@ -256,12 +256,12 @@
      LEGEND — refined card
      ════════════════════════════════════════════════════════ */
   #legend{
-    position:fixed;bottom:14px;left:14px;
+    position:fixed;bottom:14px;right:14px;left:auto;
     background:var(--bg-card);backdrop-filter:blur(16px) saturate(180%);
     -webkit-backdrop-filter:blur(16px) saturate(180%);
-    border:1px solid var(--border-strong);border-radius:14px;
-    padding:14px 16px;z-index:900;box-shadow:var(--shadow-lg);
-    max-width:260px;
+    border:1px solid var(--border-strong);border-radius:12px;
+    padding:10px 12px;z-index:900;box-shadow:var(--shadow-lg);
+    max-width:220px;
   }
   .lg-title{
     display:flex;align-items:center;gap:7px;
@@ -270,17 +270,17 @@
     text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:8px;
   }
   .lg-title::before{content:'◆';opacity:.7}
-  .lg-section{font-family:var(--font-mono);font-size:8.5px;color:var(--text-3);letter-spacing:1.4px;font-weight:700;text-transform:uppercase;margin:8px 0 4px;display:flex;align-items:center;gap:6px}
+  .lg-section{font-family:var(--font-mono);font-size:8px;color:var(--text-3);letter-spacing:1.2px;font-weight:700;text-transform:uppercase;margin:6px 0 3px;display:flex;align-items:center;gap:6px}
   .lg-section::after{content:'';flex:1;height:1px;background:var(--border)}
   .lg-row{
-    display:flex;align-items:center;gap:9px;padding:3px 0;
-    font-family:var(--font-sans);font-size:10.5px;color:var(--text-1);letter-spacing:.2px;
+    display:flex;align-items:center;gap:8px;padding:2px 0;
+    font-family:var(--font-sans);font-size:9.5px;color:var(--text-1);letter-spacing:.2px;
   }
   .lg-mk{width:20px;height:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .lg-eht{width:0;height:0;border-left:11px solid transparent;border-bottom:15px solid #0a0a0a;filter:drop-shadow(0 0 3px rgba(255,255,255,.6))}
   .lg-ss33{width:13px;height:13px;background:#dc2626;border:1.5px solid #fff;box-shadow:0 0 0 1px #dc2626,0 1px 3px rgba(220,38,38,.5)}
-  .lg-ht{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:13px solid #facc15;filter:drop-shadow(0 0 2px rgba(146,64,14,.6))}
-  .lg-sw{width:14px;height:10px;background:#facc15;border:1.5px solid #b45309;background-image:repeating-linear-gradient(180deg,transparent 0 2px,#b45309 2px 3px)}
+  .lg-ht{width:12px;height:12px;background:#facc15;border:1.5px solid #92400e;border-radius:2px;filter:drop-shadow(0 0 2px rgba(146,64,14,.6))}
+  .lg-sw{width:14px;height:9px;background:#facc15;border:1.5px solid #b45309;background-image:repeating-linear-gradient(180deg,transparent 0 2px,#b45309 2px 3px)}
   .lg-ab{width:11px;height:11px;background:#2563eb;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #2563eb,0 1px 3px rgba(37,99,235,.5)}
   .lg-line{width:28px;height:3px;border-radius:2px}
   .lg-line.ug{background:#38bdf8}
@@ -764,7 +764,7 @@
     <div class="f-stat"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#3b82f6"></span>33KV Feeders</span><span class="f-stat-val" id="s-feeders">—</span></div>
     <div class="f-stat"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#a855f7"></span>Link Lines</span><span class="f-stat-val" id="s-links">—</span></div>
     <div class="f-stat"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#facc15"></span>HT Services</span><span class="f-stat-val" id="s-ht">—</span></div>
-    <div class="f-stat"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#2563eb"></span>AB Switches</span><span class="f-stat-val" id="s-ab">—</span></div>
+    <div class="f-stat" style="display:none"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#2563eb"></span>AB Switches</span><span class="f-stat-val" id="s-ab">0</span></div>
     <div class="f-stat"><span class="f-stat-lbl" style="color:#fca5a5"><span class="lbl-dot" style="background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.6)"></span>Breakdowns</span><span class="f-stat-val bkd" id="s-bkd">—</span></div>
   </div>
   <div class="f-grp">
@@ -781,9 +781,7 @@
   <div class="lg-row"><span class="lg-mk"><span class="lg-ss33"></span></span>33 / 11 KV Substation</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-ht"></span></span>33 KV HT Service</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-sw"></span></span>Switching Station</div>
-  <div class="lg-row"><span class="lg-mk"><span class="lg-ab"></span></span>AB Switch / Tapping</div>
-  <div class="lg-row"><span class="lg-mk"><span class="lg-dp"></span></span>DP / Cut Point</div>
-  <div class="lg-section">CABLE TYPE (10/90 rule)</div>
+      <div class="lg-section">CABLE TYPE (10/90 rule)</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-line ug"></span></span>UG (≤10% OH)</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-line oh"></span></span>OH (≥90% OH)</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-line mix"></span></span>Mixed (10-90% OH)</div>
@@ -1039,12 +1037,12 @@ function makeSS33Icon(status){
   });
 }
 function makeHTIcon(){
-  // HT Service: yellow triangle with small bolt mark
+  // HT Service: small yellow square box
   return L.divIcon({
-    className:'gm-node-ht-v2', iconSize:[11,11], iconAnchor:[5.5,9],
-    html:`<svg width="11" height="11" viewBox="0 0 14 14">
-      <polygon points="7,1 13,12 1,12" fill="#facc15" stroke="#92400e" stroke-width="1.3" stroke-linejoin="round"/>
-      <path d="M 7.2 4.5 L 5.5 8 L 7 8 L 6.5 10.5 L 8.5 7 L 7 7 Z" fill="#92400e"/>
+    className:'gm-node-ht-v2', iconSize:[12,12], iconAnchor:[6,6],
+    html:`<svg width="12" height="12" viewBox="0 0 14 14">
+      <rect x="1.5" y="1.5" width="11" height="11" rx="1.5" fill="#facc15" stroke="#92400e" stroke-width="1.4"/>
+      <path d="M 7.2 3.7 L 5.6 7 L 7 7 L 6.5 10 L 8.5 6.6 L 7.2 6.6 Z" fill="#92400e"/>
     </svg>`
   });
 }
@@ -1218,32 +1216,7 @@ function buildSymbolicPath(sp, ep, feeder, idx, n){
 async function bootstrap(){
   setChip('','☁ LOADING…');
   try {
-    // ── Optional Firebase overrides for substation coordinates ──
-    // If /masterData/substations33 or /substationsEHT exists in Firebase,
-    // it overrides the embedded HTML constants. Lets you add/move SSes
-    // from the Master Data Manager without editing this file.
-    try {
-      const [fbSS33, fbEHT] = await Promise.all([
-        fetch(FIREBASE_URL+'/masterData/substations33.json').then(r=>r.ok?r.json():null).catch(()=>null),
-        fetch(FIREBASE_URL+'/masterData/substationsEHT.json').then(r=>r.ok?r.json():null).catch(()=>null)
-      ]);
-      if (fbSS33 && Object.keys(fbSS33).length > 0){
-        const arr = Array.isArray(fbSS33) ? fbSS33 : Object.values(fbSS33);
-        const valid = arr.filter(s => s && s.name && isFinite(parseFloat(s.lat)) && isFinite(parseFloat(s.lon)));
-        if (valid.length > 0){
-          STATIC_SS33 = valid.map(s => ({...s, lat:parseFloat(s.lat), lon:parseFloat(s.lon)}));
-          console.log('[smartgrid] Using Firebase 33/11KV SS data:', STATIC_SS33.length);
-        }
-      }
-      if (fbEHT && Object.keys(fbEHT).length > 0){
-        const arr = Array.isArray(fbEHT) ? fbEHT : Object.values(fbEHT);
-        const valid = arr.filter(e => e && e.name && isFinite(parseFloat(e.lat)) && isFinite(parseFloat(e.lon)));
-        if (valid.length > 0){
-          STATIC_EHT = valid.map(e => ({...e, lat:parseFloat(e.lat), lon:parseFloat(e.lon)}));
-          console.log('[smartgrid] Using Firebase EHT data:', STATIC_EHT.length);
-        }
-      }
-    } catch(_){}
+    // Use embedded static EHT and 33/11KV SS coordinates only; Firebase coordinate overrides disabled.
 
     const [ssTopo, topo, ptrs, divisionsRoot, ufRoot, feedersStat, breakdowns] = await Promise.all([
       fetch(FIREBASE_URL+'/masterData/ssTopology.json').then(r=>r.ok?r.json():null),
@@ -1511,26 +1484,20 @@ function buildTopology(){
     const lengths   = computeLengths(rows);
     const wp        = extractWaypoints(rows);
 
-    // Resolve EHT — fuzzy match by name; otherwise snap to nearest known EHT, else synthetic
+    // Resolve source/destination strictly by mapped names.
+    // Do NOT snap to nearest coordinates — that causes random starts/ends in Smart Grid Map.
     let eht = findEHTByName(ehtName);
-    if (!eht){
-      const nearest = findNearestEHT(firstCoord.lat, firstCoord.lon, 6);
-      eht = nearest || { name: ehtName || 'EHT (?)', lat: firstCoord.lat, lon: firstCoord.lon, synthetic: true };
-    }
 
-    // Resolve destination
     let destSS = null, endCoord = null, destType = 'ss33';
     if (type === 'HT'){
-      // HT service ends at the last pole's coordinates
       endCoord = { lat: lastCoord.lat, lon: lastCoord.lon, label: destName || feederName };
       destType = 'ht';
     } else {
       destSS = destName ? findSSByName(destName) : null;
-      if (!destSS){
-        const nearest = findNearestSS(lastCoord.lat, lastCoord.lon, 2);
-        destSS = nearest || { name: destName || 'SS (?)', lat: lastCoord.lat, lon: lastCoord.lon, synthetic: true };
-      }
     }
+
+    // Skip unresolved 33KV/LINK feeders rather than drawing them to random places.
+    if (!eht || (type !== 'HT' && !destSS)) { skipped++; return; }
 
     if (eht)    usedEHTs[eht.name] = eht;
     if (destSS) usedSSs[destSS.name] = destSS;
@@ -1669,8 +1636,8 @@ function renderNodes(){
     if (LABELS_VISIBLE) addLabel(eht.lat, eht.lon, eht.name, 'eht', -22);
   });
 
-  // 33/11 KV SSes — all of them
-  STATIC_SS33.forEach(ss => {
+  // 33/11 KV SSes — only those actually used by mapped feeders
+  Object.values(usedSSs).forEach(ss => {
     const stat = getSSLiveStatus(ss);
     const marker = L.marker([ss.lat, ss.lon], {icon: makeSS33Icon(stat), zIndexOffset: 800});
     marker.on('click', () => showSS33Popup(ss));
@@ -1681,8 +1648,7 @@ function renderNodes(){
       addLabel(ss.lat, ss.lon, shortName, 'ss33', 14);
     }
   });
-
-  // HT services + AB switches
+  // HT services only (AB / DP structures intentionally omitted in Smart Grid Map)
   FEEDER_TOPOLOGY.forEach(feeder => {
     if (feeder.type === 'HT' && feeder.endCoord){
       const m = L.marker([feeder.endCoord.lat, feeder.endCoord.lon], {icon: makeHTIcon(), zIndexOffset: 700});
@@ -1690,11 +1656,6 @@ function renderNodes(){
       m.bindTooltip(feeder.feederName, {direction:'top', offset:[0,-10]});
       nodesLayer.addLayer(m);
     }
-    feeder.abSwitches.forEach(ab => {
-      const m = L.marker([ab.lat, ab.lon], {icon: makeABIcon(), zIndexOffset: 500});
-      m.bindTooltip(`AB Switch · ${escapeHtml(feeder.feederName)}${ab.label?(' · Pole '+escapeHtml(ab.label)):''}`, {direction:'top', offset:[0,-6]});
-      nodesLayer.addLayer(m);
-    });
   });
 }
 
@@ -2012,7 +1973,6 @@ function showHTPopup(feeder){
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Source EHT</span><span class="gm-popup-val">${escapeHtml(feeder.ehtName||'—')}</span></div>`;
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Feeder Code</span><span class="gm-popup-val">${escapeHtml(feeder.feederCode||'—')}</span></div>`;
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Cable Type</span><span class="gm-popup-val">${escapeHtml(feeder.cableType.toUpperCase())}</span></div>`;
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">AB Switches</span><span class="gm-popup-val">${feeder.abSwitches.length}</span></div>`;
   L.popup({maxWidth:340,minWidth:240}).setLatLng([feeder.endCoord.lat,feeder.endCoord.lon]).setContent(html).openOn(map);
 }
 
@@ -2041,7 +2001,6 @@ function showFeederPopup(feeder, status){
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">UG / OH Share</span><span class="gm-popup-val">${feeder.ugPct||0}% / ${feeder.ohPct||0}%</span></div>`;
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Sub-Division</span><span class="gm-popup-val">${escapeHtml(feeder.subDiv||'—')}</span></div>`;
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Section</span><span class="gm-popup-val">${escapeHtml(feeder.section||'—')}</span></div>`;
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">AB Switches</span><span class="gm-popup-val">${feeder.abSwitches.length}</span></div>`;
   html += `<div style="text-align:center;margin-top:8px"><button onclick="openRouteMapForFeeder(${JSON.stringify(feeder.feederName).replace(/"/g,'&quot;')})" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-family:Consolas,monospace;font-size:10px;font-weight:800;letter-spacing:.8px;cursor:pointer;text-transform:uppercase">↗ OPEN IN ROUTE MAP</button></div>`;
   let lat=17.42, lon=78.46;
   if (feeder.ehtSS && feeder.destSS){ lat = (feeder.ehtSS.lat + feeder.destSS.lat)/2; lon = (feeder.ehtSS.lon + feeder.destSS.lon)/2; }
@@ -2245,7 +2204,7 @@ function refreshStats(){
   $('s-feeders').title = `33KV: ${c33} + Link: ${cLink} + HT: ${cHT}`;
   $('s-links').textContent   = cLink;
   $('s-ht').textContent      = cHT;
-  $('s-ab').textContent      = cAB;
+  if ($('s-ab')) $('s-ab').textContent = 0;
   $('s-bkd').textContent     = cBkd;
 }
 
@@ -2787,7 +2746,6 @@ async function generatePDF(){
       {y:8,  type:'eht',  label:'400/220/132 KV EHT'},
       {y:12, type:'ss33', label:'33/11 KV Substation'},
       {y:16, type:'ht',   label:'HT Service'},
-      {y:20, type:'ab',   label:'AB Switch / Tapping'},
       {y:24, type:'ug',   label:'UG Cable'},
       {y:28, type:'oh',   label:'OH Cable'},
       {y:32, type:'mix',  label:'UG + OH (Mixed)'},
