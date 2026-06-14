@@ -728,9 +728,9 @@
   .rm-ss33-icon { pointer-events: auto; cursor: pointer; position: relative; }
   .rm-ss33-icon .rm-ss33-ring {
     position: absolute; inset: 0; border-radius: 50%;
-    border: 1.8px dashed #38bdf8;
-    background: radial-gradient(circle, rgba(56,189,248,.28), rgba(56,189,248,0) 70%);
-    animation: rm-ss33-pulse 2.4s ease-in-out infinite;
+    border: 1.8px solid #38bdf8;
+    background: radial-gradient(circle, rgba(56,189,248,.32), rgba(56,189,248,0) 70%);
+    /* No animation - keeps substations visually anchored to lat/lon */
   }
   .rm-ss33-icon .rm-ss33-core {
     position: absolute; inset: 3.5px;
@@ -740,19 +740,17 @@
     font-size: 8px; color: #38bdf8; font-weight: 800;
     box-shadow: inset 0 0 4px rgba(56,189,248,.6);
   }
-  @keyframes rm-ss33-pulse {
-    0%,100% { transform: scale(1); opacity: .85; }
-    50%     { transform: scale(1.12); opacity: 1; }
-  }
+  /* @keyframes rm-ss33-pulse REMOVED — substations now static */
   .rm-ss33-icon.bkd .rm-ss33-ring {
-    border-color: #ef4444;
+    border-color: #ef4444; border-style: dashed;
     background: radial-gradient(circle, rgba(239,68,68,.4), transparent 70%);
-    animation-duration: .8s;
+    animation: rm-bkd-blink .8s ease-in-out infinite;
   }
+  @keyframes rm-bkd-blink { 0%,100%{opacity:1} 50%{opacity:.5} }
   .rm-ss33-icon.bkd .rm-ss33-core {
     background: #7f1d1d; border-color: #ef4444; color: #fee2e2;
   }
-  .rm-ss33-icon:hover .rm-ss33-ring { transform: scale(1.2); }
+  .rm-ss33-icon:hover .rm-ss33-ring { border-color: #67e8f9; box-shadow: 0 0 8px rgba(56,189,248,.5); }
 
   /* ════════════════════════════════════════════════════════
      COLLAPSIBLE LEGEND (top-right under layers control)
@@ -854,6 +852,12 @@
     <div class="f-stat"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#facc15"></span>HT Services</span><span class="f-stat-val" id="s-ht">—</span></div>
     <div class="f-stat"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#2563eb"></span>AB Switches</span><span class="f-stat-val" id="s-ab">—</span></div>
     <div class="f-stat"><span class="f-stat-lbl" style="color:#fca5a5"><span class="lbl-dot" style="background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.6)"></span>Breakdowns</span><span class="f-stat-val bkd" id="s-bkd">—</span></div>
+  </div>
+  <div class="f-grp">
+    <div class="f-grp-lbl">MAPPING DIAGNOSTICS</div>
+    <div class="f-stat" style="background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.18)"><span class="f-stat-lbl" style="color:#86efac">✓ Mapped</span><span class="f-stat-val" id="s-mapped" style="background:rgba(34,197,94,.18);color:#86efac">—</span></div>
+    <div class="f-stat" style="background:rgba(251,191,36,.06);border-color:rgba(251,191,36,.18)"><span class="f-stat-lbl" style="color:#fcd34d">⚠ Skipped</span><span class="f-stat-val" id="s-skipped" style="background:rgba(251,191,36,.18);color:#fcd34d">—</span></div>
+    <button class="f-export-btn alt" onclick="downloadUnmappedNames()" style="margin-top:6px;font-size:9px;letter-spacing:.6px">⬇ DOWNLOAD UNMAPPED NAMES</button>
   </div>
   <div class="f-grp">
     <button class="f-export-btn" onclick="openPdfModal()">📄 EXPORT PDF</button>
@@ -1167,32 +1171,11 @@ function makeDPIcon(){
 async function bootstrap(){
   setChip('','☁ LOADING…');
   try {
-    // ── Optional Firebase overrides for substation coordinates ──
-    // If /masterData/substations33 or /substationsEHT exists in Firebase,
-    // it overrides the embedded HTML constants. Lets you add/move SSes
-    // from the Master Data Manager without editing this file.
-    try {
-      const [fbSS33, fbEHT] = await Promise.all([
-        fetch(FIREBASE_URL+'/masterData/substations33.json').then(r=>r.ok?r.json():null).catch(()=>null),
-        fetch(FIREBASE_URL+'/masterData/substationsEHT.json').then(r=>r.ok?r.json():null).catch(()=>null)
-      ]);
-      if (fbSS33 && Object.keys(fbSS33).length > 0){
-        const arr = Array.isArray(fbSS33) ? fbSS33 : Object.values(fbSS33);
-        const valid = arr.filter(s => s && s.name && isFinite(parseFloat(s.lat)) && isFinite(parseFloat(s.lon)));
-        if (valid.length > 0){
-          STATIC_SS33 = valid.map(s => ({...s, lat:parseFloat(s.lat), lon:parseFloat(s.lon)}));
-          console.log('[smartgrid] Using Firebase 33/11KV SS data:', STATIC_SS33.length);
-        }
-      }
-      if (fbEHT && Object.keys(fbEHT).length > 0){
-        const arr = Array.isArray(fbEHT) ? fbEHT : Object.values(fbEHT);
-        const valid = arr.filter(e => e && e.name && isFinite(parseFloat(e.lat)) && isFinite(parseFloat(e.lon)));
-        if (valid.length > 0){
-          STATIC_EHT = valid.map(e => ({...e, lat:parseFloat(e.lat), lon:parseFloat(e.lon)}));
-          console.log('[smartgrid] Using Firebase EHT data:', STATIC_EHT.length);
-        }
-      }
-    } catch(_){}
+    // Substation coordinates: use the 136 embedded entries only.
+    // Firebase /masterData/substations33 override was disabled because the
+    // user's Firebase entries don't match the embedded city dataset exactly,
+    // and partial overrides were causing missing substations on the map.
+    console.log('[smartgrid] Using embedded substations: ' + STATIC_SS33.length + ' SS33, ' + STATIC_EHT.length + ' EHT');
 
     const [ssTopo, topo, ptrs, ufRoot, feedersStat, breakdowns] = await Promise.all([
       fetch(FIREBASE_URL+'/masterData/ssTopology.json').then(r=>r.ok?r.json():null),
@@ -1220,13 +1203,18 @@ async function bootstrap(){
 
     // Show toast with feeder count
     // Surface unmapped names in the console for diagnostic
-    if (window._unmappedEHTs && window._unmappedEHTs.size) {
-      console.warn('[smartgrid] Unmapped EHT names (not in STATIC_EHT or master data):',
-        Array.from(window._unmappedEHTs).slice(0, 25));
+    const uS = window._unmappedSources || new Set();
+    const uD = window._unmappedSSes   || new Set();
+    if (uS.size > 0){
+      console.warn('[smartgrid] %c⚠ ' + uS.size + ' SOURCE names did NOT match STATIC_EHT/STATIC_SS33', 'color:#f59e0b;font-weight:bold');
+      console.warn('  First 30 unmapped sources:', Array.from(uS).slice(0, 30));
     }
-    if (window._unmappedSSes && window._unmappedSSes.size) {
-      console.warn('[smartgrid] Unmapped destination SS names:',
-        Array.from(window._unmappedSSes).slice(0, 25));
+    if (uD.size > 0){
+      console.warn('[smartgrid] %c⚠ ' + uD.size + ' DESTINATION SS names did NOT match STATIC_SS33', 'color:#f59e0b;font-weight:bold');
+      console.warn('  First 30 unmapped destinations:', Array.from(uD).slice(0, 30));
+    }
+    if (uS.size > 0 || uD.size > 0){
+      console.warn('[smartgrid] %c→ Click "DOWNLOAD UNMAPPED NAMES" in the side panel to get a fix-list CSV', 'color:#06b6d4');
     }
     if (FEEDER_TOPOLOGY.length === 0){
       toast('⚠ No feeders found in master data — populate via Master Data Manager first', true);
@@ -1473,7 +1461,7 @@ function buildTopology(){
     const rows = parseRows(node.rows || node.rowsJSON);
     if (!rows.length){ skipped++; return; }
 
-    // Find first/last valid lat-lon
+    // Find first/last valid lat-lon (for GPS path only, NOT for endpoint snap)
     let firstCoord = null, lastCoord = null;
     for (const r of rows){
       const lat = parseFloat(r && (r.latitude||r.lat||r.Latitude));
@@ -1483,85 +1471,69 @@ function buildTopology(){
         lastCoord = {lat, lon};
       }
     }
-    if (!firstCoord || !lastCoord){ skipped++; return; }
 
     seen.add(key);
 
-    // Metadata from first row
+    // Metadata
     const firstRow = rows.find(r => r && Object.keys(r).length) || {};
     const division = String(firstRow.division || firstRow.Division || '').trim();
     const subDiv   = String(firstRow.sub_division || firstRow['Sub Division'] || firstRow.SUB_DIVISION || '').trim();
     const section  = String(firstRow.section || firstRow.Section || '').trim();
     const feederCode = String(firstRow.feeder_code || firstRow['Feeder Code'] || firstRow.FeederCode || '').trim();
-
     const type      = classifyFeederType(rows, feederName);
     const cableType = extractCableType(rows);
     const lengths   = computeLengths(rows);
     const wp        = extractWaypoints(rows);
 
-    // ── Source: EHT for 33KV/HT feeders, SS for LINK lines ──
+    // ── SOURCE RESOLUTION — STRICT NAME MATCH ONLY ──
+    // Pull the name from the CSV's name_of_the_EHT_SS column. Match against
+    // STATIC_EHT (or STATIC_SS33 for link lines) using exact/normalized/2-char-typo.
+    // NO geographic snap fallback — if the name doesn't match, skip the feeder.
     const sourceName = extractSourceName(rows, type) || extractEHTFromFeederName(feederName);
     let sourceNode = null;
     if (type === 'LINK'){
-      // Link line — source is a 33/11KV SS, not an EHT
       sourceNode = findSSByName(sourceName);
     } else {
       sourceNode = findEHTByName(sourceName);
     }
     if (!sourceNode){
-      // Tight tolerance snap (0.6 km for EHT, 0.4 km for SS)
-      if (type === 'LINK'){
-        sourceNode = findNearestSS(firstCoord.lat, firstCoord.lon, 0.4);
-      } else {
-        sourceNode = findNearestEHT(firstCoord.lat, firstCoord.lon, 0.6);
-      }
-    }
-    if (!sourceNode){
       if (!window._unmappedSources) window._unmappedSources = new Set();
-      window._unmappedSources.add((sourceName || '?') + ' [' + feederName + ']');
+      window._unmappedSources.add((sourceName || '?') + '  ←  [' + feederName + ']');
       skipped++;
       return;
     }
     if (type === 'LINK') usedSSs[sourceNode.name] = sourceNode;
     else                 usedEHTs[sourceNode.name] = sourceNode;
 
-    // ── Destinations: array of tap-off points along the feeder ──
+    // ── DESTINATIONS — STRICT NAME MATCH ONLY ──
+    // For each unique value of feeder_feeding_to, find the matching SS in
+    // STATIC_SS33 by name. NO geographic snap. If name doesn't match, log it
+    // and skip that specific destination (but other destinations may still match).
     const rawDests = extractAllDestinations(rows);
     const validDestinations = [];
 
     if (type === 'HT'){
-      // HT service ends at the last pole's coordinates (no master-data SS)
+      // HT service: rendered as a small yellow box at the last GPS pole
       const destName = (rawDests[0] && rawDests[0].name) || feederName;
-      validDestinations.push({
-        name: destName, ss: null, type: 'ht',
-        coord: { lat: lastCoord.lat, lon: lastCoord.lon }
-      });
-    } else if (rawDests.length === 0){
-      // Fallback: use last pole as the implicit destination
-      const ss = findNearestSS(lastCoord.lat, lastCoord.lon, 0.4);
-      if (ss){
-        usedSSs[ss.name] = ss;
+      if (lastCoord){
         validDestinations.push({
-          name: ss.name, ss, type: 'ss33',
+          name: destName, ss: null, type: 'ht',
           coord: { lat: lastCoord.lat, lon: lastCoord.lon }
         });
       }
     } else {
-      // Process each unique tap-off destination
       rawDests.forEach(dest => {
-        let destSS = findSSByName(dest.name);
-        if (!destSS && dest.lat && dest.lon){
-          destSS = findNearestSS(dest.lat, dest.lon, 0.4);
-        }
+        const destSS = findSSByName(dest.name);   // STRICT name match only
         if (destSS){
           usedSSs[destSS.name] = destSS;
           validDestinations.push({
             name: destSS.name, ss: destSS, type: 'ss33',
-            coord: dest.lat && dest.lon ? { lat: dest.lat, lon: dest.lon } : { lat: destSS.lat, lon: destSS.lon }
+            // tap-off coord (where the spur branches) — still useful for line drawing
+            tapCoord: (dest.lat && dest.lon) ? { lat: dest.lat, lon: dest.lon } : null
           });
         } else {
           if (!window._unmappedSSes) window._unmappedSSes = new Set();
-          window._unmappedSSes.add(dest.name);
+          window._unmappedSSes.add(dest.name + '  ←  [' + feederName + ']');
         }
       });
     }
@@ -1570,11 +1542,10 @@ function buildTopology(){
 
     FEEDER_TOPOLOGY.push({
       feederName, feederCode, type, cableType,
-      ehtName: sourceNode.name,
-      ehtSS:   type === 'LINK' ? null : sourceNode,
+      ehtName:  sourceNode.name,
+      ehtSS:    type === 'LINK' ? null : sourceNode,
       sourceSS: type === 'LINK' ? sourceNode : null,
       destinations: validDestinations,
-      // Backward-compatible single-destination view (first destination)
       destName: validDestinations[0].name,
       destSS:   validDestinations[0].ss,
       destType: validDestinations[0].type,
@@ -1692,8 +1663,9 @@ function renderNodes(){
   nodesLayer.clearLayers();
   labelsLayer.clearLayers();
 
-  // EHT substations — only those referenced
-  Object.values(usedEHTs).forEach(eht => {
+  // ── EHT substations — ALL of them, at fixed master-data positions ──
+  // (changed from "only referenced" so every substation is always visible)
+  STATIC_EHT.forEach(eht => {
     const marker = L.marker([eht.lat, eht.lon], {icon: makeEHTIcon(), zIndexOffset: 1000});
     marker.on('click', () => showEHTPopup(eht));
     marker.bindTooltip(eht.name, {direction:'top', offset:[0,-14], className:'gm-tip'});
@@ -1790,8 +1762,8 @@ function renderConnectors(){
     if (!source) return;
     const dests = feeder.destinations || [];
     dests.forEach((dest, idx) => {
-      const endLat = dest.ss ? dest.ss.lat : (dest.coord ? dest.coord.lat : null);
-      const endLon = dest.ss ? dest.ss.lon : (dest.coord ? dest.coord.lon : null);
+      const endLat = dest.ss ? dest.ss.lat : (dest.tapCoord ? dest.tapCoord.lat : null);
+      const endLon = dest.ss ? dest.ss.lon : (dest.tapCoord ? dest.tapCoord.lon : null);
       if (endLat == null || endLon == null) return;
       edges.push({
         feeder,
@@ -1800,7 +1772,7 @@ function renderConnectors(){
         destIdx: idx,
         destCount: dests.length,
         destName: dest.name,
-        tapCoord: dest.coord || null
+        tapCoord: dest.tapCoord || null
       });
     });
   });
@@ -1848,6 +1820,7 @@ function renderConnectors(){
         // Multi-destination — use tap-off as midpoint to get a natural curve
         // (gives the trunk-and-spur visual without complex tree rendering)
         const tap = edge.tapCoord;
+        // Master-data endpoints — both ends always anchor to STATIC_EHT/STATIC_SS33 positions
         if (tap && tap.lat && tap.lon){
           // 3-point polyline: source → tap-off → destination
           pts = [[sp.lat, sp.lon], [tap.lat, tap.lon], [ep.lat, ep.lon]];
@@ -2406,8 +2379,14 @@ function toggleFeederLabels(btn){
   renderConnectors();
 }
 function refreshStats(){
-  $('s-eht').textContent  = Object.keys(usedEHTs).length;
+  $('s-eht').textContent  = STATIC_EHT.length;
   $('s-ss33').textContent = STATIC_SS33.length;
+  // Mapping diagnostics
+  const mapped = FEEDER_TOPOLOGY.length;
+  const skipped = ((window._unmappedSources || new Set()).size)
+                + ((window._unmappedSSes || new Set()).size);
+  if ($('s-mapped'))  $('s-mapped').textContent = mapped;
+  if ($('s-skipped')) $('s-skipped').textContent = skipped;
   let c33=0, cLink=0, cHT=0, cAB=0, cBkd=0;
   const divFilt = $('filt-div').value, subFilt = $('filt-sub').value, secFilt = $('filt-sec').value;
   FEEDER_TOPOLOGY.forEach(f => {
@@ -3002,6 +2981,38 @@ $('legend').addEventListener('click', (ev) => {
     ev.stopPropagation();
   }
 });
+
+
+// ── Diagnostic: download CSV of names that couldn't be mapped to master data ──
+window.downloadUnmappedNames = function(){
+  const sources = Array.from(window._unmappedSources || []).sort();
+  const sses    = Array.from(window._unmappedSSes || []).sort();
+  if (!sources.length && !sses.length){
+    toast('All feeder names mapped successfully — nothing to export', false);
+    return;
+  }
+  const lines = ['# Unmapped feeder source/destination names',
+                 '# These names from your CSV did not match any entry in STATIC_EHT or STATIC_SS33.',
+                 '# Fix them via the Master Data Manager or normalize the CSV column.',
+                 '',
+                 'TYPE,CSV_NAME,FEEDER'];
+  sources.forEach(s => {
+    const parts = s.split('  ←  ');
+    lines.push('SOURCE_EHT,"' + (parts[0]||'').replace(/"/g,'""') + '","' + (parts[1]||'').replace(/[\[\]"]/g,'') + '"');
+  });
+  sses.forEach(s => {
+    const parts = s.split('  ←  ');
+    lines.push('DEST_SS,"' + (parts[0]||'').replace(/"/g,'""') + '","' + (parts[1]||'').replace(/[\[\]"]/g,'') + '"');
+  });
+  const blob = new Blob([lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  a.href = url; a.download = 'unmapped_names_' + ts + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✓ Exported ' + (sources.length + sses.length) + ' unmapped names — fix these in your CSV/master data');
+};
 
 // LAUNCH
 // ═══════════════════════════════════════════════════════════════
