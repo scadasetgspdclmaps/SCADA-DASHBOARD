@@ -933,10 +933,15 @@ function levenshtein(a,b,max){
 function normalizeSSName(s){
   return String(s||'').toUpperCase()
     .replace(/[^A-Z0-9 ]/g,' ')
+    .replace(/\b(400|220|132|33)\s*KV\b/g,'')
     .replace(/^33\s*\/?\s*11\s*KV\b/,'')
     .replace(/\b33\s*\/?\s*11\s*KV\b/g,'')
     .replace(/\bSS\b/g,'').replace(/\bSUBSTATION\b/g,'')
     .replace(/\s+/g,' ').trim();
+}
+function _ssTokens(s){
+  const stop = new Set(['NAGAR','COLONY','ROAD','RD','NO','NEW','OLD','KV','SS','GIS','EXTENSION','PHASE','THE','AND','OF','CENTRAL','SOUTH']);
+  return normalizeSSName(s).split(' ').filter(w => w.length >= 3 && !stop.has(w));
 }
 function fuzzyFindIn(arr, rawName, nameField){
   if (!rawName || !arr || !arr.length) return null;
@@ -948,20 +953,34 @@ function fuzzyFindIn(arr, rawName, nameField){
   if (!targetNorm) return null;
   hit = arr.find(x => normalizeSSName(x[nameField]||'') === targetNorm);
   if (hit) return hit;
-  // Distinctive-token substring
-  const tokens = targetNorm.split(' ').filter(w => w.length >= 4);
-  for (const tk of tokens){
-    hit = arr.find(x => normalizeSSName(x[nameField]||'').includes(tk));
-    if (hit) return hit;
-  }
-  // Levenshtein
-  let best = null, bestD = Infinity;
-  const maxAllow = Math.max(2, Math.floor(targetNorm.length * 0.3));
+
+  // Strict token match. Avoid dangerous single-token matches like just "NAGAR".
+  const targetTokens = _ssTokens(targetNorm);
+  if (!targetTokens.length) return null;
+  let best = null, bestScore = 0;
   arr.forEach(x => {
-    const d = levenshtein(targetNorm, normalizeSSName(x[nameField]||''), maxAllow);
-    if (d <= maxAllow && d < bestD){ best = x; bestD = d; }
+    const candNorm = normalizeSSName(x[nameField]||'');
+    const candTokens = _ssTokens(candNorm);
+    if (!candTokens.length) return;
+    const inter = targetTokens.filter(t => candTokens.includes(t)).length;
+    const score = inter / Math.max(targetTokens.length, candTokens.length);
+    if (score > bestScore){ bestScore = score; best = x; }
   });
-  return best;
+  if (best && bestScore >= 0.62) return best;
+
+  // Levenshtein only for similar length names, not for short/ambiguous names.
+  if (targetNorm.length >= 8){
+    let bestLev = null, bestD = Infinity;
+    const maxAllow = Math.max(2, Math.floor(targetNorm.length * 0.18));
+    arr.forEach(x => {
+      const c = normalizeSSName(x[nameField]||'');
+      if (Math.abs(c.length-targetNorm.length) > maxAllow) return;
+      const d = levenshtein(targetNorm, c, maxAllow);
+      if (d <= maxAllow && d < bestD){ bestLev = x; bestD = d; }
+    });
+    if (bestLev) return bestLev;
+  }
+  return null;
 }
 function findSSByName(rawName){ return fuzzyFindIn(STATIC_SS33, rawName, 'name'); }
 function findEHTByName(rawName){ return fuzzyFindIn(STATIC_EHT,  rawName, 'name'); }
@@ -969,6 +988,23 @@ function findPTRForSS(ss){
   if (!ss) return null;
   const arr = Object.values(MASTER_PTRS);
   return fuzzyFindIn(arr, ss.name, 'ssName');
+}
+
+
+async function seedStaticCoordinatesToFirebase(){
+  // Writes the same SS/EHT coordinates used by the Feeder Route Map into Firebase.
+  // This repairs bad /masterData coordinate records when RTDB rules allow write.
+  try{
+    if (localStorage.getItem('smartgrid_static_coords_seeded_v3') === 'yes') return;
+    await Promise.all([
+      fetch(FIREBASE_URL+'/masterData/substations33.json', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(STATIC_SS33)}),
+      fetch(FIREBASE_URL+'/masterData/substationsEHT.json', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(STATIC_EHT)})
+    ]);
+    localStorage.setItem('smartgrid_static_coords_seeded_v3','yes');
+    console.log('[smartgrid] Seeded route-map SS/EHT coordinates to Firebase masterData');
+  }catch(err){
+    console.warn('[smartgrid] Coordinate seed skipped/failed:', err);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1240,6 +1276,7 @@ async function bootstrap(){
     console.log(`[smartgrid] Loaded: ${Object.keys(MASTER_SSTOPO).length} SS-topo, ${Object.keys(MASTER_TOPO).length} feeder-topo, ${Object.keys(MASTER_PTRS).length} PTRs, ${Object.keys(feedersFromDivisions).length} route-map feeders from /divisions, ${Object.keys(LIVE_FEEDERS).length} live`);
 
     setChip('ok','☁ SYNCED');
+    seedStaticCoordinatesToFirebase();
     buildTopology();
     renderEverything();
     populateFilterDropdowns();
@@ -2184,6 +2221,7 @@ function toggleFeederLabels(btn){
 function refreshStats(){
   $('s-eht').textContent  = Object.keys(usedEHTs).length;
   $('s-ss33').textContent = STATIC_SS33.length;
+  $('s-ss33').title = `Displayed mapped SS: ${Object.keys(usedSSs).length} / Master SS: ${STATIC_SS33.length}`;
   let c33=0, cLink=0, cHT=0, cAB=0, cBkd=0;
   const divFilt = $('filt-div').value, subFilt = $('filt-sub').value, secFilt = $('filt-sec').value;
   FEEDER_TOPOLOGY.forEach(f => {
