@@ -702,6 +702,102 @@
   .gm-rich-tooltip .rt-val.ug-c { color:#38bdf8; }
   .gm-rich-tooltip .rt-val.oh-c { color:#fb923c; }
 
+
+  /* ════════════════════════════════════════════════════════
+     ROUTE-MAP STYLE NODE ICONS (matches the Feeder Route Map)
+     ════════════════════════════════════════════════════════ */
+  .rm-eht-icon { pointer-events: auto; cursor: pointer; }
+  .rm-eht-box {
+    background: rgba(15, 23, 42, .95);
+    border: 1.8px solid #f97316;
+    border-radius: 5px;
+    padding: 2px 6px;
+    display: flex; align-items: center; gap: 3px;
+    font-family: var(--font-mono);
+    font-size: 9.5px; font-weight: 800; color: #fff;
+    box-shadow: 0 2px 6px rgba(249,115,22,.4), 0 0 0 2px rgba(249,115,22,.18);
+    letter-spacing: .3px;
+    white-space: nowrap;
+  }
+  .rm-eht-bolt { color: #fb923c; font-size: 10px; line-height: 1; }
+  .rm-eht-kv   { letter-spacing: .4px; }
+  .rm-eht-icon:hover .rm-eht-box {
+    border-color: #fbbf24; box-shadow: 0 4px 14px rgba(249,115,22,.7), 0 0 0 3px rgba(251,191,36,.3);
+  }
+
+  .rm-ss33-icon { pointer-events: auto; cursor: pointer; position: relative; }
+  .rm-ss33-icon .rm-ss33-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 1.8px dashed #38bdf8;
+    background: radial-gradient(circle, rgba(56,189,248,.28), rgba(56,189,248,0) 70%);
+    animation: rm-ss33-pulse 2.4s ease-in-out infinite;
+  }
+  .rm-ss33-icon .rm-ss33-core {
+    position: absolute; inset: 3.5px;
+    background: #0c4a6e; border: 1.4px solid #38bdf8;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; color: #38bdf8; font-weight: 800;
+    box-shadow: inset 0 0 4px rgba(56,189,248,.6);
+  }
+  @keyframes rm-ss33-pulse {
+    0%,100% { transform: scale(1); opacity: .85; }
+    50%     { transform: scale(1.12); opacity: 1; }
+  }
+  .rm-ss33-icon.bkd .rm-ss33-ring {
+    border-color: #ef4444;
+    background: radial-gradient(circle, rgba(239,68,68,.4), transparent 70%);
+    animation-duration: .8s;
+  }
+  .rm-ss33-icon.bkd .rm-ss33-core {
+    background: #7f1d1d; border-color: #ef4444; color: #fee2e2;
+  }
+  .rm-ss33-icon:hover .rm-ss33-ring { transform: scale(1.2); }
+
+  /* ════════════════════════════════════════════════════════
+     COLLAPSIBLE LEGEND (top-right under layers control)
+     ════════════════════════════════════════════════════════ */
+  #legend {
+    position: fixed !important; top: 110px !important; right: 14px !important;
+    background: var(--bg-card);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 12px 14px;
+    z-index: 900;
+    box-shadow: var(--shadow-lg);
+    width: 230px;
+    transition: width .25s, height .25s, padding .25s;
+    bottom: auto !important; left: auto !important;
+  }
+  #legend.collapsed {
+    width: 44px !important; padding: 0 !important; height: 44px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  #legend.collapsed > *:not(.lg-toggle) { display: none; }
+  #legend.collapsed .lg-toggle::before { content: '◆'; font-size: 16px; }
+  #legend.collapsed .lg-toggle { font-size: 0; }
+  .lg-toggle {
+    position: absolute; top: 6px; right: 6px;
+    background: var(--primary-soft); border: 1px solid var(--border);
+    color: var(--primary); border-radius: 6px;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; font-weight: 700;
+    font-family: var(--font-mono);
+    transition: .15s;
+    line-height: 1;
+  }
+  .lg-toggle:hover { background: var(--primary-mid); color: #fff; }
+  #legend.collapsed .lg-toggle {
+    position: relative; top: 0; right: 0;
+    width: 100%; height: 100%; background: transparent; border: none;
+    color: var(--primary);
+  }
+
 </style>
 
 </head><body>
@@ -765,8 +861,9 @@
   </div>
 </div>
 
-<!-- LEGEND -->
+<!-- LEGEND (top-right, collapsible) -->
 <div id="legend">
+  <button class="lg-toggle" onclick="toggleLegend(event)" title="Collapse legend">−</button>
   <div class="lg-title">LEGEND</div>
   <div class="lg-section">NODES</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-eht"></span></span>400 / 220 / 132 KV EHT</div>
@@ -932,24 +1029,23 @@ function normalizeSSName(s){
     .replace(/\s+/g,' ').trim();
 }
 function fuzzyFindIn(arr, rawName, nameField){
+  // STRICT name matching (per Gemini's recommendation).
+  // Three tiers only — exact, normalized, max-2-char Levenshtein.
+  // No distinctive-token substring matching — that was creating ghost connections.
   if (!rawName || !arr || !arr.length) return null;
   const target = String(rawName).trim();
   const targetUpper = target.toUpperCase();
+  // 1. Exact uppercase match
   let hit = arr.find(x => (x[nameField]||'').toUpperCase().trim() === targetUpper);
   if (hit) return hit;
+  // 2. Normalized match (strip 33/11KV, SS suffix, punctuation)
   const targetNorm = normalizeSSName(target);
   if (!targetNorm) return null;
   hit = arr.find(x => normalizeSSName(x[nameField]||'') === targetNorm);
   if (hit) return hit;
-  // Distinctive-token substring
-  const tokens = targetNorm.split(' ').filter(w => w.length >= 4);
-  for (const tk of tokens){
-    hit = arr.find(x => normalizeSSName(x[nameField]||'').includes(tk));
-    if (hit) return hit;
-  }
-  // Levenshtein
+  // 3. Very strict typo allowance — max 2 characters off
   let best = null, bestD = Infinity;
-  const maxAllow = Math.max(2, Math.floor(targetNorm.length * 0.3));
+  const maxAllow = 2;
   arr.forEach(x => {
     const d = levenshtein(targetNorm, normalizeSSName(x[nameField]||''), maxAllow);
     if (d <= maxAllow && d < bestD){ best = x; bestD = d; }
@@ -988,7 +1084,7 @@ const baseMaps = {
   })
 };
 
-const map = L.map('map', {
+const map = L.map('map', { doubleClickZoom: false,
   center:[17.42, 78.46], zoom:12, minZoom:10, maxZoom:18,
   preferCanvas:false, zoomControl:true, attributionControl:false,
   layers:[baseMaps["🌑 Dark"]]
@@ -1012,67 +1108,46 @@ const feederLabelsLayer = L.layerGroup().addTo(map);
 // ═══════════════════════════════════════════════════════════════
 // ICON FACTORIES (match AutoCAD legend)
 // ═══════════════════════════════════════════════════════════════
-function makeEHTIcon(){
-  // EHT: transformer yard — smaller than route map
+function makeEHTIcon(eht){
+  // Route-map style: orange labeled box with kV indicator + bolt
+  const name = String((eht && eht.name) || '');
+  const kvMatch = name.match(/(\d+)\s*KV/i);
+  const kv = kvMatch ? kvMatch[1] : '';
   return L.divIcon({
-    className:'gm-node-eht-v2', iconSize:[18,18], iconAnchor:[9,9],
-    html:`<svg width="18" height="18" viewBox="0 0 24 24">
-      <!-- main yard rectangle -->
-      <rect x="3" y="5" width="18" height="14" fill="#0a0a0a" stroke="#fff" stroke-width="1.4" rx="1.5"/>
-      <!-- cooling fins on the sides -->
-      <line x1="0" y1="9"  x2="3" y2="9"  stroke="#fff" stroke-width="1"/>
-      <line x1="0" y1="12" x2="3" y2="12" stroke="#fff" stroke-width="1"/>
-      <line x1="0" y1="15" x2="3" y2="15" stroke="#fff" stroke-width="1"/>
-      <line x1="21" y1="9"  x2="24" y2="9"  stroke="#fff" stroke-width="1"/>
-      <line x1="21" y1="12" x2="24" y2="12" stroke="#fff" stroke-width="1"/>
-      <line x1="21" y1="15" x2="24" y2="15" stroke="#fff" stroke-width="1"/>
-      <!-- inner "transformer" double-circle -->
-      <circle cx="9.5"  cy="12" r="2.4" fill="none" stroke="#fcd34d" stroke-width="1.2"/>
-      <circle cx="14.5" cy="12" r="2.4" fill="none" stroke="#fcd34d" stroke-width="1.2"/>
-    </svg>`
+    className: 'rm-eht-icon', iconSize: [40, 24], iconAnchor: [20, 12],
+    html: `<div class="rm-eht-box"><span class="rm-eht-bolt">⚡</span><span class="rm-eht-kv">${kv}kV</span></div>`
   });
 }
 function makeSS33Icon(status){
-  // 33/11 KV SS: red square with transformer "T" symbol inside
-  const cls = 'gm-node-ss33-v2' + (status==='breakdown'?' bkd':'');
+  // Route-map style: blue glowing circle with bolt symbol
+  const cls = 'rm-ss33-icon' + (status === 'breakdown' ? ' bkd' : '');
   return L.divIcon({
-    className:cls, iconSize:[13,13], iconAnchor:[6.5,6.5],
-    html:`<svg width="13" height="13" viewBox="0 0 16 16">
-      <rect x="1.5" y="1.5" width="13" height="13" fill="#dc2626" stroke="#fff" stroke-width="1.4" rx="1"/>
-      <!-- "T" transformer mark -->
-      <line x1="4" y1="5"   x2="12" y2="5"   stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
-      <line x1="8" y1="5"   x2="8"  y2="11.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
-      <line x1="5.5" y1="11.5" x2="10.5" y2="11.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
-    </svg>`
+    className: cls, iconSize: [20, 20], iconAnchor: [10, 10],
+    html: '<div class="rm-ss33-ring"></div><div class="rm-ss33-core">⚡</div>'
   });
 }
 function makeHTIcon(){
-  // HT Service: yellow triangle with small bolt mark
+  // HT Service: small yellow square box
   return L.divIcon({
-    className:'gm-node-ht-v2', iconSize:[11,11], iconAnchor:[5.5,9],
-    html:`<svg width="11" height="11" viewBox="0 0 14 14">
-      <polygon points="7,1 13,12 1,12" fill="#facc15" stroke="#92400e" stroke-width="1.3" stroke-linejoin="round"/>
-      <path d="M 7.2 4.5 L 5.5 8 L 7 8 L 6.5 10.5 L 8.5 7 L 7 7 Z" fill="#92400e"/>
-    </svg>`
+    className: 'gm-node-ht-v2', iconSize: [10, 10], iconAnchor: [5, 5],
+    html: '<svg width="10" height="10" viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" rx="1.5" fill="#facc15" stroke="#78350f" stroke-width="1.2"/></svg>'
   });
 }
 function makeSwitchIcon(){
-  // Switching Station: yellow rectangle with busbar lines (parallel horizontals)
+  // Switching Station: wider yellow rectangle with busbar lines
   return L.divIcon({
-    className:'gm-node-sw-v2', iconSize:[14,10], iconAnchor:[7,5],
-    html:`<svg width="14" height="10" viewBox="0 0 18 12">
-      <rect x="1" y="1" width="16" height="10" fill="#facc15" stroke="#b45309" stroke-width="1.4" rx="1"/>
-      <line x1="3" y1="4"   x2="15" y2="4"   stroke="#b45309" stroke-width="1.1"/>
-      <line x1="3" y1="6.5" x2="15" y2="6.5" stroke="#b45309" stroke-width="1.1"/>
-      <line x1="3" y1="9"   x2="15" y2="9"   stroke="#b45309" stroke-width="1.1"/>
+    className: 'gm-node-sw-v2', iconSize: [16, 9], iconAnchor: [8, 4.5],
+    html: `<svg width="16" height="9" viewBox="0 0 16 9">
+      <rect x="0.5" y="0.5" width="15" height="8" fill="#facc15" stroke="#78350f" stroke-width="1.1" rx="1"/>
+      <line x1="2" y1="3"   x2="14" y2="3"   stroke="#78350f" stroke-width=".9"/>
+      <line x1="2" y1="6"   x2="14" y2="6"   stroke="#78350f" stroke-width=".9"/>
     </svg>`
   });
 }
 function makeABIcon(){
-  // AB switch: blue circle with cross-arm
   return L.divIcon({
-    className:'gm-node-ab-v2', iconSize:[9,9], iconAnchor:[4.5,4.5],
-    html:`<svg width="9" height="9" viewBox="0 0 12 12">
+    className: 'gm-node-ab-v2', iconSize: [9, 9], iconAnchor: [4.5, 4.5],
+    html: `<svg width="9" height="9" viewBox="0 0 12 12">
       <circle cx="6" cy="6" r="4.2" fill="#2563eb" stroke="#fff" stroke-width="1.5"/>
       <line x1="3.5" y1="6" x2="8.5" y2="6" stroke="#fff" stroke-width="1.2"/>
       <line x1="6" y1="3.5" x2="6" y2="8.5" stroke="#fff" stroke-width="1.2"/>
@@ -1080,12 +1155,9 @@ function makeABIcon(){
   });
 }
 function makeDPIcon(){
-  // DP / cut point: violet diamond
   return L.divIcon({
-    className:'gm-node-dp-v2', iconSize:[8,8], iconAnchor:[4,4],
-    html:`<svg width="8" height="8" viewBox="0 0 10 10">
-      <polygon points="5,0.5 9.5,5 5,9.5 0.5,5" fill="#7c3aed" stroke="#fff" stroke-width="1.2"/>
-    </svg>`
+    className: 'gm-node-dp-v2', iconSize: [8, 8], iconAnchor: [4, 4],
+    html: '<svg width="8" height="8" viewBox="0 0 10 10"><polygon points="5,0.5 9.5,5 5,9.5 0.5,5" fill="#7c3aed" stroke="#fff" stroke-width="1.2"/></svg>'
   });
 }
 
@@ -1325,6 +1397,47 @@ function extractWaypoints(rows){
   return { ab, dp };
 }
 
+
+// ════════════════════════════════════════════════════════════════
+// GEMINI FIX: Multi-destination extraction (trunk-and-spur topology)
+// A single 33KV feeder taps off to multiple 33/11KV SSes along its
+// route. The CSV's feeder_feeding_to column lists which SS each
+// pole feeds. We collect unique destinations + their tap-off coords.
+// ════════════════════════════════════════════════════════════════
+function extractSourceName(rows, feederType){
+  for (const r of rows){
+    if (!r) continue;
+    // Try multiple column-name variants (CSV has irregular space)
+    const name = r['name_of_the_EHT _SS'] || r['name_of_the_EHT_SS']
+              || r.name_of_the_EHT_SS    || r.name_of_the_eht_ss
+              || r['Name of EHT SS']      || r.eht_ss;
+    if (name && String(name).trim() !== '') return String(name).trim();
+  }
+  return null;
+}
+function extractAllDestinations(rows){
+  // Walks every pole row and collects UNIQUE values of feeder_feeding_to.
+  // For each unique destination, we store its FIRST tap-off coord (where
+  // the cable starts heading toward that SS).
+  const dests = new Map();
+  for (const r of rows){
+    if (!r) continue;
+    const name = r['feeder_feeding_to'] || r.feeder_feeding_to
+              || r['Feeder Feeding To'] || r.Feeding_To;
+    if (!name || String(name).trim() === '') continue;
+    const cleanName = String(name).trim();
+    if (dests.has(cleanName)) continue;   // keep first occurrence
+    const lat = parseFloat(r.latitude || r.lat || r.Latitude);
+    const lon = parseFloat(r.longitude || r.lon || r.Longitude || r.lng);
+    if (isFinite(lat) && isFinite(lon)){
+      dests.set(cleanName, { name: cleanName, lat, lon });
+    } else {
+      dests.set(cleanName, { name: cleanName, lat: null, lon: null });
+    }
+  }
+  return Array.from(dests.values());
+}
+
 function buildTopology(){
   FEEDER_TOPOLOGY = [];
   usedEHTs = {};
@@ -1373,7 +1486,6 @@ function buildTopology(){
     if (!firstCoord || !lastCoord){ skipped++; return; }
 
     seen.add(key);
-    coveredByUpload++;
 
     // Metadata from first row
     const firstRow = rows.find(r => r && Object.keys(r).length) || {};
@@ -1382,73 +1494,98 @@ function buildTopology(){
     const section  = String(firstRow.section || firstRow.Section || '').trim();
     const feederCode = String(firstRow.feeder_code || firstRow['Feeder Code'] || firstRow.FeederCode || '').trim();
 
-    const ehtName   = extractEHTName(rows, feederName);
-    const destName  = extractDestSS(rows, feederName);
     const type      = classifyFeederType(rows, feederName);
     const cableType = extractCableType(rows);
     const lengths   = computeLengths(rows);
     const wp        = extractWaypoints(rows);
 
-    // ── STRICT substation resolution ──
-    // Only use known substations from master data (STATIC_EHT / STATIC_SS33).
-    // If neither name nor coords (within 0.5 km) match a known substation,
-    // SKIP the feeder rather than draw it to a synthetic spot — that's what
-    // caused the duplicate ghost-substations visible in the previous version.
-    let eht = findEHTByName(ehtName);
-    if (!eht && firstCoord){
-      // Tight geographic tolerance — only snap if the first pole is essentially
-      // AT a known EHT (within ~0.6 km). No more 5-6 km loose snapping.
-      eht = findNearestEHT(firstCoord.lat, firstCoord.lon, 0.6);
-    }
-
-    let destSS = null, endCoord = null, destType = 'ss33';
-    if (type === 'HT'){
-      // HT service ends at the last pole's coordinates — that's not a substation
-      endCoord = { lat: lastCoord.lat, lon: lastCoord.lon, label: destName || feederName };
-      destType = 'ht';
+    // ── Source: EHT for 33KV/HT feeders, SS for LINK lines ──
+    const sourceName = extractSourceName(rows, type) || extractEHTFromFeederName(feederName);
+    let sourceNode = null;
+    if (type === 'LINK'){
+      // Link line — source is a 33/11KV SS, not an EHT
+      sourceNode = findSSByName(sourceName);
     } else {
-      destSS = destName ? findSSByName(destName) : null;
-      if (!destSS && lastCoord){
-        destSS = findNearestSS(lastCoord.lat, lastCoord.lon, 0.4);
+      sourceNode = findEHTByName(sourceName);
+    }
+    if (!sourceNode){
+      // Tight tolerance snap (0.6 km for EHT, 0.4 km for SS)
+      if (type === 'LINK'){
+        sourceNode = findNearestSS(firstCoord.lat, firstCoord.lon, 0.4);
+      } else {
+        sourceNode = findNearestEHT(firstCoord.lat, firstCoord.lon, 0.6);
       }
     }
-
-    // ── Skip if we still couldn't resolve essential endpoints ──
-    if (!eht){
-      if (!window._unmappedEHTs) window._unmappedEHTs = new Set();
-      window._unmappedEHTs.add(ehtName || feederName);
+    if (!sourceNode){
+      if (!window._unmappedSources) window._unmappedSources = new Set();
+      window._unmappedSources.add((sourceName || '?') + ' [' + feederName + ']');
       skipped++;
       return;
     }
-    if (type !== 'HT' && !destSS){
-      if (!window._unmappedSSes) window._unmappedSSes = new Set();
-      window._unmappedSSes.add(destName || feederName);
-      skipped++;
-      return;
+    if (type === 'LINK') usedSSs[sourceNode.name] = sourceNode;
+    else                 usedEHTs[sourceNode.name] = sourceNode;
+
+    // ── Destinations: array of tap-off points along the feeder ──
+    const rawDests = extractAllDestinations(rows);
+    const validDestinations = [];
+
+    if (type === 'HT'){
+      // HT service ends at the last pole's coordinates (no master-data SS)
+      const destName = (rawDests[0] && rawDests[0].name) || feederName;
+      validDestinations.push({
+        name: destName, ss: null, type: 'ht',
+        coord: { lat: lastCoord.lat, lon: lastCoord.lon }
+      });
+    } else if (rawDests.length === 0){
+      // Fallback: use last pole as the implicit destination
+      const ss = findNearestSS(lastCoord.lat, lastCoord.lon, 0.4);
+      if (ss){
+        usedSSs[ss.name] = ss;
+        validDestinations.push({
+          name: ss.name, ss, type: 'ss33',
+          coord: { lat: lastCoord.lat, lon: lastCoord.lon }
+        });
+      }
+    } else {
+      // Process each unique tap-off destination
+      rawDests.forEach(dest => {
+        let destSS = findSSByName(dest.name);
+        if (!destSS && dest.lat && dest.lon){
+          destSS = findNearestSS(dest.lat, dest.lon, 0.4);
+        }
+        if (destSS){
+          usedSSs[destSS.name] = destSS;
+          validDestinations.push({
+            name: destSS.name, ss: destSS, type: 'ss33',
+            coord: dest.lat && dest.lon ? { lat: dest.lat, lon: dest.lon } : { lat: destSS.lat, lon: destSS.lon }
+          });
+        } else {
+          if (!window._unmappedSSes) window._unmappedSSes = new Set();
+          window._unmappedSSes.add(dest.name);
+        }
+      });
     }
 
-    if (eht)    usedEHTs[eht.name] = eht;
-    if (destSS) usedSSs[destSS.name] = destSS;
+    if (validDestinations.length === 0){ skipped++; return; }
 
     FEEDER_TOPOLOGY.push({
       feederName, feederCode, type, cableType,
-      ehtName: ehtName || eht.name,
-      ehtSS: eht,
-      destName: destName || (destSS && destSS.name) || '',
-      destSS,
-      destType,
-      endCoord,
-      abSwitches: wp.ab,
-      dpStructures: wp.dp,
-      division, subDiv, section,
-      polesCount: rows.length,
-      rows,
-      // Lengths
+      ehtName: sourceNode.name,
+      ehtSS:   type === 'LINK' ? null : sourceNode,
+      sourceSS: type === 'LINK' ? sourceNode : null,
+      destinations: validDestinations,
+      // Backward-compatible single-destination view (first destination)
+      destName: validDestinations[0].name,
+      destSS:   validDestinations[0].ss,
+      destType: validDestinations[0].type,
+      endCoord: type === 'HT' ? validDestinations[0].coord : null,
+      abSwitches: wp.ab, dpStructures: wp.dp,
+      division, subDiv, section, polesCount: rows.length, rows,
       ugKm: lengths.ugKm, ohKm: lengths.ohKm, totalKm: lengths.totalKm,
       ugPct: lengths.ugPct, ohPct: lengths.ohPct,
-      firstCoord, lastCoord,
-      source: 'upload'
+      firstCoord, lastCoord, source: 'upload'
     });
+    coveredByUpload++;
   }
 
   // ════════════════════════════════════════════════════════════
@@ -1640,45 +1777,55 @@ function renderConnectors(){
   const subFilt = $('filt-sub').value;
   const secFilt = $('filt-sec').value;
 
-  // ── FIRST PASS: group feeders by (EHT,SS) corridor ──
-  // Each corridor is a unique (start,end) pair. Feeders sharing one corridor
-  // fan out; single-feeder corridors get a straight (or very gently curved) line.
-  const corridors = new Map();
-
+  // ── Build (source, destination) edges from feeder.destinations[] ──
+  // Each feeder may have 1 or many tap-off destinations.
+  // Each edge inherits the feeder's metadata (cable type, status, etc).
+  const edges = [];
   FEEDER_TOPOLOGY.forEach(feeder => {
     if (divFilt && feeder.division !== divFilt) return;
     if (subFilt && feeder.subDiv   !== subFilt) return;
     if (secFilt && feeder.section  !== secFilt) return;
     if (CABLE_FILTER !== 'all' && feeder.cableType !== CABLE_FILTER) return;
-    if (!feeder.ehtSS) return;
-    let endPt = null;
-    if (feeder.type === 'HT' && feeder.endCoord)
-      endPt = {lat: feeder.endCoord.lat, lon: feeder.endCoord.lon, kind:'ht'};
-    else if (feeder.destSS)
-      endPt = {lat: feeder.destSS.lat, lon: feeder.destSS.lon, kind:'ss33'};
-    if (!endPt) return;
-    const startPt = {lat: feeder.ehtSS.lat, lon: feeder.ehtSS.lon, kind:'eht'};
-    const key = groupPairKey(startPt, endPt);
-    if (!corridors.has(key)) corridors.set(key, { start:startPt, end:endPt, feeders:[] });
-    corridors.get(key).feeders.push(feeder);
+    const source = feeder.ehtSS || feeder.sourceSS;
+    if (!source) return;
+    const dests = feeder.destinations || [];
+    dests.forEach((dest, idx) => {
+      const endLat = dest.ss ? dest.ss.lat : (dest.coord ? dest.coord.lat : null);
+      const endLon = dest.ss ? dest.ss.lon : (dest.coord ? dest.coord.lon : null);
+      if (endLat == null || endLon == null) return;
+      edges.push({
+        feeder,
+        sp: { lat: source.lat, lon: source.lon },
+        ep: { lat: endLat,    lon: endLon },
+        destIdx: idx,
+        destCount: dests.length,
+        destName: dest.name,
+        tapCoord: dest.coord || null
+      });
+    });
   });
 
-  // ── SECOND PASS: render each corridor ──
-  corridors.forEach(corridor => {
-    const n = corridor.feeders.length;
-    corridor.feeders.forEach((feeder, idx) => {
-      // ── Build geometry ──
-      // If feeder has GPS pole rows from /uploadedFeeders/, sample
-      // them down to ~15 waypoints — gives a true simplified route.
-      // Otherwise fall back to straight (n=1) or fanned curve (n>1).
-      let pts;
-      const sp = corridor.start, ep = corridor.end;
+  // ── Group edges by feeder name (so spurs of one feeder share styling) ──
+  const corridors = new Map();
+  edges.forEach(e => {
+    const key = e.feeder.feederName;
+    if (!corridors.has(key)) corridors.set(key, []);
+    corridors.get(key).push(e);
+  });
+
+  corridors.forEach((edgeList, feederKey) => {
+    edgeList.forEach((edge, idx) => {
+      const feeder = edge.feeder;
+      const sp = edge.sp, ep = edge.ep;
       const dLat = ep.lat - sp.lat, dLon = ep.lon - sp.lon;
       const len = Math.hypot(dLat, dLon) || 1;
       const perpLat = -dLon / len, perpLon = dLat / len;
 
-      if (feeder.rows && feeder.rows.length >= 4 && feeder.source === 'upload'){
-        // ── Sample the GPS route to ~15 waypoints (Smart-Grid simplification) ──
+      // Build geometry
+      let pts;
+      const n = edgeList.length;
+      if (feeder.rows && feeder.rows.length >= 4 && feeder.source === 'upload' && n === 1){
+        // Single-destination feeder with GPS — sample down to ~15 waypoints
         const validRows = feeder.rows.filter(r => {
           const la = parseFloat(r && (r.latitude||r.lat||r.Latitude));
           const lo = parseFloat(r && (r.longitude||r.lon||r.Longitude||r.lng));
@@ -1691,53 +1838,33 @@ function renderConnectors(){
           const r = validRows[k];
           chain.push([parseFloat(r.latitude||r.lat), parseFloat(r.longitude||r.lon)]);
         }
-        // Always include the last row
         const last = validRows[validRows.length-1];
-        const lastPair = [parseFloat(last.latitude||last.lat), parseFloat(last.longitude||last.lon)];
-        if (chain.length === 0 || chain[chain.length-1][0] !== lastPair[0] || chain[chain.length-1][1] !== lastPair[1]){
-          chain.push(lastPair);
-        }
-        // For multi-feeder corridors, fan the start+end slightly so they don't perfectly overlap
-        if (n > 1){
-          const offset = (idx - (n-1)/2) * 0.00045;
-          chain[0] = [chain[0][0] + perpLat*offset, chain[0][1] + perpLon*offset];
-          chain[chain.length-1] = [chain[chain.length-1][0] + perpLat*offset, chain[chain.length-1][1] + perpLon*offset];
-        }
+        chain.push([parseFloat(last.latitude||last.lat), parseFloat(last.longitude||last.lon)]);
         pts = chain;
-      } else if (feeder.abSwitches.length){
-        const chain = [{lat:sp.lat,lon:sp.lon}];
-        feeder.abSwitches.forEach(ab => chain.push({lat:ab.lat,lon:ab.lon}));
-        chain.push({lat:ep.lat,lon:ep.lon});
-        if (n > 1){
-          const offset = (idx - (n-1)/2) * 0.00065;
-          const c0 = chain[0], cN = chain[chain.length-1];
-          chain[0] = { lat: c0.lat + perpLat*offset, lon: c0.lon + perpLon*offset };
-          chain[chain.length-1] = { lat: cN.lat + perpLat*offset, lon: cN.lon + perpLon*offset };
-        }
-        pts = chain.map(p => [p.lat, p.lon]);
       } else if (n === 1){
+        // Single destination, no GPS — straight line
         pts = [[sp.lat, sp.lon], [ep.lat, ep.lon]];
       } else {
-        const spread = (idx - (n-1)/2) * 0.0014;
-        const baseCurve = 0.0004 * (idx % 2 === 0 ? 1 : -1);
-        const offset = spread + baseCurve;
-        const mid = {
-          lat: (sp.lat+ep.lat)/2 + perpLat * offset * (len*130),
-          lon: (sp.lon+ep.lon)/2 + perpLon * offset * (len*130)
-        };
-        pts = quadraticBezier(sp, ep, mid, 26);
+        // Multi-destination — use tap-off as midpoint to get a natural curve
+        // (gives the trunk-and-spur visual without complex tree rendering)
+        const tap = edge.tapCoord;
+        if (tap && tap.lat && tap.lon){
+          // 3-point polyline: source → tap-off → destination
+          pts = [[sp.lat, sp.lon], [tap.lat, tap.lon], [ep.lat, ep.lon]];
+        } else {
+          // Slight perpendicular offset so spurs of same feeder don't overlap
+          const fanOffset = (idx - (n-1)/2) * 0.0012;
+          const mid = {
+            lat: (sp.lat+ep.lat)/2 + perpLat * fanOffset * (len*120),
+            lon: (sp.lon+ep.lon)/2 + perpLon * fanOffset * (len*120)
+          };
+          pts = quadraticBezier(sp, ep, mid, 24);
+        }
       }
 
-      // ── Determine status + color (no dashes — solid colors only) ──
+      // Determine status + colors
       const liveRec = findLiveRec(feeder.feederName);
-      const status = liveRec ? liveRec.status : 'live';
-
-      // Color rules (user spec):
-      //   UG (≤10% OH)       → light blue
-      //   OH (≥90% OH)       → orange
-      //   Mixed (10-90% OH)  → violet
-      //   Breakdown          → red blinking
-      //   Idle/Shutdown      → grey, low opacity
+      const status  = liveRec ? liveRec.status : 'live';
       let solidColor, weight, solidClass, particleClass;
       if (status === 'breakdown'){
         solidColor = '#ef4444'; weight = 4.5; solidClass = 'gm-solid-bkd'; particleClass = 'gm-particles-bkd';
@@ -1752,63 +1879,79 @@ function renderConnectors(){
       } else if (feeder.cableType === 'mixed'){
         solidColor = '#a855f7'; weight = 2.8; solidClass = 'gm-solid-mix'; particleClass = 'gm-particles';
       } else {
-        // UG default (cable type 'ug', or anything with ≤10% OH per the 10/90 rule)
         solidColor = '#38bdf8'; weight = 2.8; solidClass = 'gm-solid-ug'; particleClass = 'gm-particles';
       }
 
-      // Layer 1: SOLID base line (the actual feeder)
+      // ── LAYER 1: Wide transparent HIT-AREA for reliable clicking ──
+      const hitArea = L.polyline(pts, {
+        color: '#000000', weight: 14, opacity: 0,
+        lineCap:'round', lineJoin:'round', smoothFactor: 1, interactive: true
+      });
+
+      // ── LAYER 2: Solid colored base line ──
       const baseLine = L.polyline(pts, {
         color: solidColor, weight: weight, opacity: .95,
-        lineCap:'round', lineJoin:'round', smoothFactor: 1, interactive: true,
+        lineCap:'round', lineJoin:'round', smoothFactor: 1, interactive: false,
         className: solidClass
       });
-      // Layer 2: PARTICLE DOTS flowing along the line (white-ish translucent)
+
+      // ── LAYER 3: Particle dots flowing along the line ──
       const flowLine = L.polyline(pts, {
         color: '#ffffff',
         weight: weight * 0.55,
-        opacity: status === 'breakdown' || status === 'idle' ? 0 : 0.9,
+        opacity: status === 'breakdown' || status === 'idle' ? 0 : 0.85,
         lineCap:'round', lineJoin:'round', smoothFactor: 1, interactive: false,
         className: particleClass
       });
 
-      // Attach handlers + rich tooltip on the visible flow line
-      flowLine._feeder = feeder;
-      flowLine._status = status;
-      flowLine.on('click', () => showFeederPopup(feeder, status));
-      flowLine.on('dblclick', (ev) => {
-        L.DomEvent.stopPropagation(ev);
+      // ── Click / dblclick on the HIT-AREA layer ──
+      // Use a timer to disambiguate single click from double click.
+      let __clickTimer = null;
+      hitArea.on('click', () => {
+        if (__clickTimer){ clearTimeout(__clickTimer); __clickTimer = null; return; }
+        __clickTimer = setTimeout(() => {
+          showFeederPopup(feeder, status);
+          __clickTimer = null;
+        }, 220);
+      });
+      hitArea.on('dblclick', (ev) => {
+        if (__clickTimer){ clearTimeout(__clickTimer); __clickTimer = null; }
+        if (ev && ev.originalEvent) L.DomEvent.stopPropagation(ev.originalEvent);
+        if (ev && ev.originalEvent) L.DomEvent.preventDefault(ev.originalEvent);
         openRouteMapForFeeder(feeder.feederName);
       });
-      const statusLabel = status === 'breakdown' ? 'BREAKDOWN' : (status === 'idle' ? 'SHUTDOWN' : 'HEALTHY');
+
+      // Rich tooltip on the hit-area layer too
       const cableLabel = feeder.cableType === 'mixed' ? 'MIXED' : feeder.cableType.toUpperCase();
-      // Format length cells; show "—" if not computed (master-data fallback)
+      const statusLabel = status === 'breakdown' ? 'BREAKDOWN' : (status === 'idle' ? 'SHUTDOWN' : 'HEALTHY');
       const fmtKm = v => (v > 0 ? v.toFixed(2) + ' km' : '—');
       const fmtPct = v => (v > 0 ? v + '%' : '—');
-      const tooltipHTML =
+      const destNames = (feeder.destinations||[]).map(d => d.name).join(', ') || '—';
+      const tt =
         '<div class="rt-title">' + escapeHtml(feeder.feederName) + '</div>'
       + '<div class="rt-row"><span class="rt-key">Code</span><span class="rt-val">' + escapeHtml(feeder.feederCode || '—') + '</span></div>'
-      + '<div class="rt-row"><span class="rt-key">Source EHT</span><span class="rt-val">' + escapeHtml(feeder.ehtName || '—') + '</span></div>'
-      + '<div class="rt-row"><span class="rt-key">→ Destination</span><span class="rt-val">' + escapeHtml(feeder.destSS ? feeder.destSS.name : (feeder.destName||'—')) + '</span></div>'
-      + '<div class="rt-row"><span class="rt-key">Feeder Type</span><span class="rt-val">' + escapeHtml(feeder.type) + ' · ' + cableLabel + '</span></div>'
+      + '<div class="rt-row"><span class="rt-key">Source</span><span class="rt-val">' + escapeHtml(feeder.ehtName || '—') + '</span></div>'
+      + '<div class="rt-row"><span class="rt-key">→ Taps</span><span class="rt-val">' + escapeHtml(destNames) + '</span></div>'
+      + '<div class="rt-row"><span class="rt-key">Type</span><span class="rt-val">' + escapeHtml(feeder.type) + ' · ' + cableLabel + '</span></div>'
       + '<div class="rt-sep"></div>'
-      + '<div class="rt-row"><span class="rt-key">UG Length</span><span class="rt-val ug-c">' + fmtKm(feeder.ugKm||0) + '</span></div>'
-      + '<div class="rt-row"><span class="rt-key">OH Length</span><span class="rt-val oh-c">' + fmtKm(feeder.ohKm||0) + '</span></div>'
-      + '<div class="rt-row"><span class="rt-key">Total Length</span><span class="rt-val">' + fmtKm(feeder.totalKm||0) + '</span></div>'
-      + '<div class="rt-row"><span class="rt-key">UG Share</span><span class="rt-val ug-c">' + fmtPct(feeder.ugPct||0) + '</span></div>'
-      + '<div class="rt-row"><span class="rt-key">OH Share</span><span class="rt-val oh-c">' + fmtPct(feeder.ohPct||0) + '</span></div>'
+      + '<div class="rt-row"><span class="rt-key">UG</span><span class="rt-val ug-c">' + fmtKm(feeder.ugKm||0) + ' (' + fmtPct(feeder.ugPct||0) + ')</span></div>'
+      + '<div class="rt-row"><span class="rt-key">OH</span><span class="rt-val oh-c">' + fmtKm(feeder.ohKm||0) + ' (' + fmtPct(feeder.ohPct||0) + ')</span></div>'
+      + '<div class="rt-row"><span class="rt-key">Total</span><span class="rt-val">' + fmtKm(feeder.totalKm||0) + '</span></div>'
       + '<div class="rt-sep"></div>'
       + '<div class="rt-row"><span class="rt-key">Status</span><span class="rt-val ' + status + '">' + statusLabel + '</span></div>'
-      + '<div class="rt-foot">⌘ Double-click → open in Route Map</div>';
-      flowLine.bindTooltip(tooltipHTML, {direction:'top', sticky:true, className:'gm-rich-tooltip', opacity:1});
+      + '<div class="rt-foot">⌘ Click → details · Double-click → Route Map</div>';
+      hitArea.bindTooltip(tt, {direction:'top', sticky:true, className:'gm-rich-tooltip', opacity:1});
 
-      // Add to map: underlay first, then flow on top
+      // Add to map: base first, then dots, then hit-area on top (for click capture)
       linksLayer.addLayer(baseLine);
       linksLayer.addLayer(flowLine);
+      linksLayer.addLayer(hitArea);
       LAYERS_BY_TYPE[feeder.type].push(baseLine);
       LAYERS_BY_TYPE[feeder.type].push(flowLine);
+      LAYERS_BY_TYPE[feeder.type].push(hitArea);
 
-      // Feeder name label at the midpoint of the line — only if labels enabled
-      if (FEEDER_LABELS_VISIBLE){
+      // Feeder name label — only on the first edge of each feeder
+      if (FEEDER_LABELS_VISIBLE && idx === 0){
         const midIdx = Math.floor(pts.length/2);
         const midPt = pts[midIdx];
         const short = feeder.feederName
@@ -1991,21 +2134,39 @@ function showFeederPopup(feeder, status){
         + '<span style="color:' + statusColor + ';font-weight:800;font-family:var(--font-mono);font-size:11px;letter-spacing:1px">' + statusLabel + '</span>'
         + '</div>';
 
-  // Source & destination
+  // Source & destination(s) — trunk-and-spur layout
+  const dests = feeder.destinations || (feeder.destSS ? [{name:feeder.destSS.name}] : (feeder.destName ? [{name:feeder.destName}] : []));
+  const sourceLabel = feeder.type === 'LINK' ? '33/11KV SOURCE' : 'EHT SOURCE';
   html += '<div style="background:rgba(0,0,0,.18);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:10px">';
-  html += '<div style="font-family:var(--font-mono);font-size:8.5px;color:var(--text-3);letter-spacing:1px;margin-bottom:5px">⚡ ROUTE</div>';
-  html += '<div style="display:flex;flex-direction:column;gap:5px">'
-        + '<div style="display:flex;align-items:center;gap:7px">'
-          + '<span style="width:8px;height:8px;background:#0a0a0a;border:1px solid #fff;flex-shrink:0"></span>'
-          + '<span style="font-size:10.5px;color:var(--text-0);font-weight:600">' + escapeHtml(feeder.ehtName||'—') + '</span>'
-        + '</div>'
-        + '<div style="border-left:1px dashed var(--border);height:8px;margin-left:3.5px"></div>'
-        + '<div style="display:flex;align-items:center;gap:7px">'
-          + '<span style="width:9px;height:9px;background:#dc2626;border:1px solid #fff;flex-shrink:0"></span>'
-          + '<span style="font-size:10.5px;color:var(--text-0);font-weight:600">' + escapeHtml(feeder.destSS ? feeder.destSS.name : (feeder.destName||'—')) + '</span>'
-        + '</div>'
+  html += '<div style="font-family:var(--font-mono);font-size:8.5px;color:var(--text-3);letter-spacing:1px;margin-bottom:7px">⚡ ROUTE · TRUNK + SPURS</div>';
+
+  // Source row
+  html += '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">'
+        + '<span style="width:9px;height:9px;background:#0a0a0a;border:1.5px solid #f97316;flex-shrink:0;border-radius:2px"></span>'
+        + '<span style="font-size:8px;color:var(--text-3);font-family:var(--font-mono);letter-spacing:.5px">' + sourceLabel + '</span>'
         + '</div>';
-  html += '</div>';
+  html += '<div style="margin-left:14px;padding-left:9px;border-left:1px dashed var(--border)">'
+        + '<div style="font-size:11px;color:var(--text-0);font-weight:700;padding-bottom:7px">' + escapeHtml(feeder.ehtName||'—') + '</div>';
+
+  // Destination rows — one per tap-off
+  if (dests.length === 0){
+    html += '<div style="font-size:10px;color:var(--text-3);font-style:italic">No mapped destinations</div>';
+  } else {
+    dests.forEach((d, i) => {
+      const isLast = i === dests.length - 1;
+      html += '<div style="display:flex;align-items:center;gap:7px;padding:3px 0">'
+            + '<span style="font-size:9px;color:#f59e0b;font-family:var(--font-mono);font-weight:700;width:18px">↪ ' + (i+1) + '</span>'
+            + '<span style="width:9px;height:9px;background:#dc2626;border:1.5px solid #fff;flex-shrink:0"></span>'
+            + '<span style="font-size:10.5px;color:var(--text-0);font-weight:600">' + escapeHtml(d.name||'—') + '</span>'
+            + '</div>';
+    });
+  }
+  html += '</div></div>';
+  // Show destination count badge if multi-tap
+  if (dests.length > 1){
+    html = html.replace('⚡ ROUTE · TRUNK + SPURS</div>',
+      '⚡ ROUTE · TRUNK + SPURS<span style="background:#f59e0b;color:#0f172a;padding:1px 6px;border-radius:5px;margin-left:5px;font-size:8.5px;font-weight:800">' + dests.length + ' TAPS</span></div>');
+  }
 
   // Length stats (the main "stats" the user wanted)
   html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">';
@@ -2829,6 +2990,19 @@ async function generatePDF(){
 }
 
 // ═══════════════════════════════════════════════════════════════
+
+window.toggleLegend = function(ev){
+  if (ev) ev.stopPropagation();
+  $('legend').classList.toggle('collapsed');
+};
+$('legend').addEventListener('click', (ev) => {
+  const lg = $('legend');
+  if (lg.classList.contains('collapsed')) {
+    lg.classList.remove('collapsed');
+    ev.stopPropagation();
+  }
+});
+
 // LAUNCH
 // ═══════════════════════════════════════════════════════════════
 bootstrap();
