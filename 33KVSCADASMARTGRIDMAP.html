@@ -1167,6 +1167,51 @@ function extractDestSS(rows, feederName){
   return '';
 }
 
+function findMasterMappingFor(feederName){
+  // ssTopology is the authoritative EHT → 33/11KV SS mapping. Use it to avoid
+  // snapping a feeder to a wrong nearby SS based on the raw route last pole.
+  const target = normalizeFeederName(feederName);
+  if (!target) return null;
+  let loose = null;
+  Object.values(MASTER_SSTOPO || {}).forEach(rec => {
+    if (!rec || !Array.isArray(rec.sourceFeeders)) return;
+    rec.sourceFeeders.forEach(src => {
+      if (!src || !src.feederName) return;
+      const k = normalizeFeederName(src.feederName);
+      if (k === target){
+        loose = { ssName: rec.ssName || '', ehtSource: src.ehtSource || '', feederCode: src.feederCode || '', feederName: src.feederName };
+      } else if (!loose && (k.includes(target) || target.includes(k))){
+        loose = { ssName: rec.ssName || '', ehtSource: src.ehtSource || '', feederCode: src.feederCode || '', feederName: src.feederName };
+      }
+    });
+  });
+  return loose;
+}
+function stableHash(str){
+  str = String(str||''); let h=2166136261;
+  for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h += (h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24); }
+  return Math.abs(h>>>0);
+}
+function buildSymbolicPath(sp, ep, feeder, idx, n){
+  // Clean SCADA overview geometry: always draw source EHT → destination SS/endpoint.
+  // Never sample the full route here; that belongs to 33KVFEEDERSROUTEMAP.html.
+  const dLat = ep.lat - sp.lat, dLon = ep.lon - sp.lon;
+  const dist = Math.hypot(dLat, dLon) || 0.000001;
+  const perpLat = -dLon / dist, perpLon = dLat / dist;
+  const km = haversineKm(sp.lat, sp.lon, ep.lat, ep.lon);
+  const fan = (idx - (n-1)/2);
+  const side = (stableHash((feeder.ehtName||'') + '|' + (feeder.destName||'') + '|' + feeder.feederName) % 2) ? 1 : -1;
+  // Short feeders stay straight; longer and/or shared corridors bend enough to reduce overlap.
+  if (km < 0.35 && n === 1) return [[sp.lat, sp.lon],[ep.lat, ep.lon]];
+  const base = Math.min(0.035, Math.max(0.0045, km * 0.0018));
+  const offset = side * base + fan * 0.0022;
+  const ctrl = {
+    lat:(sp.lat+ep.lat)/2 + perpLat*offset,
+    lon:(sp.lon+ep.lon)/2 + perpLon*offset
+  };
+  return quadraticBezier(sp, ep, ctrl, 32);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // BOOTSTRAP
 // ═══════════════════════════════════════════════════════════════
@@ -1455,10 +1500,12 @@ function buildTopology(){
     const division = String(node.division || meta.division || firstRow.division || firstRow.Division || '').trim();
     const subDiv   = String(node.sub_division || node.subDivision || meta.sub_division || meta.subDivision || firstRow.sub_division || firstRow['Sub Division'] || firstRow.SUB_DIVISION || '').trim();
     const section  = String(node.section || meta.section || firstRow.section || firstRow.Section || '').trim();
-    const feederCode = String(node.feederCode || node.feeder_code || meta.feederCode || meta.feeder_code || firstRow.feeder_code || firstRow['Feeder Code'] || firstRow.FeederCode || '').trim();
+    let feederCode = String(node.feederCode || node.feeder_code || meta.feederCode || meta.feeder_code || firstRow.feeder_code || firstRow['Feeder Code'] || firstRow.FeederCode || '').trim();
 
-    const ehtName   = extractEHTName(rows, feederName);
-    const destName  = extractDestSS(rows, feederName);
+    const masterMap = findMasterMappingFor(feederName);
+    if (!feederCode && masterMap && masterMap.feederCode) feederCode = masterMap.feederCode;
+    const ehtName   = (masterMap && masterMap.ehtSource) || extractEHTName(rows, feederName);
+    const destName  = (masterMap && masterMap.ssName) || extractDestSS(rows, feederName);
     const type      = classifyFeederType(rows, feederName);
     const cableType = extractCableType(rows);
     const lengths   = computeLengths(rows);
@@ -1725,66 +1772,12 @@ function renderConnectors(){
   corridors.forEach(corridor => {
     const n = corridor.feeders.length;
     corridor.feeders.forEach((feeder, idx) => {
-      // ── Build geometry ──
-      // If feeder has GPS pole rows from /uploadedFeeders/, sample
-      // them down to ~15 waypoints — gives a true simplified route.
-      // Otherwise fall back to straight (n=1) or fanned curve (n>1).
-      let pts;
+      // ── Build clean symbolic SCADA geometry ──
+      // Smart Grid Map is NOT the pole-wise route map. It must connect only:
+      //   source EHT SS  →  destination 33/11KV SS / HT endpoint
+      // Raw route rows are used only for metadata/lengths/AB markers, not for drawing.
       const sp = corridor.start, ep = corridor.end;
-      const dLat = ep.lat - sp.lat, dLon = ep.lon - sp.lon;
-      const len = Math.hypot(dLat, dLon) || 1;
-      const perpLat = -dLon / len, perpLon = dLat / len;
-
-      if (feeder.rows && feeder.rows.length >= 4 && feeder.source === 'upload'){
-        // ── Sample the GPS route to ~15 waypoints (Smart-Grid simplification) ──
-        const validRows = feeder.rows.filter(r => {
-          const la = parseFloat(r && (r.latitude||r.lat||r.Latitude));
-          const lo = parseFloat(r && (r.longitude||r.lon||r.Longitude||r.lng));
-          return isFinite(la) && isFinite(lo);
-        });
-        const targetSamples = Math.min(15, Math.max(4, Math.floor(validRows.length / 10)));
-        const step = Math.max(1, Math.floor(validRows.length / targetSamples));
-        const chain = [];
-        for (let k = 0; k < validRows.length; k += step){
-          const r = validRows[k];
-          chain.push([parseFloat(r.latitude||r.lat), parseFloat(r.longitude||r.lon)]);
-        }
-        // Always include the last row
-        const last = validRows[validRows.length-1];
-        const lastPair = [parseFloat(last.latitude||last.lat), parseFloat(last.longitude||last.lon)];
-        if (chain.length === 0 || chain[chain.length-1][0] !== lastPair[0] || chain[chain.length-1][1] !== lastPair[1]){
-          chain.push(lastPair);
-        }
-        // For multi-feeder corridors, fan the start+end slightly so they don't perfectly overlap
-        if (n > 1){
-          const offset = (idx - (n-1)/2) * 0.00045;
-          chain[0] = [chain[0][0] + perpLat*offset, chain[0][1] + perpLon*offset];
-          chain[chain.length-1] = [chain[chain.length-1][0] + perpLat*offset, chain[chain.length-1][1] + perpLon*offset];
-        }
-        pts = chain;
-      } else if (feeder.abSwitches.length){
-        const chain = [{lat:sp.lat,lon:sp.lon}];
-        feeder.abSwitches.forEach(ab => chain.push({lat:ab.lat,lon:ab.lon}));
-        chain.push({lat:ep.lat,lon:ep.lon});
-        if (n > 1){
-          const offset = (idx - (n-1)/2) * 0.00065;
-          const c0 = chain[0], cN = chain[chain.length-1];
-          chain[0] = { lat: c0.lat + perpLat*offset, lon: c0.lon + perpLon*offset };
-          chain[chain.length-1] = { lat: cN.lat + perpLat*offset, lon: cN.lon + perpLon*offset };
-        }
-        pts = chain.map(p => [p.lat, p.lon]);
-      } else if (n === 1){
-        pts = [[sp.lat, sp.lon], [ep.lat, ep.lon]];
-      } else {
-        const spread = (idx - (n-1)/2) * 0.0014;
-        const baseCurve = 0.0004 * (idx % 2 === 0 ? 1 : -1);
-        const offset = spread + baseCurve;
-        const mid = {
-          lat: (sp.lat+ep.lat)/2 + perpLat * offset * (len*130),
-          lon: (sp.lon+ep.lon)/2 + perpLon * offset * (len*130)
-        };
-        pts = quadraticBezier(sp, ep, mid, 26);
-      }
+      let pts = buildSymbolicPath(sp, ep, feeder, idx, n);
 
       // ── Determine status + color (no dashes — solid colors only) ──
       const liveRec = findLiveRec(feeder.feederName);
@@ -1829,11 +1822,12 @@ function renderConnectors(){
         className: particleClass
       });
 
-      // Attach handlers + rich tooltip on the visible flow line
-      flowLine._feeder = feeder;
-      flowLine._status = status;
-      flowLine.on('click', () => showFeederPopup(feeder, status));
-      flowLine.on('dblclick', (ev) => {
+      // Attach handlers + rich tooltip on the SOLID base line.
+      // The particle overlay is non-interactive, so click/double-click must be on baseLine.
+      baseLine._feeder = feeder;
+      baseLine._status = status;
+      baseLine.on('click', () => showFeederPopup(feeder, status));
+      baseLine.on('dblclick', (ev) => {
         L.DomEvent.stopPropagation(ev);
         openRouteMapForFeeder(feeder.feederName);
       });
@@ -1857,7 +1851,7 @@ function renderConnectors(){
       + '<div class="rt-sep"></div>'
       + '<div class="rt-row"><span class="rt-key">Status</span><span class="rt-val ' + status + '">' + statusLabel + '</span></div>'
       + '<div class="rt-foot">⌘ Double-click → open in Route Map</div>';
-      flowLine.bindTooltip(tooltipHTML, {direction:'top', sticky:true, className:'gm-rich-tooltip', opacity:1});
+      baseLine.bindTooltip(tooltipHTML, {direction:'top', sticky:true, className:'gm-rich-tooltip', opacity:1});
 
       // Add to map: underlay first, then flow on top
       linksLayer.addLayer(baseLine);
@@ -1865,15 +1859,18 @@ function renderConnectors(){
       LAYERS_BY_TYPE[feeder.type].push(baseLine);
       LAYERS_BY_TYPE[feeder.type].push(flowLine);
 
-      // Feeder name label at the midpoint of the line — only if labels enabled
+      // Feeder name label at the midpoint — omit for short/congested spans.
       if (FEEDER_LABELS_VISIBLE){
-        const midIdx = Math.floor(pts.length/2);
-        const midPt = pts[midIdx];
-        const short = feeder.feederName
-          .replace(/^\d+\s*KV\s+/i,'')
-          .replace(/-\s*\d+\s*KV\s+/i,' → ')
-          .replace(/\s+FEEDER\s*$/i,'');
-        addFeederLabel(midPt[0], midPt[1], short, feeder.feederName);
+        const kmSpan = haversineKm(sp.lat, sp.lon, ep.lat, ep.lon);
+        if (kmSpan >= 0.55){
+          const midIdx = Math.floor(pts.length/2);
+          const midPt = pts[midIdx];
+          const short = feeder.feederName
+            .replace(/^\d+\s*KV\s+/i,'')
+            .replace(/-\s*\d+\s*KV\s+/i,' → ')
+            .replace(/\s+FEEDER\s*$/i,'');
+          addFeederLabel(midPt[0], midPt[1], short, feeder.feederName);
+        }
       }
     });
   });
@@ -2038,6 +2035,10 @@ function showFeederPopup(feeder, status){
   if (feeder.destSS) html += `<div class="gm-popup-row"><span class="gm-popup-lbl">→ Destination</span><span class="gm-popup-val">${escapeHtml(feeder.destSS.name)}</span></div>`;
   else if (feeder.destName) html += `<div class="gm-popup-row"><span class="gm-popup-lbl">→ Destination</span><span class="gm-popup-val">${escapeHtml(feeder.destName)}</span></div>`;
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Feeder Code</span><span class="gm-popup-val">${escapeHtml(feeder.feederCode||'—')}</span></div>`;
+  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">UG Length</span><span class="gm-popup-val" style="color:#38bdf8">${feeder.ugKm ? feeder.ugKm.toFixed(2)+' km' : '—'}</span></div>`;
+  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">OH Length</span><span class="gm-popup-val" style="color:#fb923c">${feeder.ohKm ? feeder.ohKm.toFixed(2)+' km' : '—'}</span></div>`;
+  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Total Length</span><span class="gm-popup-val">${feeder.totalKm ? feeder.totalKm.toFixed(2)+' km' : '—'}</span></div>`;
+  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">UG / OH Share</span><span class="gm-popup-val">${feeder.ugPct||0}% / ${feeder.ohPct||0}%</span></div>`;
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Sub-Division</span><span class="gm-popup-val">${escapeHtml(feeder.subDiv||'—')}</span></div>`;
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Section</span><span class="gm-popup-val">${escapeHtml(feeder.section||'—')}</span></div>`;
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">AB Switches</span><span class="gm-popup-val">${feeder.abSwitches.length}</span></div>`;
