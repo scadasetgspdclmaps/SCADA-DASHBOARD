@@ -256,12 +256,12 @@
      LEGEND — refined card
      ════════════════════════════════════════════════════════ */
   #legend{
-    position:fixed;bottom:14px;right:14px;left:auto;
+    position:fixed;bottom:14px;left:14px;
     background:var(--bg-card);backdrop-filter:blur(16px) saturate(180%);
     -webkit-backdrop-filter:blur(16px) saturate(180%);
-    border:1px solid var(--border-strong);border-radius:12px;
-    padding:10px 12px;z-index:900;box-shadow:var(--shadow-lg);
-    max-width:220px;
+    border:1px solid var(--border-strong);border-radius:14px;
+    padding:14px 16px;z-index:900;box-shadow:var(--shadow-lg);
+    max-width:260px;
   }
   .lg-title{
     display:flex;align-items:center;gap:7px;
@@ -270,17 +270,17 @@
     text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:8px;
   }
   .lg-title::before{content:'◆';opacity:.7}
-  .lg-section{font-family:var(--font-mono);font-size:8px;color:var(--text-3);letter-spacing:1.2px;font-weight:700;text-transform:uppercase;margin:6px 0 3px;display:flex;align-items:center;gap:6px}
+  .lg-section{font-family:var(--font-mono);font-size:8.5px;color:var(--text-3);letter-spacing:1.4px;font-weight:700;text-transform:uppercase;margin:8px 0 4px;display:flex;align-items:center;gap:6px}
   .lg-section::after{content:'';flex:1;height:1px;background:var(--border)}
   .lg-row{
-    display:flex;align-items:center;gap:8px;padding:2px 0;
-    font-family:var(--font-sans);font-size:9.5px;color:var(--text-1);letter-spacing:.2px;
+    display:flex;align-items:center;gap:9px;padding:3px 0;
+    font-family:var(--font-sans);font-size:10.5px;color:var(--text-1);letter-spacing:.2px;
   }
   .lg-mk{width:20px;height:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .lg-eht{width:0;height:0;border-left:11px solid transparent;border-bottom:15px solid #0a0a0a;filter:drop-shadow(0 0 3px rgba(255,255,255,.6))}
   .lg-ss33{width:13px;height:13px;background:#dc2626;border:1.5px solid #fff;box-shadow:0 0 0 1px #dc2626,0 1px 3px rgba(220,38,38,.5)}
-  .lg-ht{width:12px;height:12px;background:#facc15;border:1.5px solid #92400e;border-radius:2px;filter:drop-shadow(0 0 2px rgba(146,64,14,.6))}
-  .lg-sw{width:14px;height:9px;background:#facc15;border:1.5px solid #b45309;background-image:repeating-linear-gradient(180deg,transparent 0 2px,#b45309 2px 3px)}
+  .lg-ht{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:13px solid #facc15;filter:drop-shadow(0 0 2px rgba(146,64,14,.6))}
+  .lg-sw{width:14px;height:10px;background:#facc15;border:1.5px solid #b45309;background-image:repeating-linear-gradient(180deg,transparent 0 2px,#b45309 2px 3px)}
   .lg-ab{width:11px;height:11px;background:#2563eb;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #2563eb,0 1px 3px rgba(37,99,235,.5)}
   .lg-line{width:28px;height:3px;border-radius:2px}
   .lg-line.ug{background:#38bdf8}
@@ -659,21 +659,13 @@
   /* ════════════════════════════════════════════════════════
      ENHANCED SCADA SYMBOLS
      ════════════════════════════════════════════════════════ */
-  /* Route-map style symbols requested by user */
-  @keyframes ss33-ring-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-  @keyframes ss33-core-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.88}}
-  @keyframes eht-ring-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,100,0,.7),0 0 8px rgba(255,100,0,.55)}60%{box-shadow:0 0 0 8px rgba(255,100,0,0),0 0 20px rgba(255,100,0,.85)}}
-  .ss33-wrap{position:relative;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all}
-  .ss33-ring{position:absolute;inset:0;border-radius:50%;border:2px dashed rgba(0,180,255,.92);animation:ss33-ring-spin 4s linear infinite;box-shadow:0 0 8px rgba(0,180,255,.55),inset 0 0 8px rgba(0,180,255,.15);pointer-events:none}
-  .ss33-core{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,#1e88e5 0%,#0d47a1 100%);border:2px solid rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(33,150,243,.82);animation:ss33-core-pulse 2s ease-in-out infinite;z-index:1;pointer-events:none}
-  .ss33-bolt{font-size:10px;line-height:1;color:#fff;text-shadow:0 0 4px #fff;margin-top:-1px;pointer-events:none}
-  .ss33-wrap.bkd .ss33-ring{border-color:#ff1744;box-shadow:0 0 14px rgba(255,23,68,.9);animation:ss33-ring-spin 1.2s linear infinite}
-  .ss33-wrap.bkd .ss33-core{background:radial-gradient(circle,#ef4444 0%,#7f1d1d 100%);box-shadow:0 0 16px rgba(239,68,68,.95)}
-  .eht-wrap{position:relative;width:38px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all}
-  .eht-rect{position:absolute;inset:0;border:2px solid rgba(255,120,0,.96);border-radius:4px;animation:eht-ring-pulse 1.8s ease-in-out infinite;background:rgba(30,10,0,.75);pointer-events:none}
-  .eht-core{z-index:1;display:flex;align-items:center;justify-content:center;gap:3px;pointer-events:none}
-  .eht-power{font-size:15px;line-height:1;filter:drop-shadow(0 0 4px #ff6600);color:#fff;pointer-events:none}
-  .eht-kv{font-family:var(--font-mono);font-size:7px;color:rgba(255,170,70,.95);line-height:1;letter-spacing:.3px;pointer-events:none}
+  .gm-node-eht-v2 { filter: drop-shadow(0 2px 5px rgba(0,0,0,.7)) drop-shadow(0 0 6px rgba(255,255,255,.18)); }
+  .gm-node-ss33-v2 { filter: drop-shadow(0 2px 5px rgba(220,38,38,.55)); }
+  .gm-node-ss33-v2.bkd { animation: gm-pulse-bkd-v2 1s infinite ease-in-out; }
+  @keyframes gm-pulse-bkd-v2 {
+    0%,100% { filter: drop-shadow(0 2px 5px rgba(220,38,38,.55)); transform:scale(1); }
+    50%     { filter: drop-shadow(0 2px 18px rgba(220,38,38,.9)); transform:scale(1.18); }
+  }
   .gm-node-ht-v2 { filter: drop-shadow(0 2px 4px rgba(250,204,21,.55)); }
   .gm-node-sw-v2 { filter: drop-shadow(0 2px 4px rgba(245,158,11,.5)); }
   .gm-node-ab-v2 { filter: drop-shadow(0 1px 3px rgba(37,99,235,.7)); }
@@ -764,7 +756,7 @@
     <div class="f-stat"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#3b82f6"></span>33KV Feeders</span><span class="f-stat-val" id="s-feeders">—</span></div>
     <div class="f-stat"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#a855f7"></span>Link Lines</span><span class="f-stat-val" id="s-links">—</span></div>
     <div class="f-stat"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#facc15"></span>HT Services</span><span class="f-stat-val" id="s-ht">—</span></div>
-    <div class="f-stat" style="display:none"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#2563eb"></span>AB Switches</span><span class="f-stat-val" id="s-ab">0</span></div>
+    <div class="f-stat"><span class="f-stat-lbl"><span class="lbl-dot" style="background:#2563eb"></span>AB Switches</span><span class="f-stat-val" id="s-ab">—</span></div>
     <div class="f-stat"><span class="f-stat-lbl" style="color:#fca5a5"><span class="lbl-dot" style="background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.6)"></span>Breakdowns</span><span class="f-stat-val bkd" id="s-bkd">—</span></div>
   </div>
   <div class="f-grp">
@@ -781,7 +773,9 @@
   <div class="lg-row"><span class="lg-mk"><span class="lg-ss33"></span></span>33 / 11 KV Substation</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-ht"></span></span>33 KV HT Service</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-sw"></span></span>Switching Station</div>
-      <div class="lg-section">CABLE TYPE (10/90 rule)</div>
+  <div class="lg-row"><span class="lg-mk"><span class="lg-ab"></span></span>AB Switch / Tapping</div>
+  <div class="lg-row"><span class="lg-mk"><span class="lg-dp"></span></span>DP / Cut Point</div>
+  <div class="lg-section">CABLE TYPE (10/90 rule)</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-line ug"></span></span>UG (≤10% OH)</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-line oh"></span></span>OH (≥90% OH)</div>
   <div class="lg-row"><span class="lg-mk"><span class="lg-line mix"></span></span>Mixed (10-90% OH)</div>
@@ -866,7 +860,6 @@ let MASTER_PTRS     = {};
 let MASTER_SSTOPO   = {};       // ssTopology — primary connectivity source
 let MASTER_TOPO     = {};       // feeder topology
 let UPLOADED_FEEDERS= {};       // pole data (optional enrichment)
-let DIVISIONS_TREE   = {};       // /divisions tree from Feeder Route Map (single source of truth)
 let LIVE_FEEDERS    = {};       // /feeders/ status records
 let BREAKDOWNS      = {};       // /breakdowns/ records (with timestamps + SSes affected)
 
@@ -933,15 +926,10 @@ function levenshtein(a,b,max){
 function normalizeSSName(s){
   return String(s||'').toUpperCase()
     .replace(/[^A-Z0-9 ]/g,' ')
-    .replace(/\b(400|220|132|33)\s*KV\b/g,'')
     .replace(/^33\s*\/?\s*11\s*KV\b/,'')
     .replace(/\b33\s*\/?\s*11\s*KV\b/g,'')
     .replace(/\bSS\b/g,'').replace(/\bSUBSTATION\b/g,'')
     .replace(/\s+/g,' ').trim();
-}
-function _ssTokens(s){
-  const stop = new Set(['NAGAR','COLONY','ROAD','RD','NO','NEW','OLD','KV','SS','GIS','EXTENSION','PHASE','THE','AND','OF','CENTRAL','SOUTH']);
-  return normalizeSSName(s).split(' ').filter(w => w.length >= 3 && !stop.has(w));
 }
 function fuzzyFindIn(arr, rawName, nameField){
   if (!rawName || !arr || !arr.length) return null;
@@ -953,34 +941,20 @@ function fuzzyFindIn(arr, rawName, nameField){
   if (!targetNorm) return null;
   hit = arr.find(x => normalizeSSName(x[nameField]||'') === targetNorm);
   if (hit) return hit;
-
-  // Strict token match. Avoid dangerous single-token matches like just "NAGAR".
-  const targetTokens = _ssTokens(targetNorm);
-  if (!targetTokens.length) return null;
-  let best = null, bestScore = 0;
-  arr.forEach(x => {
-    const candNorm = normalizeSSName(x[nameField]||'');
-    const candTokens = _ssTokens(candNorm);
-    if (!candTokens.length) return;
-    const inter = targetTokens.filter(t => candTokens.includes(t)).length;
-    const score = inter / Math.max(targetTokens.length, candTokens.length);
-    if (score > bestScore){ bestScore = score; best = x; }
-  });
-  if (best && bestScore >= 0.62) return best;
-
-  // Levenshtein only for similar length names, not for short/ambiguous names.
-  if (targetNorm.length >= 8){
-    let bestLev = null, bestD = Infinity;
-    const maxAllow = Math.max(2, Math.floor(targetNorm.length * 0.18));
-    arr.forEach(x => {
-      const c = normalizeSSName(x[nameField]||'');
-      if (Math.abs(c.length-targetNorm.length) > maxAllow) return;
-      const d = levenshtein(targetNorm, c, maxAllow);
-      if (d <= maxAllow && d < bestD){ bestLev = x; bestD = d; }
-    });
-    if (bestLev) return bestLev;
+  // Distinctive-token substring
+  const tokens = targetNorm.split(' ').filter(w => w.length >= 4);
+  for (const tk of tokens){
+    hit = arr.find(x => normalizeSSName(x[nameField]||'').includes(tk));
+    if (hit) return hit;
   }
-  return null;
+  // Levenshtein
+  let best = null, bestD = Infinity;
+  const maxAllow = Math.max(2, Math.floor(targetNorm.length * 0.3));
+  arr.forEach(x => {
+    const d = levenshtein(targetNorm, normalizeSSName(x[nameField]||''), maxAllow);
+    if (d <= maxAllow && d < bestD){ best = x; bestD = d; }
+  });
+  return best;
 }
 function findSSByName(rawName){ return fuzzyFindIn(STATIC_SS33, rawName, 'name'); }
 function findEHTByName(rawName){ return fuzzyFindIn(STATIC_EHT,  rawName, 'name'); }
@@ -988,23 +962,6 @@ function findPTRForSS(ss){
   if (!ss) return null;
   const arr = Object.values(MASTER_PTRS);
   return fuzzyFindIn(arr, ss.name, 'ssName');
-}
-
-
-async function seedStaticCoordinatesToFirebase(){
-  // Writes the same SS/EHT coordinates used by the Feeder Route Map into Firebase.
-  // This repairs bad /masterData coordinate records when RTDB rules allow write.
-  try{
-    if (localStorage.getItem('smartgrid_static_coords_seeded_v3') === 'yes') return;
-    await Promise.all([
-      fetch(FIREBASE_URL+'/masterData/substations33.json', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(STATIC_SS33)}),
-      fetch(FIREBASE_URL+'/masterData/substationsEHT.json', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(STATIC_EHT)})
-    ]);
-    localStorage.setItem('smartgrid_static_coords_seeded_v3','yes');
-    console.log('[smartgrid] Seeded route-map SS/EHT coordinates to Firebase masterData');
-  }catch(err){
-    console.warn('[smartgrid] Coordinate seed skipped/failed:', err);
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1055,30 +1012,47 @@ const feederLabelsLayer = L.layerGroup().addTo(map);
 // ═══════════════════════════════════════════════════════════════
 // ICON FACTORIES (match AutoCAD legend)
 // ═══════════════════════════════════════════════════════════════
-function makeEHTIcon(eht){
-  // EHT symbol copied from the Feeder Route Map style: orange glowing source block.
-  const name = String((eht && eht.name) || '');
-  const kv = (name.match(/(400|220|132)\s*KV/i) || [,''])[1];
+function makeEHTIcon(){
+  // EHT: transformer yard — smaller than route map
   return L.divIcon({
-    className:'eht-wrap', iconSize:[38,26], iconAnchor:[19,13],
-    html:`<div class="eht-rect"></div><div class="eht-core"><span class="eht-power">ϟ</span><span class="eht-kv">${kv ? kv+'kV' : ''}</span></div>`
+    className:'gm-node-eht-v2', iconSize:[18,18], iconAnchor:[9,9],
+    html:`<svg width="18" height="18" viewBox="0 0 24 24">
+      <!-- main yard rectangle -->
+      <rect x="3" y="5" width="18" height="14" fill="#0a0a0a" stroke="#fff" stroke-width="1.4" rx="1.5"/>
+      <!-- cooling fins on the sides -->
+      <line x1="0" y1="9"  x2="3" y2="9"  stroke="#fff" stroke-width="1"/>
+      <line x1="0" y1="12" x2="3" y2="12" stroke="#fff" stroke-width="1"/>
+      <line x1="0" y1="15" x2="3" y2="15" stroke="#fff" stroke-width="1"/>
+      <line x1="21" y1="9"  x2="24" y2="9"  stroke="#fff" stroke-width="1"/>
+      <line x1="21" y1="12" x2="24" y2="12" stroke="#fff" stroke-width="1"/>
+      <line x1="21" y1="15" x2="24" y2="15" stroke="#fff" stroke-width="1"/>
+      <!-- inner "transformer" double-circle -->
+      <circle cx="9.5"  cy="12" r="2.4" fill="none" stroke="#fcd34d" stroke-width="1.2"/>
+      <circle cx="14.5" cy="12" r="2.4" fill="none" stroke="#fcd34d" stroke-width="1.2"/>
+    </svg>`
   });
 }
 function makeSS33Icon(status){
-  // 33/11KV SS symbol copied from the Feeder Route Map style: blue circular glow.
-  const cls = 'ss33-wrap' + (status==='breakdown'?' bkd':'');
+  // 33/11 KV SS: red square with transformer "T" symbol inside
+  const cls = 'gm-node-ss33-v2' + (status==='breakdown'?' bkd':'');
   return L.divIcon({
-    className:cls, iconSize:[30,30], iconAnchor:[15,15],
-    html:`<div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">ϟ</span></div>`
+    className:cls, iconSize:[13,13], iconAnchor:[6.5,6.5],
+    html:`<svg width="13" height="13" viewBox="0 0 16 16">
+      <rect x="1.5" y="1.5" width="13" height="13" fill="#dc2626" stroke="#fff" stroke-width="1.4" rx="1"/>
+      <!-- "T" transformer mark -->
+      <line x1="4" y1="5"   x2="12" y2="5"   stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="8" y1="5"   x2="8"  y2="11.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="5.5" y1="11.5" x2="10.5" y2="11.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>`
   });
 }
 function makeHTIcon(){
-  // HT Service: small yellow square box
+  // HT Service: yellow triangle with small bolt mark
   return L.divIcon({
-    className:'gm-node-ht-v2', iconSize:[12,12], iconAnchor:[6,6],
-    html:`<svg width="12" height="12" viewBox="0 0 14 14">
-      <rect x="1.5" y="1.5" width="11" height="11" rx="1.5" fill="#facc15" stroke="#92400e" stroke-width="1.4"/>
-      <path d="M 7.2 3.7 L 5.6 7 L 7 7 L 6.5 10 L 8.5 6.6 L 7.2 6.6 Z" fill="#92400e"/>
+    className:'gm-node-ht-v2', iconSize:[11,11], iconAnchor:[5.5,9],
+    html:`<svg width="11" height="11" viewBox="0 0 14 14">
+      <polygon points="7,1 13,12 1,12" fill="#facc15" stroke="#92400e" stroke-width="1.3" stroke-linejoin="round"/>
+      <path d="M 7.2 4.5 L 5.5 8 L 7 8 L 6.5 10.5 L 8.5 7 L 7 7 Z" fill="#92400e"/>
     </svg>`
   });
 }
@@ -1115,150 +1089,43 @@ function makeDPIcon(){
   });
 }
 
-
-// Flatten the Feeder Route Map Firebase hierarchy.
-// Route Map saves feeders under:
-// /divisions/<DIV>/sub_divisions/<SUB>/sections/<SEC>/feeders/<FEEDER>/{meta,rowsJson}
-function flattenDivisionsFeeders(divisionsTree){
-  const out = {};
-  if (!divisionsTree || typeof divisionsTree !== 'object') return out;
-  Object.keys(divisionsTree).forEach(divKey => {
-    const divNode = divisionsTree[divKey] || {};
-    const subs = divNode.sub_divisions || divNode.subDivisions || {};
-    Object.keys(subs).forEach(subKey => {
-      const subNode = subs[subKey] || {};
-      const sections = subNode.sections || {};
-      Object.keys(sections).forEach(secKey => {
-        const secNode = sections[secKey] || {};
-        const feeders = secNode.feeders || {};
-        Object.keys(feeders).forEach(feedKey => {
-          const item = feeders[feedKey];
-          if (!item || typeof item !== 'object') return;
-          const meta = item.meta || {};
-          if (meta.deleted === true || item.deleted === true) return;
-          const feederName = String(meta.feederName || meta.name || item.feederName || feedKey || '').trim();
-          if (!feederName) return;
-          let rows = [];
-          if (item.rowsJson){ try { rows = JSON.parse(item.rowsJson); } catch(_) { rows = []; } }
-          else if (item.rowsJSON){ try { rows = JSON.parse(item.rowsJSON); } catch(_) { rows = []; } }
-          else if (Array.isArray(item.rows)) rows = item.rows;
-          if (!rows.length) return;
-          const first = rows.find(r => r && Object.keys(r).length) || {};
-          const division = meta.division || first.division || first.Division || divKey;
-          const sub_division = meta.sub_division || meta.subDivision || first.sub_division || first['Sub Division'] || subKey;
-          const section = meta.section || first.section || first.Section || secKey;
-          out[fbSafeKey(feederName)] = {
-            feederName, name: feederName,
-            fileName: meta.fileName || item.fileName || '',
-            rows, rowsJSON: JSON.stringify(rows), rowsJson: JSON.stringify(rows),
-            division, sub_division, section,
-            feederCode: meta.feederCode || meta.feeder_code || first.feeder_code || first['Feeder Code'] || '',
-            meta,
-            sourceFirebase: 'divisions'
-          };
-        });
-      });
-    });
-  });
-  return out;
-}
-
-function rowVal(row, keys){
-  if (!row) return '';
-  for (const k of keys){
-    if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return String(row[k]).trim();
-  }
-  // Case-insensitive fallback
-  const map = {};
-  Object.keys(row).forEach(k => map[k.toLowerCase().replace(/[^a-z0-9]/g,'')] = row[k]);
-  for (const k of keys){
-    const nk = String(k).toLowerCase().replace(/[^a-z0-9]/g,'');
-    if (map[nk] !== undefined && map[nk] !== null && String(map[nk]).trim() !== '') return String(map[nk]).trim();
-  }
-  return '';
-}
-function firstRowValue(rows, keys){
-  for (const r of rows){
-    const v = rowVal(r, keys);
-    if (v) return v;
-  }
-  return '';
-}
-function extractEHTName(rows, feederName){
-  const v = firstRowValue(rows, ['eht_source','ehtSource','source_eht','sourceEHT','EHT','Source EHT','Name of Source of EHT Substation','source_ss','Source SS','source_substation','Source Substation']);
-  return v || extractEHTFromFeederName(feederName);
-}
-function extractDestSS(rows, feederName){
-  const v = firstRowValue(rows, ['destination_ss','dest_ss','destination','Destination','feeds_to','fed_to','ss_name','SS Name','substation','Substation','Substation Name','Name of Substation','feeder_to','Feeder To']);
-  if (v) return v;
-  // Fallback from names like "132KV X - 33KV CRPF" → "33/11KV CRPF SS"
-  const m = String(feederName||'').match(/(?:-|→)\s*(?:33\s*KV\s*)?(.+)$/i);
-  if (m){
-    let n = m[1].replace(/\bFEEDER\b/ig,'').trim();
-    if (n && !/\bSS\b/i.test(n)) n = '33/11KV ' + n + ' SS';
-    return n;
-  }
-  return '';
-}
-
-function findMasterMappingFor(feederName){
-  // ssTopology is the authoritative EHT → 33/11KV SS mapping. Use it to avoid
-  // snapping a feeder to a wrong nearby SS based on the raw route last pole.
-  const target = normalizeFeederName(feederName);
-  if (!target) return null;
-  let loose = null;
-  Object.values(MASTER_SSTOPO || {}).forEach(rec => {
-    if (!rec || !Array.isArray(rec.sourceFeeders)) return;
-    rec.sourceFeeders.forEach(src => {
-      if (!src || !src.feederName) return;
-      const k = normalizeFeederName(src.feederName);
-      if (k === target){
-        loose = { ssName: rec.ssName || '', ehtSource: src.ehtSource || '', feederCode: src.feederCode || '', feederName: src.feederName };
-      } else if (!loose && (k.includes(target) || target.includes(k))){
-        loose = { ssName: rec.ssName || '', ehtSource: src.ehtSource || '', feederCode: src.feederCode || '', feederName: src.feederName };
-      }
-    });
-  });
-  return loose;
-}
-function stableHash(str){
-  str = String(str||''); let h=2166136261;
-  for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h += (h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24); }
-  return Math.abs(h>>>0);
-}
-function buildSymbolicPath(sp, ep, feeder, idx, n){
-  // Clean SCADA overview geometry: always draw source EHT → destination SS/endpoint.
-  // Never sample the full route here; that belongs to 33KVFEEDERSROUTEMAP.html.
-  const dLat = ep.lat - sp.lat, dLon = ep.lon - sp.lon;
-  const dist = Math.hypot(dLat, dLon) || 0.000001;
-  const perpLat = -dLon / dist, perpLon = dLat / dist;
-  const km = haversineKm(sp.lat, sp.lon, ep.lat, ep.lon);
-  const fan = (idx - (n-1)/2);
-  const side = (stableHash((feeder.ehtName||'') + '|' + (feeder.destName||'') + '|' + feeder.feederName) % 2) ? 1 : -1;
-  // Short feeders stay straight; longer and/or shared corridors bend enough to reduce overlap.
-  if (km < 0.35 && n === 1) return [[sp.lat, sp.lon],[ep.lat, ep.lon]];
-  const base = Math.min(0.035, Math.max(0.0045, km * 0.0018));
-  const offset = side * base + fan * 0.0022;
-  const ctrl = {
-    lat:(sp.lat+ep.lat)/2 + perpLat*offset,
-    lon:(sp.lon+ep.lon)/2 + perpLon*offset
-  };
-  return quadraticBezier(sp, ep, ctrl, 32);
-}
-
 // ═══════════════════════════════════════════════════════════════
 // BOOTSTRAP
 // ═══════════════════════════════════════════════════════════════
 async function bootstrap(){
   setChip('','☁ LOADING…');
   try {
-    // Use embedded static EHT and 33/11KV SS coordinates only; Firebase coordinate overrides disabled.
+    // ── Optional Firebase overrides for substation coordinates ──
+    // If /masterData/substations33 or /substationsEHT exists in Firebase,
+    // it overrides the embedded HTML constants. Lets you add/move SSes
+    // from the Master Data Manager without editing this file.
+    try {
+      const [fbSS33, fbEHT] = await Promise.all([
+        fetch(FIREBASE_URL+'/masterData/substations33.json').then(r=>r.ok?r.json():null).catch(()=>null),
+        fetch(FIREBASE_URL+'/masterData/substationsEHT.json').then(r=>r.ok?r.json():null).catch(()=>null)
+      ]);
+      if (fbSS33 && Object.keys(fbSS33).length > 0){
+        const arr = Array.isArray(fbSS33) ? fbSS33 : Object.values(fbSS33);
+        const valid = arr.filter(s => s && s.name && isFinite(parseFloat(s.lat)) && isFinite(parseFloat(s.lon)));
+        if (valid.length > 0){
+          STATIC_SS33 = valid.map(s => ({...s, lat:parseFloat(s.lat), lon:parseFloat(s.lon)}));
+          console.log('[smartgrid] Using Firebase 33/11KV SS data:', STATIC_SS33.length);
+        }
+      }
+      if (fbEHT && Object.keys(fbEHT).length > 0){
+        const arr = Array.isArray(fbEHT) ? fbEHT : Object.values(fbEHT);
+        const valid = arr.filter(e => e && e.name && isFinite(parseFloat(e.lat)) && isFinite(parseFloat(e.lon)));
+        if (valid.length > 0){
+          STATIC_EHT = valid.map(e => ({...e, lat:parseFloat(e.lat), lon:parseFloat(e.lon)}));
+          console.log('[smartgrid] Using Firebase EHT data:', STATIC_EHT.length);
+        }
+      }
+    } catch(_){}
 
-    const [ssTopo, topo, ptrs, divisionsRoot, ufRoot, feedersStat, breakdowns] = await Promise.all([
+    const [ssTopo, topo, ptrs, ufRoot, feedersStat, breakdowns] = await Promise.all([
       fetch(FIREBASE_URL+'/masterData/ssTopology.json').then(r=>r.ok?r.json():null),
       fetch(FIREBASE_URL+'/masterData/topology.json').then(r=>r.ok?r.json():null),
       fetch(FIREBASE_URL+'/masterData/ptrs.json').then(r=>r.ok?r.json():null),
-      fetch(FIREBASE_URL+'/divisions.json').then(r=>r.ok?r.json():null),
       fetch(FIREBASE_URL+'/uploadedFeeders.json').then(r=>r.ok?r.json():null),
       fetch(FIREBASE_URL+'/feeders.json').then(r=>r.ok?r.json():null),
       fetch(FIREBASE_URL+'/breakdowns.json').then(r=>r.ok?r.json():null),
@@ -1266,29 +1133,33 @@ async function bootstrap(){
     MASTER_SSTOPO    = ssTopo || {};
     MASTER_TOPO      = topo   || {};
     MASTER_PTRS      = ptrs   || {};
-    DIVISIONS_TREE   = divisionsRoot || {};
-    const feedersFromDivisions = flattenDivisionsFeeders(DIVISIONS_TREE);
-    // /divisions is the Feeder Route Map single source of truth; it overrides older /uploadedFeeders leaves.
-    UPLOADED_FEEDERS = {...(ufRoot || {}), ...feedersFromDivisions};
+    UPLOADED_FEEDERS = ufRoot || {};
     LIVE_FEEDERS     = feedersStat || {};
     BREAKDOWNS       = breakdowns  || {};
 
-    console.log(`[smartgrid] Loaded: ${Object.keys(MASTER_SSTOPO).length} SS-topo, ${Object.keys(MASTER_TOPO).length} feeder-topo, ${Object.keys(MASTER_PTRS).length} PTRs, ${Object.keys(feedersFromDivisions).length} route-map feeders from /divisions, ${Object.keys(LIVE_FEEDERS).length} live`);
+    console.log(`[smartgrid] Loaded: ${Object.keys(MASTER_SSTOPO).length} SS-topo, ${Object.keys(MASTER_TOPO).length} feeder-topo, ${Object.keys(MASTER_PTRS).length} PTRs, ${Object.keys(LIVE_FEEDERS).length} live`);
 
     setChip('ok','☁ SYNCED');
-    seedStaticCoordinatesToFirebase();
     buildTopology();
     renderEverything();
     populateFilterDropdowns();
     subscribeFeederSSE();
     subscribeBreakdownsSSE();
-    subscribeDivisionsSSE();
 
     // Show toast with feeder count
+    // Surface unmapped names in the console for diagnostic
+    if (window._unmappedEHTs && window._unmappedEHTs.size) {
+      console.warn('[smartgrid] Unmapped EHT names (not in STATIC_EHT or master data):',
+        Array.from(window._unmappedEHTs).slice(0, 25));
+    }
+    if (window._unmappedSSes && window._unmappedSSes.size) {
+      console.warn('[smartgrid] Unmapped destination SS names:',
+        Array.from(window._unmappedSSes).slice(0, 25));
+    }
     if (FEEDER_TOPOLOGY.length === 0){
       toast('⚠ No feeders found in master data — populate via Master Data Manager first', true);
     } else {
-      toast(`Loaded ${FEEDER_TOPOLOGY.length} feeders across ${Object.keys(usedEHTs).length} EHT sources`, FEEDER_TOPOLOGY.length < 300);
+      toast(`Loaded ${FEEDER_TOPOLOGY.length} feeders across ${Object.keys(usedEHTs).length} EHT sources`, false);
     }
   } catch(err){
     console.error('[smartgrid] bootstrap failed:', err);
@@ -1323,7 +1194,7 @@ function findPoleRowsFor(feederName){
   // 1. Direct safe-key lookup
   if (UPLOADED_FEEDERS[sk]){
     const node = UPLOADED_FEEDERS[sk];
-    const rows = parseRows(node.rows || node.rowsJSON || node.rowsJson);
+    const rows = parseRows(node.rows || node.rowsJSON);
     if (rows && rows.length) return rows;
   }
   // 2. Scan flat keys whose feederName matches (normalized)
@@ -1332,7 +1203,7 @@ function findPoleRowsFor(feederName){
     if (!node || typeof node !== 'object') continue;
     const fname = node.feederName || node.name;
     if (fname && normalizeFeederName(fname) === norm){
-      const rows = parseRows(node.rows || node.rowsJSON || node.rowsJson);
+      const rows = parseRows(node.rows || node.rowsJSON);
       if (rows && rows.length) return rows;
     }
   }
@@ -1340,10 +1211,10 @@ function findPoleRowsFor(feederName){
   const walk = (obj) => {
     if (!obj || typeof obj !== 'object') return null;
     if (obj.feederName && normalizeFeederName(obj.feederName) === norm){
-      const rows = parseRows(obj.rows || obj.rowsJSON || obj.rowsJson);
+      const rows = parseRows(obj.rows || obj.rowsJSON);
       if (rows && rows.length) return rows;
     }
-    if (obj.rows || obj.rowsJSON || obj.rowsJson){
+    if (obj.rows || obj.rowsJSON){
       // unnamed leaf — skip
     }
     for (const k of Object.keys(obj)){
@@ -1471,7 +1342,7 @@ function buildTopology(){
   const walkUploaded = (node) => {
     if (!node || typeof node !== 'object') return;
     // Leaf detection: has feederName + (rows or rowsJSON)
-    if (node.feederName && (node.rows || node.rowsJSON || node.rowsJson)){
+    if (node.feederName && (node.rows || node.rowsJSON)){
       addUploadedFeeder(node);
       return;
     }
@@ -1486,7 +1357,7 @@ function buildTopology(){
     if (!feederName) { skipped++; return; }
     const key = normalizeFeederName(feederName);
     if (seen.has(key)) return;
-    const rows = parseRows(node.rows || node.rowsJSON || node.rowsJson);
+    const rows = parseRows(node.rows || node.rowsJSON);
     if (!rows.length){ skipped++; return; }
 
     // Find first/last valid lat-lon
@@ -1506,35 +1377,55 @@ function buildTopology(){
 
     // Metadata from first row
     const firstRow = rows.find(r => r && Object.keys(r).length) || {};
-    const meta = node.meta || {};
-    const division = String(node.division || meta.division || firstRow.division || firstRow.Division || '').trim();
-    const subDiv   = String(node.sub_division || node.subDivision || meta.sub_division || meta.subDivision || firstRow.sub_division || firstRow['Sub Division'] || firstRow.SUB_DIVISION || '').trim();
-    const section  = String(node.section || meta.section || firstRow.section || firstRow.Section || '').trim();
-    let feederCode = String(node.feederCode || node.feeder_code || meta.feederCode || meta.feeder_code || firstRow.feeder_code || firstRow['Feeder Code'] || firstRow.FeederCode || '').trim();
+    const division = String(firstRow.division || firstRow.Division || '').trim();
+    const subDiv   = String(firstRow.sub_division || firstRow['Sub Division'] || firstRow.SUB_DIVISION || '').trim();
+    const section  = String(firstRow.section || firstRow.Section || '').trim();
+    const feederCode = String(firstRow.feeder_code || firstRow['Feeder Code'] || firstRow.FeederCode || '').trim();
 
-    const masterMap = findMasterMappingFor(feederName);
-    if (!feederCode && masterMap && masterMap.feederCode) feederCode = masterMap.feederCode;
-    const ehtName   = (masterMap && masterMap.ehtSource) || extractEHTName(rows, feederName);
-    const destName  = (masterMap && masterMap.ssName) || extractDestSS(rows, feederName);
+    const ehtName   = extractEHTName(rows, feederName);
+    const destName  = extractDestSS(rows, feederName);
     const type      = classifyFeederType(rows, feederName);
     const cableType = extractCableType(rows);
     const lengths   = computeLengths(rows);
     const wp        = extractWaypoints(rows);
 
-    // Resolve source/destination strictly by mapped names.
-    // Do NOT snap to nearest coordinates — that causes random starts/ends in Smart Grid Map.
+    // ── STRICT substation resolution ──
+    // Only use known substations from master data (STATIC_EHT / STATIC_SS33).
+    // If neither name nor coords (within 0.5 km) match a known substation,
+    // SKIP the feeder rather than draw it to a synthetic spot — that's what
+    // caused the duplicate ghost-substations visible in the previous version.
     let eht = findEHTByName(ehtName);
+    if (!eht && firstCoord){
+      // Tight geographic tolerance — only snap if the first pole is essentially
+      // AT a known EHT (within ~0.6 km). No more 5-6 km loose snapping.
+      eht = findNearestEHT(firstCoord.lat, firstCoord.lon, 0.6);
+    }
 
     let destSS = null, endCoord = null, destType = 'ss33';
     if (type === 'HT'){
+      // HT service ends at the last pole's coordinates — that's not a substation
       endCoord = { lat: lastCoord.lat, lon: lastCoord.lon, label: destName || feederName };
       destType = 'ht';
     } else {
       destSS = destName ? findSSByName(destName) : null;
+      if (!destSS && lastCoord){
+        destSS = findNearestSS(lastCoord.lat, lastCoord.lon, 0.4);
+      }
     }
 
-    // Skip unresolved 33KV/LINK feeders rather than drawing them to random places.
-    if (!eht || (type !== 'HT' && !destSS)) { skipped++; return; }
+    // ── Skip if we still couldn't resolve essential endpoints ──
+    if (!eht){
+      if (!window._unmappedEHTs) window._unmappedEHTs = new Set();
+      window._unmappedEHTs.add(ehtName || feederName);
+      skipped++;
+      return;
+    }
+    if (type !== 'HT' && !destSS){
+      if (!window._unmappedSSes) window._unmappedSSes = new Set();
+      window._unmappedSSes.add(destName || feederName);
+      skipped++;
+      return;
+    }
 
     if (eht)    usedEHTs[eht.name] = eht;
     if (destSS) usedSSs[destSS.name] = destSS;
@@ -1666,15 +1557,15 @@ function renderNodes(){
 
   // EHT substations — only those referenced
   Object.values(usedEHTs).forEach(eht => {
-    const marker = L.marker([eht.lat, eht.lon], {icon: makeEHTIcon(eht), zIndexOffset: 1000});
+    const marker = L.marker([eht.lat, eht.lon], {icon: makeEHTIcon(), zIndexOffset: 1000});
     marker.on('click', () => showEHTPopup(eht));
     marker.bindTooltip(eht.name, {direction:'top', offset:[0,-14], className:'gm-tip'});
     nodesLayer.addLayer(marker);
     if (LABELS_VISIBLE) addLabel(eht.lat, eht.lon, eht.name, 'eht', -22);
   });
 
-  // 33/11 KV SSes — only those actually used by mapped feeders
-  Object.values(usedSSs).forEach(ss => {
+  // 33/11 KV SSes — all of them
+  STATIC_SS33.forEach(ss => {
     const stat = getSSLiveStatus(ss);
     const marker = L.marker([ss.lat, ss.lon], {icon: makeSS33Icon(stat), zIndexOffset: 800});
     marker.on('click', () => showSS33Popup(ss));
@@ -1685,7 +1576,8 @@ function renderNodes(){
       addLabel(ss.lat, ss.lon, shortName, 'ss33', 14);
     }
   });
-  // HT services only (AB / DP structures intentionally omitted in Smart Grid Map)
+
+  // HT services + AB switches
   FEEDER_TOPOLOGY.forEach(feeder => {
     if (feeder.type === 'HT' && feeder.endCoord){
       const m = L.marker([feeder.endCoord.lat, feeder.endCoord.lon], {icon: makeHTIcon(), zIndexOffset: 700});
@@ -1693,6 +1585,11 @@ function renderNodes(){
       m.bindTooltip(feeder.feederName, {direction:'top', offset:[0,-10]});
       nodesLayer.addLayer(m);
     }
+    feeder.abSwitches.forEach(ab => {
+      const m = L.marker([ab.lat, ab.lon], {icon: makeABIcon(), zIndexOffset: 500});
+      m.bindTooltip(`AB Switch · ${escapeHtml(feeder.feederName)}${ab.label?(' · Pole '+escapeHtml(ab.label)):''}`, {direction:'top', offset:[0,-6]});
+      nodesLayer.addLayer(m);
+    });
   });
 }
 
@@ -1770,12 +1667,66 @@ function renderConnectors(){
   corridors.forEach(corridor => {
     const n = corridor.feeders.length;
     corridor.feeders.forEach((feeder, idx) => {
-      // ── Build clean symbolic SCADA geometry ──
-      // Smart Grid Map is NOT the pole-wise route map. It must connect only:
-      //   source EHT SS  →  destination 33/11KV SS / HT endpoint
-      // Raw route rows are used only for metadata/lengths/AB markers, not for drawing.
+      // ── Build geometry ──
+      // If feeder has GPS pole rows from /uploadedFeeders/, sample
+      // them down to ~15 waypoints — gives a true simplified route.
+      // Otherwise fall back to straight (n=1) or fanned curve (n>1).
+      let pts;
       const sp = corridor.start, ep = corridor.end;
-      let pts = buildSymbolicPath(sp, ep, feeder, idx, n);
+      const dLat = ep.lat - sp.lat, dLon = ep.lon - sp.lon;
+      const len = Math.hypot(dLat, dLon) || 1;
+      const perpLat = -dLon / len, perpLon = dLat / len;
+
+      if (feeder.rows && feeder.rows.length >= 4 && feeder.source === 'upload'){
+        // ── Sample the GPS route to ~15 waypoints (Smart-Grid simplification) ──
+        const validRows = feeder.rows.filter(r => {
+          const la = parseFloat(r && (r.latitude||r.lat||r.Latitude));
+          const lo = parseFloat(r && (r.longitude||r.lon||r.Longitude||r.lng));
+          return isFinite(la) && isFinite(lo);
+        });
+        const targetSamples = Math.min(15, Math.max(4, Math.floor(validRows.length / 10)));
+        const step = Math.max(1, Math.floor(validRows.length / targetSamples));
+        const chain = [];
+        for (let k = 0; k < validRows.length; k += step){
+          const r = validRows[k];
+          chain.push([parseFloat(r.latitude||r.lat), parseFloat(r.longitude||r.lon)]);
+        }
+        // Always include the last row
+        const last = validRows[validRows.length-1];
+        const lastPair = [parseFloat(last.latitude||last.lat), parseFloat(last.longitude||last.lon)];
+        if (chain.length === 0 || chain[chain.length-1][0] !== lastPair[0] || chain[chain.length-1][1] !== lastPair[1]){
+          chain.push(lastPair);
+        }
+        // For multi-feeder corridors, fan the start+end slightly so they don't perfectly overlap
+        if (n > 1){
+          const offset = (idx - (n-1)/2) * 0.00045;
+          chain[0] = [chain[0][0] + perpLat*offset, chain[0][1] + perpLon*offset];
+          chain[chain.length-1] = [chain[chain.length-1][0] + perpLat*offset, chain[chain.length-1][1] + perpLon*offset];
+        }
+        pts = chain;
+      } else if (feeder.abSwitches.length){
+        const chain = [{lat:sp.lat,lon:sp.lon}];
+        feeder.abSwitches.forEach(ab => chain.push({lat:ab.lat,lon:ab.lon}));
+        chain.push({lat:ep.lat,lon:ep.lon});
+        if (n > 1){
+          const offset = (idx - (n-1)/2) * 0.00065;
+          const c0 = chain[0], cN = chain[chain.length-1];
+          chain[0] = { lat: c0.lat + perpLat*offset, lon: c0.lon + perpLon*offset };
+          chain[chain.length-1] = { lat: cN.lat + perpLat*offset, lon: cN.lon + perpLon*offset };
+        }
+        pts = chain.map(p => [p.lat, p.lon]);
+      } else if (n === 1){
+        pts = [[sp.lat, sp.lon], [ep.lat, ep.lon]];
+      } else {
+        const spread = (idx - (n-1)/2) * 0.0014;
+        const baseCurve = 0.0004 * (idx % 2 === 0 ? 1 : -1);
+        const offset = spread + baseCurve;
+        const mid = {
+          lat: (sp.lat+ep.lat)/2 + perpLat * offset * (len*130),
+          lon: (sp.lon+ep.lon)/2 + perpLon * offset * (len*130)
+        };
+        pts = quadraticBezier(sp, ep, mid, 26);
+      }
 
       // ── Determine status + color (no dashes — solid colors only) ──
       const liveRec = findLiveRec(feeder.feederName);
@@ -1820,12 +1771,11 @@ function renderConnectors(){
         className: particleClass
       });
 
-      // Attach handlers + rich tooltip on the SOLID base line.
-      // The particle overlay is non-interactive, so click/double-click must be on baseLine.
-      baseLine._feeder = feeder;
-      baseLine._status = status;
-      baseLine.on('click', () => showFeederPopup(feeder, status));
-      baseLine.on('dblclick', (ev) => {
+      // Attach handlers + rich tooltip on the visible flow line
+      flowLine._feeder = feeder;
+      flowLine._status = status;
+      flowLine.on('click', () => showFeederPopup(feeder, status));
+      flowLine.on('dblclick', (ev) => {
         L.DomEvent.stopPropagation(ev);
         openRouteMapForFeeder(feeder.feederName);
       });
@@ -1849,7 +1799,7 @@ function renderConnectors(){
       + '<div class="rt-sep"></div>'
       + '<div class="rt-row"><span class="rt-key">Status</span><span class="rt-val ' + status + '">' + statusLabel + '</span></div>'
       + '<div class="rt-foot">⌘ Double-click → open in Route Map</div>';
-      baseLine.bindTooltip(tooltipHTML, {direction:'top', sticky:true, className:'gm-rich-tooltip', opacity:1});
+      flowLine.bindTooltip(tooltipHTML, {direction:'top', sticky:true, className:'gm-rich-tooltip', opacity:1});
 
       // Add to map: underlay first, then flow on top
       linksLayer.addLayer(baseLine);
@@ -1857,18 +1807,15 @@ function renderConnectors(){
       LAYERS_BY_TYPE[feeder.type].push(baseLine);
       LAYERS_BY_TYPE[feeder.type].push(flowLine);
 
-      // Feeder name label at the midpoint — omit for short/congested spans.
+      // Feeder name label at the midpoint of the line — only if labels enabled
       if (FEEDER_LABELS_VISIBLE){
-        const kmSpan = haversineKm(sp.lat, sp.lon, ep.lat, ep.lon);
-        if (kmSpan >= 0.55){
-          const midIdx = Math.floor(pts.length/2);
-          const midPt = pts[midIdx];
-          const short = feeder.feederName
-            .replace(/^\d+\s*KV\s+/i,'')
-            .replace(/-\s*\d+\s*KV\s+/i,' → ')
-            .replace(/\s+FEEDER\s*$/i,'');
-          addFeederLabel(midPt[0], midPt[1], short, feeder.feederName);
-        }
+        const midIdx = Math.floor(pts.length/2);
+        const midPt = pts[midIdx];
+        const short = feeder.feederName
+          .replace(/^\d+\s*KV\s+/i,'')
+          .replace(/-\s*\d+\s*KV\s+/i,' → ')
+          .replace(/\s+FEEDER\s*$/i,'');
+        addFeederLabel(midPt[0], midPt[1], short, feeder.feederName);
       }
     });
   });
@@ -2010,39 +1957,118 @@ function showHTPopup(feeder){
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Source EHT</span><span class="gm-popup-val">${escapeHtml(feeder.ehtName||'—')}</span></div>`;
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Feeder Code</span><span class="gm-popup-val">${escapeHtml(feeder.feederCode||'—')}</span></div>`;
   html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Cable Type</span><span class="gm-popup-val">${escapeHtml(feeder.cableType.toUpperCase())}</span></div>`;
+  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">AB Switches</span><span class="gm-popup-val">${feeder.abSwitches.length}</span></div>`;
   L.popup({maxWidth:340,minWidth:240}).setLatLng([feeder.endCoord.lat,feeder.endCoord.lon]).setContent(html).openOn(map);
 }
 
 function showFeederPopup(feeder, status){
-  let html = `<div class="gm-popup-title">${escapeHtml(feeder.feederName)}</div>`;
-  html += `<div class="gm-popup-sub">${feeder.type} · ${feeder.cableType.toUpperCase()} · ${escapeHtml(feeder.division||'')}</div>`;
+  // Comprehensive feeder stats card — all the data the SE/CE/Director might want
   const statusColor = status==='breakdown'?'#fca5a5':(status==='idle'?'#cbd5e1':'#86efac');
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Status</span><span class="gm-popup-val" style="color:${statusColor}">${status.toUpperCase()}</span></div>`;
-  // If under breakdown, show duration + ID
+  const statusBg    = status==='breakdown'?'rgba(220,38,38,.15)':(status==='idle'?'rgba(148,163,184,.15)':'rgba(22,163,74,.15)');
+  const statusLabel = status==='breakdown'?'BREAKDOWN':(status==='idle'?'SHUTDOWN':'HEALTHY');
+
+  // Cable-type badge color matches the line palette
+  const ctColor = feeder.cableType==='oh'?'#f97316':(feeder.cableType==='mixed'?'#a855f7':'#38bdf8');
+  const ctLabel = feeder.cableType==='mixed'?'MIXED':feeder.cableType.toUpperCase();
+
+  const fmtKm = v => (v > 0 ? v.toFixed(2) + ' km' : '—');
+  const fmtPct = v => (v > 0 ? v + '%' : '—');
+
+  // ── Build HTML ──
+  let html = '';
+
+  // Title bar
+  html += '<div class="gm-popup-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+        + '<span style="flex:1;word-break:break-word">' + escapeHtml(feeder.feederName) + '</span>'
+        + '<span style="background:' + ctColor + ';color:#0f172a;font-size:9px;font-weight:800;padding:2px 7px;border-radius:5px;letter-spacing:.5px;flex-shrink:0">' + ctLabel + '</span>'
+        + '</div>';
+
+  html += '<div class="gm-popup-sub">' + escapeHtml(feeder.type) + ' Feeder · ' + escapeHtml(feeder.division||'—') + '</div>';
+
+  // Status pill
+  html += '<div style="background:' + statusBg + ';border:1px solid ' + statusColor + ';border-radius:8px;padding:7px 11px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between">'
+        + '<span style="font-family:var(--font-mono);font-size:9.5px;color:var(--text-2);letter-spacing:.7px">CURRENT STATUS</span>'
+        + '<span style="color:' + statusColor + ';font-weight:800;font-family:var(--font-mono);font-size:11px;letter-spacing:1px">' + statusLabel + '</span>'
+        + '</div>';
+
+  // Source & destination
+  html += '<div style="background:rgba(0,0,0,.18);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:10px">';
+  html += '<div style="font-family:var(--font-mono);font-size:8.5px;color:var(--text-3);letter-spacing:1px;margin-bottom:5px">⚡ ROUTE</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:5px">'
+        + '<div style="display:flex;align-items:center;gap:7px">'
+          + '<span style="width:8px;height:8px;background:#0a0a0a;border:1px solid #fff;flex-shrink:0"></span>'
+          + '<span style="font-size:10.5px;color:var(--text-0);font-weight:600">' + escapeHtml(feeder.ehtName||'—') + '</span>'
+        + '</div>'
+        + '<div style="border-left:1px dashed var(--border);height:8px;margin-left:3.5px"></div>'
+        + '<div style="display:flex;align-items:center;gap:7px">'
+          + '<span style="width:9px;height:9px;background:#dc2626;border:1px solid #fff;flex-shrink:0"></span>'
+          + '<span style="font-size:10.5px;color:var(--text-0);font-weight:600">' + escapeHtml(feeder.destSS ? feeder.destSS.name : (feeder.destName||'—')) + '</span>'
+        + '</div>'
+        + '</div>';
+  html += '</div>';
+
+  // Length stats (the main "stats" the user wanted)
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">';
+  html += '<div style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);border-radius:7px;padding:7px;text-align:center">'
+        + '<div style="font-family:var(--font-mono);font-size:8px;color:#38bdf8;letter-spacing:1px;font-weight:700">UG</div>'
+        + '<div style="font-size:13px;font-weight:800;color:#38bdf8;font-variant-numeric:tabular-nums;margin-top:2px">' + fmtKm(feeder.ugKm||0) + '</div>'
+        + '<div style="font-size:9px;color:var(--text-3)">' + fmtPct(feeder.ugPct||0) + '</div>'
+        + '</div>';
+  html += '<div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);border-radius:7px;padding:7px;text-align:center">'
+        + '<div style="font-family:var(--font-mono);font-size:8px;color:#f97316;letter-spacing:1px;font-weight:700">OH</div>'
+        + '<div style="font-size:13px;font-weight:800;color:#f97316;font-variant-numeric:tabular-nums;margin-top:2px">' + fmtKm(feeder.ohKm||0) + '</div>'
+        + '<div style="font-size:9px;color:var(--text-3)">' + fmtPct(feeder.ohPct||0) + '</div>'
+        + '</div>';
+  html += '<div style="background:var(--primary-soft);border:1px solid rgba(6,182,212,.25);border-radius:7px;padding:7px;text-align:center">'
+        + '<div style="font-family:var(--font-mono);font-size:8px;color:#06b6d4;letter-spacing:1px;font-weight:700">TOTAL</div>'
+        + '<div style="font-size:13px;font-weight:800;color:#67e8f9;font-variant-numeric:tabular-nums;margin-top:2px">' + fmtKm(feeder.totalKm||0) + '</div>'
+        + '<div style="font-size:9px;color:var(--text-3)">' + (feeder.polesCount||0) + ' poles</div>'
+        + '</div>';
+  html += '</div>';
+
+  // Hierarchy + code grid
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;background:rgba(0,0,0,.15);border-radius:7px;padding:9px 11px;margin-bottom:10px">';
+  const metaCells = [
+    ['Feeder Code', feeder.feederCode||'—'],
+    ['Type',        feeder.type],
+    ['Sub-Division',feeder.subDiv||'—'],
+    ['Section',     feeder.section||'—'],
+    ['AB Switches', feeder.abSwitches.length],
+    ['DP Structures', feeder.dpStructures.length],
+  ];
+  metaCells.forEach(([k,v]) => {
+    html += '<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px"><span style="color:var(--text-3);font-family:var(--font-mono);font-size:8.5px;letter-spacing:.6px">' + escapeHtml(k) + '</span><span style="color:var(--text-0);font-weight:600;text-align:right">' + escapeHtml(String(v)) + '</span></div>';
+  });
+  html += '</div>';
+
+  // Breakdown details (only when applicable)
   if (status === 'breakdown'){
     const bkd = findLatestBreakdownFor(feeder.feederName);
     if (bkd){
       const dur = bkd.failureDateTime ? humanAgo(Date.now() - new Date(bkd.failureDateTime).getTime()) : '—';
-      html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Duration</span><span class="gm-popup-val" style="color:#fca5a5">${dur}</span></div>`;
-      html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Failed at</span><span class="gm-popup-val">${bkd.failureDateTime ? new Date(bkd.failureDateTime).toLocaleString() : '—'}</span></div>`;
-      if (bkd.outageType) html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Outage Type</span><span class="gm-popup-val">${escapeHtml(bkd.outageType)}</span></div>`;
+      html += '<div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;padding:9px 11px;margin-bottom:10px">';
+      html += '<div style="font-family:var(--font-mono);font-size:8.5px;color:#fca5a5;letter-spacing:1px;margin-bottom:5px">🔴 BREAKDOWN DETAILS</div>';
+      html += '<div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0"><span style="color:var(--text-3)">Duration</span><span style="color:#fca5a5;font-weight:700">' + dur + '</span></div>';
+      html += '<div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0"><span style="color:var(--text-3)">Failed at</span><span style="color:var(--text-0)">' + escapeHtml(bkd.failureDateTime ? new Date(bkd.failureDateTime).toLocaleString() : '—') + '</span></div>';
+      if (bkd.outageType) html += '<div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0"><span style="color:var(--text-3)">Outage Type</span><span style="color:#fbbf24">' + escapeHtml(bkd.outageType) + '</span></div>';
+      if (bkd.agency)     html += '<div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0"><span style="color:var(--text-3)">Agency</span><span style="color:var(--text-0)">' + escapeHtml(bkd.agency) + '</span></div>';
+      html += '</div>';
     }
   }
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Source EHT</span><span class="gm-popup-val">${escapeHtml(feeder.ehtName||'—')}</span></div>`;
-  if (feeder.destSS) html += `<div class="gm-popup-row"><span class="gm-popup-lbl">→ Destination</span><span class="gm-popup-val">${escapeHtml(feeder.destSS.name)}</span></div>`;
-  else if (feeder.destName) html += `<div class="gm-popup-row"><span class="gm-popup-lbl">→ Destination</span><span class="gm-popup-val">${escapeHtml(feeder.destName)}</span></div>`;
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Feeder Code</span><span class="gm-popup-val">${escapeHtml(feeder.feederCode||'—')}</span></div>`;
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">UG Length</span><span class="gm-popup-val" style="color:#38bdf8">${feeder.ugKm ? feeder.ugKm.toFixed(2)+' km' : '—'}</span></div>`;
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">OH Length</span><span class="gm-popup-val" style="color:#fb923c">${feeder.ohKm ? feeder.ohKm.toFixed(2)+' km' : '—'}</span></div>`;
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Total Length</span><span class="gm-popup-val">${feeder.totalKm ? feeder.totalKm.toFixed(2)+' km' : '—'}</span></div>`;
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">UG / OH Share</span><span class="gm-popup-val">${feeder.ugPct||0}% / ${feeder.ohPct||0}%</span></div>`;
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Sub-Division</span><span class="gm-popup-val">${escapeHtml(feeder.subDiv||'—')}</span></div>`;
-  html += `<div class="gm-popup-row"><span class="gm-popup-lbl">Section</span><span class="gm-popup-val">${escapeHtml(feeder.section||'—')}</span></div>`;
-  html += `<div style="text-align:center;margin-top:8px"><button onclick="openRouteMapForFeeder(${JSON.stringify(feeder.feederName).replace(/"/g,'&quot;')})" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-family:Consolas,monospace;font-size:10px;font-weight:800;letter-spacing:.8px;cursor:pointer;text-transform:uppercase">↗ OPEN IN ROUTE MAP</button></div>`;
+
+  // Action button
+  html += '<div style="text-align:center">'
+        + '<button onclick="openRouteMapForFeeder(' + JSON.stringify(feeder.feederName).replace(/"/g,'&quot;') + ')"'
+        + ' style="background:linear-gradient(135deg,var(--primary),var(--primary-dim));color:#fff;border:none;padding:9px 18px;border-radius:8px;font-family:var(--font-mono);font-size:10.5px;font-weight:800;letter-spacing:.8px;cursor:pointer;text-transform:uppercase;box-shadow:0 4px 12px rgba(6,182,212,.3);transition:.2s">'
+        + '↗ Open in Route Map for Pole-Level Trace'
+        + '</button>'
+        + '</div>';
+
+  // Position popup at line midpoint
   let lat=17.42, lon=78.46;
   if (feeder.ehtSS && feeder.destSS){ lat = (feeder.ehtSS.lat + feeder.destSS.lat)/2; lon = (feeder.ehtSS.lon + feeder.destSS.lon)/2; }
   else if (feeder.ehtSS){ lat = feeder.ehtSS.lat; lon = feeder.ehtSS.lon; }
-  L.popup({maxWidth:360,minWidth:260}).setLatLng([lat,lon]).setContent(html).openOn(map);
+  L.popup({maxWidth:400,minWidth:300,className:'feeder-stats-popup'}).setLatLng([lat,lon]).setContent(html).openOn(map);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2221,7 +2247,6 @@ function toggleFeederLabels(btn){
 function refreshStats(){
   $('s-eht').textContent  = Object.keys(usedEHTs).length;
   $('s-ss33').textContent = STATIC_SS33.length;
-  $('s-ss33').title = `Displayed mapped SS: ${Object.keys(usedSSs).length} / Master SS: ${STATIC_SS33.length}`;
   let c33=0, cLink=0, cHT=0, cAB=0, cBkd=0;
   const divFilt = $('filt-div').value, subFilt = $('filt-sub').value, secFilt = $('filt-sec').value;
   FEEDER_TOPOLOGY.forEach(f => {
@@ -2236,13 +2261,10 @@ function refreshStats(){
     const rec = findLiveRec(f.feederName);
     if (rec && rec.status === 'breakdown') cBkd++;
   });
-  // User expectation: total network count here should match Route Map count ≈ 313
-  // = 33KV feeders + Link Lines + HT Services. Keep link/HT split below.
-  $('s-feeders').textContent = c33 + cLink + cHT;
-  $('s-feeders').title = `33KV: ${c33} + Link: ${cLink} + HT: ${cHT}`;
+  $('s-feeders').textContent = c33;
   $('s-links').textContent   = cLink;
   $('s-ht').textContent      = cHT;
-  if ($('s-ab')) $('s-ab').textContent = 0;
+  $('s-ab').textContent      = cAB;
   $('s-bkd').textContent     = cBkd;
 }
 
@@ -2302,33 +2324,6 @@ function subscribeBreakdownsSSE(){
     _sseB.addEventListener('error', () => { try { _sseB.close(); } catch(_){} setTimeout(subscribeBreakdownsSSE, 5000); });
     console.log('[smartgrid] SSE: /breakdowns');
   } catch(err){ console.warn('[smartgrid] SSE-breakdowns failed:', err); }
-}
-
-
-let _sseD = null;
-async function reloadDivisionsFeeders(){
-  try {
-    const divisionsRoot = await fetch(FIREBASE_URL+'/divisions.json').then(r=>r.ok?r.json():null);
-    DIVISIONS_TREE = divisionsRoot || {};
-    const fromDivisions = flattenDivisionsFeeders(DIVISIONS_TREE);
-    UPLOADED_FEEDERS = {...UPLOADED_FEEDERS, ...fromDivisions};
-    buildTopology();
-    renderEverything();
-    populateFilterDropdowns();
-    console.log(`[smartgrid] Reloaded /divisions: ${Object.keys(fromDivisions).length} route-map feeders`);
-  } catch(err){ console.warn('[smartgrid] reload /divisions failed:', err); }
-}
-function subscribeDivisionsSSE(){
-  if (!('EventSource' in window)) return;
-  if (_sseD) try { _sseD.close(); } catch(_){}
-  try {
-    _sseD = new EventSource(FIREBASE_URL+'/divisions.json');
-    const handle = () => reloadDivisionsFeeders();
-    _sseD.addEventListener('put', handle);
-    _sseD.addEventListener('patch', handle);
-    _sseD.addEventListener('error', () => { try { _sseD.close(); } catch(_){} setTimeout(subscribeDivisionsSSE, 8000); });
-    console.log('[smartgrid] SSE: /divisions');
-  } catch(err){ console.warn('[smartgrid] SSE-divisions failed:', err); }
 }
 
 // Auto-refresh durations in the breakdown panel every 30s
@@ -2784,6 +2779,7 @@ async function generatePDF(){
       {y:8,  type:'eht',  label:'400/220/132 KV EHT'},
       {y:12, type:'ss33', label:'33/11 KV Substation'},
       {y:16, type:'ht',   label:'HT Service'},
+      {y:20, type:'ab',   label:'AB Switch / Tapping'},
       {y:24, type:'ug',   label:'UG Cable'},
       {y:28, type:'oh',   label:'OH Cable'},
       {y:32, type:'mix',  label:'UG + OH (Mixed)'},
