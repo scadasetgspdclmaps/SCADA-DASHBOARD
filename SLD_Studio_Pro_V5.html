@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>TGSPDCL — Single Line Diagram generator</title>
+<title>TGSPDCL — SLD Studio Pro V5</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{
@@ -200,7 +200,6 @@ body.anim .comp.dead .symWrap{opacity:.4}
   <button class="tb" id="bImgLoader">📷 Trace Image/PDF</button>
   <button class="tb" id="bMySlds">🗂 Diagrams</button>
   <button class="tb" id="bSave">💾 Save</button>
-  <button class="tb" id="bFirebase" style="border-color:var(--cyan);color:var(--cyan)">☁ Firebase</button>
   <button class="tb" id="bJson">{} JSON</button>
   <button class="tb" id="bPrint" style="border-color:var(--cyan);color:var(--cyan)">🖨️ Print / PDF</button>
   <button class="tb" id="bClear" style="color:var(--red)">✕ New</button>
@@ -309,27 +308,6 @@ body.anim .comp.dead .symWrap{opacity:.4}
   <div class="btns"><button id="sClose">Close</button></div>
 </div></div>
 
-<div class="modal" id="firebaseModal"><div class="box">
-  <h3>☁ Firebase Realtime Database</h3>
-  <label>Database URL</label>
-  <input type="text" id="fbUrl" value="https://estimatesscada-default-rtdb.asia-southeast1.firebasedatabase.app" placeholder="https://your-project-default-rtdb.region.firebasedatabase.app">
-  <label>Cloud Folder / Path</label>
-  <input type="text" id="fbPath" value="slds" placeholder="slds">
-  <div class="note">
-    This saves every diagram separately under <b>/slds/&lt;substation_name&gt;</b> in Firebase Realtime Database.
-    Keep your estimates data separate by using this dedicated <b>slds</b> folder.
-  </div>
-  <div class="btns">
-    <button class="pri" id="fbConnect">Connect / Save Settings</button>
-    <button id="fbSaveNow">☁ Save Current SLD</button>
-    <button id="fbLoadList">📂 Load Cloud List</button>
-    <button id="fbClose">Close</button>
-  </div>
-  <div id="fbStatus" class="note">Not connected yet.</div>
-  <div id="fbList" style="margin-top:10px"></div>
-</div></div>
-
-
 <div class="modal" id="printModal"><div class="box">
   <h3>🖨️ Print / Export PDF — Landscape</h3>
   <label>Paper Size</label>
@@ -400,7 +378,7 @@ body.anim .comp.dead .symWrap{opacity:.4}
 <script>
 "use strict";
 /* ============================================================
-   SLD STUDIO PRO V5 Firebase-Safe
+   SLD STUDIO PRO V4
    V3 electrical engine (correct connectivity + switching)
    + Gemini UI polish + 5 fixes (breaker/fuse gating, ⊘ marks,
      paper-size print w/ boost, real underlay tracing, themes)
@@ -626,7 +604,7 @@ function commitProps(final){
   if(c.type==="bus")c.len=Math.max(40,+P('pBusLen').value||300);
   c.bio={make:P('pMake').value,rating:P('pRating').value,year:P('pYear').value,
     serial:P('pSerial').value,sap:P('pSap').value,maint:P('pMaint').value,remarks:P('pRemarks').value};
-  netDirty=true;render();if(final)pushHist();
+  netDirty=true;render();if(final){pushHist();reportCorrectionIfAI(c);}
 }
 P('szUp').onclick=()=>{if(locked)return;const c=findComp(selId);if(c){c.sc=Math.min(6,(c.sc||1)+0.2);P('pScale').value=c.sc.toFixed(1);netDirty=true;render();pushHist();}};
 P('szDn').onclick=()=>{if(locked)return;const c=findComp(selId);if(c){c.sc=Math.max(.3,(c.sc||1)-0.2);P('pScale').value=c.sc.toFixed(1);netDirty=true;render();pushHist();}};
@@ -748,86 +726,6 @@ P('uY').onchange=()=>{if(state.underlay){state.underlay.y=+P('uY').value||0;appl
 P('uShow').onclick=()=>{if(state.underlay){state.underlay.show=!state.underlay.show;applyUnderlay();}};
 P('uRemove').onclick=()=>{state.underlay=null;applyUnderlay();};
 
-
-/* ---------- FIREBASE REALTIME DATABASE (REST ADAPTER - SAFE FOR GITHUB PAGES) ---------- */
-const FB_DEFAULT_URL="https://estimatesscada-default-rtdb.asia-southeast1.firebasedatabase.app";
-const fbSettings={
-  url:localStorage.getItem("sld_fb_url")||FB_DEFAULT_URL,
-  path:localStorage.getItem("sld_fb_path")||"slds"
-};
-function cleanFbUrl(u){return (u||"").trim().replace(/\/+$/,"");}
-function cleanFbPath(p){return (p||"slds").trim().replace(/^\/+|\/+$/g,"")||"slds";}
-function fbReady(){return !!(fbSettings.url&&/^https:\/\/.+firebaseio\.com|^https:\/\/.+firebasedatabase\.app/.test(fbSettings.url));}
-function fbItemPath(name){return cleanFbPath(fbSettings.path)+"/"+slug(name||state.name||"untitled");}
-async function fbFetch(path,opt){
-  if(!fbReady())throw new Error("Firebase URL is not configured");
-  const url=cleanFbUrl(fbSettings.url)+"/"+path.replace(/^\/+/,"")+".json";
-  const res=await fetch(url,opt||{});
-  if(!res.ok)throw new Error("HTTP "+res.status+" - check Firebase Rules / URL");
-  return await res.json();
-}
-window.FB={
-  db:{
-    ref(path){
-      return {
-        set(data){return fbFetch(path,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});},
-        once(){return fbFetch(path).then(v=>({val:()=>v}));},
-        remove(){return fbFetch(path,{method:"DELETE"});}
-      };
-    }
-  }
-};
-function initFbUi(){
-  if(P('fbUrl'))P('fbUrl').value=fbSettings.url;
-  if(P('fbPath'))P('fbPath').value=fbSettings.path;
-  updateFbStatus();
-}
-function updateFbStatus(msg){
-  const el=P('fbStatus'); if(!el)return;
-  el.innerHTML=msg||("Connected path: <b>"+esc(cleanFbUrl(fbSettings.url))+"/"+esc(cleanFbPath(fbSettings.path))+"</b>");
-}
-async function saveCurrentToFirebase(){
-  state.name=P('ssName').value||state.name||"Untitled SLD";
-  const payload={...state,underlay:null,updatedAt:Date.now(),version:"V5"};
-  await FB.db.ref(fbItemPath(state.name)).set(payload);
-  return payload;
-}
-async function loadCloudList(){
-  const host=P('fbList'); if(host)host.innerHTML="<div class='note'>Loading cloud SLDs…</div>";
-  const data=await FB.db.ref(cleanFbPath(fbSettings.path)).once().then(s=>s.val()||{});
-  if(!host)return data;
-  host.innerHTML="";
-  const entries=Object.entries(data).sort((a,b)=>((b[1]&&b[1].updatedAt)||0)-((a[1]&&a[1].updatedAt)||0));
-  if(!entries.length){host.innerHTML="<div class='note'>No cloud SLDs found under /"+esc(cleanFbPath(fbSettings.path))+"</div>";return data;}
-  entries.forEach(([key,data])=>{
-    const row=document.createElement('div'); row.className="sldRow";
-    const ts=data.updatedAt?new Date(data.updatedAt).toLocaleString():"";
-    row.innerHTML=`<div><div class="nm">${esc(data.name||key)}</div><div class="dt">${data.comps?.length||0} parts · Cloud · ${esc(ts)}</div></div><div class="act"><button class="pri">Open</button><button>⬇</button><button style="color:var(--red)">🗑</button></div>`;
-    const [openBtn,downBtn,delBtn]=row.querySelectorAll('button');
-    openBtn.onclick=()=>{state={underlay:null,...JSON.parse(JSON.stringify(data))};P('ssName').value=state.name||"";selId=null;closeProps();netDirty=true;applyUnderlay();render();fit();hist=[];hPtr=-1;pushHist();P('firebaseModal').classList.remove('open');toast("Cloud SLD opened ✓");};
-    downBtn.onclick=()=>dl(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}),slug(data.name||key)+".json");
-    delBtn.onclick=async()=>{if(confirm("Delete cloud SLD '"+(data.name||key)+"'?")){await FB.db.ref(cleanFbPath(fbSettings.path)+"/"+key).remove();await loadCloudList();toast("Deleted from Firebase");}};
-    host.appendChild(row);
-  });
-  return data;
-}
-if(P('bFirebase')){
-  P('bFirebase').onclick=()=>{initFbUi();P('firebaseModal').classList.add('open');};
-  P('fbClose').onclick=()=>P('firebaseModal').classList.remove('open');
-  P('fbConnect').onclick=async()=>{
-    fbSettings.url=cleanFbUrl(P('fbUrl').value||FB_DEFAULT_URL);
-    fbSettings.path=cleanFbPath(P('fbPath').value||"slds");
-    localStorage.setItem("sld_fb_url",fbSettings.url);
-    localStorage.setItem("sld_fb_path",fbSettings.path);
-    updateFbStatus("Settings saved. Testing connection…");
-    try{await FB.db.ref(fbSettings.path).once();updateFbStatus("✅ Connected to <b>"+esc(fbSettings.url+"/"+fbSettings.path)+"</b>");}
-    catch(e){updateFbStatus("❌ Connection failed: "+esc(e.message));}
-  };
-  P('fbSaveNow').onclick=async()=>{try{await saveCurrentToFirebase();toast("Saved current SLD to Firebase ✓");updateFbStatus("✅ Saved under /"+esc(fbItemPath(state.name)));}catch(e){alert("Firebase save failed: "+e.message);}};
-  P('fbLoadList').onclick=async()=>{try{updateFbStatus("Loading cloud list…");await loadCloudList();updateFbStatus("✅ Cloud list loaded");}catch(e){updateFbStatus("❌ Could not load: "+esc(e.message));}};
-}
-
-
 /* ---------- SAVE / MANAGER ---------- */
 const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"_");
 P('bSave').onclick=async()=>{state.name=P('ssName').value;
@@ -912,11 +810,42 @@ function applyGeneratedSld(json){
   uid=Math.max(uid,maxId+1);                 /* avoid id collisions */
   state={underlay:state.underlay,name:json.name||"Generated SS",
          comps:json.comps,wires:json.wires};
+  /* ---- LEARNING: remember what the AI produced so we can detect edits ---- */
+  aiBaseline={};
+  if(json._fromAI){
+    state.comps.forEach(c=>{if(c.label)aiBaseline[c.id]=c.label;});
+    aiSourceName=state.name;
+  }else aiSourceName=null;
   P('ssName').value=state.name;
   selId=null;closeProps();netDirty=true;render();fit();
   hist=[];hPtr=-1;pushHist();
   P('autoGenModal').classList.remove('open');
   toast("SLD generated ✓ — unlock ✏️ to rename/move/edit");
+}
+
+/* ============================================================
+   🧠 LEARNING FEEDBACK — report user corrections back to the AI
+   When a label that the AI generated is edited by the user, POST the
+   {ocr_text -> correct_text} pair to /submit-correction so the backend
+   dictionary learns it. Fires only for AI-generated diagrams; manual
+   edits to hand-built SLDs are ignored. Fully optional & non-blocking.
+   ============================================================ */
+let aiBaseline={};      /* comp.id -> label the AI originally produced */
+let aiSourceName=null;  /* substation name of the AI-generated diagram */
+
+function reportCorrectionIfAI(comp){
+  if(!aiSourceName||!comp||!(comp.id in aiBaseline))return;
+  const was=aiBaseline[comp.id], now=comp.label;
+  if(!was||!now||was===now)return;
+  aiBaseline[comp.id]=now;            /* update so we don't re-send */
+  const base=(P('agUrl').value||"").replace(/\/+$/,"");
+  if(!base)return;
+  fetch(base+"/submit-correction",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({substation:aiSourceName,ocr_text:was,
+      correct_text:now,kind:"label"})
+  }).then(r=>r.ok&&toast("🧠 Correction sent — AI will remember this"))
+   .catch(()=>{});   /* silent if backend offline */
 }
 
 /* ---- client-side offline template builder (Phase-1 fallback) ---- */
@@ -996,6 +925,7 @@ P('agRun').onclick=async()=>{
     const res=await fetch(url,{method:"POST",body:fd});
     if(!res.ok)throw new Error("HTTP "+res.status);
     const json=await res.json();
+    json._fromAI=true;
     applyGeneratedSld(json);
     if(json._note)toast(json._note);
   }catch(e){
