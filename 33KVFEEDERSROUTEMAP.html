@@ -1223,6 +1223,245 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 /* ── CUT-POINT marker should NOT scale weirdly with zoom ── */
 .cut-pt-icon svg{display:block}
 
+
+<!-- ════ AI ASSISTANT PANEL (keep your existing HTML) ════ -->
+<div id="aiPanel"> ... (your existing panel HTML remains unchanged) ... </div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// TGSPDCL AI GRID ASSISTANT — FULLY UPDATED
+// Hugging Face Integration + Live Map Context + Charts + Reports
+// ══════════════════════════════════════════════════════════════════
+
+let _aiToken = localStorage.getItem('tgspdcl_hf_token') || '';
+let _aiOpen = false;
+let _aiThinking = false;
+let _aiHistory = [];
+let _chartCount = 0;
+
+// === CHANGE THIS TO YOUR HF SPACE URL (recommended) ===
+const HF_ENDPOINT = "https://your-username-tgspdcl-grid-assistant.hf.space/api/predict";  
+// Fallback direct HF (less reliable, token visible):
+// const HF_ENDPOINT = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3";
+
+function toggleAIPanel() {
+  _aiOpen = !_aiOpen;
+  const panel = document.getElementById('aiPanel');
+  const btn = document.getElementById('tbAiBtn');
+  if (panel) panel.classList.toggle('open', _aiOpen);
+  if (btn) btn.classList.toggle('open', _aiOpen);
+  if (_aiOpen) {
+    const input = document.getElementById('aiInput');
+    if (input) input.focus();
+  }
+}
+
+function saveAiToken() {
+  const t = document.getElementById('aiHfToken').value.trim();
+  if (t) {
+    _aiToken = t;
+    localStorage.setItem('tgspdcl_hf_token', t);
+    _aiSetStatus('ready', 'TOKEN SAVED');
+    setTimeout(() => _aiSetStatus('ready', 'READY'), 1500);
+  }
+}
+
+function _nowStr() {
+  return new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+}
+
+function _aiSetStatus(type, text) {
+  const dot = document.getElementById('aiStatusDot');
+  const txt = document.getElementById('aiStatusTxt');
+  if (dot) dot.className = 'ai-status-dot' + (type === 'thinking' ? ' thinking' : type === 'error' ? ' error' : '');
+  if (txt) txt.textContent = text;
+}
+
+// Live map snapshot (reuses your variables)
+function _getMapSnapshot() {
+  const snap = {
+    totalFeatures: (typeof allLayers !== 'undefined' ? allLayers.filter(i => !i._deleted).length : 0),
+    feeders: (typeof feederNames !== 'undefined' ? [...feederNames] : []),
+    statusLive: 0, statusBreakdown: 0, statusIdle: 0,
+    ugCount: 0, ohCount: 0,
+    feederDetail: []
+  };
+
+  if (typeof feederStatus !== 'undefined' && snap.feeders.length) {
+    snap.feeders.forEach(fn => {
+      const st = feederStatus[fn] || 'live';
+      if (st === 'live') snap.statusLive++;
+      else if (st === 'breakdown') snap.statusBreakdown++;
+      else snap.statusIdle++;
+
+      const poles = (typeof allLayers !== 'undefined') 
+        ? allLayers.filter(i => !i._deleted && i.feederName === fn && (i.reg?.type === 'points' || i.cable)).length 
+        : 0;
+      snap.feederDetail.push({name: fn, poles, status: st});
+    });
+  }
+  return snap;
+}
+
+function _buildContext(snap) {
+  const top = snap.feederDetail.sort((a,b) => b.poles - a.poles).slice(0, 8)
+    .map(f => `${f.name}(${f.poles} poles, ${f.status})`).join(', ');
+  return `LIVE TGSPDCL 33KV MAP DATA:
+• Total Feeders: ${snap.feeders.length}
+• Live: ${snap.statusLive} | Breakdown: ${snap.statusBreakdown} | Idle: ${snap.statusIdle}
+• Top feeders: ${top || 'None yet'}
+Use this data for accurate answers.`;
+}
+
+// Quick chips
+function aiQuick(key) {
+  const prompts = {
+    summary: "Give a complete summary of the current map: total feeders, poles, UG/OH split, status overview.",
+    breakdown: "List all feeders currently in BREAKDOWN or IDLE status with their division/section if available.",
+    report: "Generate a professional TGSPDCL monthly feeder status report with key statistics.",
+    chart_feeder: "CHART:feeder_poles",
+    chart_status: "CHART:status_pie",
+    chart_cable: "CHART:ug_oh_bar",
+    longest: "List the 5 longest feeders by pole count.",
+    recommend: "Give 4 practical engineering recommendations based on current feeder data."
+  };
+  const txt = prompts[key];
+  if (txt) {
+    if (txt.startsWith('CHART:')) {
+      _renderChart(txt.replace('CHART:', ''));
+    } else {
+      document.getElementById('aiInput').value = txt;
+      aiSend();
+    }
+  }
+}
+
+async function aiSend() {
+  const input = document.getElementById('aiInput');
+  const msg = input.value.trim();
+  if (!msg || _aiThinking) return;
+
+  if (!_aiToken) {
+    _appendMsg('ai', 'Please enter your Hugging Face token above first.', true);
+    return;
+  }
+
+  input.value = '';
+  _appendMsg('user', msg);
+  _aiHistory.push({role: 'user', content: msg});
+  _showTyping();
+  _aiThinking = true;
+  _aiSetStatus('thinking', 'THINKING…');
+
+  const snap = _getMapSnapshot();
+  const context = _buildContext(snap);
+
+  try {
+    let reply = '';
+    if (HF_ENDPOINT.includes('.hf.space')) {
+      // Space proxy
+      const res = await fetch(HF_ENDPOINT, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ data: [msg, context] })
+      });
+      const json = await res.json();
+      reply = json.data ? json.data[0] : json;
+    } else {
+      // Direct HF
+      const prompt = `<s>[INST] You are TGSPDCL 33KV expert assistant.\n\n${context}\n\n${msg} [/INST]`;
+      const res = await fetch(HF_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${_aiToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: { max_new_tokens: 1024, temperature: 0.5 }
+        })
+      });
+      const data = await res.json();
+      reply = Array.isArray(data) ? data[0].generated_text : (data.generated_text || 'No response');
+    }
+
+    _hideTyping();
+    _appendMsg('ai', reply.trim(), true);
+    _aiHistory.push({role: 'assistant', content: reply});
+
+    // Auto chart/report hints
+    if (msg.toLowerCase().includes('chart') || reply.toLowerCase().includes('chart')) {
+      // Could auto-trigger specific charts if needed
+    }
+
+  } catch (err) {
+    _hideTyping();
+    _appendMsg('ai', 'Error: ' + err.message, true);
+  }
+
+  _aiThinking = false;
+  _aiSetStatus('ready', 'READY');
+}
+
+// Helper functions (append, typing, scroll)
+function _appendMsg(role, text, isAI) {
+  const msgs = document.getElementById('aiMsgs');
+  if (!msgs) return;
+  const div = document.createElement('div');
+  div.className = `ai-msg ${isAI ? 'ai' : 'user'}`;
+  const fmt = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                  .replace(/`(.+?)`/g, '<code>$1</code>')
+                  .replace(/\n/g, '<br>');
+  div.innerHTML = `
+    <div class="ai-msg-avatar">${isAI ? '🤖' : '👤'}</div>
+    <div class="ai-msg-body">
+      <div class="ai-bubble">${fmt}</div>
+      <div class="ai-msg-time">${_nowStr()}</div>
+    </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _showTyping() {
+  const msgs = document.getElementById('aiMsgs');
+  if (!msgs) return;
+  const existing = document.getElementById('_aiTyping');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = '_aiTyping';
+  div.className = 'ai-msg ai';
+  div.innerHTML = `<div class="ai-msg-avatar">🤖</div><div class="ai-msg-body"><div class="ai-bubble"><div class="ai-typing"><span></span><span></span><span></span></div></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _hideTyping() {
+  const el = document.getElementById('_aiTyping');
+  if (el) el.remove();
+}
+
+function _renderChart(type) {
+  // Reuse or extend your existing chart logic from previous messages
+  _appendMsg('ai', `📊 Generating ${type} chart... (implement _renderChart logic as needed)`, true);
+}
+
+// Auto-grow textarea
+const aiInput = document.getElementById('aiInput');
+if (aiInput) {
+  aiInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      aiSend();
+    }
+  });
+  aiInput.addEventListener('input', () => {
+    aiInput.style.height = 'auto';
+    aiInput.style.height = Math.min(aiInput.scrollHeight, 120) + 'px';
+  });
+}
+
+// Initial welcome (your existing one is fine)
+</script>
 </style>
 </head>
 <body>
@@ -1244,6 +1483,10 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
     <span class="srch-ic">⌕</span>
   </div>
   <input type="file" id="dfFileInput" accept=".csv,.xlsx,.xls" onchange="handleFileUpload(this)" style="display:none"/>
+  <div class="tb-ai-btn" id="tbAiBtn" onclick="toggleAIPanel()" title="AI Assistant — ask questions, generate reports, charts">
+    <span class="tb-ai-ic">🤖</span>
+    <span>AI ASSISTANT</span>
+  </div>
   <div id="tbInterruptBtn" class="tb-irr-btn" onclick="toggleInterruptionPanel()" title="Show feeders under breakdown / idle">
     <span class="tb-irr-ic">⚠</span>
     <span class="tb-irr-lbl">INTERRUPTION DETAILS</span>
@@ -7769,6 +8012,659 @@ setTimeout(async ()=>{
   </div>
 </div>
 
+
+
+<!-- ════ AI ASSISTANT PANEL ════ -->
+<div id="aiPanel">
+
+  <!-- Header -->
+  <div class="ai-hd">
+    <div class="ai-hd-icon">🤖</div>
+    <div class="ai-hd-info">
+      <div class="ai-hd-title">// AI GRID ASSISTANT</div>
+      <div class="ai-hd-sub">MISTRAL-7B · HUGGING FACE · TGSPDCL</div>
+    </div>
+    <div class="ai-hd-status">
+      <div class="ai-status-dot" id="aiStatusDot"></div>
+      <div class="ai-status-txt" id="aiStatusTxt">READY</div>
+    </div>
+    <div class="ai-hd-close" onclick="toggleAIPanel()">✕</div>
+  </div>
+
+  <!-- HF Token -->
+  <div class="ai-token-row">
+    <input class="ai-token-input" type="password" id="aiHfToken"
+      placeholder="hf_xxxxxxxx  (Hugging Face token)" autocomplete="off"/>
+    <button class="ai-token-save" onclick="saveAiToken()">SAVE</button>
+    <a class="ai-token-link" href="https://huggingface.co/settings/tokens"
+      target="_blank">Get free token →</a>
+  </div>
+
+  <!-- Quick action chips -->
+  <div class="ai-chips" id="aiChips">
+    <div class="ai-chip" onclick="aiQuick('summary')">📊 Map Summary</div>
+    <div class="ai-chip" onclick="aiQuick('breakdown')">🔴 Breakdowns</div>
+    <div class="ai-chip" onclick="aiQuick('report')">📋 Generate Report</div>
+    <div class="ai-chip" onclick="aiQuick('chart_feeder')">📈 Feeder Chart</div>
+    <div class="ai-chip" onclick="aiQuick('chart_status')">🥧 Status Chart</div>
+    <div class="ai-chip" onclick="aiQuick('chart_cable')">📉 UG vs OH</div>
+    <div class="ai-chip" onclick="aiQuick('longest')">📏 Longest Feeders</div>
+    <div class="ai-chip" onclick="aiQuick('recommend')">💡 Recommendations</div>
+  </div>
+
+  <!-- Messages -->
+  <div class="ai-msgs" id="aiMsgs">
+    <div class="ai-msg ai">
+      <div class="ai-msg-avatar">🤖</div>
+      <div class="ai-msg-body">
+        <div class="ai-bubble">
+          Hello! I'm your <strong>TGSPDCL Grid Assistant</strong> powered by Mistral-7B.<br><br>
+          I can read your <em>live map data</em> and help you:<br>
+          • Generate feeder reports &amp; analysis<br>
+          • Create charts (pole count, UG/OH, status)<br>
+          • Answer questions about your feeders<br>
+          • Identify breakdowns &amp; anomalies<br><br>
+          Add your <code>Hugging Face token</code> above, then ask anything!
+        </div>
+        <div class="ai-msg-time" id="aiWelcomeTime"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="ai-input-area">
+    <div class="ai-input-row">
+      <textarea class="ai-textarea" id="aiInput" rows="1"
+        placeholder="Ask about feeders, generate report, show chart…"
+        onkeydown="aiHandleKey(event)" oninput="autoGrowTextarea(this)"></textarea>
+      <button class="ai-send" id="aiSendBtn" onclick="aiSend()" title="Send (Enter)">➤</button>
+    </div>
+    <div class="ai-hint">Enter to send · Shift+Enter for new line · charts render inline</div>
+  </div>
+</div>
+
+<!-- Chart.js for inline charts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  TGSPDCL AI GRID ASSISTANT
+//  Backend: Hugging Face Inference API → Mistral-7B-Instruct-v0.3
+//  Self-learning: saves prompt/response pairs to localStorage
+//  Charts: inline Chart.js rendered directly in chat
+//  All data read live from the map (allLayers, feederNames, etc.)
+// ══════════════════════════════════════════════════════════════════
+
+// ── State ──
+let _aiToken = localStorage.getItem('tgspdcl_hf_token') || '';
+let _aiOpen  = false;
+let _aiThinking = false;
+let _aiHistory  = []; // {role, content}
+let _trainingData = JSON.parse(localStorage.getItem('tgspdcl_ai_training') || '[]');
+let _chartCount = 0;
+
+// Restore saved token on load
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('tgspdcl_hf_token');
+  if (saved) document.getElementById('aiHfToken').value = saved;
+  document.getElementById('aiWelcomeTime').textContent = _nowStr();
+});
+
+// ── Panel toggle ──
+function toggleAIPanel() {
+  _aiOpen = !_aiOpen;
+  document.getElementById('aiPanel').classList.toggle('open', _aiOpen);
+  document.getElementById('tbAiBtn').classList.toggle('open', _aiOpen);
+  if (_aiOpen) document.getElementById('aiInput').focus();
+}
+
+function saveAiToken() {
+  const t = document.getElementById('aiHfToken').value.trim();
+  if (!t) return;
+  _aiToken = t;
+  localStorage.setItem('tgspdcl_hf_token', t);
+  _aiSetStatus('ready', 'TOKEN SAVED');
+  setTimeout(() => _aiSetStatus('ready', 'READY'), 2000);
+}
+
+function _nowStr() {
+  return new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
+}
+
+function _aiSetStatus(type, text) {
+  const dot = document.getElementById('aiStatusDot');
+  const txt = document.getElementById('aiStatusTxt');
+  dot.className = 'ai-status-dot' + (type === 'thinking' ? ' thinking' : type === 'error' ? ' error' : '');
+  txt.textContent = text;
+}
+
+// ── Input helpers ──
+function autoGrowTextarea(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+function aiHandleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiSend(); }
+}
+
+// ── Quick chips ──
+const _quickPrompts = {
+  summary:       'Give me a complete summary of the current map data: total feeders, poles, UG vs OH breakdown, feeder status, and key observations.',
+  breakdown:     'Which feeders are currently in BREAKDOWN or IDLE status? List them with their division and section.',
+  report:        'Generate a formal TGSPDCL monthly feeder status report for the current data with all statistics.',
+  chart_feeder:  'CHART:feeder_poles — Show a bar chart of pole count per feeder.',
+  chart_status:  'CHART:status_pie — Show a pie chart of feeder status (Live / Breakdown / Idle).',
+  chart_cable:   'CHART:ug_oh_bar — Show a bar chart comparing UG vs OH poles per feeder.',
+  longest:       'Which are the 5 feeders with the most poles? List them in order.',
+  recommend:     'Based on the current feeder data and status, give 4 specific engineering recommendations for the division engineer.',
+};
+function aiQuick(key) {
+  const txt = _quickPrompts[key];
+  if (!txt) return;
+  if (txt.startsWith('CHART:')) {
+    _renderChart(txt.replace('CHART:', ''));
+    return;
+  }
+  document.getElementById('aiInput').value = txt;
+  aiSend();
+}
+
+// ══════════════════════════════════════════════════
+// LIVE DATA SNAPSHOT — reads directly from map state
+// ══════════════════════════════════════════════════
+function _getMapSnapshot() {
+  const snap = {
+    totalFeatures: 0, feeders: [], ugCount: 0, ohCount: 0,
+    abCount: 0, dpCount: 0, cutCount: 0,
+    ss33Count: 0, ehtCount: 0, lineCount: 0,
+    statusLive: 0, statusBreakdown: 0, statusIdle: 0,
+    feederDetail: [],
+  };
+
+  if (typeof allLayers === 'undefined') return snap;
+
+  const active = allLayers.filter(i => !i._deleted);
+  snap.totalFeatures = active.length;
+  snap.ugCount   = active.filter(i => i.cable === 'UG').length;
+  snap.ohCount   = active.filter(i => i.cable === 'OH').length;
+  snap.abCount   = active.filter(i => i.reg?.type === 'ab').length;
+  snap.dpCount   = active.filter(i => i.reg?.type === 'dp').length;
+  snap.cutCount  = active.filter(i => i.reg?.type === 'cut').length;
+  snap.ss33Count = active.filter(i => (i.reg?.type||'').startsWith('ss33')).length;
+  snap.ehtCount  = active.filter(i => (i.reg?.type||'').startsWith('eht')).length;
+  snap.lineCount = active.filter(i => i.reg?.type === 'lines').length;
+
+  if (typeof feederNames !== 'undefined') {
+    snap.feeders = [...feederNames];
+    snap.feeders.forEach(fn => {
+      const st = (typeof feederStatus !== 'undefined' ? feederStatus[fn] : null) || 'live';
+      if (st === 'live') snap.statusLive++;
+      else if (st === 'breakdown') snap.statusBreakdown++;
+      else snap.statusIdle++;
+
+      const h = (typeof getFeederHierarchy === 'function') ? getFeederHierarchy(fn) : {};
+      const poles = active.filter(i => i.feederName === fn && i.reg?.type === 'points').length;
+      const ug = active.filter(i => i.feederName === fn && i.cable === 'UG').length;
+      const oh = active.filter(i => i.feederName === fn && i.cable === 'OH').length;
+      snap.feederDetail.push({ name: fn, poles, ug, oh, status: st,
+        division: h.division || '—', section: h.section || '—' });
+    });
+  }
+  return snap;
+}
+
+function _buildContext(snap) {
+  const top10 = [...snap.feederDetail].sort((a,b) => b.poles - a.poles).slice(0, 15);
+  const downFeeders = snap.feederDetail.filter(f => f.status !== 'live')
+    .map(f => `${f.name} (${f.status.toUpperCase()}, ${f.division})`).join(', ') || 'None';
+
+  return `LIVE MAP DATA (TGSPDCL SCADA 33KV FEEDER ROUTE MAP):
+- Total features on map: ${snap.totalFeatures}
+- Total feeders: ${snap.feeders.length}
+- UG poles/points: ${snap.ugCount}
+- OH poles/points: ${snap.ohCount}
+- AB Switches: ${snap.abCount}
+- DP Structures: ${snap.dpCount}
+- Cut Points: ${snap.cutCount}
+- 33/11KV Substations: ${snap.ss33Count}
+- EHT Substations: ${snap.ehtCount}
+- Feeder lines: ${snap.lineCount}
+- Live feeders: ${snap.statusLive}
+- Breakdown feeders: ${snap.statusBreakdown}
+- Idle feeders: ${snap.statusIdle}
+- Feeders not live: ${downFeeders}
+
+TOP FEEDERS BY POLE COUNT:
+${top10.map(f => `  ${f.name}: ${f.poles} poles (UG:${f.ug} OH:${f.oh}) — ${f.status.toUpperCase()} — ${f.division}`).join('\n')}`;
+}
+
+// ══════════════════════════════════════════════════
+// CHART RENDERING — inline Chart.js in chat
+// ══════════════════════════════════════════════════
+function _renderChart(chartKey) {
+  const snap = _getMapSnapshot();
+  if (!snap.feeders.length) {
+    _appendMsg('ai', '⚠ No feeder data loaded yet. Upload a CSV/XLSX file first, then try again.', true);
+    return;
+  }
+
+  _appendMsg('user', '📈 Generate chart: ' + chartKey.replace(/_/g,' ').toUpperCase(), false);
+
+  let config = null;
+  const cid = 'aiChart_' + (++_chartCount);
+
+  if (chartKey === 'feeder_poles') {
+    const top12 = [...snap.feederDetail].sort((a,b)=>b.poles-a.poles).slice(0,12);
+    config = {
+      type:'bar',
+      data:{
+        labels: top12.map(f => f.name.length > 22 ? f.name.substring(0,22)+'…' : f.name),
+        datasets:[{
+          label:'Poles',
+          data: top12.map(f => f.poles),
+          backgroundColor: top12.map(f =>
+            f.status==='breakdown' ? 'rgba(239,68,68,.8)' :
+            f.status==='idle'      ? 'rgba(156,163,175,.8)' : 'rgba(99,102,241,.8)'),
+          borderColor: 'rgba(139,92,246,.4)',
+          borderWidth:1, borderRadius:4,
+        }]
+      },
+      options:{
+        indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false},
+          title:{display:true,text:'Pole Count per Feeder (Top 12)',color:'#c4b5fd',font:{size:11}} },
+        scales:{ x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(139,92,246,.1)'}},
+                 y:{ticks:{color:'#e2e8f0',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}} }
+      }
+    };
+  } else if (chartKey === 'status_pie') {
+    config = {
+      type:'doughnut',
+      data:{
+        labels:['Live','Breakdown','Idle'],
+        datasets:[{
+          data:[snap.statusLive, snap.statusBreakdown, snap.statusIdle],
+          backgroundColor:['rgba(34,197,94,.8)','rgba(239,68,68,.8)','rgba(156,163,175,.8)'],
+          borderColor:['#16a34a','#dc2626','#6b7280'],
+          borderWidth:2,
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{position:'bottom',labels:{color:'#c4b5fd',font:{size:10},padding:12}},
+          title:{display:true,text:'Feeder Status Distribution',color:'#c4b5fd',font:{size:11}}
+        }
+      }
+    };
+  } else if (chartKey === 'ug_oh_bar') {
+    const top10 = [...snap.feederDetail].sort((a,b)=>(b.ug+b.oh)-(a.ug+a.oh)).slice(0,10);
+    config = {
+      type:'bar',
+      data:{
+        labels: top10.map(f => f.name.length>20 ? f.name.substring(0,20)+'…' : f.name),
+        datasets:[
+          { label:'UG', data:top10.map(f=>f.ug), backgroundColor:'rgba(33,150,243,.75)',
+            borderColor:'#1976d2', borderWidth:1, borderRadius:3 },
+          { label:'OH', data:top10.map(f=>f.oh), backgroundColor:'rgba(255,152,0,.75)',
+            borderColor:'#f57c00', borderWidth:1, borderRadius:3 },
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{labels:{color:'#c4b5fd',font:{size:10}}},
+          title:{display:true,text:'UG vs OH Poles per Feeder (Top 10)',color:'#c4b5fd',font:{size:11}}
+        },
+        scales:{
+          x:{ticks:{color:'#94a3b8',font:{size:8},maxRotation:35},grid:{color:'rgba(255,255,255,.04)'}},
+          y:{stacked:false,ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(139,92,246,.1)'}}
+        }
+      }
+    };
+  }
+
+  if (!config) {
+    _appendMsg('ai', 'Unknown chart type: ' + chartKey, true);
+    return;
+  }
+
+  // Build chart message with canvas
+  const wrap = document.createElement('div');
+  wrap.className = 'ai-msg ai';
+  wrap.innerHTML = `
+    <div class="ai-msg-avatar">📈</div>
+    <div class="ai-msg-body" style="max-width:95%;width:100%">
+      <div class="ai-chart-wrap">
+        <div class="ai-canvas-wrap"><canvas id="${cid}"></canvas></div>
+      </div>
+      <div class="ai-msg-time">${_nowStr()}</div>
+    </div>`;
+  document.getElementById('aiMsgs').appendChild(wrap);
+  _aiScrollDown();
+
+  // Render chart after DOM paint
+  requestAnimationFrame(() => {
+    const ctx = document.getElementById(cid);
+    if (ctx && window.Chart) {
+      new Chart(ctx, {
+        ...config,
+        options: {
+          ...config.options,
+          animation:{ duration:600, easing:'easeInOutQuart' }
+        }
+      });
+    }
+  });
+
+  // Save as training data
+  _saveTraining('chart:' + chartKey, '[Chart rendered from live map data]');
+}
+
+// ══════════════════════════════════════════════════
+// SEND MESSAGE — calls HF Mistral API
+// ══════════════════════════════════════════════════
+async function aiSend() {
+  const input = document.getElementById('aiInput');
+  const msg   = input.value.trim();
+  if (!msg || _aiThinking) return;
+
+  if (!_aiToken) {
+    _appendMsg('ai', '⚠ Please enter your <strong>Hugging Face API token</strong> above first.
+
+Get a free one at huggingface.co/settings/tokens', true);
+    return;
+  }
+
+  input.value = '';
+  input.style.height = 'auto';
+  _appendMsg('user', msg, false);
+  _aiHistory.push({ role:'user', content:msg });
+  _showTyping();
+  _aiThinking = true;
+  document.getElementById('aiSendBtn').disabled = true;
+  _aiSetStatus('thinking', 'THINKING…');
+
+  const snap    = _getMapSnapshot();
+  const context = _buildContext(snap);
+
+  // Build Mistral prompt (chat format)
+  const systemPrompt = `You are an expert power grid engineer assistant for TGSPDCL (Telangana State Southern Power Distribution Company Limited). You have access to live 33KV feeder map data. Answer questions precisely, use specific numbers from the data, and write in professional engineering style. When generating reports, format them clearly with sections. Keep responses concise but complete.`;
+
+  // Build conversation turns
+  let turns = '';
+  const recentHistory = _aiHistory.slice(-6); // keep last 3 exchanges
+  recentHistory.forEach(h => {
+    if (h.role === 'user') turns += `[INST] ${h.content} [/INST]`;
+    else turns += ` ${h.content} </s><s>`;
+  });
+
+  const fullPrompt = `<s>[INST] ${systemPrompt}
+
+${context}
+
+${msg} [/INST]`;
+
+  try {
+    const res = await fetch(
+      'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${_aiToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: fullPrompt,
+          parameters: {
+            max_new_tokens: 900,
+            temperature: 0.45,
+            top_p: 0.92,
+            do_sample: true,
+            return_full_text: false,
+          }
+        })
+      }
+    );
+
+    _hideTyping();
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 503) {
+        _appendMsg('ai', '⏳ Model is loading (cold start ~20 seconds). Please wait and try again…', true);
+        _aiSetStatus('error', 'LOADING MODEL');
+      } else if (res.status === 401) {
+        _appendMsg('ai', '🔑 Invalid token. Please check your Hugging Face API token.', true);
+        _aiSetStatus('error', 'AUTH ERROR');
+      } else {
+        _appendMsg('ai', `⚠ API error ${res.status}: ${err.error || 'Unknown error'}`, true);
+        _aiSetStatus('error', 'API ERROR');
+      }
+      _aiThinking = false;
+      document.getElementById('aiSendBtn').disabled = false;
+      return;
+    }
+
+    const data  = await res.json();
+    const reply = Array.isArray(data)
+      ? (data[0]?.generated_text || '')
+      : (data.generated_text || '');
+
+    const cleaned = reply
+      .replace(/^\s*\[\/?INST\]\s*/gi, '')
+      .replace(/<\/s>|<s>/gi, '')
+      .trim();
+
+    _aiHistory.push({ role:'assistant', content:cleaned });
+    _appendMsg('ai', cleaned, true);
+    _aiSetStatus('ready', 'READY');
+
+    // Check if response looks like a report → add download button
+    if (cleaned.length > 300 && (msg.toLowerCase().includes('report') ||
+        msg.toLowerCase().includes('summary') || msg.toLowerCase().includes('analysis'))) {
+      _appendReportDownload(cleaned, snap);
+    }
+
+    // Save training data
+    _saveTraining(msg, cleaned);
+
+  } catch(err) {
+    _hideTyping();
+    _appendMsg('ai', '🔌 Network error: ' + err.message, true);
+    _aiSetStatus('error', 'NETWORK ERROR');
+  }
+
+  _aiThinking = false;
+  document.getElementById('aiSendBtn').disabled = false;
+}
+
+// ══════════════════════════════════════════════════
+// DOM HELPERS
+// ══════════════════════════════════════════════════
+function _appendMsg(role, text, isAI) {
+  const msgs = document.getElementById('aiMsgs');
+  const div  = document.createElement('div');
+  div.className = 'ai-msg ' + (isAI ? 'ai' : 'user');
+
+  // Format text: bold **text**, code `code`, line breaks
+  const fmt = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\n/g,'<br>');
+
+  div.innerHTML = `
+    <div class="ai-msg-avatar">${isAI ? '🤖' : '👤'}</div>
+    <div class="ai-msg-body">
+      <div class="ai-bubble">${fmt}</div>
+      <div class="ai-msg-time">${_nowStr()}</div>
+    </div>`;
+  msgs.appendChild(div);
+  _aiScrollDown();
+}
+
+function _appendReportDownload(text, snap) {
+  const msgs = document.getElementById('aiMsgs');
+  const div  = document.createElement('div');
+  div.className = 'ai-msg ai';
+  div.innerHTML = `
+    <div class="ai-msg-avatar">📥</div>
+    <div class="ai-msg-body" style="max-width:95%">
+      <div class="ai-bubble">
+        Report ready to download:
+        <div class="ai-dl-row">
+          <button class="ai-dl-btn xlsx" onclick="_downloadReportXLSX()">⬇ XLSX</button>
+          <button class="ai-dl-btn html" onclick="_downloadReportHTML('${encodeURIComponent(text.substring(0,50))}')">⬇ HTML</button>
+        </div>
+      </div>
+    </div>`;
+  msgs.appendChild(div);
+  _aiScrollDown();
+  window._lastAiReport = { text, snap };
+}
+
+function _downloadReportXLSX() {
+  if (!window._lastAiReport || typeof XLSX === 'undefined') return;
+  const { text, snap } = window._lastAiReport;
+  const wb = XLSX.utils.book_new();
+  // Summary sheet
+  const sumData = [
+    ['TGSPDCL — AI GENERATED REPORT', '', ''],
+    ['Generated', new Date().toLocaleDateString('en-IN'), ''],
+    ['', '', ''],
+    ['METRIC', 'VALUE', ''],
+    ['Total Feeders', snap.feeders.length, ''],
+    ['Total Features', snap.totalFeatures, ''],
+    ['UG Poles', snap.ugCount, ''],
+    ['OH Poles', snap.ohCount, ''],
+    ['Live Feeders', snap.statusLive, ''],
+    ['Breakdown Feeders', snap.statusBreakdown, ''],
+    ['Idle Feeders', snap.statusIdle, ''],
+    ['AB Switches', snap.abCount, ''],
+    ['33/11KV SS', snap.ss33Count, ''],
+    ['EHT SS', snap.ehtCount, ''],
+    ['', '', ''],
+    ['AI ANALYSIS', '', ''],
+    [text, '', ''],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(sumData);
+  ws1['!cols'] = [{wch:30},{wch:20},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Report');
+  // Feeder detail
+  const fdData = [['FEEDER NAME','POLES','UG','OH','STATUS','DIVISION','SECTION']];
+  snap.feederDetail.forEach(f => fdData.push([f.name,f.poles,f.ug,f.oh,f.status.toUpperCase(),f.division,f.section]));
+  const ws2 = XLSX.utils.aoa_to_sheet(fdData);
+  ws2['!cols'] = [{wch:45},{wch:8},{wch:8},{wch:8},{wch:12},{wch:25},{wch:25}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Feeder Detail');
+  XLSX.writeFile(wb, 'TGSPDCL_AI_Report_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+function _downloadReportHTML(titleEnc) {
+  if (!window._lastAiReport) return;
+  const { text, snap } = window._lastAiReport;
+  const fmt = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>TGSPDCL AI Feeder Report</title>
+<style>
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;color:#1e3a5f}
+.card{background:#fff;border-radius:12px;padding:28px 32px;max-width:860px;margin:0 auto;
+  box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.hd{background:linear-gradient(135deg,#0d47a1,#01579b);color:#fff;padding:24px 28px;
+  border-radius:8px;margin-bottom:24px}
+.hd h1{font-size:20px;margin-bottom:4px}
+.hd p{opacity:.8;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.stat{background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;padding:11px 14px}
+.stat-l{font-size:9px;color:#64748b;font-weight:700;letter-spacing:1px;margin-bottom:3px}
+.stat-v{font-size:18px;font-weight:800;color:#1565c0;font-family:monospace}
+.ai-text{font-size:13px;line-height:1.75;white-space:pre-wrap}
+.footer{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center}
+</style></head><body>
+<div class="card">
+  <div class="hd"><h1>TGSPDCL — 33KV Feeder Report</h1>
+  <p>AI-Generated · ${new Date().toLocaleDateString('en-IN')} · Mistral-7B</p></div>
+  <div class="grid">
+    <div class="stat"><div class="stat-l">FEEDERS</div><div class="stat-v">${snap.feeders.length}</div></div>
+    <div class="stat"><div class="stat-l">FEATURES</div><div class="stat-v">${snap.totalFeatures}</div></div>
+    <div class="stat"><div class="stat-l">UG POLES</div><div class="stat-v">${snap.ugCount}</div></div>
+    <div class="stat"><div class="stat-l">OH POLES</div><div class="stat-v">${snap.ohCount}</div></div>
+    <div class="stat"><div class="stat-l">LIVE</div><div class="stat-v" style="color:#16a34a">${snap.statusLive}</div></div>
+    <div class="stat"><div class="stat-l">BREAKDOWN</div><div class="stat-v" style="color:#dc2626">${snap.statusBreakdown}</div></div>
+  </div>
+  <div class="ai-text">${fmt}</div>
+  <div class="footer">Generated by TGSPDCL AI Grid Assistant · Mistral-7B-Instruct-v0.3 · Hugging Face</div>
+</div></body></html>`;
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'TGSPDCL_Report.html';
+  a.click();
+}
+
+let _typingEl = null;
+function _showTyping() {
+  const msgs = document.getElementById('aiMsgs');
+  _typingEl = document.createElement('div');
+  _typingEl.className = 'ai-msg ai';
+  _typingEl.id = '_aiTypingIndicator';
+  _typingEl.innerHTML = `<div class="ai-msg-avatar">🤖</div>
+    <div class="ai-msg-body"><div class="ai-bubble" style="padding:6px 14px">
+      <div class="ai-typing"><span></span><span></span><span></span></div>
+    </div></div>`;
+  msgs.appendChild(_typingEl);
+  _aiScrollDown();
+}
+function _hideTyping() {
+  const el = document.getElementById('_aiTypingIndicator');
+  if (el) el.remove();
+  _typingEl = null;
+}
+function _aiScrollDown() {
+  const msgs = document.getElementById('aiMsgs');
+  requestAnimationFrame(() => msgs.scrollTop = msgs.scrollHeight);
+}
+
+// ══════════════════════════════════════════════════
+// SELF-LEARNING — save prompt/response pairs
+// ══════════════════════════════════════════════════
+function _saveTraining(prompt, response) {
+  const snap = _getMapSnapshot();
+  _trainingData.push({
+    id: Date.now(),
+    date: new Date().toISOString(),
+    prompt, response,
+    mapContext: {
+      totalFeeders: snap.feeders.length,
+      totalFeatures: snap.totalFeatures,
+      ugCount: snap.ugCount,
+      ohCount: snap.ohCount,
+      statusLive: snap.statusLive,
+      statusBreakdown: snap.statusBreakdown,
+    }
+  });
+  // Keep last 200 entries
+  if (_trainingData.length > 200) _trainingData = _trainingData.slice(-200);
+  localStorage.setItem('tgspdcl_ai_training', JSON.stringify(_trainingData));
+}
+
+// Export training dataset for fine-tuning on Google Colab
+function exportAITrainingData() {
+  const dataset = _trainingData.map(d => ({
+    instruction: d.prompt,
+    output: d.response,
+    context: d.mapContext,
+    metadata: { date: d.date }
+  }));
+  const blob = new Blob([JSON.stringify(dataset, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'tgspdcl_ai_training_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  if (typeof toast === 'function') toast('Training data exported — ' + dataset.length + ' samples');
+}
+</script>
 
 </body>
 </html>
