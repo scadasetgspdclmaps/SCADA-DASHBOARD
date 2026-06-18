@@ -1223,12 +1223,59 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 /* ── CUT-POINT marker should NOT scale weirdly with zoom ── */
 .cut-pt-icon svg{display:block}
 
+/* DTR marker for 11KV feeder rows where pole_feeding_to = Structure */
+.dtr-icon-wrap{
+  width:30px;height:24px;display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 0 5px rgba(255,193,7,.75));
+}
+.dtr-icon-wrap svg{display:block}
+.dtr-tooltip{
+  background:rgba(8,18,30,.94)!important;
+  border:1px solid rgba(255,193,7,.75)!important;
+  color:#ffd54f!important;
+  font-family:var(--mono,Consolas,monospace)!important;
+  font-size:10px!important;
+  border-radius:6px!important;
+  padding:4px 7px!important;
+  box-shadow:0 4px 14px rgba(0,0,0,.35)!important;
+}
+.dtr-tooltip::before{border-top-color:rgba(255,193,7,.75)!important}
 
+</style>
+</head>
+<body>
+<div id="loader">
+  <div class="ld-logo">TGSPDCL</div>
+  <div class="ld-sub">33KV FEEDERS ROUTE MAP-SCADA</div>
+  <div class="ld-bar"><div class="ld-fill" id="ldfill"></div></div>
+</div>
 
-/* Removed broken duplicate AI block that was pasted inside CSS */
+<div id="topbar">
+  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">build 01-Jun-2026 / r12 (side-aware+anim)</span></div>
+  <div class="tb-sep"></div>
+  <div class="tb-title">SCADA 33KV FEEDER ROUTE MAP</div>
+  <div id="coordPickBtn" onclick="toggleCoordPicker()" title="Pick coordinates on map">📍 PICK COORDS</div>
+  <div id="rulerBtn" onclick="toggleRuler()" title="Measure distance — click points on map, ESC to clear">📏 RULER</div>
+  <div id="srchWrap" style="position:relative">
+    <input id="srchInput" placeholder="Search feeders, pole no., cable point…" autocomplete="off"/>
+    <div id="fsDropdown"></div>
+    <span class="srch-ic">⌕</span>
+  </div>
+  <input type="file" id="dfFileInput" accept=".csv,.xlsx,.xls" onchange="handleFileUpload(this)" style="display:none"/>
+  <div id="tbInterruptBtn" class="tb-irr-btn" onclick="toggleInterruptionPanel()" title="Show feeders under breakdown / idle">
+    <span class="tb-irr-ic">⚠</span>
+    <span class="tb-irr-lbl">INTERRUPTION DETAILS</span>
+    <span class="tb-irr-cnt" id="tb-irr-cnt">0</span>
+  </div>
+  <div class="fs-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</div>
+  <div class="chip chip-live">● LIVE</div>
+</div>
 
-</body>
-</html>
+<div id="ptab" onclick="togglePanel()">◀</div>
+
+<div id="panel">
+  <div id="panel-resize"></div>
+
   <!-- ── TAB STRIP (added 09 May 2026 per Naresh) ── -->
   <div class="lpanel-tabs">
     <button class="lpanel-tab active" data-tab="feeders" onclick="switchLpanelTab('feeders')">
@@ -1549,6 +1596,8 @@ const map = L.map('map',{
   bounceAtZoomLimits:false,
   doubleClickZoom:true, keyboard:true, keyboardPanDelta:80,
 });
+window.__tgspdclLeafletMap = map;
+window.map = map; // important: avoid id="map" HTMLElement shadowing the Leaflet map
 
 map.createPane('linePane');
 map.getPane('linePane').style.zIndex = 410;
@@ -4261,8 +4310,8 @@ function _isCableTypeValue(v){
 function _isFeederNatureValue(v){
   if (!v || typeof v !== 'string') return false;
   const t = v.toUpperCase().replace(/[\s_\-]/g,'');
-  return t === '33KVFEEDER' || t === 'LINKLINE' || t === 'HTSERVICE' ||
-         t.startsWith('HTSERV') || t === '33KV' || t === 'LINK';
+  return t === '33KVFEEDER' || t === '11KVFEEDER' || t === 'LINKLINE' || t === 'HTSERVICE' ||
+         t.startsWith('HTSERV') || t === '33KV' || t === '11KV' || t === 'LINK';
 }
 
 function getTypeFromRow(row){
@@ -4280,7 +4329,9 @@ function getTypeFromRow(row){
     const v = row[k];
     if (_isCableTypeValue(v)) return v;
   }
-  return named || '';   // last resort — may be empty, _lastType then fills in
+  // If the named value is actually feeder nature like 11KV FEEDER / 33KV FEEDER,
+  // do NOT use it as cable type. Let renderer inherit previous OH/UG or default.
+  return '';
 }
 
 function getFeederNatureFromRow(row){
@@ -4290,6 +4341,7 @@ function getFeederNatureFromRow(row){
     'feeder_nature','Feeder Nature','line_type','Line Type',
     'nature_of_feeder','Nature of Feeder','Nature_of_Feeder',
     'type_of_feeder','Type of Feeder','Type_of_feeder',
+    'feeder_type','Feeder Type','FEEDER_TYPE',
     'feeder_type_2','Type of Line','type of line','nature','Nature'
   ]);
   if (_isFeederNatureValue(named)) return named;
@@ -4377,13 +4429,16 @@ function renderFSPBody(fn){
   const poleTypes={};
   rows.forEach(r=>{const pt=getPoleTypeFromRow(r);if(pt)poleTypes[pt]=(poleTypes[pt]||0)+1;});
 
-  // AB switches & DPs derived directly from rows (matches the corrected detection rules)
-  let abFromRows=0,dpFromRows=0;
+  // AB switches, DPs and DTRs derived directly from rows
+  let abFromRows=0,dpFromRows=0,dtrFromRows=0;
   rows.forEach(r=>{
-    const feedUP=String(getPoleFeederToFromRow(r)||'').toUpperCase();
+    const feedUP=String(getPoleFeederToFromRow(r)||'').toUpperCase().trim();
     const ptypeUP=String(getPoleTypeFromRow(r)||'').toUpperCase();
+    const natureUP=String(getFeederNatureFromRow(r)||fuzzyGet(r,['feeder_type','Feeder Type','FEEDER_TYPE'])||'').toUpperCase().replace(/[\s_\-/]/g,'');
+    const is11=natureUP.includes('11KVFEEDER')||natureUP==='11KV';
     if(feedUP.includes('AB SWITCH')||feedUP.includes('LINE AB')||feedUP.includes('ABSWITCH'))abFromRows++;
     if(ptypeUP.includes('DOUBLE POLE')||ptypeUP.includes('DOUBLEPOLE'))dpFromRows++;
+    if(is11 && (feedUP==='STRUCTURE'||feedUP==='DTR'||feedUP.includes('DISTRIBUTION TRANSFORMER')||(feedUP.includes('STRUCTURE')&&!feedUP.includes('AB SWITCH')&&!feedUP.includes('LINE AB'))))dtrFromRows++;
   });
 
   const srcSS=rows.length?fuzzyGet(rows[0],['name_of_33_11_SS','name_of_the_33_11_SS','Name of 33/11 SS','name_of_33/11_SS']):'—';
@@ -5240,13 +5295,27 @@ function renderUploadedRows(rows,sourceFileName){
       const poleType=_getRowVal(p.row,'type_of_pole','Type of Pole','type_of_le');
       const feedingTo=_getRowVal(p.row,'pole_feeding_to','Pole Feeding to','Pole Feeding To');
 
+      // Feeder nature is different from cable type.
+      // Example: feeder_type = "11KV FEEDER" while type_of_feeder/cable may be OH/UG.
+      const feederNature=getFeederNatureFromRow(p.row) ||
+        _getRowVal(p.row,'feeder_type','Feeder Type','FEEDER_TYPE','nature_of_feeder','Nature of Feeder');
+
       // ── COLUMN-MAPPING FIX (per Naresh, 09 May 2026) ──
       // AB Switch  →  detect from `pole_feeding_to` column
       //                e.g. "33/11 KV Sub-Station , Line AB Switch"
       // DP         →  detect from `type_of_pole` column
       //                e.g. "Double Pole Structure"
-      const feedUP=feedingTo.toUpperCase();
+      // DTR        →  only for 11KV FEEDER rows where `pole_feeding_to` is Structure.
+      const feedUP=feedingTo.toUpperCase().trim();
       const ptypeUP=poleType.toUpperCase();
+      const natureUP=String(feederNature||'').toUpperCase().replace(/[\s_\-/]/g,'');
+      const is11KVFeeder=natureUP.includes('11KVFEEDER')||natureUP==='11KV';
+      const isDTR=is11KVFeeder && (
+        feedUP==='STRUCTURE' ||
+        feedUP==='DTR' ||
+        feedUP.includes('DISTRIBUTION TRANSFORMER') ||
+        (feedUP.includes('STRUCTURE') && !feedUP.includes('AB SWITCH') && !feedUP.includes('LINE AB'))
+      );
       const isAB=feedUP.includes('AB SWITCH')||feedUP.includes('ABSWITCH')||feedUP.includes('LINE AB');
       const isDP=ptypeUP.includes('DOUBLE POLE')||ptypeUP.includes('DOUBLEPOLE')||ptypeUP==='DP';
       const isCut=cutPt.toUpperCase().includes('CUT')||cutPt.toUpperCase().includes('VERTICAL')||cutPt.toUpperCase().includes('HORIZONTAL');
@@ -5260,7 +5329,9 @@ function renderUploadedRows(rows,sourceFileName){
         'Pole Feeding to':feedingTo,
         'Type of Cable Point':cableP,
         'Type of Feeder':p.typeRaw,
-        'Nature of Feeder':_getRowVal(p.row,'nature_of_feeder','Nature of Feeder'),
+        'Feeder Type':feederNature,
+        'feeder_type':feederNature,
+        'Nature of Feeder':_getRowVal(p.row,'nature_of_feeder','Nature of Feeder') || feederNature,
         'Section':_getRowVal(p.row,'section','Section'),
         'Sub Division':_getRowVal(p.row,'sub_division','Sub Division'),
         'Division':_getRowVal(p.row,'division','Division'),
@@ -5281,7 +5352,22 @@ function renderUploadedRows(rows,sourceFileName){
         _suppressAB=true;
       }
 
-      if(isAB&&!_suppressAB){
+      if(isDTR){
+        regType='dtr';
+        // DTR — shown only for 11KV FEEDER rows where pole_feeding_to = Structure
+        layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',
+          html:`<div class='dtr-icon-wrap' title='DTR / Distribution Transformer'>
+            <svg xmlns='http://www.w3.org/2000/svg' width='30' height='24' viewBox='0 0 30 24'>
+              <rect x='4' y='4' width='22' height='16' rx='3' fill='#ffc107' stroke='#4a2b00' stroke-width='1.3'/>
+              <rect x='7' y='7' width='16' height='10' rx='2' fill='#fff8e1' stroke='#795548' stroke-width='.8'/>
+              <path d='M15 7 L12 13 H15 L13 18 L19 10 H16 L18 7 Z' fill='#f57f17'/>
+              <text x='15' y='22.2' text-anchor='middle' font-size='5.4' font-family='Arial' font-weight='800' fill='#ffffff' stroke='#000000' stroke-width='.35'>DTR</text>
+            </svg>
+          </div>`,
+          iconSize:[30,24],iconAnchor:[15,12]}),pane:'pointsPane',zIndexOffset:760});
+        layer.bindTooltip('DTR / Distribution Transformer<br><span style="opacity:.75">11KV feeder · Structure</span>',
+          {direction:'top',offset:[0,-12],className:'dtr-tooltip'});
+      }else if(isAB&&!_suppressAB){
         regType='ab';
         // AB Switch — orange diamond with central bar. Per Naresh 31-May-2026:
         // reduced from 18→12 px so it's proportional to DP/cut markers.
@@ -5609,6 +5695,25 @@ function fbGet(path){
     .then(res=>{if(!res.ok)throw new Error('HTTP '+res.status);return res.json();})
     .catch(err=>{console.error('Firebase read error:',err);showFbStatus('error');return null;});
 }
+
+
+// ─────────────────────────────────────────────────────────────
+// DTR helpers — 11KV feeder + pole_feeding_to Structure
+// ─────────────────────────────────────────────────────────────
+function isDTRRow(row){
+  const feedUP=String(getPoleFeederToFromRow(row)||'').toUpperCase().trim();
+  const natureUP=String(getFeederNatureFromRow(row)||fuzzyGet(row,['feeder_type','Feeder Type','FEEDER_TYPE'])||'').toUpperCase().replace(/[\s_\-/]/g,'');
+  const is11=natureUP.includes('11KVFEEDER')||natureUP==='11KV';
+  return is11 && (
+    feedUP==='STRUCTURE' ||
+    feedUP==='DTR' ||
+    feedUP.includes('DISTRIBUTION TRANSFORMER') ||
+    (feedUP.includes('STRUCTURE') && !feedUP.includes('AB SWITCH') && !feedUP.includes('LINE AB'))
+  );
+}
+window.countDTRsOnMap=function(){
+  return (window.allLayers||[]).filter(i=>i && !i._deleted && i.reg && i.reg.type==='dtr').length;
+};
 
 // ─────────────────────────────────────────────────────────────
 // Reliable Firebase delete (added 21 May 2026)
@@ -7282,6 +7387,7 @@ setTimeout(async ()=>{
     // Check HT Service FIRST so "HT SERVICE FEEDER" isn't miscategorised as 33KV
     if (/HT\s*SERVICE|HT\s*SVC|HTSERVICE|HT-SERVICE/.test(t) || /HT\s*SERVICE/.test(fn) || /^HT\s/.test(fn)) return 'HT';
     if (/LINK\s*LINE|LINKLINE/.test(t) || /LINK\s*LINE/.test(fn)) return 'LINK';
+    if (/11\s*KV|11KV/.test(t) || /11\s*KV/.test(fn)) return '11KV';
     if (/33\s*KV|33KV/.test(t) || /FEEDER/.test(t)) return '33KV';
     return '33KV';   // default
   }
@@ -7313,14 +7419,16 @@ setTimeout(async ()=>{
 
   // Replace the old breakdown counter with the improved one
   window.computeFeederTypeBreakdown = function(){
-    const types = { '33KV': 0, 'LINK': 0, 'HT': 0 };
+    const types = { '33KV': 0, '11KV': 0, 'LINK': 0, 'HT': 0 };
     (window.feederNames || new Set()).forEach(fn => {
       const c = getFeederClass(fn);
       if (c === 'HT') types['HT']++;
       else if (c === 'LINK') types['LINK']++;
+      else if (c === '11KV') types['11KV']++;
       else types['33KV']++;
     });
     if ($('st-ft-33kv')) $('st-ft-33kv').textContent = types['33KV'];
+    if ($('st-ft-11kv')) $('st-ft-11kv').textContent = types['11KV'];
     if ($('st-ft-link')) $('st-ft-link').textContent = types['LINK'];
     if ($('st-ft-ht'))   $('st-ft-ht').textContent   = types['HT'];
   };
@@ -7330,9 +7438,16 @@ setTimeout(async ()=>{
   // with a label showing the destination name (from feeder_feeding_to / pole_feeding_to).
   let _htMarkers = [];
   let _htLayerGroup = null;
+  function _leafletMapRef(){
+    if (typeof map !== 'undefined' && map && typeof map.addLayer === 'function') return map;
+    if (window.__tgspdclLeafletMap && typeof window.__tgspdclLeafletMap.addLayer === 'function') return window.__tgspdclLeafletMap;
+    if (window.map && typeof window.map.addLayer === 'function') return window.map;
+    return null;
+  }
   function clearHTMarkers(){
-    if (_htLayerGroup && window.map){
-      try { _htLayerGroup.clearLayers(); window.map.removeLayer(_htLayerGroup); } catch(_){}
+    const m=_leafletMapRef();
+    if (_htLayerGroup && m){
+      try { _htLayerGroup.clearLayers(); m.removeLayer(_htLayerGroup); } catch(_){}
     }
     _htMarkers = [];
   }
@@ -7353,9 +7468,10 @@ setTimeout(async ()=>{
     return '';
   }
   function refreshHTMarkers(){
-    if (!window.map || typeof L === 'undefined') return;
+    const m=_leafletMapRef();
+    if (!m || typeof L === 'undefined') return;
     clearHTMarkers();
-    _htLayerGroup = L.layerGroup().addTo(window.map);
+    _htLayerGroup = L.layerGroup().addTo(m);
 
     (window.feederNames || new Set()).forEach(fn => {
       if (getFeederClass(fn) !== 'HT') return;
@@ -7739,589 +7855,6 @@ setTimeout(async ()=>{
     <div class="mir-empty">No interruptions — all feeders live ⚡</div>
   </div>
 </div>
-
-
-
-
-<!-- ═══════════════════════════════════════════════════════════════
-     CLEAN TGSPDCL AI GRID ASSISTANT — single safe implementation
-     Replaces duplicate/broken AI blocks.
-     Notes:
-     1) This assistant reads live map objects if present: allLayers, feederNames, feederStatus.
-     2) It does not perform load-flow. It prepares engineering summaries from available map data.
-     3) For production, move Hugging Face calls to a backend so the token is not exposed in browser.
-════════════════════════════════════════════════════════════════ -->
-
-<style>
-  #tbAiBtn{
-    position:fixed;right:14px;bottom:96px;z-index:7050;
-    display:flex;align-items:center;gap:8px;
-    border:1px solid rgba(0,200,255,.42);
-    background:linear-gradient(135deg,rgba(8,18,30,.96),rgba(13,34,54,.94));
-    color:#00c8ff;border-radius:24px;padding:9px 14px;
-    font-family:var(--mono,Consolas,monospace);font-size:11px;font-weight:800;letter-spacing:1px;
-    cursor:pointer;box-shadow:0 8px 26px rgba(0,0,0,.42),0 0 18px rgba(0,200,255,.12);
-    transition:.18s ease;user-select:none;
-  }
-  #tbAiBtn:hover{transform:translateY(-1px);background:linear-gradient(135deg,rgba(0,200,255,.22),rgba(8,18,30,.96));color:#fff}
-  #tbAiBtn.open{border-color:#00e676;color:#00e676;box-shadow:0 8px 26px rgba(0,0,0,.42),0 0 20px rgba(0,230,118,.18)}
-  #aiPanel{
-    position:fixed;top:58px;right:14px;bottom:48px;width:min(430px,94vw);z-index:7060;
-    background:#ffffff;border:1px solid #dbe7f3;border-radius:16px;
-    box-shadow:0 20px 58px rgba(0,0,0,.38);
-    display:none;flex-direction:column;overflow:hidden;
-    font-family:var(--sans,Arial,sans-serif);
-  }
-  #aiPanel.open{display:flex}
-  .ai-hd{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg,#081422,#0d2a42);color:#fff;border-bottom:2px solid #00c8ff}
-  .ai-hd-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(0,200,255,.13);border:1px solid rgba(0,200,255,.35);font-size:18px}
-  .ai-hd-info{flex:1;min-width:0}.ai-hd-title{font-family:var(--mono,Consolas,monospace);font-size:11px;color:#00c8ff;font-weight:800;letter-spacing:1.2px}.ai-hd-sub{font-size:10px;color:#a7c8db;margin-top:2px}
-  .ai-hd-status{display:flex;align-items:center;gap:6px;margin-right:4px}.ai-status-dot{width:8px;height:8px;border-radius:50%;background:#00e676;box-shadow:0 0 8px #00e676}.ai-status-dot.thinking{background:#ffab00;box-shadow:0 0 10px #ffab00;animation:aiPulse 1s infinite}.ai-status-dot.error{background:#ff1744;box-shadow:0 0 10px #ff1744}.ai-status-txt{font-family:var(--mono,Consolas,monospace);font-size:8px;color:#b0cce0;letter-spacing:.8px}
-  @keyframes aiPulse{50%{opacity:.35}}
-  .ai-hd-close{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#b0cce0}.ai-hd-close:hover{background:rgba(255,255,255,.12);color:#fff}
-  .ai-token-row{display:grid;grid-template-columns:1fr auto;gap:7px;padding:10px 12px;border-bottom:1px solid #e9f1f8;background:#f8fbff}
-  .ai-token-input{border:1px solid #cbdff1;border-radius:8px;padding:8px 10px;font-size:12px;outline:none;color:#1e293b}.ai-token-input:focus{border-color:#2196f3;box-shadow:0 0 0 3px rgba(33,150,243,.12)}
-  .ai-token-save{border:none;border-radius:8px;background:#1976d2;color:#fff;font-family:var(--mono,Consolas,monospace);font-size:10px;font-weight:800;padding:0 12px;cursor:pointer}
-  .ai-token-note{grid-column:1/-1;font-size:10px;color:#64748b;line-height:1.35}
-  .ai-chips{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid #eef3f8;background:#fff}
-  .ai-chip{font-size:11px;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;padding:6px 9px;border-radius:16px;cursor:pointer;font-weight:700;transition:.15s}
-  .ai-chip:hover{background:#dbeafe;transform:translateY(-1px)}
-  .ai-msgs{flex:1;overflow-y:auto;padding:12px;background:linear-gradient(180deg,#ffffff,#f8fbff)}
-  .ai-msg{display:flex;gap:8px;margin-bottom:12px}.ai-msg.user{flex-direction:row-reverse}.ai-msg-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#e0f2fe}
-  .ai-msg.user .ai-msg-avatar{background:#dcfce7}.ai-msg-body{max-width:82%}.ai-bubble{white-space:pre-wrap;line-height:1.55;font-size:12.5px;color:#172033;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;box-shadow:0 1px 5px rgba(15,23,42,.05)}
-  .ai-msg.user .ai-bubble{background:#1976d2;color:#fff;border-color:#1976d2}.ai-msg-time{font-size:9px;color:#94a3b8;margin-top:3px;font-family:var(--mono,Consolas,monospace)}
-  .ai-typing{display:flex;gap:4px}.ai-typing span{width:6px;height:6px;border-radius:50%;background:#2196f3;animation:aiDot 1s infinite}.ai-typing span:nth-child(2){animation-delay:.15s}.ai-typing span:nth-child(3){animation-delay:.3s}@keyframes aiDot{50%{opacity:.25;transform:translateY(-2px)}}
-  .ai-input-area{padding:10px 12px;border-top:1px solid #e2e8f0;background:#fff}.ai-input-row{display:flex;gap:8px;align-items:flex-end}.ai-textarea{flex:1;resize:none;max-height:120px;border:1px solid #cbdff1;border-radius:10px;padding:9px 10px;font-size:12.5px;outline:none;font-family:Arial,sans-serif}.ai-textarea:focus{border-color:#2196f3;box-shadow:0 0 0 3px rgba(33,150,243,.1)}
-  .ai-send{width:38px;height:38px;border-radius:10px;border:none;background:#00a3d7;color:#fff;font-size:17px;font-weight:800;cursor:pointer}.ai-send:disabled{opacity:.45;cursor:not-allowed}.ai-hint{font-size:10px;color:#94a3b8;margin-top:6px}
-  .ai-chart-wrap{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px;margin-top:6px}.ai-chart-wrap canvas{max-height:240px!important}
-</style>
-
-<button id="tbAiBtn" type="button" onclick="toggleAIPanel()">🤖 AI GRID</button>
-
-<div id="aiPanel">
-  <div class="ai-hd">
-    <div class="ai-hd-icon">🤖</div>
-    <div class="ai-hd-info">
-      <div class="ai-hd-title">// TGSPDCL AI GRID ASSISTANT</div>
-      <div class="ai-hd-sub">Mistral via Hugging Face · reads live map data</div>
-    </div>
-    <div class="ai-hd-status">
-      <div class="ai-status-dot" id="aiStatusDot"></div>
-      <div class="ai-status-txt" id="aiStatusTxt">READY</div>
-    </div>
-    <div class="ai-hd-close" onclick="toggleAIPanel(false)">✕</div>
-  </div>
-
-  <div class="ai-token-row">
-    <input class="ai-token-input" type="password" id="aiHfToken" placeholder="Paste Hugging Face token: hf_xxxxx" autocomplete="off"/>
-    <button class="ai-token-save" onclick="saveAiToken()">SAVE</button>
-    <div class="ai-token-note">For official use, move this API call to a backend. Browser token storage is only for testing.</div>
-  </div>
-
-  <div class="ai-chips">
-    <div class="ai-chip" onclick="aiQuick('summary')">📊 Summary</div>
-    <div class="ai-chip" onclick="aiQuick('breakdown')">🔴 Breakdowns</div>
-    <div class="ai-chip" onclick="aiQuick('weak')">⚠ Weak Network</div>
-    <div class="ai-chip" onclick="aiQuick('n1')">🔁 N-1 Check</div>
-    <div class="ai-chip" onclick="aiQuick('report')">📋 Report</div>
-    <div class="ai-chip" onclick="aiQuick('chart_status')">🥧 Status Chart</div>
-    <div class="ai-chip" onclick="aiQuick('chart_cable')">📉 UG/OH Chart</div>
-    <div class="ai-chip" onclick="aiQuick('chart_feeder')">📏 Top Feeders</div>
-  </div>
-
-  <div class="ai-msgs" id="aiMsgs">
-    <div class="ai-msg ai">
-      <div class="ai-msg-avatar">🤖</div>
-      <div class="ai-msg-body">
-        <div class="ai-bubble">Hello Naresh. I can read the current 33 kV map data available in this page and prepare feeder summaries, breakdown lists, UG/OH charts, and grid-enhancement observations.
-
-Note: real N-1/load-flow intelligence needs source → feeder → SS topology and loading data to be present in your uploaded map data.</div>
-        <div class="ai-msg-time" id="aiWelcomeTime"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="ai-input-area">
-    <div class="ai-input-row">
-      <textarea class="ai-textarea" id="aiInput" rows="1" placeholder="Ask about feeders, N-1 weakness, grid enhancement..." onkeydown="aiHandleKey(event)" oninput="autoGrowTextarea(this)"></textarea>
-      <button class="ai-send" id="aiSendBtn" onclick="aiSend()">➤</button>
-    </div>
-    <div class="ai-hint">Enter to send · Shift+Enter for new line</div>
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-
-<script>
-(function(){
-  'use strict';
-
-  const HF_ENDPOINT = 'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3';
-  let aiToken = localStorage.getItem('tgspdcl_hf_token') || '';
-  let aiThinking = false;
-  let aiHistory = [];
-  let trainingData = [];
-  try { trainingData = JSON.parse(localStorage.getItem('tgspdcl_ai_training') || '[]'); } catch(e) { trainingData = []; }
-
-  const $ = id => document.getElementById(id);
-
-  function nowStr(){
-    return new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
-  }
-
-  function setStatus(type, text){
-    const dot = $('aiStatusDot'), txt = $('aiStatusTxt');
-    if (dot) dot.className = 'ai-status-dot' + (type === 'thinking' ? ' thinking' : type === 'error' ? ' error' : '');
-    if (txt) txt.textContent = text || 'READY';
-  }
-
-  function scrollDown(){
-    const box = $('aiMsgs');
-    if (box) requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; });
-  }
-
-  function appendMsg(role, text){
-    const box = $('aiMsgs');
-    if (!box) return;
-    const div = document.createElement('div');
-    div.className = 'ai-msg ' + (role === 'user' ? 'user' : 'ai');
-
-    const avatar = document.createElement('div');
-    avatar.className = 'ai-msg-avatar';
-    avatar.textContent = role === 'user' ? '👤' : '🤖';
-
-    const body = document.createElement('div');
-    body.className = 'ai-msg-body';
-
-    const bubble = document.createElement('div');
-    bubble.className = 'ai-bubble';
-    bubble.textContent = String(text == null ? '' : text);
-
-    const time = document.createElement('div');
-    time.className = 'ai-msg-time';
-    time.textContent = nowStr();
-
-    body.appendChild(bubble);
-    body.appendChild(time);
-    div.appendChild(avatar);
-    div.appendChild(body);
-    box.appendChild(div);
-    scrollDown();
-  }
-
-  function appendTyping(){
-    const box = $('aiMsgs');
-    if (!box || $('_aiTypingIndicator')) return;
-    const div = document.createElement('div');
-    div.id = '_aiTypingIndicator';
-    div.className = 'ai-msg ai';
-    div.innerHTML = '<div class="ai-msg-avatar">🤖</div><div class="ai-msg-body"><div class="ai-bubble"><div class="ai-typing"><span></span><span></span><span></span></div></div></div>';
-    box.appendChild(div);
-    scrollDown();
-  }
-
-  function hideTyping(){
-    const el = $('_aiTypingIndicator');
-    if (el) el.remove();
-  }
-
-  function norm(v){ return String(v == null ? '' : v).trim(); }
-  function up(v){ return norm(v).toUpperCase(); }
-
-  function getItemFeederName(i){
-    return norm(i.feederName || i.FeederName || i['Feeder Name'] || i.FEEDER_NAME || i.feeder || i.name);
-  }
-
-  function getCableType(i){
-    const v = up(i.cable || i.lineType || i.typeOfFeeder || i['Type of Feeder'] || i.TYPE_OF_FEEDER || i.type);
-    if (v.includes('UG')) return 'UG';
-    if (v.includes('OH')) return 'OH';
-    return '';
-  }
-
-  function getRegType(i){
-    return up((i.reg && i.reg.type) || i.regType || i.assetType || i.type || i['Type']);
-  }
-
-  function getHierarchy(fn){
-    try {
-      if (typeof window.getFeederHierarchy === 'function') return window.getFeederHierarchy(fn) || {};
-    } catch(e){}
-    return {};
-  }
-
-  function getMapSnapshot(){
-    const snap = {
-      generatedAt: new Date().toISOString(),
-      totalFeatures: 0,
-      totalFeeders: 0,
-      ugCount: 0,
-      ohCount: 0,
-      unknownCableCount: 0,
-      abCount: 0,
-      dpCount: 0,
-      cutCount: 0,
-      ss33Count: 0,
-      ehtCount: 0,
-      statusLive: 0,
-      statusBreakdown: 0,
-      statusIdle: 0,
-      feeders: [],
-      feederDetail: [],
-      warnings: []
-    };
-
-    const all = Array.isArray(window.allLayers) ? window.allLayers.filter(i => i && !i._deleted) : [];
-    snap.totalFeatures = all.length;
-
-    all.forEach(i => {
-      const cable = getCableType(i);
-      if (cable === 'UG') snap.ugCount++;
-      else if (cable === 'OH') snap.ohCount++;
-      else snap.unknownCableCount++;
-
-      const rt = getRegType(i);
-      if (rt === 'AB' || rt === 'AB SWITCH') snap.abCount++;
-      if (rt === 'DP' || rt.includes('DP')) snap.dpCount++;
-      if (rt === 'CUT' || rt.includes('CUT')) snap.cutCount++;
-      if (rt.includes('SS33') || rt.includes('33/11') || rt.includes('33_11')) snap.ss33Count++;
-      if (rt.includes('EHT')) snap.ehtCount++;
-    });
-
-    let feederList = [];
-    if (window.feederNames && typeof window.feederNames[Symbol.iterator] === 'function') {
-      feederList = Array.from(window.feederNames);
-    } else {
-      feederList = Array.from(new Set(all.map(getItemFeederName).filter(Boolean)));
-    }
-
-    snap.feeders = feederList;
-    snap.totalFeeders = feederList.length;
-
-    feederList.forEach(fn => {
-      const items = all.filter(i => getItemFeederName(i) === fn);
-      const status = (window.feederStatus && window.feederStatus[fn]) ? window.feederStatus[fn] : 'live';
-      if (status === 'breakdown') snap.statusBreakdown++;
-      else if (status === 'idle') snap.statusIdle++;
-      else snap.statusLive++;
-
-      const h = getHierarchy(fn);
-      const sources = Array.from(new Set(items.map(i => norm(i.ehtSource || i.sourceEHT || i.source || i['EHT Source'] || i['Source'])).filter(Boolean))).slice(0,3);
-      const ssTo = Array.from(new Set(items.map(i => norm(i.ssFeedingTo || i.ssName || i.substation || i['SS Feeding To'] || i['Substation'])).filter(Boolean))).slice(0,5);
-
-      snap.feederDetail.push({
-        name: fn,
-        status,
-        totalPoints: items.length,
-        ugPoints: items.filter(i => getCableType(i) === 'UG').length,
-        ohPoints: items.filter(i => getCableType(i) === 'OH').length,
-        division: h.division || h.Division || '',
-        subDivision: h.subDivision || h.subdivision || h['Sub Division'] || '',
-        section: h.section || h.Section || '',
-        sourceEHT: sources.join(', '),
-        ssFeedingTo: ssTo.join(', ')
-      });
-    });
-
-    if (!snap.totalFeatures) snap.warnings.push('No allLayers data detected. Upload/load map data before asking AI for network analysis.');
-    if (!snap.feeders.length) snap.warnings.push('No feederNames detected. AI can only give generic guidance until feeder data is loaded.');
-    if (!snap.feederDetail.some(f => f.sourceEHT || f.ssFeedingTo)) {
-      snap.warnings.push('Topology fields like sourceEHT / ssFeedingTo were not found. N-1 and source-dependency answers will be approximate.');
-    }
-
-    return snap;
-  }
-
-  function buildContext(snap){
-    const topByPoints = snap.feederDetail
-      .slice()
-      .sort((a,b) => b.totalPoints - a.totalPoints)
-      .slice(0, 25);
-
-    const abnormal = snap.feederDetail
-      .filter(f => f.status !== 'live')
-      .slice(0, 60);
-
-    const compactFeeders = snap.feederDetail.slice(0, 120).map(f => ({
-      name: f.name,
-      status: f.status,
-      points: f.totalPoints,
-      ug: f.ugPoints,
-      oh: f.ohPoints,
-      division: f.division,
-      section: f.section,
-      sourceEHT: f.sourceEHT,
-      ssFeedingTo: f.ssFeedingTo
-    }));
-
-    return JSON.stringify({
-      mapType: 'TGSPDCL SCADA 33KV feeder route map',
-      warning: 'This is map/asset/status data, not a load-flow study. Do not invent missing loading, cable size, or N-1 values.',
-      summary: {
-        totalFeatures: snap.totalFeatures,
-        totalFeeders: snap.totalFeeders,
-        ugCount: snap.ugCount,
-        ohCount: snap.ohCount,
-        unknownCableCount: snap.unknownCableCount,
-        abCount: snap.abCount,
-        dpCount: snap.dpCount,
-        cutCount: snap.cutCount,
-        ss33Count: snap.ss33Count,
-        ehtCount: snap.ehtCount,
-        statusLive: snap.statusLive,
-        statusBreakdown: snap.statusBreakdown,
-        statusIdle: snap.statusIdle
-      },
-      warnings: snap.warnings,
-      abnormalFeeders: abnormal,
-      topFeedersByPointCount: topByPoints,
-      feederSample: compactFeeders
-    }, null, 2);
-  }
-
-  function quickText(key){
-    const prompts = {
-      summary: 'Give a concise engineering summary of the current 33 kV map data with total feeders, UG/OH points, substations/EHT count if available, and key observations.',
-      breakdown: 'List all feeders currently in BREAKDOWN or IDLE status. Group them by division/section if available and suggest immediate field action.',
-      weak: 'From the available map data, identify possible weak areas in the 33 kV network. Clearly mention where data is insufficient for true N-1 or load-flow analysis.',
-      n1: 'Check possible N-1 weakness from the available source-feeder-SS data. Do not assume missing alternate sources. Tell what extra columns are needed for reliable N-1 analysis.',
-      report: 'Prepare a professional management note on the current 33 kV grid map status and possible network enhancement actions.',
-      chart_status: 'chart_status',
-      chart_cable: 'chart_cable',
-      chart_feeder: 'chart_feeder'
-    };
-    return prompts[key] || '';
-  }
-
-  function renderChart(type){
-    const snap = getMapSnapshot();
-    if (typeof Chart === 'undefined') {
-      appendMsg('ai', 'Chart.js is not loaded. Internet/CDN may be blocked.');
-      return;
-    }
-
-    const box = $('aiMsgs');
-    const div = document.createElement('div');
-    div.className = 'ai-msg ai';
-    const id = 'aiChart_' + Date.now();
-    div.innerHTML = '<div class="ai-msg-avatar">🤖</div><div class="ai-msg-body"><div class="ai-chart-wrap"><canvas id="'+id+'"></canvas></div><div class="ai-msg-time">'+nowStr()+'</div></div>';
-    box.appendChild(div);
-    scrollDown();
-
-    const ctx = document.getElementById(id);
-    let cfg;
-
-    if (type === 'chart_status') {
-      cfg = {
-        type: 'doughnut',
-        data: { labels: ['Live','Breakdown','Idle'], datasets: [{ data: [snap.statusLive, snap.statusBreakdown, snap.statusIdle] }] },
-        options: { plugins: { title: { display:true, text:'Feeder Status' } } }
-      };
-    } else if (type === 'chart_cable') {
-      cfg = {
-        type: 'bar',
-        data: { labels: ['UG','OH','Unknown'], datasets: [{ label:'Points/Features', data: [snap.ugCount, snap.ohCount, snap.unknownCableCount] }] },
-        options: { plugins: { title: { display:true, text:'UG vs OH Features' } } }
-      };
-    } else {
-      const top = snap.feederDetail.slice().sort((a,b)=>b.totalPoints-a.totalPoints).slice(0,10);
-      cfg = {
-        type: 'bar',
-        data: { labels: top.map(f => f.name), datasets: [{ label:'Points', data: top.map(f => f.totalPoints) }] },
-        options: { indexAxis:'y', plugins: { title: { display:true, text:'Top Feeders by Point Count' } } }
-      };
-    }
-    new Chart(ctx, cfg);
-  }
-
-  async function aiSend(){
-    const input = $('aiInput');
-    const btn = $('aiSendBtn');
-    if (!input || aiThinking) return;
-
-    const msg = input.value.trim();
-    if (!msg) return;
-
-    if (msg === 'chart_status' || msg === 'chart_cable' || msg === 'chart_feeder') {
-      input.value = '';
-      input.style.height = 'auto';
-      renderChart(msg);
-      return;
-    }
-
-    if (!aiToken) {
-      appendMsg('ai', 'Please paste and save a Hugging Face token first. For production, use a backend proxy instead of exposing the token in browser.');
-      return;
-    }
-
-    input.value = '';
-    input.style.height = 'auto';
-    appendMsg('user', msg);
-    aiHistory.push({ role:'user', content:msg });
-    appendTyping();
-    aiThinking = true;
-    if (btn) btn.disabled = true;
-    setStatus('thinking', 'THINKING');
-
-    const snap = getMapSnapshot();
-    const context = buildContext(snap);
-
-    const systemPrompt =
-      'You are a TGSPDCL 33 kV grid-map assistant. Use only the provided live map JSON. ' +
-      'Do not invent missing values like loading percent, cable size, alternate source, or N-1 status. ' +
-      'When information is missing, say what columns/data are required. ' +
-      'Write in practical distribution-utility engineering language.';
-
-    const prompt =
-      '<s>[INST] ' + systemPrompt + '\n\nLIVE MAP JSON:\n' + context + '\n\nUSER QUESTION:\n' + msg + ' [/INST]';
-
-    try {
-      const res = await fetch(HF_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + aiToken,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            max_new_tokens: 850,
-            temperature: 0.25,
-            top_p: 0.9,
-            return_full_text: false
-          }
-        })
-      });
-
-      hideTyping();
-
-      if (!res.ok) {
-        let detail = '';
-        try { detail = JSON.stringify(await res.json()); } catch(e) { detail = await res.text(); }
-        if (res.status === 503) {
-          appendMsg('ai', 'The Hugging Face model is loading/cold-starting. Try again after a few seconds.\n\nDetails: ' + detail);
-        } else if (res.status === 401 || res.status === 403) {
-          appendMsg('ai', 'Hugging Face token is invalid or does not have permission. Create a read token and save it again.\n\nDetails: ' + detail);
-        } else {
-          appendMsg('ai', 'Hugging Face API error ' + res.status + '.\n\nDetails: ' + detail);
-        }
-        setStatus('error', 'ERROR');
-        return;
-      }
-
-      const json = await res.json();
-      let reply = '';
-      if (Array.isArray(json) && json[0] && json[0].generated_text) reply = json[0].generated_text;
-      else if (json.generated_text) reply = json.generated_text;
-      else if (json.error) reply = 'Model error: ' + json.error;
-      else reply = JSON.stringify(json, null, 2);
-
-      reply = String(reply).trim();
-      appendMsg('ai', reply);
-      aiHistory.push({ role:'assistant', content:reply });
-      saveTraining(msg, reply, snap);
-      setStatus('ready', 'READY');
-
-    } catch(err) {
-      hideTyping();
-      appendMsg('ai', 'Network/API error: ' + err.message);
-      setStatus('error', 'ERROR');
-    } finally {
-      aiThinking = false;
-      if (btn) btn.disabled = false;
-    }
-  }
-
-  function saveTraining(prompt, response, snap){
-    trainingData.push({
-      id: Date.now(),
-      date: new Date().toISOString(),
-      prompt,
-      response,
-      mapContext: {
-        totalFeeders: snap.totalFeeders,
-        totalFeatures: snap.totalFeatures,
-        ugCount: snap.ugCount,
-        ohCount: snap.ohCount,
-        statusLive: snap.statusLive,
-        statusBreakdown: snap.statusBreakdown,
-        statusIdle: snap.statusIdle
-      }
-    });
-    if (trainingData.length > 200) trainingData = trainingData.slice(-200);
-    try { localStorage.setItem('tgspdcl_ai_training', JSON.stringify(trainingData)); } catch(e) {}
-  }
-
-  window.toggleAIPanel = function(force){
-    const panel = $('aiPanel'), btn = $('tbAiBtn');
-    if (!panel) return;
-    const open = typeof force === 'boolean' ? force : !panel.classList.contains('open');
-    panel.classList.toggle('open', open);
-    if (btn) btn.classList.toggle('open', open);
-    if (open && $('aiInput')) $('aiInput').focus();
-  };
-
-  window.saveAiToken = function(){
-    const input = $('aiHfToken');
-    const t = input ? input.value.trim() : '';
-    if (!t) {
-      appendMsg('ai', 'Paste your Hugging Face token first.');
-      return;
-    }
-    aiToken = t;
-    localStorage.setItem('tgspdcl_hf_token', t);
-    setStatus('ready', 'TOKEN SAVED');
-    appendMsg('ai', 'Token saved for testing. For official deployment, move the token to a backend server.');
-    setTimeout(() => setStatus('ready', 'READY'), 1500);
-  };
-
-  window.aiHandleKey = function(e){
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      aiSend();
-    }
-  };
-
-  window.autoGrowTextarea = function(el){
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-  };
-
-  window.aiQuick = function(key){
-    const text = quickText(key);
-    if (!text) return;
-    if (text.indexOf('chart_') === 0) {
-      renderChart(text);
-      return;
-    }
-    const input = $('aiInput');
-    if (input) {
-      input.value = text;
-      window.autoGrowTextarea(input);
-    }
-    aiSend();
-  };
-
-  window.aiSend = aiSend;
-
-  window.exportAITrainingData = function(){
-    const blob = new Blob([JSON.stringify(trainingData, null, 2)], {type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'tgspdcl_ai_training_' + new Date().toISOString().slice(0,10) + '.json';
-    a.click();
-  };
-
-  window.addEventListener('DOMContentLoaded', function(){
-    const t = $('aiHfToken');
-    if (t && aiToken) t.value = aiToken;
-    const welcome = $('aiWelcomeTime');
-    if (welcome) welcome.textContent = nowStr();
-  });
-})();
-</script>
-
 
 
 </body>
