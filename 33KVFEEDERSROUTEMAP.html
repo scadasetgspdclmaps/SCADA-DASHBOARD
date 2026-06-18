@@ -1277,7 +1277,7 @@ let _aiToken = localStorage.getItem('tgspdcl_hf_token') || '';
 let _aiOpen = false;
 let _aiThinking = false;
 
-const HF_ENDPOINT = "https://scadase-tgspdcl-grid-assistant.hf.space/api/predict";
+const HF_ENDPOINT = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3";
 
 function toggleAIPanel() {
   _aiOpen = !_aiOpen;
