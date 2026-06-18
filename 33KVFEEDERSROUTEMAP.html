@@ -1228,32 +1228,62 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 <div id="aiPanel"> ... (your existing panel HTML remains unchanged) ... </div>
 
 <script>
-// ══════════════════════════════════════════════════════════════════
-// TGSPDCL AI GRID ASSISTANT — FULLY UPDATED
-// Hugging Face Integration + Live Map Context + Charts + Reports
-// ══════════════════════════════════════════════════════════════════
+<!-- ════ AI ASSISTANT PANEL (Updated with your Space) ════ -->
+<div id="aiPanel">
+  <div class="ai-hd">
+    <div class="ai-hd-icon">🤖</div>
+    <div class="ai-hd-info">
+      <div class="ai-hd-title">// AI GRID ASSISTANT</div>
+      <div class="ai-hd-sub">MISTRAL-7B • YOUR SPACE</div>
+    </div>
+    <div class="ai-hd-status">
+      <div class="ai-status-dot" id="aiStatusDot"></div>
+      <div class="ai-status-txt" id="aiStatusTxt">READY</div>
+    </div>
+    <div class="ai-hd-close" onclick="toggleAIPanel()">✕</div>
+  </div>
 
+  <div class="ai-token-row">
+    <input class="ai-token-input" type="password" id="aiHfToken" placeholder="hf_xxxxxxxx (Hugging Face token)" autocomplete="off"/>
+    <button class="ai-token-save" onclick="saveAiToken()">SAVE</button>
+  </div>
+
+  <div class="ai-chips" id="aiChips">
+    <div class="ai-chip" onclick="aiQuick('summary')">📊 Map Summary</div>
+    <div class="ai-chip" onclick="aiQuick('breakdown')">🔴 Breakdowns</div>
+    <div class="ai-chip" onclick="aiQuick('report')">📋 Generate Report</div>
+    <div class="ai-chip" onclick="aiQuick('chart_feeder')">📈 Feeder Chart</div>
+    <div class="ai-chip" onclick="aiQuick('chart_status')">🥧 Status Chart</div>
+    <div class="ai-chip" onclick="aiQuick('chart_cable')">📉 UG vs OH</div>
+    <div class="ai-chip" onclick="aiQuick('longest')">📏 Longest Feeders</div>
+    <div class="ai-chip" onclick="aiQuick('recommend')">💡 Recommendations</div>
+  </div>
+
+  <div class="ai-msgs" id="aiMsgs"></div>
+
+  <div class="ai-input-area">
+    <div class="ai-input-row">
+      <textarea class="ai-textarea" id="aiInput" rows="1" placeholder="Ask about feeders, generate report..." 
+        onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); aiSend();}"
+        oninput="this.style.height='auto'; this.style.height = Math.min(this.scrollHeight,120)+'px'"></textarea>
+      <button class="ai-send" onclick="aiSend()">➤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====================== AI ASSISTANT (with your Space) ======================
 let _aiToken = localStorage.getItem('tgspdcl_hf_token') || '';
 let _aiOpen = false;
 let _aiThinking = false;
-let _aiHistory = [];
-let _chartCount = 0;
 
-// === CHANGE THIS TO YOUR HF SPACE URL (recommended) ===
-const HF_ENDPOINT = "https://your-username-tgspdcl-grid-assistant.hf.space/api/predict";  
-// Fallback direct HF (less reliable, token visible):
-// const HF_ENDPOINT = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3";
+const HF_ENDPOINT = "https://scadase-tgspdcl-grid-assistant.hf.space/api/predict";
 
 function toggleAIPanel() {
   _aiOpen = !_aiOpen;
-  const panel = document.getElementById('aiPanel');
-  const btn = document.getElementById('tbAiBtn');
-  if (panel) panel.classList.toggle('open', _aiOpen);
-  if (btn) btn.classList.toggle('open', _aiOpen);
-  if (_aiOpen) {
-    const input = document.getElementById('aiInput');
-    if (input) input.focus();
-  }
+  document.getElementById('aiPanel').classList.toggle('open', _aiOpen);
+  document.getElementById('tbAiBtn').classList.toggle('open', _aiOpen);
+  if (_aiOpen) document.getElementById('aiInput').focus();
 }
 
 function saveAiToken() {
@@ -1266,10 +1296,6 @@ function saveAiToken() {
   }
 }
 
-function _nowStr() {
-  return new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
-}
-
 function _aiSetStatus(type, text) {
   const dot = document.getElementById('aiStatusDot');
   const txt = document.getElementById('aiStatusTxt');
@@ -1277,26 +1303,20 @@ function _aiSetStatus(type, text) {
   if (txt) txt.textContent = text;
 }
 
-// Live map snapshot (reuses your variables)
 function _getMapSnapshot() {
   const snap = {
     totalFeatures: (typeof allLayers !== 'undefined' ? allLayers.filter(i => !i._deleted).length : 0),
     feeders: (typeof feederNames !== 'undefined' ? [...feederNames] : []),
     statusLive: 0, statusBreakdown: 0, statusIdle: 0,
-    ugCount: 0, ohCount: 0,
     feederDetail: []
   };
-
-  if (typeof feederStatus !== 'undefined' && snap.feeders.length) {
+  if (typeof feederStatus !== 'undefined') {
     snap.feeders.forEach(fn => {
       const st = feederStatus[fn] || 'live';
       if (st === 'live') snap.statusLive++;
       else if (st === 'breakdown') snap.statusBreakdown++;
       else snap.statusIdle++;
-
-      const poles = (typeof allLayers !== 'undefined') 
-        ? allLayers.filter(i => !i._deleted && i.feederName === fn && (i.reg?.type === 'points' || i.cable)).length 
-        : 0;
+      const poles = (typeof allLayers !== 'undefined') ? allLayers.filter(i => !i._deleted && i.feederName === fn).length : 0;
       snap.feederDetail.push({name: fn, poles, status: st});
     });
   }
@@ -1304,51 +1324,20 @@ function _getMapSnapshot() {
 }
 
 function _buildContext(snap) {
-  const top = snap.feederDetail.sort((a,b) => b.poles - a.poles).slice(0, 8)
-    .map(f => `${f.name}(${f.poles} poles, ${f.status})`).join(', ');
-  return `LIVE TGSPDCL 33KV MAP DATA:
-• Total Feeders: ${snap.feeders.length}
-• Live: ${snap.statusLive} | Breakdown: ${snap.statusBreakdown} | Idle: ${snap.statusIdle}
-• Top feeders: ${top || 'None yet'}
-Use this data for accurate answers.`;
-}
-
-// Quick chips
-function aiQuick(key) {
-  const prompts = {
-    summary: "Give a complete summary of the current map: total feeders, poles, UG/OH split, status overview.",
-    breakdown: "List all feeders currently in BREAKDOWN or IDLE status with their division/section if available.",
-    report: "Generate a professional TGSPDCL monthly feeder status report with key statistics.",
-    chart_feeder: "CHART:feeder_poles",
-    chart_status: "CHART:status_pie",
-    chart_cable: "CHART:ug_oh_bar",
-    longest: "List the 5 longest feeders by pole count.",
-    recommend: "Give 4 practical engineering recommendations based on current feeder data."
-  };
-  const txt = prompts[key];
-  if (txt) {
-    if (txt.startsWith('CHART:')) {
-      _renderChart(txt.replace('CHART:', ''));
-    } else {
-      document.getElementById('aiInput').value = txt;
-      aiSend();
-    }
-  }
+  return `LIVE TGSPDCL 33KV DATA:\nTotal Feeders: ${snap.feeders.length}\nLive: ${snap.statusLive} | Breakdown: ${snap.statusBreakdown} | Idle: ${snap.statusIdle}`;
 }
 
 async function aiSend() {
   const input = document.getElementById('aiInput');
   const msg = input.value.trim();
   if (!msg || _aiThinking) return;
-
   if (!_aiToken) {
-    _appendMsg('ai', 'Please enter your Hugging Face token above first.', true);
+    alert("Please enter your Hugging Face token first.");
     return;
   }
 
   input.value = '';
   _appendMsg('user', msg);
-  _aiHistory.push({role: 'user', content: msg});
   _showTyping();
   _aiThinking = true;
   _aiSetStatus('thinking', 'THINKING…');
@@ -1357,44 +1346,17 @@ async function aiSend() {
   const context = _buildContext(snap);
 
   try {
-    let reply = '';
-    if (HF_ENDPOINT.includes('.hf.space')) {
-      // Space proxy
-      const res = await fetch(HF_ENDPOINT, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ data: [msg, context] })
-      });
-      const json = await res.json();
-      reply = json.data ? json.data[0] : json;
-    } else {
-      // Direct HF
-      const prompt = `<s>[INST] You are TGSPDCL 33KV expert assistant.\n\n${context}\n\n${msg} [/INST]`;
-      const res = await fetch(HF_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${_aiToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: { max_new_tokens: 1024, temperature: 0.5 }
-        })
-      });
-      const data = await res.json();
-      reply = Array.isArray(data) ? data[0].generated_text : (data.generated_text || 'No response');
-    }
+    const res = await fetch(HF_ENDPOINT, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ data: [msg, context] })
+    });
+    const json = await res.json();
+    const reply = json.data ? json.data[0] : json;
 
     _hideTyping();
-    _appendMsg('ai', reply.trim(), true);
-    _aiHistory.push({role: 'assistant', content: reply});
-
-    // Auto chart/report hints
-    if (msg.toLowerCase().includes('chart') || reply.toLowerCase().includes('chart')) {
-      // Could auto-trigger specific charts if needed
-    }
-
-  } catch (err) {
+    _appendMsg('ai', reply, true);
+  } catch(err) {
     _hideTyping();
     _appendMsg('ai', 'Error: ' + err.message, true);
   }
@@ -1403,30 +1365,17 @@ async function aiSend() {
   _aiSetStatus('ready', 'READY');
 }
 
-// Helper functions (append, typing, scroll)
 function _appendMsg(role, text, isAI) {
   const msgs = document.getElementById('aiMsgs');
-  if (!msgs) return;
   const div = document.createElement('div');
   div.className = `ai-msg ${isAI ? 'ai' : 'user'}`;
-  const fmt = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                  .replace(/`(.+?)`/g, '<code>$1</code>')
-                  .replace(/\n/g, '<br>');
-  div.innerHTML = `
-    <div class="ai-msg-avatar">${isAI ? '🤖' : '👤'}</div>
-    <div class="ai-msg-body">
-      <div class="ai-bubble">${fmt}</div>
-      <div class="ai-msg-time">${_nowStr()}</div>
-    </div>`;
+  div.innerHTML = `<div class="ai-msg-avatar">${isAI ? '🤖' : '👤'}</div><div class="ai-msg-body"><div class="ai-bubble">${text.replace(/\n/g,'<br>')}</div><div class="ai-msg-time">${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div></div>`;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
 }
 
 function _showTyping() {
   const msgs = document.getElementById('aiMsgs');
-  if (!msgs) return;
-  const existing = document.getElementById('_aiTyping');
-  if (existing) existing.remove();
   const div = document.createElement('div');
   div.id = '_aiTyping';
   div.className = 'ai-msg ai';
@@ -1440,67 +1389,26 @@ function _hideTyping() {
   if (el) el.remove();
 }
 
-function _renderChart(type) {
-  // Reuse or extend your existing chart logic from previous messages
-  _appendMsg('ai', `📊 Generating ${type} chart... (implement _renderChart logic as needed)`, true);
+function aiQuick(key) {
+  const map = {
+    summary: "Give a complete summary of the current map data.",
+    breakdown: "List all feeders in BREAKDOWN or IDLE status.",
+    report: "Generate a full TGSPDCL feeder status report.",
+    chart_feeder: "Show pole count chart.",
+    chart_status: "Show status distribution.",
+    chart_cable: "Show UG vs OH comparison.",
+    longest: "List the 5 longest feeders.",
+    recommend: "Give practical recommendations."
+  };
+  const txt = map[key];
+  if (txt) {
+    document.getElementById('aiInput').value = txt;
+    aiSend();
+  }
 }
-
-// Auto-grow textarea
-const aiInput = document.getElementById('aiInput');
-if (aiInput) {
-  aiInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      aiSend();
-    }
-  });
-  aiInput.addEventListener('input', () => {
-    aiInput.style.height = 'auto';
-    aiInput.style.height = Math.min(aiInput.scrollHeight, 120) + 'px';
-  });
-}
-
-// Initial welcome (your existing one is fine)
 </script>
-</style>
-</head>
-<body>
-<div id="loader">
-  <div class="ld-logo">TGSPDCL</div>
-  <div class="ld-sub">33KV FEEDERS ROUTE MAP-SCADA</div>
-  <div class="ld-bar"><div class="ld-fill" id="ldfill"></div></div>
-</div>
-
-<div id="topbar">
-  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">build 01-Jun-2026 / r12 (side-aware+anim)</span></div>
-  <div class="tb-sep"></div>
-  <div class="tb-title">SCADA 33KV FEEDER ROUTE MAP</div>
-  <div id="coordPickBtn" onclick="toggleCoordPicker()" title="Pick coordinates on map">📍 PICK COORDS</div>
-  <div id="rulerBtn" onclick="toggleRuler()" title="Measure distance — click points on map, ESC to clear">📏 RULER</div>
-  <div id="srchWrap" style="position:relative">
-    <input id="srchInput" placeholder="Search feeders, pole no., cable point…" autocomplete="off"/>
-    <div id="fsDropdown"></div>
-    <span class="srch-ic">⌕</span>
-  </div>
-  <input type="file" id="dfFileInput" accept=".csv,.xlsx,.xls" onchange="handleFileUpload(this)" style="display:none"/>
-  <div class="tb-ai-btn" id="tbAiBtn" onclick="toggleAIPanel()" title="AI Assistant — ask questions, generate reports, charts">
-    <span class="tb-ai-ic">🤖</span>
-    <span>AI ASSISTANT</span>
-  </div>
-  <div id="tbInterruptBtn" class="tb-irr-btn" onclick="toggleInterruptionPanel()" title="Show feeders under breakdown / idle">
-    <span class="tb-irr-ic">⚠</span>
-    <span class="tb-irr-lbl">INTERRUPTION DETAILS</span>
-    <span class="tb-irr-cnt" id="tb-irr-cnt">0</span>
-  </div>
-  <div class="fs-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</div>
-  <div class="chip chip-live">● LIVE</div>
-</div>
-
-<div id="ptab" onclick="togglePanel()">◀</div>
-
-<div id="panel">
-  <div id="panel-resize"></div>
-
+</body>
+</html>
   <!-- ── TAB STRIP (added 09 May 2026 per Naresh) ── -->
   <div class="lpanel-tabs">
     <button class="lpanel-tab active" data-tab="feeders" onclick="switchLpanelTab('feeders')">
