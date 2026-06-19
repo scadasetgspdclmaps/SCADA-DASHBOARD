@@ -6937,6 +6937,21 @@ setTimeout(async ()=>{
     showFbStatus('error');
   }
 }, 3500);
+
+/* ── Expose app internals so the PRINT COMPOSER (separate script scope)
+      can reach them. Top-level const/let are NOT auto-attached to window,
+      which is why the print button previously found no data. ── */
+try {
+  window.allLayers = allLayers;        // const array — same reference, stays live
+  window.feederNames = feederNames;    // Set — same reference, stays live
+  if (typeof calcFeederStats === 'function') window.calcFeederStats = calcFeederStats;
+  if (typeof focusFeeder === 'function')      window.focusFeeder = focusFeeder;
+  // focusedFeeder is reassigned with `let`, so expose a live getter
+  Object.defineProperty(window, 'focusedFeeder', {
+    configurable: true,
+    get: function(){ return focusedFeeder; }
+  });
+} catch (e) { console.error('[print-composer] expose failed:', e); }
 </script>
 
 <div id="feederStatsPanel">
@@ -8828,8 +8843,15 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   }
 
   function getReg(item){
-    var p = getLayerProps(item);
-    return String((item.reg && item.reg.type) || p.regType || p.Type || p.type || '').toUpperCase();
+    // Real route-map data stores reg.type in lowercase: ab, dp, cut, points,
+    // fpoles, lines, fsegs, ss33, eht. Normalize to the symbol keys below.
+    var raw = String((item && item.reg && item.reg.type) || '').toLowerCase();
+    if(raw === 'ab') return 'AB';
+    if(raw === 'dp') return 'DP';
+    if(raw === 'cut') return 'CUT';
+    if(raw.indexOf('ss') === 0 || raw.indexOf('eht') === 0) return 'SS';
+    if(raw === 'points' || raw === 'fpoles') return 'POLE';
+    return '';
   }
 
   function latLngsOfLayer(layer){
@@ -8920,11 +8942,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   }
 
   function symbolSvg(x,y,type){
-    if(type === 'DTR') return '<polygon points="'+x+','+(y-3)+' '+(x+3)+','+y+' '+x+','+(y+3)+' '+(x-3)+','+y+'" fill="#22c55e" stroke="#065f46" stroke-width=".4"/>';
-    if(type === 'AB') return '<circle cx="'+x+'" cy="'+y+'" r="2.3" fill="#ff9800" stroke="#7c2d12" stroke-width=".4"/>';
-    if(type === 'DP') return '<rect x="'+(x-2.5)+'" y="'+(y-2.5)+'" width="5" height="5" fill="#d946ef" stroke="#701a75" stroke-width=".4"/>';
+    if(type === 'SS')  return '<rect x="'+(x-2.5)+'" y="'+(y-2.5)+'" width="5" height="5" fill="#ef4444" stroke="#7f1d1d" stroke-width=".5"/>';
+    if(type === 'AB')  return '<circle cx="'+x+'" cy="'+y+'" r="2.3" fill="#ff9800" stroke="#7c2d12" stroke-width=".4"/>';
+    if(type === 'DP')  return '<rect x="'+(x-2.5)+'" y="'+(y-2.5)+'" width="5" height="5" fill="#d946ef" stroke="#701a75" stroke-width=".4"/>';
     if(type === 'CUT') return '<path d="M'+(x-3)+' '+(y-3)+' L'+(x+3)+' '+(y+3)+' M'+(x+3)+' '+(y-3)+' L'+(x-3)+' '+(y+3)+'" stroke="#ef4444" stroke-width="1"/>';
-    return '<circle cx="'+x+'" cy="'+y+'" r="1.2" fill="#111827"/>';
+    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r="1" fill="#111827"/>';
+    return '';
   }
 
   function buildFeederSvg(fn,opt){
@@ -8990,11 +9013,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
 
     if(opt.stats){
       var sx = page.w - 82, sy = page.h - 42;
+      var r2 = function(v){ return (v == null || isNaN(v)) ? null : (Math.round(v*100)/100); };
+      var tk = r2(stats.totalKm), uk = r2(stats.ugKm), ok = r2(stats.ohKm);
       svg.push('<rect x="'+sx+'" y="'+sy+'" width="72" height="32" fill="#fff" stroke="#777" stroke-width=".25"/>');
       svg.push('<text x="'+(sx+4)+'" y="'+(sy+5)+'" font-size="2.6" font-weight="700">FEEDER STATISTICS</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+11)+'" font-size="2.3">Total Length: '+esc(stats.totalKm!=null?stats.totalKm+" km":"—")+'</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+16)+'" font-size="2.3">UG Length: '+esc(stats.ugKm!=null?stats.ugKm+" km":"—")+'</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+21)+'" font-size="2.3">OH Length: '+esc(stats.ohKm!=null?stats.ohKm+" km":"—")+'</text>');
+      svg.push('<text x="'+(sx+4)+'" y="'+(sy+11)+'" font-size="2.3">Total Length: '+esc(tk!=null?tk+" km":"—")+'</text>');
+      svg.push('<text x="'+(sx+4)+'" y="'+(sy+16)+'" font-size="2.3">UG Length: '+esc(uk!=null?uk+" km":"—")+'</text>');
+      svg.push('<text x="'+(sx+4)+'" y="'+(sy+21)+'" font-size="2.3">OH Length: '+esc(ok!=null?ok+" km":"—")+'</text>');
       svg.push('<text x="'+(sx+4)+'" y="'+(sy+26)+'" font-size="2.3">Points: '+getFeederItems(fn).length+'</text>');
     }
 
