@@ -57,7 +57,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
   display:flex;align-items:center;padding:0 14px;gap:12px;box-shadow:0 2px 20px rgba(0,0,0,.4)}
 .tb-logo{font-family:var(--mono);font-size:13px;color:var(--live);letter-spacing:2px;white-space:nowrap}
 .tb-sep{width:1px;height:28px;background:var(--border);flex-shrink:0}
-.tb-title{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-title{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--text);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 #srchWrap{position:relative;flex-shrink:0}
 #srchInput{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:20px;padding:6px 14px 6px 34px;color:var(--text);font-family:var(--sans);font-size:13px;width:190px;outline:none;transition:all .3s}
 #srchInput:focus{width:250px;background:rgba(0,200,255,.08);border-color:var(--live)}
@@ -4879,11 +4879,40 @@ function _ssNameMatchesPart(ssDistinctive, ssNorm, partNorm){
   if (!partNorm) return false;
   // Exact whole-string fuzzy is a strong signal (single-word SSes)
   if (_wordFuzzyEqual(partNorm, ssNorm)) return true;
+  // Acronym match: SS name is an abbreviation of the feeder part
+  //   e.g. SS "HPS"  ↔  part "HYDERABAD PUBLIC SCHOOL"
+  //   or   SS "CRPF" ↔  part "CRPF" (identical, already caught above)
+  if (_acronymMatches(ssNorm, partNorm)) return true;
   // Otherwise require every distinctive SS word to appear in the part
   const partWords = partNorm.split(/\s+/);
   return ssDistinctive.every(sw =>
     partWords.some(pw => _wordFuzzyEqual(pw, sw))
   );
+}
+
+// Acronym matcher. Returns true when one side is a short alpha token that
+// equals the initials of the other (multi-word) side.
+//   "HPS"  vs "HYDERABAD PUBLIC SCHOOL"  → H-P-S → "HPS"  ✓
+// Works in BOTH directions (SS may be the acronym, or the feeder part may be).
+function _acronymMatches(a, b){
+  if (!a || !b) return false;
+  const initialsOf = (s) => {
+    const w = s.split(/\s+/).filter(Boolean);
+    if (w.length < 2) return '';            // need ≥2 words to form an acronym
+    return w.map(x => x[0]).join('');
+  };
+  const isShortToken = (s) => /^[A-Z]{2,6}$/.test(s) && s.indexOf(' ') === -1;
+  // a is acronym of b ?
+  if (isShortToken(a)){
+    const ib = initialsOf(b);
+    if (ib && (ib === a || _wordFuzzyEqual(ib, a))) return true;
+  }
+  // b is acronym of a ?
+  if (isShortToken(b)){
+    const ia = initialsOf(a);
+    if (ia && (ia === b || _wordFuzzyEqual(ia, b))) return true;
+  }
+  return false;
 }
 
 function _findFeedersLinkedToSS(ssData){
@@ -8194,9 +8223,12 @@ function _getMapSnapshot() {
   snap.abCount   = active.filter(i => i.reg?.type === 'ab').length;
   snap.dpCount   = active.filter(i => i.reg?.type === 'dp').length;
   snap.cutCount  = active.filter(i => i.reg?.type === 'cut').length;
-  snap.ss33Count = active.filter(i => (i.reg?.type||'').startsWith('ss33')).length;
+  snap.ss33Count = active.filter(i => (i.reg?.type||'').startsWith('ss')).length;
   snap.ehtCount  = active.filter(i => (i.reg?.type||'').startsWith('eht')).length;
-  snap.lineCount = active.filter(i => i.reg?.type === 'lines').length;
+  snap.lineCount = active.filter(i => i.reg?.type === 'lines' || i.reg?.type === 'fsegs').length;
+
+  // Pole points include both 'points' and 'fpoles' reg types
+  const _isPole = (t) => t === 'points' || t === 'fpoles';
 
   if (typeof feederNames !== 'undefined') {
     snap.feeders = [...feederNames];
@@ -8207,10 +8239,23 @@ function _getMapSnapshot() {
       else snap.statusIdle++;
 
       const h = (typeof getFeederHierarchy === 'function') ? getFeederHierarchy(fn) : {};
-      const poles = active.filter(i => i.feederName === fn && i.reg?.type === 'points').length;
-      const ug = active.filter(i => i.feederName === fn && i.cable === 'UG').length;
-      const oh = active.filter(i => i.feederName === fn && i.cable === 'OH').length;
-      snap.feederDetail.push({ name: fn, poles, ug, oh, status: st,
+      // Prefer authoritative km-based stats when available
+      let poles = active.filter(i => i.feederName === fn && _isPole(i.reg?.type)).length;
+      let ug = active.filter(i => i.feederName === fn && i.cable === 'UG').length;
+      let oh = active.filter(i => i.feederName === fn && i.cable === 'OH').length;
+      let totalKm = null, ugKm = null, ohKm = null;
+      if (typeof calcFeederStats === 'function') {
+        try {
+          const s = calcFeederStats(fn);
+          if (s) {
+            totalKm = Math.round((s.totalKm||0)*100)/100;
+            ugKm = Math.round((s.ugKm||0)*100)/100;
+            ohKm = Math.round((s.ohKm||0)*100)/100;
+            if (s.polePts) poles = s.polePts;
+          }
+        } catch(e){}
+      }
+      snap.feederDetail.push({ name: fn, poles, ug, oh, totalKm, ugKm, ohKm, status: st,
         division: h.division || '—', section: h.section || '—' });
     });
   }
@@ -8239,7 +8284,10 @@ function _buildContext(snap) {
 - Feeders not live: ${downFeeders}
 
 TOP FEEDERS BY POLE COUNT:
-${top10.map(f => `  ${f.name}: ${f.poles} poles (UG:${f.ug} OH:${f.oh}) — ${f.status.toUpperCase()} — ${f.division}`).join('\n')}`;
+${top10.map(f => {
+  const km = (f.totalKm!=null) ? ` — ${f.totalKm}km total (UG ${f.ugKm}km / OH ${f.ohKm}km)` : '';
+  return `  ${f.name}: ${f.poles} poles (UG:${f.ug} OH:${f.oh})${km} — ${f.status.toUpperCase()} — ${f.division}`;
+}).join('\n')}`;
 }
 
 // ══════════════════════════════════════════════════
@@ -8654,6 +8702,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
 <style>
   /* Top-bar PRINT button — additive only */
   #tbPrintBtn{
+    position:relative;z-index:6;
     display:flex;align-items:center;gap:6px;padding:6px 16px;border-radius:16px;
     border:1px solid rgba(255,200,0,.45);
     background:rgba(255,200,0,.10);color:#ffcc40;
