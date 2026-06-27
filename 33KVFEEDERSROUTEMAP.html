@@ -1674,6 +1674,31 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 <div id="panel">
   <div id="panel-resize"></div>
 
+  <!-- ── SCOPE SELECTOR (added 26-Jun-2026 per Naresh) ── -->
+  <!-- This is THE control that loads data. Map starts empty by design —   -->
+  <!-- nothing renders until a Division (or narrower) is picked here.      -->
+  <!-- Moved to the top of the LEFT panel and made always-visible after a  -->
+  <!-- prior placement bug buried it inside a collapsed right-panel        -->
+  <!-- accordion where no one could find it. ──                            -->
+  <div id="scopeSelectorBox" style="background:linear-gradient(135deg,#1565c0,#1976d2);border-radius:8px;padding:10px 12px;margin:8px 8px 4px 8px;box-shadow:0 2px 8px rgba(21,101,192,.25)">
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+      <span style="font-size:13px">⚡</span> SELECT SCOPE TO LOAD MAP DATA
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+      <div><div style="font-size:9px;color:#bbdefb;margin-bottom:2px;letter-spacing:.4px">DIVISION</div>
+        <select class="hier-sel" id="scopeDiv" onchange="applyScopeSelection()" style="width:100%"><option value="ALL">ALL DIVISIONS</option></select></div>
+      <div><div style="font-size:9px;color:#bbdefb;margin-bottom:2px;letter-spacing:.4px">SUB DIVISION</div>
+        <select class="hier-sel" id="scopeSub" onchange="applyScopeSelection()" style="width:100%"><option value="ALL">ALL SUB-DIVISIONS</option></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+      <div><div style="font-size:9px;color:#bbdefb;margin-bottom:2px;letter-spacing:.4px">SECTION</div>
+        <select class="hier-sel" id="scopeSec" onchange="applyScopeSelection()" style="width:100%"><option value="ALL">ALL SECTIONS</option></select></div>
+      <div><div style="font-size:9px;color:#bbdefb;margin-bottom:2px;letter-spacing:.4px">FEEDER</div>
+        <select class="hier-sel" id="scopeFeeder" onchange="applyScopeSelection()" style="width:100%"><option value="ALL">ALL FEEDERS</option></select></div>
+    </div>
+    <div style="font-family:var(--sans);font-size:9.5px;color:#e3f2fd;line-height:1.4">Pick a Division (or narrower) to load that scope's feeders &amp; substations. The map stays empty until you do — nothing was deleted.</div>
+  </div>
+
   <!-- ── TAB STRIP (added 09 May 2026 per Naresh) ── -->
   <div class="lpanel-tabs">
     <button class="lpanel-tab active" data-tab="feeders" onclick="switchLpanelTab('feeders')">
@@ -1896,19 +1921,6 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
     <div class="rcard-body">
       <div class="strow"><span class="stlbl">Total Features</span><span class="stval" id="st-total">—</span></div>
       <div class="strow"><span class="stlbl">Visible Features</span><span class="stval" id="st-visible">—</span></div>
-      <div style="border-top:1px solid rgba(0,0,0,.08);margin:8px 0 6px"></div>
-      <div class="hier-filters" style="background:rgba(25,118,210,.06);border:1px solid rgba(25,118,210,.18);border-radius:6px;padding:8px;margin-bottom:8px">
-        <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:#1565c0;letter-spacing:.6px;margin-bottom:6px">⚡ SELECT SCOPE TO LOAD</div>
-        <div><div class="hier-lbl">DIVISION</div>
-          <select class="hier-sel" id="scopeDiv" onchange="applyScopeSelection()"><option value="ALL">ALL DIVISIONS</option></select></div>
-        <div><div class="hier-lbl">SUB DIVISION</div>
-          <select class="hier-sel" id="scopeSub" onchange="applyScopeSelection()"><option value="ALL">ALL SUB-DIVISIONS</option></select></div>
-        <div><div class="hier-lbl">SECTION</div>
-          <select class="hier-sel" id="scopeSec" onchange="applyScopeSelection()"><option value="ALL">ALL SECTIONS</option></select></div>
-        <div><div class="hier-lbl">FEEDER</div>
-          <select class="hier-sel" id="scopeFeeder" onchange="applyScopeSelection()"><option value="ALL">ALL FEEDERS</option></select></div>
-        <div style="font-family:var(--sans);font-size:9px;color:#5a7aa5;margin-top:5px;line-height:1.4">Pick a Division (or narrower) to load and draw only that scope's feeders and substations. Nothing is drawn until you select one.</div>
-      </div>
       <div style="border-top:1px solid rgba(0,0,0,.08);margin:8px 0 6px"></div>
       <div class="hier-filters">
         <div><div class="hier-lbl">DIVISION</div>
