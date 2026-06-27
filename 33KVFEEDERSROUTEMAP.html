@@ -9927,13 +9927,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       se = lngLatToTile(b.minLat, b.maxLng, z);
       tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
     }
-    var baseName  = isDark ? 'dark_nolabels' : 'light_nolabels';
-    var labelName = isDark ? 'dark_only_labels' : 'light_only_labels';
-    var baseOpacity  = isDark ? 0.72 : 0.82;
-    var labelOpacity = isDark ? 0.30 : 0.42;
+    var baseName  = isDark ? 'dark_all' : 'light_all';
+    var labelName = '';
+    var baseOpacity  = 1;
+    var labelOpacity = 0;
     var out = [];
     var clipId = 'tgScadaMinClip' + Math.round(ctx.draw.x*10) + '_' + Math.round(ctx.draw.y*10) + '_' + Math.round(ctx.draw.w*10);
-    out.push('<defs><clipPath id="'+clipId+'"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath></defs>');
+    out.push('<defs><clipPath id="'+clipId+'"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath><filter id="tgPrintTileEnhance"><feComponentTransfer><feFuncR type="linear" slope="1.12" intercept="-0.03"/><feFuncG type="linear" slope="1.12" intercept="-0.03"/><feFuncB type="linear" slope="1.12" intercept="-0.03"/></feComponentTransfer></filter></defs>');
     out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="'+(isDark?'#07111f':'#f8fafc')+'"/>');
     function addTiles(layerName, opacity){
       out.push('<g clip-path="url(#'+clipId+')" opacity="'+opacity+'">');
@@ -9949,35 +9949,128 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       out.push('</g>');
     }
     addTiles(baseName, baseOpacity);
-    addTiles(labelName, labelOpacity);
-    // White wash for print readability, similar to TRANSCO-style clean sheets.
-    if(!isDark) out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="rgba(255,255,255,0.18)"/>');
-    else out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="rgba(0,0,0,0.20)"/>');
+    if(labelName) addTiles(labelName, labelOpacity);
+    // No wash overlay; it made the background look blank/grey in print.
+    return out.join('');
+  }
+
+
+  // ---------- CORS-safe basemap for print/SVG ----------
+  // Remote tile <image href="https://..."> often becomes blank when the SVG is
+  // opened/printed in a new tab. We therefore fetch each CARTO tile first and
+  // embed it as a data:image/png;base64 URL inside the SVG.
+  var _tgTileDataCache = window._tgTileDataCache || (window._tgTileDataCache = {});
+  function tgCartoTileUrl(layerName,z,x,y){
+    // Retina tiles for print clarity. Voyager is clearer than light_all for roads/locality labels.
+    if(layerName === 'light_all'){
+      return 'https://a.basemaps.cartocdn.com/rastertiles/voyager/'+z+'/'+x+'/'+y+'@2x.png';
+    }
+    if(layerName === 'dark_all'){
+      return 'https://a.basemaps.cartocdn.com/dark_all/'+z+'/'+x+'/'+y+'@2x.png';
+    }
+    return 'https://a.basemaps.cartocdn.com/'+layerName+'/'+z+'/'+x+'/'+y+'@2x.png';
+  }
+  function tgTransparentTile(){
+    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
+  }
+  async function tgFetchTileDataUrl(url){
+    if(_tgTileDataCache[url]) return _tgTileDataCache[url];
+    try{
+      var r = await fetch(url, {mode:'cors', cache:'force-cache'});
+      if(!r.ok) throw new Error('tile '+r.status);
+      var blob = await r.blob();
+      var data = await new Promise(function(resolve,reject){
+        var fr = new FileReader();
+        fr.onload = function(){ resolve(fr.result); };
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+      _tgTileDataCache[url] = data;
+      return data;
+    }catch(e){
+      console.warn('[print tiles] failed:', url, e);
+      return tgTransparentTile();
+    }
+  }
+  async function googleBackgroundSvgAsync(ctx, opt){
+    if(!opt.googleBg || opt.printBgStyle === 'none') return '';
+    var b = ctx.bounds;
+    var style = opt.printBgStyle || 'minimal_light';
+    var isDark = style === 'minimal_dark';
+
+    // HIGH-RES PRINT TILE FIX:
+    // Previous print used z=11/12 CARTO tiles and enlarged them into the sheet,
+    // so the background looked like a pale/blank grey image. For single-feeder
+    // drawings we start high and reduce only if too many tiles are required.
+    var z = (opt.paper === 'A0' || opt.paper === 'A1') ? 18 :
+            (opt.paper === 'A2' || opt.paper === 'A3') ? 18 :
+            (opt.paper === 'A4') ? 17 : 16;
+
+    var nw = lngLatToTile(b.maxLat, b.minLng, z);
+    var se = lngLatToTile(b.minLat, b.maxLng, z);
+    var tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
+    var maxTiles = (opt && opt.mode === 'group') ? 900 : 1200;
+    while(tileCount > maxTiles && z > 14){
+      z--;
+      nw = lngLatToTile(b.maxLat, b.minLng, z);
+      se = lngLatToTile(b.minLat, b.maxLng, z);
+      tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
+    }
+
+    // Use one clear CARTO all-in-one layer instead of no-labels + low-opacity labels.
+    // This keeps roads/locality labels visible like the 11KV reference.
+    var layerName = isDark ? 'dark_all' : 'light_all';
+    var out = [];
+    var clipId = 'tgScadaPrintClip' + Math.round(ctx.draw.x*10) + '_' + Math.round(ctx.draw.y*10) + '_' + Math.round(ctx.draw.w*10) + '_' + Math.round(Math.random()*1e6);
+    out.push('<defs><clipPath id="'+clipId+'"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath></defs>');
+    out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="'+(isDark?'#07111f':'#ffffff')+'"/>');
+
+    out.push('<g clip-path="url(#'+clipId+')" opacity="1">');
+    var jobs=[];
+    for(var x = nw.x; x <= se.x; x++){
+      for(var y = nw.y; y <= se.y; y++){
+        (function(x,y){
+          jobs.push((async function(){
+            var tl = tileToLngLat(x,y,z), br = tileToLngLat(x+1,y+1,z);
+            var p1 = ctx.project({lat:tl.lat, lng:tl.lng}), p2 = ctx.project({lat:br.lat, lng:br.lng});
+            var xx = Math.min(p1.x,p2.x), yy = Math.min(p1.y,p2.y), ww = Math.abs(p2.x-p1.x), hh = Math.abs(p2.y-p1.y);
+            var href = await tgFetchTileDataUrl(tgCartoTileUrl(layerName,z,x,y));
+            return '<image href="'+href+'" x="'+xx.toFixed(2)+'" y="'+yy.toFixed(2)+'" width="'+ww.toFixed(2)+'" height="'+hh.toFixed(2)+'" preserveAspectRatio="none" filter="url(#tgPrintTileEnhance)"/>';
+          })());
+        })(x,y);
+      }
+    }
+    var imgs = await Promise.all(jobs);
+    out.push(imgs.join(''));
+    out.push('</g>');
+
+    // No white/grey wash overlay. The overlay was the reason the output still looked blank.
     return out.join('');
   }
 
   // ---------- symbols ----------
   function symbolSvg(x,y,type){
-    if(type === 'SS')  return '<rect x="'+(x-2.5)+'" y="'+(y-2.5)+'" width="5" height="5" fill="#ef4444" stroke="#7f1d1d" stroke-width=".5"/>';
-    if(type === 'AB')  return '<circle cx="'+x+'" cy="'+y+'" r="2.3" fill="#ff9800" stroke="#7c2d12" stroke-width=".4"/>';
-    if(type === 'DP')  return '<rect x="'+(x-2.5)+'" y="'+(y-2.5)+'" width="5" height="5" fill="#d946ef" stroke="#701a75" stroke-width=".4"/>';
-    if(type === 'CUT') return '<path d="M'+(x-3)+' '+(y-3)+' L'+(x+3)+' '+(y+3)+' M'+(x+3)+' '+(y-3)+' L'+(x-3)+' '+(y+3)+'" stroke="#ef4444" stroke-width="1"/>';
-    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r="1" fill="#111827"/>';
+    // Small print symbols — large live-map markers should not dominate a drawing.
+    if(type === 'SS')  return '<rect x="'+(x-0.9)+'" y="'+(y-0.9)+'" width="1.8" height="1.8" fill="#ef4444" stroke="#7f1d1d" stroke-width=".32"/>';
+    if(type === 'AB')  return '<circle cx="'+x+'" cy="'+y+'" r="0.55" fill="#ff9800" stroke="#7c2d12" stroke-width=".18"/>';
+    if(type === 'DP')  return '<rect x="'+(x-0.65)+'" y="'+(y-0.65)+'" width="1.3" height="1.3" fill="#d946ef" stroke="#701a75" stroke-width=".18"/>';
+    if(type === 'CUT') return '<path d="M'+(x-0.85)+' '+(y-0.85)+' L'+(x+0.85)+' '+(y+0.85)+' M'+(x+0.85)+' '+(y-0.85)+' L'+(x-0.85)+' '+(y+0.85)+'" stroke="#ef4444" stroke-width=".32" stroke-linecap="round"/>';
+    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r=".38" fill="#111827"/>';
     return '';
   }
   function substationSvg(x,y,type,name){
     if(type === 'eht'){
-      return '<g><rect x="'+(x-4.2)+'" y="'+(y-3)+'" width="8.4" height="6" rx="1" fill="#fff7ed" stroke="#f97316" stroke-width=".65"/>'
-        + '<text x="'+x+'" y="'+(y+1.2)+'" font-size="3" text-anchor="middle" fill="#c2410c">&#9889;</text>'
-        + '<text x="'+(x+5.2)+'" y="'+(y-4)+'" font-size="2.6" font-weight="700" fill="#7c2d12">'+esc(name)+'</text></g>';
+      return '<g><rect x="'+(x-3.2)+'" y="'+(y-2.3)+'" width="6.4" height="4.6" rx=".8" fill="#fff7ed" stroke="#f97316" stroke-width=".65"/>'
+        + '<text x="'+x+'" y="'+(y+1.2)+'" font-size="2.3" text-anchor="middle" fill="#c2410c">&#9889;</text>'
+        + '<text x="'+(x+4.0)+'" y="'+(y-3.0)+'" font-size="2.2" font-weight="700" fill="#7c2d12">'+esc(name)+'</text></g>';
     }
-    return '<g><circle cx="'+x+'" cy="'+y+'" r="3.3" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".65"/>'
-      + '<text x="'+x+'" y="'+(y+1.1)+'" font-size="2.8" text-anchor="middle" fill="#1d4ed8">&#9889;</text>'
-      + '<text x="'+(x+4.7)+'" y="'+(y-3.8)+'" font-size="2.6" font-weight="700" fill="#0f172a">'+esc(name)+'</text></g>';
+    return '<g><circle cx="'+x+'" cy="'+y+'" r="1.6" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".65"/>'
+      + '<text x="'+x+'" y="'+(y+1.1)+'" font-size="2.1" text-anchor="middle" fill="#1d4ed8">&#9889;</text>'
+      + '<text x="'+(x+3.3)+'" y="'+(y-2.7)+'" font-size="2.1" font-weight="700" fill="#0f172a">'+esc(name)+'</text></g>';
   }
 
   // ---------- main SVG builder ----------
-  function buildFeederSvg(fn, opt){
+  async function buildFeederSvg(fn, opt){
     var segs = getFeederSegments(fn);
     if(!segs.length) return '';
     var page = paperSize(opt);
@@ -10010,14 +10103,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     }
 
     // Google map background — drawn first so the route/symbols sit on top of it
-    svg.push(googleBackgroundSvg(ctx, opt));
+    svg.push(await googleBackgroundSvgAsync(ctx, opt));
 
     segs.forEach(function(s){
       if(s.pts.length < 2) return;
       var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
       var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
       var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.95" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
     });
 
     if(opt.symbols || opt.poleLabels){
@@ -10058,10 +10151,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       var lx = 10, ly = page.h - 46;
       svg.push('<rect x="'+lx+'" y="'+ly+'" width="50" height="38" fill="#fff" stroke="#777" stroke-width=".25"/>');
       svg.push('<text x="'+(lx+3)+'" y="'+(ly+5)+'" font-size="2.4" font-weight="700">LEGEND</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+10)+'" x2="'+(lx+14)+'" y2="'+(ly+10)+'" stroke="#2196f3" stroke-width="1.1"/><text x="'+(lx+17)+'" y="'+(ly+11)+'" font-size="2.2">UG Line</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+16)+'" x2="'+(lx+14)+'" y2="'+(ly+16)+'" stroke="#ff9800" stroke-width="1.1" stroke-dasharray="2 1"/><text x="'+(lx+17)+'" y="'+(ly+17)+'" font-size="2.2">OH Line</text>');
-      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+22)+'" r="2" fill="#ff9800"/><text x="'+(lx+17)+'" y="'+(ly+23)+'" font-size="2.2">AB / device</text>');
-      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+28)+'" r="2.4" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+29)+'" font-size="2.2">33/11KV SS</text>');
+      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+10)+'" x2="'+(lx+14)+'" y2="'+(ly+10)+'" stroke="#2196f3" stroke-width="1.8"/><text x="'+(lx+17)+'" y="'+(ly+11)+'" font-size="2.2">UG Line</text>');
+      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+16)+'" x2="'+(lx+14)+'" y2="'+(ly+16)+'" stroke="#ff9800" stroke-width="1.8" stroke-dasharray="2 1"/><text x="'+(lx+17)+'" y="'+(ly+17)+'" font-size="2.2">OH Line</text>');
+      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+22)+'" r="1.1" fill="#ff9800"/><text x="'+(lx+17)+'" y="'+(ly+23)+'" font-size="2.2">AB / device</text>');
+      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+28)+'" r="1.6" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+29)+'" font-size="2.2">33/11KV SS</text>');
       svg.push('<rect x="'+(lx+6.6)+'" y="'+(ly+32)+'" width="6.6" height="4.4" rx=".8" fill="#fff7ed" stroke="#f97316" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+35.6)+'" font-size="2.2">EHT SS</text>');
     }
 
@@ -10097,47 +10190,47 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     return w;
   }
 
-  function selectedSvg(){
+  async function selectedSvg(){
     var opt = getPrintOptions();
     var fn = currentFeederName();
     if(opt.mode === 'current') return null;
     if(!fn){ alert('Please click/focus a feeder first, then press PRINT.'); return ''; }
     var svg;
     try{
-      svg = buildFeederSvgV2(fn, opt);
+      svg = await buildFeederSvgV2(fn, opt);
     }catch(e){
       console.warn('buildFeederSvgV2 failed, falling back to legacy renderer:', e);
-      svg = buildFeederSvg(fn, opt);
+      svg = await buildFeederSvg(fn, opt);
     }
     if(!svg){ alert('No printable geometry found for selected feeder.'); return ''; }
     return {svg:svg, fn:fn};
   }
 
-  window.tgPrintComposerPreview = function(){
+  window.tgPrintComposerPreview = async function(){
     var opt = getPrintOptions();
     if(opt.mode === 'current'){
       alert('Current map view uses browser print. Use PRINT button for map view.');
       return;
     }
-    var out = selectedSvg();
+    var out = await selectedSvg();
     if(!out) return;
     openPrintWindow(out.svg, 'Feeder Drawing - '+out.fn);
   };
 
-  window.tgPrintComposerPrint = function(){
+  window.tgPrintComposerPrint = async function(){
     var opt = getPrintOptions();
     if(opt.mode === 'current'){
       window.print();
       return;
     }
-    var out = selectedSvg();
+    var out = await selectedSvg();
     if(!out) return;
     var w = openPrintWindow(out.svg, 'Print Feeder - '+out.fn);
     if(w) setTimeout(function(){ w.focus(); w.print(); }, 900);
   };
 
-  window.tgPrintComposerDownloadSVG = function(){
-    var out = selectedSvg();
+  window.tgPrintComposerDownloadSVG = async function(){
+    var out = await selectedSvg();
     if(!out) return;
     var blob = new Blob([out.svg], {type:'image/svg+xml;charset=utf-8'});
     var a = document.createElement('a');
@@ -10235,11 +10328,11 @@ function R(){ return window.tgExportRenderer; }
       return '<g><rect x="'+(x-3.4)+'" y="'+(y-2.4)+'" width="6.8" height="4.8" rx="0.8" fill="#fff7ed" stroke="#f97316" stroke-width=".55"/>'
         + '<text x="'+x+'" y="'+(y+1)+'" font-size="2.4" text-anchor="middle" fill="#c2410c">&#9889;</text></g>';
     }
-    return '<g><circle cx="'+x+'" cy="'+y+'" r="2.6" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".55"/>'
+    return '<g><circle cx="'+x+'" cy="'+y+'" r="1.7" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".55"/>'
       + '<text x="'+x+'" y="'+(y+0.9)+'" font-size="2.3" text-anchor="middle" fill="#1d4ed8">&#9889;</text></g>';
   }
 
-function buildFeederSvgV2(fn, opt){
+async function buildFeederSvgV2(fn, opt){
     var segs = getFeederSegments(fn);
     if(!segs.length) return '';
     var page = paperSize(opt);
@@ -10287,14 +10380,14 @@ function buildFeederSvgV2(fn, opt){
       svg.push(Rr.buildZoneFillSvg({ zoneStyle: opt.zoneStyle, project: project, secKeyFilter: function(k){ return relevantKeys.indexOf(k) >= 0; } }));
     }
 
-    if(opt.googleBg) svg.push(googleBackgroundSvg(ctx, opt));
+    if(opt.googleBg) svg.push(await googleBackgroundSvgAsync(ctx, opt));
 
     segs.forEach(function(s){
       if(s.pts.length < 2) return;
       var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
       var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
       var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.95" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
     });
 
     if(opt.symbols){
@@ -10350,10 +10443,10 @@ function buildFeederSvgV2(fn, opt){
       var lx = 10, ly = page.h - 46;
       svg.push('<rect x="'+lx+'" y="'+ly+'" width="50" height="38" fill="#fff" stroke="#777" stroke-width=".25"/>');
       svg.push('<text x="'+(lx+3)+'" y="'+(ly+5)+'" font-size="2.4" font-weight="700">LEGEND</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+10)+'" x2="'+(lx+14)+'" y2="'+(ly+10)+'" stroke="#2196f3" stroke-width="1.1"/><text x="'+(lx+17)+'" y="'+(ly+11)+'" font-size="2.2">UG Line</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+16)+'" x2="'+(lx+14)+'" y2="'+(ly+16)+'" stroke="#ff9800" stroke-width="1.1" stroke-dasharray="2 1"/><text x="'+(lx+17)+'" y="'+(ly+17)+'" font-size="2.2">OH Line</text>');
-      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+22)+'" r="2" fill="#ff9800"/><text x="'+(lx+17)+'" y="'+(ly+23)+'" font-size="2.2">AB / device</text>');
-      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+28)+'" r="2.4" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+29)+'" font-size="2.2">33/11KV SS</text>');
+      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+10)+'" x2="'+(lx+14)+'" y2="'+(ly+10)+'" stroke="#2196f3" stroke-width="1.8"/><text x="'+(lx+17)+'" y="'+(ly+11)+'" font-size="2.2">UG Line</text>');
+      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+16)+'" x2="'+(lx+14)+'" y2="'+(ly+16)+'" stroke="#ff9800" stroke-width="1.8" stroke-dasharray="2 1"/><text x="'+(lx+17)+'" y="'+(ly+17)+'" font-size="2.2">OH Line</text>');
+      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+22)+'" r="1.1" fill="#ff9800"/><text x="'+(lx+17)+'" y="'+(ly+23)+'" font-size="2.2">AB / device</text>');
+      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+28)+'" r="1.6" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+29)+'" font-size="2.2">33/11KV SS</text>');
       svg.push('<rect x="'+(lx+6.6)+'" y="'+(ly+32)+'" width="6.6" height="4.4" rx=".8" fill="#fff7ed" stroke="#f97316" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+35.6)+'" font-size="2.2">EHT SS</text>');
     }
 
@@ -10582,10 +10675,10 @@ function buildFeederSvgV2(fn, opt){
       se = lngLatToTile(b.minLat, b.maxLng, z);
       tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
     }
-    var baseName  = isDark ? 'dark_nolabels' : 'light_nolabels';
-    var labelName = isDark ? 'dark_only_labels' : 'light_only_labels';
-    var baseOpacity  = isDark ? 0.72 : 0.82;
-    var labelOpacity = isDark ? 0.30 : 0.42;
+    var baseName  = isDark ? 'dark_all' : 'light_all';
+    var labelName = '';
+    var baseOpacity  = 1;
+    var labelOpacity = 0;
     var out = [];
     var clipId = 'tgScadaMinClip' + Math.round(ctx.draw.x*10) + '_' + Math.round(ctx.draw.y*10) + '_' + Math.round(ctx.draw.w*10);
     out.push('<defs><clipPath id="'+clipId+'"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath></defs>');
@@ -10604,10 +10697,8 @@ function buildFeederSvgV2(fn, opt){
       out.push('</g>');
     }
     addTiles(baseName, baseOpacity);
-    addTiles(labelName, labelOpacity);
-    // White wash for print readability, similar to TRANSCO-style clean sheets.
-    if(!isDark) out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="rgba(255,255,255,0.18)"/>');
-    else out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="rgba(0,0,0,0.20)"/>');
+    if(labelName) addTiles(labelName, labelOpacity);
+    // No wash overlay; it made the background look blank/grey in print.
     return out.join('');
   }
 
@@ -10617,13 +10708,13 @@ function buildFeederSvgV2(fn, opt){
         + '<text x="'+x+'" y="'+(y+1)+'" font-size="2.4" text-anchor="middle" fill="#c2410c">&#9889;</text>'
         + '<text x="'+(x+4.4)+'" y="'+(y-3.2)+'" font-size="2.3" font-weight="700" fill="#7c2d12">'+esc(name)+'</text></g>';
     }
-    return '<g><circle cx="'+x+'" cy="'+y+'" r="2.6" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".55"/>'
+    return '<g><circle cx="'+x+'" cy="'+y+'" r="1.7" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".55"/>'
       + '<text x="'+x+'" y="'+(y+0.9)+'" font-size="2.3" text-anchor="middle" fill="#1d4ed8">&#9889;</text>'
       + '<text x="'+(x+3.8)+'" y="'+(y-3)+'" font-size="2.1" font-weight="700" fill="#0f172a">'+esc(name)+'</text></g>';
   }
 
   // ═════════════ MAIN GROUP SVG BUILDER ═════════════
-  function buildGroupSvg(opt){
+  async function buildGroupSvg(opt){
     var feeders = groupFeederList();
     if(!feeders.length) return null;
 
@@ -10690,7 +10781,7 @@ function buildFeederSvgV2(fn, opt){
       svg.push('<text x="'+(page.w-9)+'" y="17" font-size="2.6" text-anchor="end">'+feeders.length+' feeder(s)</text>');
     }
 
-    svg.push(googleBackgroundSvg(ctx, opt));
+    svg.push(await googleBackgroundSvgAsync(ctx, opt));
 
     // Feeder lines + small name label at the midpoint of the longest run
     var totalUgKm = 0, totalOhKm = 0;
@@ -10704,7 +10795,7 @@ function buildFeederSvgV2(fn, opt){
         var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
         var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
         var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.82" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
         // rough km tally (planar approx fine for a visual summary)
         for(var i=1;i<s.pts.length;i++){
           var R=6371, dLat=(s.pts[i].lat-s.pts[i-1].lat)*Math.PI/180, dLng=(s.pts[i].lng-s.pts[i-1].lng)*Math.PI/180;
@@ -10790,32 +10881,32 @@ function buildFeederSvgV2(fn, opt){
   var _origSVG        = window.tgPrintComposerDownloadSVG;
   var _origDXF        = window.tgPrintComposerDownloadDXF;
 
-  function buildGroupSvgSafe(opt){
+  async function buildGroupSvgSafe(opt){
     try{
-      var out = buildGroupSvgV2(opt);
+      var out = await buildGroupSvgV2(opt);
       if(out) return out;
     }catch(e){
       console.warn('buildGroupSvgV2 failed, falling back to legacy renderer:', e);
     }
-    return buildGroupSvg(opt);
+    return await buildGroupSvg(opt);
   }
 
-  window.tgPrintComposerPreview = function(){
+  window.tgPrintComposerPreview = async function(){
     if(!isGroupMode()) return _origPreview.apply(this, arguments);
-    var out = buildGroupSvgSafe(_groupOptions());
+    var out = await buildGroupSvgSafe(_groupOptions());
     if(!out){ alert('No feeder geometry found for this Division/Sub-Division/Section selection.'); return; }
     openPrintWindow(out.svg, 'Group Drawing — ' + out.scopeLabel);
   };
-  window.tgPrintComposerPrint = function(){
+  window.tgPrintComposerPrint = async function(){
     if(!isGroupMode()) return _origPrint.apply(this, arguments);
-    var out = buildGroupSvgSafe(_groupOptions());
+    var out = await buildGroupSvgSafe(_groupOptions());
     if(!out){ alert('No feeder geometry found for this Division/Sub-Division/Section selection.'); return; }
     var w = openPrintWindow(out.svg, 'Print Group — ' + out.scopeLabel);
     if(w) setTimeout(function(){ w.focus(); w.print(); }, 900);
   };
-  window.tgPrintComposerDownloadSVG = function(){
+  window.tgPrintComposerDownloadSVG = async function(){
     if(!isGroupMode()) return _origSVG.apply(this, arguments);
-    var out = buildGroupSvgSafe(_groupOptions());
+    var out = await buildGroupSvgSafe(_groupOptions());
     if(!out){ alert('No feeder geometry found for this Division/Sub-Division/Section selection.'); return; }
     var blob = new Blob([out.svg], {type:'image/svg+xml;charset=utf-8'});
     var a = document.createElement('a');
@@ -10945,11 +11036,11 @@ function buildFeederSvgV2(fn, opt){
       return '<g><rect x="'+(x-3.4)+'" y="'+(y-2.4)+'" width="6.8" height="4.8" rx="0.8" fill="#fff7ed" stroke="#f97316" stroke-width=".55"/>'
         + '<text x="'+x+'" y="'+(y+1)+'" font-size="2.4" text-anchor="middle" fill="#c2410c">&#9889;</text></g>';
     }
-    return '<g><circle cx="'+x+'" cy="'+y+'" r="2.6" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".55"/>'
+    return '<g><circle cx="'+x+'" cy="'+y+'" r="1.7" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".55"/>'
       + '<text x="'+x+'" y="'+(y+0.9)+'" font-size="2.3" text-anchor="middle" fill="#1d4ed8">&#9889;</text></g>';
   }
 
-function buildGroupSvgV2(opt){
+async function buildGroupSvgV2(opt){
     // reuse all the existing geometry-gathering logic by calling the
     // internal helpers already defined in this same closure scope
     // (groupFeederList, lineSegmentsForFeeder, expandBounds, inBounds,
@@ -11035,7 +11126,7 @@ function buildGroupSvgV2(opt){
 
     // ── 3. Google/basemap background (kept optional, sits between zones and lines per user's raster-bg-is-OK rule) ──
     var ctxForBg = { project:project, bounds:bounds, draw:{x:x0,y:y0,w:dw,h:dh} };
-    if(opt.googleBg) svg.push(googleBackgroundSvg(ctxForBg, opt));
+    if(opt.googleBg) svg.push(await googleBackgroundSvgAsync(ctxForBg, opt));
 
     // ── 4. FEEDER LINES (vector, above zone fill + background) ──
     var totalUgKm = 0, totalOhKm = 0;
@@ -11050,7 +11141,7 @@ function buildGroupSvgV2(opt){
         var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
         var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
         var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.82" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
         for(var i=1;i<s.pts.length;i++){
           var Rrad=6371, dLat=(s.pts[i].lat-s.pts[i-1].lat)*Math.PI/180, dLng=(s.pts[i].lng-s.pts[i-1].lng)*Math.PI/180;
           var aa=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(s.pts[i-1].lat*Math.PI/180)*Math.cos(s.pts[i].lat*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
