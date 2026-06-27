@@ -1897,6 +1897,19 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
       <div class="strow"><span class="stlbl">Total Features</span><span class="stval" id="st-total">—</span></div>
       <div class="strow"><span class="stlbl">Visible Features</span><span class="stval" id="st-visible">—</span></div>
       <div style="border-top:1px solid rgba(0,0,0,.08);margin:8px 0 6px"></div>
+      <div class="hier-filters" style="background:rgba(25,118,210,.06);border:1px solid rgba(25,118,210,.18);border-radius:6px;padding:8px;margin-bottom:8px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:#1565c0;letter-spacing:.6px;margin-bottom:6px">⚡ SELECT SCOPE TO LOAD</div>
+        <div><div class="hier-lbl">DIVISION</div>
+          <select class="hier-sel" id="scopeDiv" onchange="applyScopeSelection()"><option value="ALL">ALL DIVISIONS</option></select></div>
+        <div><div class="hier-lbl">SUB DIVISION</div>
+          <select class="hier-sel" id="scopeSub" onchange="applyScopeSelection()"><option value="ALL">ALL SUB-DIVISIONS</option></select></div>
+        <div><div class="hier-lbl">SECTION</div>
+          <select class="hier-sel" id="scopeSec" onchange="applyScopeSelection()"><option value="ALL">ALL SECTIONS</option></select></div>
+        <div><div class="hier-lbl">FEEDER</div>
+          <select class="hier-sel" id="scopeFeeder" onchange="applyScopeSelection()"><option value="ALL">ALL FEEDERS</option></select></div>
+        <div style="font-family:var(--sans);font-size:9px;color:#5a7aa5;margin-top:5px;line-height:1.4">Pick a Division (or narrower) to load and draw only that scope's feeders and substations. Nothing is drawn until you select one.</div>
+      </div>
+      <div style="border-top:1px solid rgba(0,0,0,.08);margin:8px 0 6px"></div>
       <div class="hier-filters">
         <div><div class="hier-lbl">DIVISION</div>
           <select class="hier-sel" id="hier-div" onchange="updateHierFilters()"><option value="ALL">ALL DIVISIONS</option></select></div>
@@ -2123,6 +2136,17 @@ const feederHierarchy={};  // div→subdiv→section→[feederNames]
 const feederMetaMap={};    // fn→{div,sub,sec,eht}
 const feederSectionMap={};
 const feederHierarchyMap={};  // fn → {division,sub_division,section}
+// ── LAZY / SCOPE-FIRST RENDERING (added 26-Jun-2026 per Naresh) ──
+// feederIndex holds METADATA for every feeder known from Firebase divisions/,
+// without ever drawing geometry or creating markers/popups. A feeder only
+// gets its rowsJson parsed and its layers built once renderScope() decides
+// it's in the user's current Division/Sub-Division/Section/Feeder scope.
+// renderedFeederSet tracks which feeders currently have live map geometry,
+// so renderScope() can diff old-scope vs new-scope and only build/teardown
+// the delta rather than re-render everything on every selection change.
+const feederIndex={};       // fn → {feederName,division,subDivision,section,feederType,sourceEHT,destinationSS,rowsJson}
+const renderedFeederSet=new Set();
+let currentScope={division:'ALL',subDivision:'ALL',section:'ALL',feederName:'ALL'};
 
 // ── Feeder NATURE (33KV / Link Line / HT Services) — added 31 May 2026 per Naresh ──
 // Captured at upload from columns like "Line Type", "Nature of Feeder", "Type of Line".
@@ -2252,13 +2276,20 @@ function cableColor(typeRaw,isOH){
 }
 
 
-function renderStaticSS(){
+function renderStaticSS(filterFn){
   // Avoid duplicated SS markers: use ONLY the embedded static SS/EHT master list.
   // Uploaded qgis2web SS layers are skipped later in DATA_REGISTRY rendering.
+  // filterFn(ss, type) — optional. Lets renderScope() request only the
+  // substations relevant to the current Division/Sub-Division/Section
+  // scope, so we stop constructing all 136+25 markers at startup. Omit
+  // filterFn (or pass nothing) to keep old all-substations behaviour for
+  // any other existing caller.
+  const passes = (ss, type) => (typeof filterFn === 'function') ? !!filterFn(ss, type) : true;
 
   // ── 33/11KV Substations ──
   STATIC_SS33.forEach(ss=>{
     if(!ss.lat||!ss.lon)return;
+    if(!passes(ss,'ss33'))return;
     const key=ssKey(ss.name, ss.lat, ss.lon);
     if(staticSSKeyTracker.has(key))return;
     staticSSKeyTracker.add(key);
@@ -2285,6 +2316,7 @@ function renderStaticSS(){
   // ── EHT Substations ──
   STATIC_EHT.forEach(eht=>{
     if(!eht.lat||!eht.lon)return;
+    if(!passes(eht,'ehts'))return;
     const key=ssKey(eht.name, eht.lat, eht.lon);
     if(staticSSKeyTracker.has(key))return;
     staticSSKeyTracker.add(key);
@@ -2309,6 +2341,31 @@ function renderStaticSS(){
     staticSSLayers.push(layer);
     allLayers.push({layer,reg:{type:'ehts',feeder:'EHT SS'},feederName:'EHT SS',cable:'-',poleNo:null,ssObj:eht,ssName:eht.name});
   });
+}
+
+// Removes substation markers matching predicateFn(ssObj, type) from the map,
+// allLayers, staticSSLayers, and staticSSKeyTracker — the teardown
+// counterpart to renderStaticSS's filterFn, so renderScope() can swap which
+// substations exist rather than only ever accumulating them.
+function removeSubstationLayers(predicateFn){
+  if(typeof predicateFn!=='function')return;
+  for(let i=staticSSLayers.length-1;i>=0;i--){
+    const layer=staticSSLayers[i];
+    const item=allLayers.find(x=>x.layer===layer);
+    if(!item||!item.ssObj)continue;
+    const type=item.reg&&item.reg.type;
+    if(!predicateFn(item.ssObj,type))continue;
+    if(map.hasLayer(layer))map.removeLayer(layer);
+    staticSSLayers.splice(i,1);
+    const key=ssKey(item.ssObj.name,item.ssObj.lat,item.ssObj.lon);
+    staticSSKeyTracker.delete(key);
+  }
+  for(let i=allLayers.length-1;i>=0;i--){
+    const item=allLayers[i];
+    if(!item.ssObj)continue;
+    const type=item.reg&&item.reg.type;
+    if(predicateFn(item.ssObj,type))allLayers.splice(i,1);
+  }
 }
 
 function mkIcon(fill,stroke,shape){
@@ -4233,14 +4290,20 @@ function dismissLoader(){
 }
 
 setTimeout(()=>{
-  dismissLoader();renderStaticSS();buildFeederChecks();updateCounts();buildDropdownOptions();
+  // ── Per Naresh, 26-Jun-2026: renderStaticSS() no longer runs here ──
+  // unconditionally. All 161 substation markers used to be created at
+  // startup regardless of scope; now they're created lazily inside
+  // renderScope() only for the Division/Sub-Division/Section the user
+  // actually selects. The map shell + basemap still appear immediately.
+  dismissLoader();buildFeederChecks();updateCounts();buildDropdownOptions();
   if(typeof buildHierFilters==='function')buildHierFilters();
   if(typeof refreshSectionDeleteDropdown==='function')refreshSectionDeleteDropdown();
   if(typeof renderSSList==='function')renderSSList('');
   if(typeof _refreshLpanelCounts==='function')_refreshLpanelCounts();
+  if(typeof buildScopeSelectors==='function')buildScopeSelectors();
   feederNames.forEach(fn=>attachSegmentDistanceClick(fn));
   (window.requestIdleCallback||setTimeout)(()=>{requestVisibilityUpdate();syncLabels();},{timeout:500});
-  toast('Kalyannagar 33KV section loaded — '+allLayers.length+' features',3000);
+  toast('Map ready — pick a Division to load feeders',3000);
 },600);
 setTimeout(()=>dismissLoader(),5000);
 
@@ -6037,11 +6100,261 @@ function removeFeederLayers(fn){
   delete feederLayerMap[fn];
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// SCOPE-FIRST / LAZY RENDERING  (added 26-Jun-2026 per Naresh)
+// renderScope() is the ONLY place feeder geometry gets built from the
+// feederIndex. Until it's called with a real scope, no polylines, no
+// SS/EHT markers, no popups exist beyond whatever's already on screen.
+// Switching scope diffs old-vs-new feeder sets so we only construct what's
+// newly in scope and tear down what fell out — never a full rebuild.
+// ═══════════════════════════════════════════════════════════════════
+function _scopeMatches(meta, scope){
+  if(scope.feederName && scope.feederName!=='ALL') return meta.feederName===scope.feederName;
+  if(scope.division && scope.division!=='ALL' && meta.division!==scope.division) return false;
+  if(scope.subDivision && scope.subDivision!=='ALL' && meta.subDivision!==scope.subDivision) return false;
+  if(scope.section && scope.section!=='ALL' && meta.section!==scope.section) return false;
+  // Empty scope (all fields 'ALL'/falsy) intentionally matches NOTHING —
+  // per requirement: map shell stays empty until a real scope is picked.
+  const hasAnyRealSelection = (scope.division&&scope.division!=='ALL')
+    || (scope.subDivision&&scope.subDivision!=='ALL')
+    || (scope.section&&scope.section!=='ALL')
+    || (scope.feederName&&scope.feederName!=='ALL');
+  return hasAnyRealSelection;
+}
+
+function _lazyParseFeederRows(meta){
+  if(Array.isArray(meta.rowsInline))return meta.rowsInline;
+  if(meta.rowsJson){
+    try{ return JSON.parse(meta.rowsJson); }
+    catch(e){ console.error('Row parse error for',meta.feederName,e); return []; }
+  }
+  return [];
+}
+
+// Builds the lightweight per-feeder nature classification without needing
+// full geometry — same logic fbLoadHierarchical used to run eagerly,
+// now run once per feeder at the moment it's actually rendered.
+function _classifyFeederNatureLazy(fn, rows){
+  if(feederNatureMap[fn])return;
+  let raw='';
+  for(const r of rows){
+    if(!r)continue;
+    raw=getFeederNatureFromRow(r);
+    if(raw)break;
+  }
+  feederNatureMap[fn]=_classifyFeederNature(raw, fn);
+}
+
+function renderScope(scope){
+  scope = Object.assign({division:'ALL',subDivision:'ALL',section:'ALL',feederName:'ALL'}, scope||{});
+  currentScope = scope;
+
+  const wantedNames = new Set(
+    Object.keys(feederIndex).filter(fn=>_scopeMatches(feederIndex[fn], scope))
+  );
+
+  // ── tear down feeders that are rendered but no longer in scope ──
+  let removedCount=0;
+  [...renderedFeederSet].forEach(fn=>{
+    if(wantedNames.has(fn))return;
+    removeFeederLayers(fn);
+    feederNames.delete(fn);
+    renderedFeederSet.delete(fn);
+    removedCount++;
+  });
+
+  // ── render feeders newly in scope ──
+  let addedCount=0;
+  wantedNames.forEach(fn=>{
+    if(renderedFeederSet.has(fn))return; // already on the map
+    const meta=feederIndex[fn];
+    if(!meta)return;
+    const rows=_lazyParseFeederRows(meta);
+    if(!rows.length)return;
+
+    // Populate uploadedFiles NOW (render time) — every existing
+    // edit/delete/force-sync function reads this and expects it to exist
+    // once a feeder is visible. Previously populated eagerly at index
+    // time; behaviour for an already-rendered feeder is unchanged.
+    uploadedFiles[fn] = { fileName: meta.fileName||fn, feederName:fn, rows, section: meta.section };
+
+    renderUploadedRows(rows, fn); // unchanged — draws polylines/markers/popups
+    _classifyFeederNatureLazy(fn, rows);
+    renderedFeederSet.add(fn);
+    addedCount++;
+  });
+
+  // ── substations: only the ones related to the new scope get created;
+  //    ones that fell out of scope get torn down. Reuses the same
+  //    relatedness philosophy as the existing _sg* visibility system
+  //    (token/hierarchy matching), but applied at CREATION time so we
+  //    stop instantiating all 161 markers up front. ──
+  const noScope = wantedNames.size===0;
+  if(noScope){
+    removeSubstationLayers(()=>true); // scope cleared entirely → no SS/EHT either
+  }else{
+    const scopedDiv = scope.division!=='ALL' ? scope.division : null;
+    const scopedSub = scope.subDivision!=='ALL' ? scope.subDivision : null;
+    const scopedSec = scope.section!=='ALL' ? scope.section : null;
+
+    const wantedCorpus = [...wantedNames].join(' ').toUpperCase();
+    const ssNameTokenHit = (ss)=>{
+      const name = ss.name || '';
+      const toks = name.toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(' ').filter(t=>t.length>=3);
+      return toks.some(t=>wantedCorpus.includes(t));
+    };
+    const ssRelated = (ss)=>{
+      if(scopedSec) return String(ss.section||'').toUpperCase()===String(scopedSec).toUpperCase();
+      if(scopedSub) return String(ss.sub_div||ss.sub_division||'').toUpperCase()===String(scopedSub).toUpperCase();
+      if(scopedDiv) return String(ss.division||'').toUpperCase()===String(scopedDiv).toUpperCase();
+      // Single-feeder scope with no div/sub/sec narrowing: do NOT show every
+      // 33/11KV substation — only ones whose name shares a token with the
+      // feeder name(s) actually in view (e.g. "ALLWYN" feeder ↔ "ALLWYN SS").
+      // This was a real bug caught by testing — a bare `return true` here
+      // meant every substation in the whole dataset was treated as related.
+      return ssNameTokenHit(ss);
+    };
+    // EHT relatedness: same hierarchy narrowing, OR name-token match against
+    // the feeder names now in view (covers EHTs that feed a section but
+    // aren't tagged with that section themselves).
+    const ehtRelated = (eht)=>{
+      if(scopedSec||scopedSub||scopedDiv) return ssRelated(eht);
+      const toks=(eht.name||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(' ').filter(t=>t.length>=3);
+      return toks.some(t=>wantedCorpus.includes(t));
+    };
+
+    removeSubstationLayers((ssObj,type)=>{
+      const stillRelated = type==='ehts' ? ehtRelated(ssObj) : ssRelated(ssObj);
+      return !stillRelated;
+    });
+    renderStaticSS((ssObj,type)=> type==='ehts' ? ehtRelated(ssObj) : ssRelated(ssObj));
+  }
+
+  // ── existing bookkeeping, now run after every scope change instead of
+  //    only once at startup — all idempotent/cheap over the (now much
+  //    smaller) in-scope set ──
+  buildFeederChecks();
+  updateCounts();
+  if(typeof buildHierFilters==='function')buildHierFilters();
+  if(typeof refreshSectionDeleteDropdown==='function')refreshSectionDeleteDropdown();
+  if(typeof _refreshNatureCounts==='function')_refreshNatureCounts();
+  renderedFeederSet.forEach(fn=>attachSegmentDistanceClick(fn));
+  updateVisibility();
+
+  if(addedCount||removedCount){
+    toast(`Scope updated — ${renderedFeederSet.size} feeder(s) in view`+(removedCount?` (${removedCount} unloaded)`:''),3000);
+  }
+
+  // Fly to the new scope's bounds only when something is actually on screen
+  if(addedCount>0){
+    const pts=[];
+    renderedFeederSet.forEach(fn=>{
+      (feederLayerMap[fn]||[]).forEach(rec=>{
+        try{
+          const ll=rec.layer.getLatLngs?rec.layer.getLatLngs():null;
+          if(ll){
+            const flat=Array.isArray(ll[0])?ll.flat():ll;
+            flat.forEach(p=>{ if(p&&typeof p.lat==='number')pts.push([p.lat,p.lng]); });
+          }
+        }catch(e){}
+      });
+    });
+    if(pts.length)map.flyToBounds(L.latLngBounds(pts),{padding:[60,60],maxZoom:16,animate:true,duration:.7});
+  }
+
+  return { added:addedCount, removed:removedCount, inScope:renderedFeederSet.size };
+}
+
+// Build/refresh the scope-selection dropdowns from the lightweight index
+// (division/sub-division/section/feeder) — works BEFORE anything is
+// rendered, since it only reads feederIndex metadata, never geometry.
+function buildScopeSelectors(){
+  const divs=new Set(), subsByDiv={}, secsByDivSub={};
+  Object.values(feederIndex).forEach(m=>{
+    if(!m.division)return;
+    divs.add(m.division);
+    subsByDiv[m.division]=subsByDiv[m.division]||new Set();
+    if(m.subDivision)subsByDiv[m.division].add(m.subDivision);
+    const key=m.division+'|'+m.subDivision;
+    secsByDivSub[key]=secsByDivSub[key]||new Set();
+    if(m.section)secsByDivSub[key].add(m.section);
+  });
+
+  const divEl=document.getElementById('scopeDiv');
+  const subEl=document.getElementById('scopeSub');
+  const secEl=document.getElementById('scopeSec');
+  const fnEl=document.getElementById('scopeFeeder');
+  if(!divEl)return; // UI not present in this build — index-only is still safe
+
+  const cur={
+    div: divEl.value||'ALL',
+    sub: subEl?subEl.value:'ALL',
+    sec: secEl?secEl.value:'ALL',
+    fn:  fnEl?fnEl.value:'ALL'
+  };
+
+  const fill=(el,opts,allLabel,keepValue)=>{
+    if(!el)return;
+    el.innerHTML=`<option value="ALL">${allLabel}</option>`;
+    [...opts].filter(Boolean).sort().forEach(v=>{
+      const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);
+    });
+    el.value=(keepValue&&[...opts].includes(keepValue))?keepValue:'ALL';
+  };
+
+  fill(divEl, divs, 'ALL DIVISIONS', cur.div);
+
+  let subOpts=new Set();
+  if(cur.div==='ALL'){ Object.values(subsByDiv).forEach(s=>s.forEach(x=>subOpts.add(x))); }
+  else{ (subsByDiv[cur.div]||new Set()).forEach(x=>subOpts.add(x)); }
+  fill(subEl, subOpts, 'ALL SUB-DIVISIONS', cur.sub);
+
+  let secOpts=new Set();
+  Object.keys(secsByDivSub).forEach(key=>{
+    const [kd,ks]=key.split('|');
+    if(cur.div!=='ALL'&&kd!==cur.div)return;
+    if(cur.sub!=='ALL'&&ks!==cur.sub)return;
+    secsByDivSub[key].forEach(x=>secOpts.add(x));
+  });
+  fill(secEl, secOpts, 'ALL SECTIONS', cur.sec);
+
+  if(fnEl){
+    const matches=Object.keys(feederIndex).filter(fn=>{
+      const m=feederIndex[fn];
+      if(cur.div!=='ALL'&&m.division!==cur.div)return false;
+      if(cur.sub!=='ALL'&&m.subDivision!==cur.sub)return false;
+      if(cur.sec!=='ALL'&&m.section!==cur.sec)return false;
+      return true;
+    }).sort();
+    fnEl.innerHTML='<option value="ALL">ALL FEEDERS</option>';
+    matches.forEach(fn=>{
+      const o=document.createElement('option');o.value=fn;o.textContent=fn.length>40?fn.substring(0,38)+'…':fn;fnEl.appendChild(o);
+    });
+    fnEl.value=(cur.fn&&matches.includes(cur.fn))?cur.fn:'ALL';
+  }
+}
+
+// Wired to the scope dropdown onchange handlers — reads current selector
+// values and triggers the lazy render for exactly that scope.
+function applyScopeSelection(){
+  const div = document.getElementById('scopeDiv')?.value || 'ALL';
+  const sub = document.getElementById('scopeSub')?.value || 'ALL';
+  const sec = document.getElementById('scopeSec')?.value || 'ALL';
+  const fn  = document.getElementById('scopeFeeder')?.value || 'ALL';
+  buildScopeSelectors(); // refresh cascading options for the new parent selection
+  renderScope({division:div, subDivision:sub, section:sec, feederName:fn});
+}
+
 async function deleteUploadedFeeder(){
   const sel=document.getElementById('dfFileSelect');
   const key=sel.value;
-  if(!key||!uploadedFiles[key]){toast('Select a file to delete');return;}
-  const {feederName}=uploadedFiles[key];
+  // Per Naresh 26-Jun-2026 (scope-first rendering): a feeder may be indexed
+  // but not yet rendered (uploadedFiles only populates at render time now),
+  // so fall back to feederIndex for the lookup — this function never
+  // actually needed parsed rows, only the feeder's name + hierarchy.
+  const src = uploadedFiles[key] || feederIndex[key];
+  if(!key||!src){toast('Select a file to delete');return;}
+  const feederName = src.feederName;
   if(!confirm('Delete feeder "'+feederName+'" from map and Firebase?'))return;
   // Capture hierarchy BEFORE local cleanup wipes it
   const m=feederMetaMap[feederName]||{};
@@ -6050,11 +6363,13 @@ async function deleteUploadedFeeder(){
   // ── Local removal of EVERY state map ──
   removeFeederLayers(feederName);
   feederNames.delete(feederName);
+  renderedFeederSet.delete(feederName);
   delete feederState[feederName];
   delete feederStatus[feederName];
   delete feederSectionMap[feederName];
   delete feederHierarchyMap[feederName];
   delete feederMetaMap[feederName];
+  delete feederIndex[feederName];
   delete uploadedFiles[key];
   sel.querySelector('option[value="'+CSS.escape(key)+'"]')?.remove();
   sel.value='';
@@ -6079,6 +6394,7 @@ async function deleteFeederFromMap(fn,e){
   // ── Local cleanup of EVERY state map ──
   removeFeederLayers(fn);
   feederNames.delete(fn);
+  renderedFeederSet.delete(fn);
   delete feederState[fn];
   delete feederStatus[fn];
   delete feederSectionMap[fn];
@@ -6091,6 +6407,7 @@ async function deleteFeederFromMap(fn,e){
       document.getElementById('dfFileSelect')?.querySelector('option[value="'+CSS.escape(k)+'"]')?.remove();
     }
   });
+  delete feederIndex[fn];
   buildFeederChecks();updateCounts();
   if(typeof buildHierFilters==='function')buildHierFilters();
   if(typeof refreshSectionDeleteDropdown==='function')refreshSectionDeleteDropdown();
@@ -6152,17 +6469,23 @@ async function deleteWholeSection(){
   const key=sel?.value;
   if(!key){toast('Pick a section first',2000);return;}
   const [div,sub,sec]=key.split('|');
-  // Find every uploaded feeder matching this exact hierarchy triple
+  // Find every KNOWN feeder matching this exact hierarchy triple — iterate
+  // feederIndex (the full set indexed from Firebase) rather than
+  // uploadedFiles, since uploadedFiles now only contains feeders that have
+  // actually been rendered into view (per Naresh 26-Jun-2026 scope-first
+  // rendering). Iterating uploadedFiles here would silently skip any
+  // feeder in this section that hasn't been scoped into view yet — a real
+  // bug for a destructive bulk-delete.
   const targets=[];
-  Object.entries(uploadedFiles||{}).forEach(([fkey,f])=>{
+  Object.entries(feederIndex||{}).forEach(([fkey,f])=>{
     if(!f||!f.feederName)return;
     const fn=f.feederName;
     const h=feederHierarchyMap[fn]||{};
     const m=feederMetaMap[fn]||{};
-    const fDiv=(h.division||m.div||'').toString().trim();
-    const fSub=(h.sub_division||m.sub||'').toString().trim();
-    const fSec=(h.section||m.sec||feederSectionMap[fn]||'').toString().trim();
-    if(fDiv===div&&fSub===sub&&fSec===sec)targets.push({key:fkey,fn});
+    const fDiv=(h.division||m.div||f.division||'').toString().trim();
+    const fSub=(h.sub_division||m.sub||f.subDivision||'').toString().trim();
+    const fSec=(h.section||m.sec||f.section||feederSectionMap[fn]||'').toString().trim();
+    if(fDiv===div&&fSub===sub&&fSec===sec)targets.push({key:fn,fn});
   });
   if(!targets.length){toast('No feeders found in '+sec,2000);return;}
   if(!confirm(`Delete the entire section "${sec}"?\n\nThis will remove ${targets.length} feeder(s) from:\n  • the map\n  • the side panel\n  • Firebase divisions/${div}/sub_divisions/${sub}/sections/${sec}/\n\nThis cannot be undone.`))return;
@@ -6172,11 +6495,13 @@ async function deleteWholeSection(){
     if(focusedFeeder===fn)exitFocusedFeeder();
     removeFeederLayers(fn);
     feederNames.delete(fn);
+    renderedFeederSet.delete(fn);
     delete feederState[fn];
     delete feederStatus[fn];
     delete feederSectionMap[fn];
     delete feederHierarchyMap[fn];
     delete feederMetaMap[fn];
+    delete feederIndex[fn];
     delete uploadedFiles[key];
     document.getElementById('dfFileSelect')?.querySelector('option[value="'+CSS.escape(key)+'"]')?.remove();
     n++;
@@ -6505,7 +6830,7 @@ async function fbSaveFeederHierarchical(feederName, rows, fileName){
 // of truth on page load.
 async function fbLoadHierarchical(){
   showFbStatus('loading');
-  console.log('═══ Restoring from divisions/ (single source of truth) ═══');
+  console.log('═══ Indexing from divisions/ (scope-first, no eager render) ═══');
   const tombstones = await fbGetTombstones();
   if (tombstones.size) console.log('Tombstones found:', [...tombstones]);
 
@@ -6568,74 +6893,66 @@ async function fbLoadHierarchical(){
             }
             restoredNames.add(ucName);
 
-            let rows = [];
-            if (item.rowsJson){
-              try { rows = JSON.parse(item.rowsJson); }
-              catch (e) { console.error('Row parse error for', feederName, e); continue; }
-            } else if (Array.isArray(item.rows)){
-              rows = item.rows;
+            // ── INDEX ONLY — do NOT parse rowsJson, do NOT render geometry ──
+            // Row parsing + renderUploadedRows() now happen lazily inside
+            // renderScope(), only for feeders the user has actually scoped
+            // into view. This is the fix for "load everything then hide":
+            // we no longer touch row data or create a single marker/polyline
+            // here at all.
+            if (!item.rowsJson && !Array.isArray(item.rows)){
+              continue; // nothing to index — no row payload at all
             }
-            if (!rows.length) continue;
 
             const div = meta.division || divKey;
             const sub = meta.sub_division || subKey;
             const sec = meta.section || secKey;
 
-            // Key uploadedFiles by FEEDER NAME — one feeder = one local entry.
-            const fileKey = feederName;
-            uploadedFiles[fileKey] = {
-              fileName: meta.fileName || fileKey,
+            feederIndex[feederName] = {
               feederName,
-              rows,
-              section: sec
+              division: div,
+              subDivision: sub,
+              section: sec,
+              feederType: meta.feederType || meta.nature || '',
+              sourceEHT: meta.sourceEHT || meta.eht || extractEHT(feederName),
+              destinationSS: meta.destinationSS || '',
+              rowsJson: item.rowsJson || null,
+              rowsInline: Array.isArray(item.rows) ? item.rows : null,
+              fileName: meta.fileName || feederName,
+              _divKey: divKey, _subKey: subKey, _secKey: secKey, _feederKey: feederKey
             };
+
+            // Lightweight metadata maps populate immediately (cheap — no
+            // geometry) so the scope dropdowns can list every division /
+            // sub-division / section / feeder right away, before anything
+            // is drawn.
             feederSectionMap[feederName] = sec;
             feederHierarchyMap[feederName] = { division: div, sub_division: sub, section: sec };
             feederMetaMap[feederName] = Object.assign(feederMetaMap[feederName] || {}, {
               div, sub, sec, source: 'Firebase divisions/'
             });
 
-            if (sel && !sel.querySelector(`option[value="${CSS.escape(fileKey)}"]`)){
+            if (sel && !sel.querySelector(`option[value="${CSS.escape(feederName)}"]`)){
               const opt = document.createElement('option');
-              opt.value = fileKey;
+              opt.value = feederName;
               opt.textContent = `${sec} — ${feederName.substring(0, 30)}`;
               sel.appendChild(opt);
             }
 
-            renderUploadedRows(rows, fileKey);
             loaded++;
-            console.log(`✓ ${div} → ${sub} → ${sec} → ${feederName}`);
           } catch (err){
-            console.error('Restore error in', divKey, subKey, secKey, feederKey, ':', err);
+            console.error('Index error in', divKey, subKey, secKey, feederKey, ':', err);
           }
         }
       }
     }
   }
 
-  console.log(`═══ Restore done: ${loaded} loaded · ${skippedDeleted} deleted skipped · ${skippedDup} duplicate ═══`);
+  console.log(`═══ Indexed ${loaded} feeder(s) (no geometry drawn yet) · ${skippedDeleted} deleted skipped · ${skippedDup} duplicate ═══`);
   if (loaded > 0){
-    // Classify nature for restored feeders (per Naresh 31-May-2026,
-    // disambiguated 01-Jun-2026)
-    [...feederNames].forEach(fn => {
-      if (feederNatureMap[fn]) return;   // already set
-      const f = uploadedFiles[fn] || Object.values(uploadedFiles).find(u => u && u.feederName === fn);
-      const rows = f?.rows || [];
-      let raw = '';
-      for (const r of rows){
-        if (!r) continue;
-        raw = getFeederNatureFromRow(r);
-        if (raw) break;
-      }
-      feederNatureMap[fn] = _classifyFeederNature(raw, fn);
-    });
-    buildFeederChecks();
-    updateCounts();
+    if (typeof buildScopeSelectors === 'function') buildScopeSelectors();
     if (typeof buildHierFilters === 'function') buildHierFilters();
     if (typeof refreshSectionDeleteDropdown === 'function') refreshSectionDeleteDropdown();
-    if (typeof _refreshNatureCounts === 'function') _refreshNatureCounts();
-    feederNames.forEach(fn => attachSegmentDistanceClick(fn));
-    let msg = `☁️ ${loaded} feeder(s) restored from divisions/`;
+    let msg = `☁️ ${loaded} feeder(s) indexed from divisions/ — pick a scope to view`;
     if (skippedDeleted) msg += ` | ${skippedDeleted} deleted skipped`;
     if (skippedDup) msg += ` | ${skippedDup} duplicate skipped`;
     toast(msg, 4500);
@@ -7370,6 +7687,10 @@ try {
   window.feederMetaMap = feederMetaMap;
   window.feederStatus = feederStatus;
   window.map = map;
+  // ── Scope-first lazy rendering (added 26-Jun-2026 per Naresh) ──
+  window.feederIndex = feederIndex;       // fn -> metadata, full universe, no geometry
+  window.renderScope = renderScope;       // the one function that builds/tears down geometry
+  window.renderedFeederSet = renderedFeederSet;
 } catch (e) { console.error('[print-composer] expose failed:', e); }
 </script>
 
