@@ -2159,6 +2159,12 @@ const feederHierarchyMap={};  // fn → {division,sub_division,section}
 const feederIndex={};       // fn → {feederName,division,subDivision,section,feederType,sourceEHT,destinationSS,rowsJson}
 const renderedFeederSet=new Set();
 let currentScope={division:'ALL',subDivision:'ALL',section:'ALL',feederName:'ALL'};
+// Per Naresh 27-Jun-2026: distinguishes "page just loaded, nothing chosen
+// yet" (map should be empty) from "user explicitly picked ALL DIVISIONS
+// from the dropdown" (that's a deliberate request to load everything, not
+// an idle state — fixes the earlier bug where ALL/ALL/ALL/ALL was treated
+// as empty in both cases).
+let userHasInteractedWithScope=false;
 
 // ── Feeder NATURE (33KV / Link Line / HT Services) — added 31 May 2026 per Naresh ──
 // Captured at upload from columns like "Line Type", "Nature of Feeder", "Type of Line".
@@ -2642,8 +2648,24 @@ function _sgIsSubstationRelated(item, visibleFeeders){
   if(!item||!item.ssObj)return false;
   const t=_sgBaseType(item);
   const z=map.getZoom();
+  // Per Naresh 27-Jun-2026: under scope-first lazy rendering, feederNames
+  // now ONLY contains the feeders the user's Division/Sub-Division/Section
+  // scope already selected — it's no longer "everything, with some hidden
+  // by checkboxes." The old visibleFeeders.size<total heuristic for
+  // detecting "is the user scoped down" almost always evaluated false here
+  // (visible == total, since both ARE the scope), which fell through to a
+  // strict z>=14 zoom-gate and hid every substation at normal zoom levels —
+  // even for a real, deliberate Division selection. Use currentScope
+  // directly: any real (non-ALL) selection counts as scoped, regardless of
+  // current zoom.
+  const hasRealScope = typeof currentScope!=='undefined' && currentScope && (
+    (currentScope.division&&currentScope.division!=='ALL') ||
+    (currentScope.subDivision&&currentScope.subDivision!=='ALL') ||
+    (currentScope.section&&currentScope.section!=='ALL') ||
+    (currentScope.feederName&&currentScope.feederName!=='ALL')
+  );
   const total=Math.max(1, feederNames.size||1);
-  const scoped=visibleFeeders.size>0 && visibleFeeders.size<total;
+  const scoped = hasRealScope || (visibleFeeders.size>0 && visibleFeeders.size<total);
   if(!scoped){
     if(t==='ehts')return true;
     return z>=14; // full map: show 33/11KV SS only when zoomed in
@@ -2653,7 +2675,7 @@ function _sgIsSubstationRelated(item, visibleFeeders){
   const corpus=_sgFeederCorpus(visibleFeeders);
   const toks=_sgTokens(name);
   const tokenHit=toks.some(tok=>corpus.includes(tok));
-  if(t==='ehts')return tokenHit || z>=14;
+  if(t==='ehts')return tokenHit || z>=14 || hasRealScope;
 
   // For 33/11KV SS, prefer hierarchy scope (division/subdivision/section).
   const sets=_sgScopeSets(visibleFeeders);
@@ -2665,6 +2687,12 @@ function _sgIsSubstationRelated(item, visibleFeeders){
   if(sets.secs.size>0 && sets.secs.size<=4 && sec && sets.secs.has(sec))return true;
   if(sets.subs.size>0 && sets.subs.size<=4 && ssb && sets.subs.has(ssb))return true;
   if(sets.divs.size>0 && sets.divs.size<=4 && sd && sets.divs.has(sd))return true;
+  // Under a real Division/Sub-Division/Section scope selection, the
+  // substation was already filtered to be relevant by renderScope() before
+  // it was even created — don't re-impose a stricter "few sections" cap
+  // here, or a wide Division selection (with many sections) would hide
+  // markers updateVisibility() should be keeping.
+  if(hasRealScope)return true;
   return tokenHit;
 }
 function _sgShouldShowSS(item, visibleFeeders){
@@ -6125,8 +6153,13 @@ function _scopeMatches(meta, scope){
   if(scope.division && scope.division!=='ALL' && meta.division!==scope.division) return false;
   if(scope.subDivision && scope.subDivision!=='ALL' && meta.subDivision!==scope.subDivision) return false;
   if(scope.section && scope.section!=='ALL' && meta.section!==scope.section) return false;
-  // Empty scope (all fields 'ALL'/falsy) intentionally matches NOTHING —
-  // per requirement: map shell stays empty until a real scope is picked.
+  // Before the user has ever touched the scope selector, ALL/ALL/ALL/ALL
+  // means "nothing chosen yet" → map shell stays empty (per original
+  // requirement #1). Once the user has interacted with the dropdown even
+  // once — including explicitly picking "ALL DIVISIONS" — that's a real,
+  // deliberate request to see everything, and must match every feeder.
+  // (Fixed 27-Jun-2026 — this was the cause of "ALL shows nothing" bug.)
+  if(userHasInteractedWithScope) return true;
   const hasAnyRealSelection = (scope.division&&scope.division!=='ALL')
     || (scope.subDivision&&scope.subDivision!=='ALL')
     || (scope.section&&scope.section!=='ALL')
@@ -6201,6 +6234,20 @@ function renderScope(scope){
   //    relatedness philosophy as the existing _sg* visibility system
   //    (token/hierarchy matching), but applied at CREATION time so we
   //    stop instantiating all 161 markers up front. ──
+  // Per Naresh 27-Jun-2026: discovered a real, pre-existing naming
+  // mismatch between two independent data sources — the Firebase
+  // divisions/ tree uses long-form division keys (e.g. "CENTRAL
+  // DIVISION", "SOUTH DIVISION" — confirmed from the actual print
+  // composer title block and the real scope dropdown), while
+  // STATIC_SS33's `division` field uses short-form names (e.g.
+  // "Central", "South" — confirmed from the actual embedded data).
+  // A literal string-equality comparison between these NEVER matches,
+  // which is why substation counts were always wrong/small (falling
+  // through to the weaker name-token fallback) even for a real,
+  // correctly-loaded Division selection. _normDiv() strips the
+  // "DIVISION" suffix and whitespace so both forms compare equal.
+  const _normDiv = (s)=> String(s||'').toUpperCase().replace(/\bDIVISION\b/g,'').replace(/[^A-Z]+/g,'').trim();
+
   const noScope = wantedNames.size===0;
   if(noScope){
     removeSubstationLayers(()=>true); // scope cleared entirely → no SS/EHT either
@@ -6208,6 +6255,41 @@ function renderScope(scope){
     const scopedDiv = scope.division!=='ALL' ? scope.division : null;
     const scopedSub = scope.subDivision!=='ALL' ? scope.subDivision : null;
     const scopedSec = scope.section!=='ALL' ? scope.section : null;
+
+    // Geographic nearest-centroid assignment for EHT relatedness, since
+    // STATIC_EHT has no division/sub_div/section fields to match against.
+    // A bounding-box approach was tried and rejected: real Hyderabad
+    // division bounding boxes overlap heavily (verified against the actual
+    // STATIC_SS33 data — even ZERO padding produces several EHTs matching
+    // multiple divisions simultaneously, and several others matching none
+    // at all). Nearest-centroid instead computes each division's
+    // substation-cluster centroid and assigns every EHT to whichever
+    // centroid it's closest to — this gives every one of the 25 real EHTs
+    // exactly one unambiguous home division, verified against the actual
+    // dataset before shipping this approach.
+    const divCentroids = {};
+    {
+      const byDiv = {};
+      (window.STATIC_SS33||STATIC_SS33||[]).forEach(s=>{
+        if(s.lat==null||s.lon==null||!s.division)return;
+        const d=s.division;
+        byDiv[d]=byDiv[d]||{sumLat:0,sumLon:0,n:0};
+        byDiv[d].sumLat+=Number(s.lat); byDiv[d].sumLon+=Number(s.lon); byDiv[d].n++;
+      });
+      Object.keys(byDiv).forEach(d=>{
+        divCentroids[d]={lat:byDiv[d].sumLat/byDiv[d].n, lon:byDiv[d].sumLon/byDiv[d].n};
+      });
+    }
+    const ehtNearestDivision = (eht)=>{
+      if(eht.lat==null||eht.lon==null)return null;
+      let best=null, bestD=Infinity;
+      Object.keys(divCentroids).forEach(d=>{
+        const c=divCentroids[d];
+        const dd=(Number(eht.lat)-c.lat)**2 + (Number(eht.lon)-c.lon)**2;
+        if(dd<bestD){bestD=dd; best=d;}
+      });
+      return best;
+    };
 
     const wantedCorpus = [...wantedNames].join(' ').toUpperCase();
     const ssNameTokenHit = (ss)=>{
@@ -6218,7 +6300,7 @@ function renderScope(scope){
     const ssRelated = (ss)=>{
       if(scopedSec) return String(ss.section||'').toUpperCase()===String(scopedSec).toUpperCase();
       if(scopedSub) return String(ss.sub_div||ss.sub_division||'').toUpperCase()===String(scopedSub).toUpperCase();
-      if(scopedDiv) return String(ss.division||'').toUpperCase()===String(scopedDiv).toUpperCase();
+      if(scopedDiv) return _normDiv(ss.division)===_normDiv(scopedDiv);
       // Single-feeder scope with no div/sub/sec narrowing: do NOT show every
       // 33/11KV substation — only ones whose name shares a token with the
       // feeder name(s) actually in view (e.g. "ALLWYN" feeder ↔ "ALLWYN SS").
@@ -6226,11 +6308,42 @@ function renderScope(scope){
       // meant every substation in the whole dataset was treated as related.
       return ssNameTokenHit(ss);
     };
-    // EHT relatedness: same hierarchy narrowing, OR name-token match against
-    // the feeder names now in view (covers EHTs that feed a section but
-    // aren't tagged with that section themselves).
+
+    // EHT relatedness: STATIC_EHT entries have NO division/sub_div/section
+    // fields at all (confirmed in the real dataset) — so ssRelated(eht)
+    // would always return false under a hierarchy-scoped selection, no
+    // matter which division/section was picked. EHT relatedness now uses
+    // nearest-centroid geographic assignment when a Division/Sub/Section is
+    // scoped, OR name-token matching as a secondary signal — whichever
+    // hits. When the scope is a deliberate "ALL" selection (every
+    // Division), show every EHT — there are only 25, and the live map
+    // already treats EHT as always-visible when nothing is scoped.
+    // If scoped by sub-division/section/single-feeder without an explicit
+    // division value (the cascading dropdowns shouldn't normally produce
+    // sub/sec without a division, but a single-feeder selection genuinely
+    // can have no division/sub/section narrowing at all), derive the
+    // division from whichever 33/11KV substation already matched
+    // ssRelated for this scope — gives the EHT centroid check something
+    // to anchor to even for a bare single-feeder selection.
+    let derivedDiv = scopedDiv;
+    if(!derivedDiv){
+      const matchingSS = (window.STATIC_SS33||STATIC_SS33||[]).find(ssRelated);
+      if(matchingSS) derivedDiv = matchingSS.division;
+    }
+
     const ehtRelated = (eht)=>{
-      if(scopedSec||scopedSub||scopedDiv) return ssRelated(eht);
+      // "Show everything" only applies when the user deliberately selected
+      // ALL at every level, INCLUDING feeder — not merely "no division/sub/
+      // section narrowing" on its own, since a single-feeder scope (e.g.
+      // picking one feeder directly from the FEEDER dropdown with Division
+      // left on ALL) also has scopedDiv/Sub/Sec all null, but must NOT show
+      // all 25 EHTs — only the one or two actually feeding that feeder.
+      // This was a real bug caught by testing: single-feeder Madhapur scope
+      // was showing 26 substations (every EHT) instead of ~1-2 related ones.
+      const isWholeAllSelection = !scopedSec && !scopedSub && !scopedDiv && (!scope.feederName || scope.feederName==='ALL');
+      if(isWholeAllSelection) return true;
+      const nearestDiv = ehtNearestDivision(eht);
+      if(derivedDiv && nearestDiv && _normDiv(nearestDiv)===_normDiv(derivedDiv)) return true;
       const toks=(eht.name||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(' ').filter(t=>t.length>=3);
       return toks.some(t=>wantedCorpus.includes(t));
     };
@@ -6349,6 +6462,7 @@ function buildScopeSelectors(){
 // Wired to the scope dropdown onchange handlers — reads current selector
 // values and triggers the lazy render for exactly that scope.
 function applyScopeSelection(){
+  userHasInteractedWithScope = true;
   const div = document.getElementById('scopeDiv')?.value || 'ALL';
   const sub = document.getElementById('scopeSub')?.value || 'ALL';
   const sec = document.getElementById('scopeSec')?.value || 'ALL';
@@ -11651,6 +11765,69 @@ function exportAITrainingData() {
   wireMapEvents();
 
 })();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ON-PAGE DIAGNOSTIC PANEL (added 27-Jun-2026 per Naresh)
+     No DevTools/console needed — everything shows directly on screen.
+     Temporary debugging aid; safe to delete this whole block once the
+     substation-loading issue is confirmed fixed.
+   ═══════════════════════════════════════════════════════════════ -->
+<div id="tgDiagPanel" style="position:fixed;bottom:10px;left:10px;z-index:99999;background:#0b1220;color:#9fe3ff;
+  font-family:monospace;font-size:11px;padding:10px 12px;border-radius:8px;border:1px solid #1e3a5f;
+  max-width:380px;box-shadow:0 6px 24px rgba(0,0,0,.5);line-height:1.5">
+  <div style="font-weight:700;color:#fff;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+    <span>🔍 DIAGNOSTIC</span>
+    <span style="cursor:pointer;opacity:.6" onclick="document.getElementById('tgDiagPanel').style.display='none'">✕</span>
+  </div>
+  <div id="tgDiagOutput">Loading…</div>
+  <button onclick="window.tgRunDiagnostic()" style="margin-top:8px;background:#1565c0;color:#fff;border:none;
+    border-radius:5px;padding:5px 10px;font-size:11px;cursor:pointer;width:100%">🔁 RE-CHECK NOW</button>
+  <button onclick="window.tgTestBanjaraHills()" style="margin-top:6px;background:#2e7d32;color:#fff;border:none;
+    border-radius:5px;padding:5px 10px;font-size:11px;cursor:pointer;width:100%">▶ LOAD BANJARA HILLS NOW</button>
+</div>
+<script>
+window.tgRunDiagnostic = function(){
+  var out = document.getElementById('tgDiagOutput');
+  if(!out) return;
+  function line(label, ok, extra){
+    return '<div>'+(ok?'✅':'❌')+' '+label+(extra?' <span style="color:#7fb3d5">'+extra+'</span>':'')+'</div>';
+  }
+  var html = '';
+  try{
+    html += line('feederIndex', typeof window.feederIndex==='object',
+      typeof window.feederIndex==='object' ? Object.keys(window.feederIndex).length+' feeders' : 'MISSING');
+    html += line('STATIC_SS33', Array.isArray(window.STATIC_SS33),
+      Array.isArray(window.STATIC_SS33) ? window.STATIC_SS33.length+' substations' : 'MISSING');
+    html += line('STATIC_EHT', Array.isArray(window.STATIC_EHT),
+      Array.isArray(window.STATIC_EHT) ? window.STATIC_EHT.length+' EHTs' : 'MISSING');
+    html += line('renderScope fn', typeof window.renderScope==='function');
+    var divEl = document.getElementById('scopeDiv');
+    html += line('scopeDiv dropdown', !!divEl, divEl ? divEl.options.length+' options' : '');
+    if(divEl) html += '<div style="color:#7fb3d5;margin-left:18px">'+Array.from(divEl.options).map(function(o){return o.value;}).join(', ')+'</div>';
+    html += line('renderedFeederSet', typeof renderedFeederSet!=='undefined',
+      typeof renderedFeederSet!=='undefined' ? renderedFeederSet.size+' rendered' : '');
+    html += line('staticSSLayers (live markers)', typeof staticSSLayers!=='undefined',
+      typeof staticSSLayers!=='undefined' ? staticSSLayers.length+' on map NOW' : '');
+    html += line('userHasInteractedWithScope', typeof userHasInteractedWithScope!=='undefined',
+      String(typeof userHasInteractedWithScope!=='undefined' ? userHasInteractedWithScope : ''));
+  }catch(e){
+    html += '<div style="color:#ff6b6b">EXCEPTION: '+e.message+'</div>';
+  }
+  out.innerHTML = html;
+};
+window.tgTestBanjaraHills = function(){
+  var out = document.getElementById('tgDiagOutput');
+  try{
+    var result = window.renderScope({division:'Banjara Hills', subDivision:'ALL', section:'ALL', feederName:'ALL'});
+    out.innerHTML = '<div style="color:#7fff9f">✅ renderScope ran. Result: '+JSON.stringify(result)+'</div>'
+      + '<div style="color:#7fff9f">Substation markers now on map: '+staticSSLayers.length+'</div>'
+      + '<div style="color:#7fff9f">Feeders now rendered: '+renderedFeederSet.size+'</div>';
+  }catch(e){
+    out.innerHTML = '<div style="color:#ff6b6b">❌ THREW: '+e.message+'</div><div style="color:#ff6b6b;font-size:10px">'+(e.stack||'').replace(/\n/g,'<br>')+'</div>';
+  }
+};
+setTimeout(function(){ if(typeof window.tgRunDiagnostic==='function') window.tgRunDiagnostic(); }, 4500);
 </script>
 
 </body>
