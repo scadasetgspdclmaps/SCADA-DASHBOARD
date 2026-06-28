@@ -1463,6 +1463,111 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
   .pole-label{display:none!important}
 }
 
+
+/* ── View 3 layer mode: regional grid-map background, like a shapefile sheet ── */
+#map.grid-view-layer-on{background:#fffaf0!important}
+.tg-grid-label{
+  background:rgba(255,255,255,.72)!important;
+  border:1px solid rgba(120,53,15,.28)!important;
+  border-radius:4px!important;
+  color:#78350f!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  font-size:11px!important;
+  font-weight:800!important;
+  padding:2px 5px!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+}
+#lineThicknessCtl{display:none!important;
+  position:fixed;right:14px;bottom:92px;z-index:1250;
+  background:rgba(255,255,255,.94);border:1px solid #cbd5e1;border-radius:12px;
+  padding:8px 10px;width:210px;box-shadow:0 4px 18px rgba(0,0,0,.18);
+  font-family:var(--mono);font-size:9px;color:#1e3a5f;
+}
+#lineThicknessCtl .lt-title{font-weight:800;letter-spacing:1.2px;margin-bottom:5px}
+#lineThicknessCtl input{width:100%}
+#lineThicknessCtl .lt-val{float:right;color:#0f766e;font-weight:800}
+
+/* Make 33/11KV SS symbol comparable to EHT symbol footprint */
+.ss33-wrap{width:40px!important;height:28px!important}
+.ss33-ring{width:28px!important;height:28px!important;inset:auto!important;left:6px!important;top:0!important}
+.ss33-core{width:20px!important;height:20px!important}
+
+
+/* ── GRID MAP STYLE ADJUSTER ── */
+:root{
+  --tg-feeder-live-weight:0.95;
+  --tg-ss-icon-scale:1.00;
+  --tg-eht-icon-scale:1.00;
+  --tg-grid-label-size:11px;
+  --tg-grid-fill-opacity:.40;
+  --tg-grid-boundary-opacity:.70;
+}
+#gridStyleBtn{
+  position:fixed;top:58px;right:18px;z-index:2200;
+  background:#0f766e;color:#fff;border:0;border-radius:18px;
+  padding:9px 15px;font-family:var(--mono);font-size:11px;font-weight:900;
+  letter-spacing:1px;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.28)
+}
+#gridStylePanel{
+  position:fixed;top:98px;right:18px;z-index:2201;width:285px;
+  background:rgba(255,255,255,.98);border:1px solid #cbd5e1;border-radius:14px;
+  padding:12px 14px;box-shadow:0 6px 28px rgba(0,0,0,.25);
+  display:none;font-family:var(--mono);color:#1e293b
+}
+#gridStylePanel.open{display:block}
+.gsp-title{font-size:11px;font-weight:900;color:#0f766e;letter-spacing:1.5px;margin-bottom:10px}
+.gsp-row{margin-bottom:9px}
+.gsp-row label{display:flex;justify-content:space-between;font-size:9px;font-weight:800;letter-spacing:.8px;margin-bottom:3px;color:#334155}
+.gsp-row input[type=range]{width:100%}
+.gsp-row input[type=checkbox]{transform:translateY(2px)}
+body.grid-style-equal-icons .ss33-wrap{transform:scale(var(--tg-ss-icon-scale))!important;transform-origin:center center!important}
+body.grid-style-equal-icons .eht-wrap{transform:scale(var(--tg-eht-icon-scale))!important;transform-origin:center center!important}
+.tg-grid-label{font-size:var(--tg-grid-label-size)!important}
+
+
+/* ── Hyderabad Power Support Corridors for Grid Map View ── */
+.tg-corridor-label{
+  background:rgba(255,255,255,.80)!important;
+  border:1px solid rgba(15,118,110,.35)!important;
+  border-radius:5px!important;
+  color:#0f766e!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  font-size:10px!important;
+  font-weight:800!important;
+  padding:2px 5px!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+}
+.tg-core-label{
+  background:rgba(185,28,28,.88)!important;
+  border:1px solid rgba(255,255,255,.9)!important;
+  border-radius:6px!important;
+  color:#fff!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  padding:3px 7px!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+}
+.gsp-subtitle{font-size:8px;color:#64748b;margin:8px 0 5px;border-top:1px solid #e2e8f0;padding-top:7px;font-weight:900;letter-spacing:1px}
+
+
+/* ── Mandal / boundary-based support corridors ── */
+.tg-block-label{
+  background:rgba(255,255,255,.72)!important;
+  border:1px solid rgba(30,64,175,.28)!important;
+  border-radius:4px!important;
+  color:#1e40af!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  font-size:9px!important;
+  font-weight:800!important;
+  padding:1px 4px!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+}
+
 </style>
 </head>
 <body class="no-anim">
@@ -1747,6 +1852,13 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 
 
 </div>
+
+<div id="lineThicknessCtl">
+  <div class="lt-title">FEEDER LINE THICKNESS <span class="lt-val" id="ltVal">0.95</span></div>
+  <input id="lineThicknessRange" type="range" min="0.45" max="2.20" step="0.05" value="0.95"
+         oninput="setTGFeederLineThickness(this.value)">
+</div>
+
 <div id="map"></div>
 
 <!-- Toast for transient status messages — restored 21 May 2026.
@@ -1851,7 +1963,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
   <div class="bm-tab"        id="bm-satellite" onclick="setBM('satellite')">🛰 SATELLITE</div>
   <div class="bm-tab"        id="bm-street"    onclick="setBM('street')">🗺 STREET</div>
   <div class="bm-tab"        id="bm-google"    onclick="setBM('google')">📍 GOOGLE</div>
-  <div class="bm-tab"        id="bm-scadamin_dark"  onclick="setBM('scadamin_dark')">🧭 SCADA DARK</div>
+  <div class="bm-tab"        id="bm-grid_view"  onclick="setBM('grid_view')" title="Pastel Hyderabad-region district boundary view">▧ GRID MAP VIEW</div>
   <div class="bm-tab"        id="bm-scadamin_light" onclick="setBM('scadamin_light')">🧭 SCADA LIGHT</div>
 </div>
 
@@ -2075,6 +2187,302 @@ function _ensureGridBackground(on){
   }
 }
 
+
+// ── GRID MAP VIEW basemap layer: pastel regional hulls like a shapefile sheet ──
+function _tgConvexHullLatLng(points){
+  const pts = points
+    .filter(p=>Number.isFinite(+p.lat)&&Number.isFinite(+(p.lon??p.lng)))
+    .map(p=>({x:+(p.lon??p.lng), y:+p.lat, raw:p}))
+    .sort((a,b)=>a.x-b.x||a.y-b.y);
+  if(pts.length<3)return pts.map(p=>[p.y,p.x]);
+  const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+  const lower=[]; for(const p of pts){ while(lower.length>=2&&cross(lower[lower.length-2],lower[lower.length-1],p)<=0)lower.pop(); lower.push(p); }
+  const upper=[]; for(let i=pts.length-1;i>=0;i--){ const p=pts[i]; while(upper.length>=2&&cross(upper[upper.length-2],upper[upper.length-1],p)<=0)upper.pop(); upper.push(p); }
+  return lower.slice(0,-1).concat(upper.slice(0,-1)).map(p=>[p.y,p.x]);
+}
+function _tgCentroidLatLng(points){
+  let a=0,b=0,n=0;
+  points.forEach(p=>{ const lat=+p.lat, lon=+(p.lon??p.lng); if(Number.isFinite(lat)&&Number.isFinite(lon)){a+=lat;b+=lon;n++;} });
+  return n ? [a/n,b/n] : null;
+}
+
+
+function _tgProp(props, keys){
+  props=props||{};
+  for(const k of keys){
+    if(props[k]!=null && String(props[k]).trim()!=='') return String(props[k]).trim();
+  }
+  const lower={};
+  Object.keys(props).forEach(k=>lower[k.toLowerCase()]=props[k]);
+  for(const k of keys){
+    const v=lower[String(k).toLowerCase()];
+    if(v!=null && String(v).trim()!=='') return String(v).trim();
+  }
+  return '';
+}
+function _tgFeatureName(f){
+  const p=f&&f.properties||{};
+  return _tgProp(p,['block_name','BLOCK_NAME','block','Block','BLOCK','mandal','Mandal','MANDAL','mandal_name','MANDAL_NAME','name','Name','NAME','dtname']);
+}
+function _tgFeatureDistrict(f){
+  const p=f&&f.properties||{};
+  return _tgProp(p,['district','District','DISTRICT','district_name','DISTRICT_NAME','dist_name','DIST_NAME','dtname','DTNAME']);
+}
+function _tgCleanName(s){
+  return String(s||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function _tgMatchesAny(name, arr){
+  const n=_tgCleanName(name);
+  return arr.some(a=>{
+    const x=_tgCleanName(a);
+    return n===x || n.includes(x) || x.includes(n);
+  });
+}
+function _tgWantedDistricts(){
+  return ['HYDERABAD','MEDCHAL','MEDCHAL MALKAJGIRI','MEDCHAL-MALKAJGIRI','RANGAREDDY','RANGA REDDY','SANGAREDDY'];
+}
+function _tgCorridorGroups(){
+  return [
+    {key:'airport',short:'AIRPORT / RAJENDRANAGAR',color:'#f97316',districts:['RANGAREDDY','RANGA REDDY','HYDERABAD'],blocks:['RAJENDRANAGAR','SHAMSHABAD','MOINABAD','CHEVELLA']},
+    {key:'west',short:'PATANCHERU / BHEL / SANGAREDDY',color:'#2563eb',districts:['SANGAREDDY','RANGAREDDY','RANGA REDDY'],blocks:['PATANCHERU','RAMACHANDRAPURAM','SANGAREDDY','KANDI','AMEENPUR']},
+    {key:'it',short:'KOKAPET / FINANCIAL DISTRICT',color:'#7c3aed',districts:['RANGAREDDY','RANGA REDDY','HYDERABAD'],blocks:['GANDIPET','SERILINGAMPALLY','RAJENDRANAGAR','MOINABAD']},
+    {key:'north',short:'MEDCHAL / KOMPALLY / SHAMIRPET',color:'#16a34a',districts:['MEDCHAL','MEDCHAL MALKAJGIRI'],blocks:['MEDCHAL','SHAMIRPET','QUTHBULLAPUR','KUKATPALLY','MALKAJGIRI']},
+    {key:'east',short:'ECIL / CHERLAPALLY / GHATKESAR',color:'#0ea5e9',districts:['MEDCHAL','MEDCHAL MALKAJGIRI','RANGAREDDY','RANGA REDDY'],blocks:['GHATKESAR','KEESARA','KAPRA','UPPAL','MEDIPALLY']},
+    {key:'southeast',short:'ADIBATLA / IBRAHIMPATNAM / MAHESHWARAM',color:'#dc2626',districts:['RANGAREDDY','RANGA REDDY'],blocks:['IBRAHIMPATNAM','MAHESHWARAM','KANDUKUR','MANCHAL','YACHARAM']},
+    {key:'uppal',short:'UPPAL / POCHARAM',color:'#0891b2',districts:['MEDCHAL','MEDCHAL MALKAJGIRI','RANGAREDDY','RANGA REDDY'],blocks:['UPPAL','MEDIPALLY','GHATKESAR','KEESARA']}
+  ];
+}
+function _tgCoreBlockNames(){
+  return ['KHAIRATABAD','AMEERPET','SECUNDERABAD','MUSHEERABAD','CHARMINAR','ASIFNAGAR','SAIDABAD','NAMPALLY','GOLCONDA','HIMAYATNAGAR','BANDLAGUDA'];
+}
+function _tgFeatureCoordList(f){
+  const pts=[];
+  function walk(c){
+    if(!c)return;
+    if(typeof c[0]==='number' && typeof c[1]==='number') pts.push({lat:c[1], lon:c[0]});
+    else if(Array.isArray(c)) c.forEach(walk);
+  }
+  walk(f && f.geometry && f.geometry.coordinates);
+  return pts;
+}
+function _tgFeatureCentroid(f){
+  return _tgCentroidLatLng(_tgFeatureCoordList(f));
+}
+function _tgBuildSupportLayersFromBlocks(group, blockGeoJSON){
+  const fc = blockGeoJSON.type==='FeatureCollection' ? blockGeoJSON : {type:'FeatureCollection',features:Array.isArray(blockGeoJSON)?blockGeoJSON:[]};
+  const features = (fc.features||[]);
+  const wantedDistrictFeatures = features.filter(f=>_tgMatchesAny(_tgFeatureDistrict(f), _tgWantedDistricts()));
+
+  if(window.tgGridShowMandalBorders !== false){
+    group.addLayer(L.geoJSON({type:'FeatureCollection',features:wantedDistrictFeatures},{
+      pane:'tilePane',
+      interactive:false,
+      style:function(){ return {color:'#475569',weight:0.65,opacity:0.38,fillOpacity:0,interactive:false}; }
+    }));
+  }
+
+  if(window.tgGridShowCorridors){
+    _tgCorridorGroups().forEach(cg=>{
+      const feats = wantedDistrictFeatures.filter(f=>_tgMatchesAny(_tgFeatureDistrict(f),cg.districts) && _tgMatchesAny(_tgFeatureName(f),cg.blocks));
+      if(!feats.length)return;
+      group.addLayer(L.geoJSON({type:'FeatureCollection',features:feats},{
+        pane:'tilePane',
+        interactive:false,
+        style:function(){ return {color:cg.color,weight:1.45,opacity:0.88,fillColor:cg.color,fillOpacity:0.20,interactive:false}; }
+      }));
+      const cen=_tgCentroidLatLng(feats.flatMap(_tgFeatureCoordList));
+      if(cen){
+        group.addLayer(L.marker(cen,{interactive:false,pane:'markerPane',icon:L.divIcon({className:'tg-corridor-label',html:cg.short,iconSize:null})}));
+      }
+    });
+  }
+
+  if(window.tgGridShowCore){
+    const coreFeats = wantedDistrictFeatures.filter(f=>_tgMatchesAny(_tgFeatureDistrict(f),['HYDERABAD']) && _tgMatchesAny(_tgFeatureName(f),_tgCoreBlockNames()));
+    if(coreFeats.length){
+      group.addLayer(L.geoJSON({type:'FeatureCollection',features:coreFeats},{
+        pane:'tilePane',
+        interactive:false,
+        style:function(){ return {color:'#b91c1c',weight:2.0,opacity:0.92,fillColor:'#b91c1c',fillOpacity:0.23,interactive:false}; }
+      }));
+      const cen=_tgCentroidLatLng(coreFeats.flatMap(_tgFeatureCoordList));
+      if(cen){
+        group.addLayer(L.marker(cen,{interactive:false,pane:'markerPane',icon:L.divIcon({className:'tg-core-label',html:'CORE HYDERABAD LOAD ZONE',iconSize:null})}));
+      }
+    }
+  }
+
+  if(window.tgGridShowArrows){
+    const coreFeats = wantedDistrictFeatures.filter(f=>_tgMatchesAny(_tgFeatureDistrict(f),['HYDERABAD']) && _tgMatchesAny(_tgFeatureName(f),_tgCoreBlockNames()));
+    const coreCen=_tgCentroidLatLng(coreFeats.flatMap(_tgFeatureCoordList)) || [17.400,78.475];
+    _tgCorridorGroups().forEach(cg=>{
+      const feats=wantedDistrictFeatures.filter(f=>_tgMatchesAny(_tgFeatureDistrict(f),cg.districts)&&_tgMatchesAny(_tgFeatureName(f),cg.blocks));
+      const cen=_tgCentroidLatLng(feats.flatMap(_tgFeatureCoordList));
+      if(!cen)return;
+      group.addLayer(L.polyline([cen,coreCen],{pane:'linePane',color:cg.color,weight:2.2,opacity:0.65,dashArray:'8 6',interactive:false}));
+      const mid=[(cen[0]+coreCen[0])/2,(cen[1]+coreCen[1])/2];
+      group.addLayer(L.marker(mid,{interactive:false,pane:'markerPane',icon:L.divIcon({className:'tg-corridor-label',html:'➜ '+cg.short,iconSize:null})}));
+    });
+  }
+}
+function _buildTGRegionalGridLayer(){
+  const group=L.layerGroup();
+  group.addLayer(L.tileLayer(_gridBlankTileUrl(),{
+    maxZoom:22,maxNativeZoom:22,tileSize:256,keepBuffer:1,updateWhenIdle:true,updateWhenZooming:false,attribution:''
+  }));
+
+  const ssList = (typeof STATIC_SS33!=='undefined' ? STATIC_SS33 : (window.STATIC_SS33||[])) || [];
+  const ehtList = (typeof STATIC_EHT!=='undefined' ? STATIC_EHT : (window.STATIC_EHT||[])) || [];
+
+  const wantedDistricts=[
+    'HYDERABAD',
+    'MEDCHAL',
+    'MEDCHAL MALKAJGIRI',
+    'MEDCHAL-MALKAJGIRI',
+    'RANGAREDDY',
+    'RANGA REDDY',
+    'SANGAREDDY',
+    'SANGAREDDY DISTRICT'
+  ];
+  const districtPalette={
+    HYDERABAD:'#fee2e2',
+    MEDCHAL:'#dbeafe',
+    'MEDCHAL MALKAJGIRI':'#dbeafe',
+    RANGAREDDY:'#dcfce7',
+    'RANGA REDDY':'#dcfce7',
+    SANGAREDDY:'#fef3c7'
+  };
+  function propName(props){
+    props=props||{};
+    return String(props.DISTRICT||props.District||props.district||props.DIST_NAME||props.dist_name||props.NAME||props.Name||props.name||props.dtname||'').toUpperCase();
+  }
+  function normDistrictName(n){
+    return String(n||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+  }
+  function isWantedFeature(f){
+    const n=normDistrictName(propName(f.properties));
+    return wantedDistricts.some(w=>n.includes(normDistrictName(w)) || normDistrictName(w).includes(n));
+  }
+  function styleForFeature(f){
+    const n=normDistrictName(propName(f.properties));
+    let fill='#e0e7ff';
+    Object.keys(districtPalette).forEach(k=>{ if(n.includes(normDistrictName(k))) fill=districtPalette[k]; });
+    return {
+      color:'#7c2d12',
+      weight:1.4,
+      opacity:window.tgGridBoundaryOpacity ?? 0.70,
+      fillColor:fill,
+      fillOpacity:window.tgGridFillOpacity ?? 0.40,
+      interactive:false
+    };
+  }
+  function addLabelsFromGeoJSON(geo){
+    try{
+      (geo.features||[]).filter(isWantedFeature).forEach(f=>{
+        const pts=[];
+        function walk(c){
+          if(!c)return;
+          if(typeof c[0]==='number' && typeof c[1]==='number') pts.push({lat:c[1],lon:c[0]});
+          else if(Array.isArray(c)) c.forEach(walk);
+        }
+        walk(f.geometry && f.geometry.coordinates);
+        const c=_tgCentroidLatLng(pts);
+        if(c){
+          const nm=propName(f.properties).replace(/\s+DISTRICT$/,'');
+          group.addLayer(L.marker(c,{
+            interactive:false,
+            pane:'markerPane',
+            icon:L.divIcon({className:'tg-grid-label',html:nm,iconSize:null})
+          }));
+        }
+      });
+    }catch(e){ console.warn('district labels failed',e); }
+  }
+
+  function addFallbackHullLayer(){
+    const palette=['#fee2e2','#dbeafe','#dcfce7','#fef3c7','#ede9fe','#cffafe','#fce7f3','#e0e7ff'];
+    const byDiv={};
+    ssList.forEach(s=>{
+      const d=String(s.division||'HYDERABAD REGION').toUpperCase();
+      if(!byDiv[d])byDiv[d]=[];
+      byDiv[d].push(s);
+    });
+    let i=0;
+    Object.keys(byDiv).sort().forEach(div=>{
+      const pts=byDiv[div];
+      const hull=_tgConvexHullLatLng(pts);
+      if(hull.length>=3){
+        group.addLayer(L.polygon(hull,{
+          pane:'tilePane',
+          color:'#7c2d12',
+          weight:1.2,
+          fillColor:palette[i++%palette.length],
+          fillOpacity:window.tgGridFillOpacity ?? 0.40,
+          opacity:window.tgGridBoundaryOpacity ?? 0.70,
+          interactive:false
+        }));
+      }
+      const c=_tgCentroidLatLng(pts);
+      if(c){
+        group.addLayer(L.marker(c,{
+          interactive:false,pane:'markerPane',
+          icon:L.divIcon({className:'tg-grid-label',html:div.replace(/\s+DIVISION$/,''),iconSize:null})
+        }));
+      }
+    });
+  }
+
+  const url='https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json';
+  fetch(url,{cache:'force-cache'})
+    .then(r=>{ if(!r.ok) throw new Error('district boundary HTTP '+r.status); return r.json(); })
+    .then(geo=>{
+      const fc = geo.type==='FeatureCollection' ? geo : {type:'FeatureCollection',features:Array.isArray(geo)?geo:[]};
+      const selected={type:'FeatureCollection',features:(fc.features||[]).filter(isWantedFeature)};
+      if(!selected.features.length) throw new Error('Hyderabad region districts not found in districts.json');
+      const gj=L.geoJSON(selected,{style:styleForFeature,interactive:false,pane:'tilePane'});
+      if(window.tgGridShowDistricts){ group.addLayer(gj); addLabelsFromGeoJSON(selected); }
+      try{ if(window.toast) toast('Grid Map View: Hyderabad region district boundaries loaded',2200); }catch(_){}
+    })
+    .catch(err=>{
+      console.warn('District GeoJSON failed, using SS-derived fallback hulls:',err);
+      if(window.tgGridShowDistricts){ addFallbackHullLayer(); }
+      try{ if(window.toast) toast('Grid Map View: district GeoJSON failed, fallback hull shown',2800); }catch(_){}
+    });
+
+  // Real mandal/block boundaries from the same Telangana boundaries repository.
+  fetch('https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json',{cache:'force-cache'})
+    .then(r=>{ if(!r.ok) throw new Error('blocks boundary HTTP '+r.status); return r.json(); })
+    .then(blockGeo=>{ _tgBuildSupportLayersFromBlocks(group, blockGeo); })
+    .catch(err=>{
+      console.warn('Block/Mandal GeoJSON failed; corridor boundary overlays unavailable:',err);
+      try{ if(window.toast) toast('Grid Map View: mandal/block GeoJSON failed',2600); }catch(_){}
+    });
+
+const allPts=ssList.concat(ehtList);
+  const outer=_tgConvexHullLatLng(allPts);
+  if(outer.length>=3){
+    group.addLayer(L.polygon(outer,{
+      pane:'tilePane',
+      color:'#b91c1c',
+      weight:2.0,
+      fillOpacity:0,
+      opacity:0.75,
+      interactive:false
+    }));
+  }
+
+  const hyd=_tgCentroidLatLng(ssList.filter(s=>/HYDERABAD|HYD/i.test(String(s.division||'')+' '+String(s.section||'')))) || _tgCentroidLatLng(ssList);
+  if(hyd){
+    group.addLayer(L.marker(hyd,{interactive:false,icon:L.divIcon({
+      className:'tg-grid-label',
+      html:'HYDERABAD REGION',
+      iconSize:null
+    })}));
+  }
+  window.tgGridBoundaryLayer=group;
+  return group;
+}
+
 function getBM(n){
   if(BM[n])return BM[n];
   if(n==='grid'){
@@ -2084,6 +2492,8 @@ function getBM(n){
       keepBuffer:1, updateWhenIdle:true, updateWhenZooming:false,
       attribution:''
     });
+  }else if(n==='grid_view'){
+    BM[n]=_buildTGRegionalGridLayer();
   }else if(n==='scadamin_dark' || n==='scadamin_light'){
     // SCADA Minimal Layers — additional basemaps only, no existing layer disturbed.
     // They use CARTO no-labels tiles plus a low-opacity labels-only tile layer.
@@ -2110,11 +2520,13 @@ let curBM='dark'; getBM('dark').addTo(map);
 setTimeout(()=>{getBM('google');getBM('satellite');},2000);
 
 function setBM(name){
-  if(name!=='grid'&&name!=='scadamin_dark'&&name!=='scadamin_light'&&!_bmDefs[name])return;
+  if(name!=='grid'&&name!=='grid_view'&&name!=='scadamin_dark'&&name!=='scadamin_light'&&!_bmDefs[name])return;
   map.removeLayer(getBM(curBM));
+  if(name==='grid_view'){ delete BM.grid_view; }
   _ensureGridBackground(name==='grid');
+  map.getContainer().classList.toggle('grid-view-layer-on', name==='grid_view');
   getBM(name).addTo(map);
-  if(name!=='grid'){
+  if(name!=='grid' && name!=='grid_view'){
     const bm = getBM(name);
     if(bm && bm.eachLayer) bm.eachLayer(l=>{ if(l.bringToBack) l.bringToBack(); });
     else if(bm && bm.bringToBack) bm.bringToBack();
@@ -2130,6 +2542,103 @@ function safelyManageClass(layer,className,add){
   const el=layer.getElement?layer.getElement():layer._path;
   if(el){if(add)el.classList.add(className);else el.classList.remove(className);}
 }
+
+window.tgPrintLineWidth = window.tgPrintLineWidth || 0.95;
+function setTGFeederLineThickness(v){
+  v = Math.max(0.45, Math.min(2.20, Number(v)||0.95));
+  window.tgPrintLineWidth = v;
+  const val=document.getElementById('ltVal'); if(val)val.textContent=v.toFixed(2); const gv=document.getElementById('gspLineVal'); if(gv)gv.textContent=v.toFixed(2);
+  try{
+    (window.allLayers||allLayers||[]).forEach(item=>{
+      if(!item || !item.layer || !item.layer.setStyle)return;
+      const t=String(item.reg&&item.reg.type||'');
+      if(!(t==='lines'||t.startsWith('fseg')))return;
+      if(item.layer.__tgBaseWeight==null){
+        item.layer.__tgBaseWeight = (item.layer.options && Number(item.layer.options.weight)) || 3;
+      }
+      const liveWeight = Math.max(0.8, item.layer.__tgBaseWeight * (v/0.95) * 0.75);
+      item.layer.setStyle({weight:liveWeight});
+      if(item.layer.flowLayer && item.layer.flowLayer.setStyle){
+        item.layer.flowLayer.setStyle({weight:Math.max(0.6, liveWeight*0.55)});
+      }
+    });
+  }catch(e){ console.warn('line thickness update failed', e); }
+}
+
+
+window.tgGridFillOpacity = window.tgGridFillOpacity ?? 0.40;
+window.tgGridBoundaryOpacity = window.tgGridBoundaryOpacity ?? 0.70;
+window.tgGridShowDistricts = window.tgGridShowDistricts ?? true;
+window.tgGridShowCorridors = window.tgGridShowCorridors ?? true;
+window.tgGridShowCore = window.tgGridShowCore ?? true;
+window.tgGridShowArrows = window.tgGridShowArrows ?? true;
+window.tgGridShowMandalBorders = window.tgGridShowMandalBorders ?? true;
+function toggleGridStylePanel(){
+  const p=document.getElementById('gridStylePanel');
+  if(p)p.classList.toggle('open');
+}
+function setTGSSIconScale(v){
+  v=Math.max(0.55,Math.min(1.8,Number(v)||1));
+  document.documentElement.style.setProperty('--tg-ss-icon-scale',v.toFixed(2));
+  document.body.classList.add('grid-style-equal-icons');
+  const el=document.getElementById('gspSSVal'); if(el)el.textContent=v.toFixed(2);
+}
+function setTGEHTIconScale(v){
+  v=Math.max(0.55,Math.min(1.8,Number(v)||1));
+  document.documentElement.style.setProperty('--tg-eht-icon-scale',v.toFixed(2));
+  document.body.classList.add('grid-style-equal-icons');
+  const el=document.getElementById('gspEHTVal'); if(el)el.textContent=v.toFixed(2);
+}
+function setTGGridLabelSize(v){
+  v=Math.max(7,Math.min(18,Number(v)||11));
+  document.documentElement.style.setProperty('--tg-grid-label-size',v+'px');
+  const el=document.getElementById('gspLblVal'); if(el)el.textContent=String(v);
+}
+function setTGGridFillOpacity(v){
+  v=Math.max(0,Math.min(80,Number(v)||40));
+  window.tgGridFillOpacity=v/100;
+  const el=document.getElementById('gspFillVal'); if(el)el.textContent=v+'%';
+  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
+}
+function setTGGridBoundaryOpacity(v){
+  v=Math.max(10,Math.min(100,Number(v)||70));
+  window.tgGridBoundaryOpacity=v/100;
+  const el=document.getElementById('gspBndVal'); if(el)el.textContent=v+'%';
+  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
+}
+function toggleTGGridFeederNames(on){
+  document.body.classList.toggle('hide-feeder-labels-grid',!on);
+  try{ syncLabels(); }catch(_){}
+}
+function toggleTGGridSSNames(on){
+  document.body.classList.toggle('hide-ss-labels-grid',!on);
+  try{ syncLabels(); }catch(_){}
+}
+
+
+
+function toggleTGGridMandalLayer(on){
+  window.tgGridShowMandalBorders=!!on;
+  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
+}
+
+function toggleTGGridDistrictLayer(on){
+  window.tgGridShowDistricts=!!on;
+  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
+}
+function toggleTGGridCorridors(on){
+  window.tgGridShowCorridors=!!on;
+  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
+}
+function toggleTGGridCore(on){
+  window.tgGridShowCore=!!on;
+  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
+}
+function toggleTGGridArrows(on){
+  window.tgGridShowArrows=!!on;
+  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
+}
+
 function toggleRcard(id){const c=document.getElementById(id);if(c)c.classList.toggle('collapsed');}
 function toggleFullscreen(){
   if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(e=>toast('Fullscreen: '+e.message));
@@ -2315,7 +2824,7 @@ function renderStaticSS(filterFn){
     _registerSSCoord(ss.lat,ss.lon);
 
     const h=`<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>`;
-    const layer=L.marker([ss.lat,ss.lon],{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[36,36],iconAnchor:[18,18]})});
+    const layer=L.marker([ss.lat,ss.lon],{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[40,28],iconAnchor:[20,14]})});
     const popHtml=`<div class="pc-header-id">${ss.name}</div>
       <table class="popup-table">
         <tr><th>Section</th><td>${ss.section||''}</td></tr>
@@ -2543,7 +3052,7 @@ DATA_REGISTRY.forEach(reg=>{
         layer=L.marker(ll,{icon:isAB?L.divIcon({className:'',html:`<svg xmlns='http://www.w3.org/2000/svg' width='22' height='16' viewBox='0 0 22 16'><line x1='0' y1='8' x2='6' y2='8' stroke='#ff9800' stroke-width='1.5'/><circle cx='11' cy='8' r='6' fill='rgba(8,18,30,.9)' stroke='#ff9800' stroke-width='1.5'/><rect x='5.5' y='5.5' width='11' height='3' rx='1' fill='#ff9800'/><circle cx='6.5' cy='10' r='1.5' fill='rgba(8,18,30,.9)' stroke='#ff9800' stroke-width='1'/><circle cx='15.5' cy='10' r='1.5' fill='rgba(8,18,30,.9)' stroke='#ff9800' stroke-width='1'/><line x1='16' y1='8' x2='22' y2='8' stroke='#ff9800' stroke-width='1.5'/></svg>`,iconSize:[22,16],iconAnchor:[11,8]}):L.divIcon({className:'',html:`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='18' viewBox='0 0 16 18'><line x1='4' y1='0' x2='4' y2='18' stroke='#2196f3' stroke-width='2.5' stroke-linecap='round'/><line x1='12' y1='0' x2='12' y2='18' stroke='#2196f3' stroke-width='2.5' stroke-linecap='round'/><line x1='4' y1='7' x2='12' y2='7' stroke='#2196f3' stroke-width='2' stroke-linecap='round'/><circle cx='4' cy='3' r='2' fill='#2196f3'/><circle cx='12' cy='3' r='2' fill='#2196f3'/></svg>`,iconSize:[16,18],iconAnchor:[8,9]}),pane:'pointsPane'});
       }else if(reg.type.startsWith('ss33')){
         const h=`<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>`;
-        layer=L.marker(ll,{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[36,36],iconAnchor:[18,18]})});
+        layer=L.marker(ll,{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[40,28],iconAnchor:[20,14]})});
       }else if(reg.type.startsWith('eht')){
         const h=`<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">EHT</span></div></div>`;
         layer=L.marker(ll,{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[40,28],iconAnchor:[20,14]})});
@@ -10110,7 +10619,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
       var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
       var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.95" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(window.tgPrintLineWidth||0.95)+'" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
     });
 
     if(opt.symbols || opt.poleLabels){
@@ -10387,7 +10896,7 @@ async function buildFeederSvgV2(fn, opt){
       var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
       var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
       var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.95" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(window.tgPrintLineWidth||0.95)+'" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
     });
 
     if(opt.symbols){
@@ -10795,7 +11304,7 @@ async function buildFeederSvgV2(fn, opt){
         var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
         var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
         var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.82" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(window.tgPrintLineWidth||0.82)+'" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
         // rough km tally (planar approx fine for a visual summary)
         for(var i=1;i<s.pts.length;i++){
           var R=6371, dLat=(s.pts[i].lat-s.pts[i-1].lat)*Math.PI/180, dLng=(s.pts[i].lng-s.pts[i-1].lng)*Math.PI/180;
@@ -11141,7 +11650,7 @@ async function buildGroupSvgV2(opt){
         var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
         var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
         var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.82" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(window.tgPrintLineWidth||0.82)+'" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
         for(var i=1;i<s.pts.length;i++){
           var Rrad=6371, dLat=(s.pts[i].lat-s.pts[i-1].lat)*Math.PI/180, dLng=(s.pts[i].lng-s.pts[i-1].lng)*Math.PI/180;
           var aa=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(s.pts[i-1].lat*Math.PI/180)*Math.cos(s.pts[i].lat*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
