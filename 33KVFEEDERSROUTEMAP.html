@@ -1459,6 +1459,18 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 .ai-canvas-wrap{position:relative;height:180px;margin-top:6px}
 
 
+/* SCADA / GRID print mode: hide UI and print only map area */
+@media print{
+  #topbar,#panel,#ptab,#rpanel,#botbar,#bm-tabs,#editToolbar,#feederStatsCard,#feederStatsPanel,#dfFloatPanel,#legend,.status-legend,#toast,#loader,#gridStylePanel{display:none!important}
+  #map{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;height:100vh!important;width:100vw!important;z-index:1!important}
+  html,body{overflow:visible!important;background:#fff!important;height:auto!important;width:auto!important}
+  .leaflet-control-container{display:none!important}
+  .ss33-wrap,.eht-wrap{transform:scale(.62)!important;transform-origin:center center!important}
+  .ss-label{font-size:7px!important;max-width:90px!important}
+  .pole-label{display:none!important}
+}
+
+
 
 /* ── Permanent important area labels inside GRID MAP VIEW (Naresh request) ── */
 .tg-important-area-label{
@@ -2227,6 +2239,7 @@ function _tgFeatureLabelPoint(feature){
   return _tgRingCentroid(best);
 }
 let _tgDistrictLabelMarkers=[];
+let _tgWardLabelMarkers=[];
 function addLabelsFromGeoJSON(feats){
   _tgDistrictLabelMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
   _tgDistrictLabelMarkers=[];
@@ -2242,6 +2255,23 @@ function addLabelsFromGeoJSON(feats){
     });
     marker.addTo(map);
     _tgDistrictLabelMarkers.push(marker);
+  });
+}
+function addWardLabelsFromGeoJSON(feats){
+  _tgWardLabelMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
+  _tgWardLabelMarkers=[];
+  (feats||[]).forEach(f=>{
+    const pt=_tgFeatureLabelPoint(f);
+    if(!pt) return;
+    const props=f.properties||{};
+    const name=(props.WARD_NAME||props.Ward_Name||props.ward_name||props.WardName||props.NAME||props.Name||props.name||props.LOCALITY||props.Locality||props.AREA_NAME||(props.WARD_NO!=null?('Ward '+props.WARD_NO):null)||(props.Ward_No!=null?('Ward '+props.Ward_No):null)||'');
+    if(!name) return;
+    const marker=L.marker([pt.lat,pt.lng],{
+      icon:L.divIcon({className:'',html:`<div class="tg-ward-area-label">${String(name)}</div>`,iconSize:[0,0],iconAnchor:[0,0]}),
+      interactive:false, keyboard:false
+    });
+    marker.addTo(map);
+    _tgWardLabelMarkers.push(marker);
   });
 }
 
@@ -2374,6 +2404,7 @@ async function _buildTGRegionalGridLayer(){
       if(wardName) layer.bindTooltip(String(wardName),{sticky:true,className:'tg-ward-tooltip'});
     });
     if(window.tgGridShowWards) wardLayer.addTo(group);
+    if(window.tgGridShowWards) addWardLabelsFromGeoJSON(feats3);
     _tgGhmcWardLayer = wardLayer;
   }catch(err){
     console.warn('GHMC ward boundary GeoJSON failed; falling back to district-level granularity only:', err);
@@ -2397,6 +2428,20 @@ window.tgSetGridShowDistricts = function(on){
   if(!_tgRegionalGridLayerGroup)return;
   if(on) _tgRegionalGridLayerGroup.addTo(map);
   else map.removeLayer(_tgRegionalGridLayerGroup);
+  if(on) _tgDistrictLabelMarkers.forEach(m=>m.addTo(map));
+  else _tgDistrictLabelMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
+};
+window.tgSetGridShowImportantAreas = function(on){
+  window.tgGridShowImportantAreas=!!on;
+  if(!_tgImportantAreaLabelLayer || !_tgRegionalGridLayerGroup) return;
+  if(on) _tgRegionalGridLayerGroup.addLayer(_tgImportantAreaLabelLayer);
+  else _tgRegionalGridLayerGroup.removeLayer(_tgImportantAreaLabelLayer);
+};
+var _origTgSetGridShowWards = window.tgSetGridShowWards;
+window.tgSetGridShowWards = function(on){
+  _origTgSetGridShowWards(on);
+  if(on) _tgWardLabelMarkers.forEach(m=>m.addTo(map));
+  else _tgWardLabelMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
 };
 
 function getBM(n){
@@ -3721,7 +3766,7 @@ function _rulerOnClick(e){
   const ll={lat:e.latlng.lat,lng:e.latlng.lng};
   _rulerPoints.push(ll);
   // Marker
-  const m=L.marker(ll,{icon:L.divIcon({className:'',html:'<div class="ruler-marker"></div>',iconSize:[12,12],iconAnchor:[6,6]}),interactive:false}).addTo(map);
+  const m=L.marker(ll,{icon:L.divIcon({className:'',html:'<div class="ruler-marker"></div>',iconSize:[8,8],iconAnchor:[4,4]}),interactive:false}).addTo(map);
   _rulerMarkers.push(m);
   // Polyline
   if(_rulerPolyline)map.removeLayer(_rulerPolyline);
@@ -6227,9 +6272,9 @@ function renderUploadedRows(rows,sourceFileName){
         // AB Switch — orange diamond with central bar. Per Naresh 31-May-2026:
         // reduced from 18→12 px so it's proportional to DP/cut markers.
         layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',
-          html:`<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 18 18'>
-            <rect x='2' y='2' width='14' height='14' rx='2' transform='rotate(45 9 9)' fill='#ff9800' stroke='#fff' stroke-width='1.4' style='filter:drop-shadow(0 0 2px #ff9800)'/>
-            <line x1='4.5' y1='9' x2='13.5' y2='9' stroke='#fff' stroke-width='2.2' stroke-linecap='round'/>
+          html:`<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 16 16'>
+            <rect x='3' y='3' width='10' height='10' rx='1.3' transform='rotate(45 8 8)' fill='#ff9800' stroke='#fff' stroke-width='1.1' style='filter:drop-shadow(0 0 1px #ff9800)'/>
+            <line x1='5' y1='8' x2='11' y2='8' stroke='#fff' stroke-width='1.5' stroke-linecap='round'/>
           </svg>`,
           iconSize:[12,12],iconAnchor:[6,6]}),pane:'pointsPane'});
       }else if(isDP){
@@ -6248,7 +6293,7 @@ function renderUploadedRows(rows,sourceFileName){
         regType='cut';
         // Cut Point — small yellow "X" the same visual size as a pole dot
         // (Pole circle markers render at ~7 px diameter; the X here is 7×7 too.)
-        layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'cut-pt-icon',html:`<svg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7'><line x1='1' y1='1' x2='6' y2='6' stroke='#ffeb3b' stroke-width='1.6' stroke-linecap='round'/><line x1='6' y1='1' x2='1' y2='6' stroke='#ffeb3b' stroke-width='1.6' stroke-linecap='round'/></svg>`,iconSize:[7,7],iconAnchor:[3.5,3.5]}),pane:'pointsPane'});
+        layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'cut-pt-icon',html:`<svg xmlns='http://www.w3.org/2000/svg' width='5' height='5' viewBox='0 0 5 5'><line x1='0.8' y1='0.8' x2='4.2' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/><line x1='4.2' y1='0.8' x2='0.8' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/></svg>`,iconSize:[5,5],iconAnchor:[2.5,2.5]}),pane:'pointsPane'});
       }else if(p.pn.spurKey){
         layer=L.circleMarker([p.lat,p.lng],{radius:3,fillColor:'#ffe082',fillOpacity:1,color:'#ff9800',weight:1.5,pane:'pointsPane',renderer:_CR});
       }else{
@@ -10014,11 +10059,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
 
   // ---------- symbols ----------
   function symbolSvg(x,y,type){
-    if(type === 'SS')  return '<rect x="'+(x-2.5)+'" y="'+(y-2.5)+'" width="5" height="5" fill="#ef4444" stroke="#7f1d1d" stroke-width=".5"/>';
-    if(type === 'AB')  return '<circle cx="'+x+'" cy="'+y+'" r="2.3" fill="#ff9800" stroke="#7c2d12" stroke-width=".4"/>';
-    if(type === 'DP')  return '<rect x="'+(x-2.5)+'" y="'+(y-2.5)+'" width="5" height="5" fill="#d946ef" stroke="#701a75" stroke-width=".4"/>';
-    if(type === 'CUT') return '<path d="M'+(x-3)+' '+(y-3)+' L'+(x+3)+' '+(y+3)+' M'+(x+3)+' '+(y-3)+' L'+(x-3)+' '+(y+3)+'" stroke="#ef4444" stroke-width="1"/>';
-    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r="1" fill="#111827"/>';
+    if(type === 'SS')  return '<rect x="'+(x-2.2)+'" y="'+(y-2.2)+'" width="4.4" height="4.4" fill="#ef4444" stroke="#7f1d1d" stroke-width=".45"/>';
+    if(type === 'AB')  return '<rect x="'+(x-1.05)+'" y="'+(y-1.05)+'" width="2.1" height="2.1" rx=".35" transform="rotate(45 '+x+' '+y+')" fill="#ff9800" stroke="#7c2d12" stroke-width=".28"/>';
+    if(type === 'DP')  return '<rect x="'+(x-2.0)+'" y="'+(y-2.0)+'" width="4.0" height="4.0" fill="#d946ef" stroke="#701a75" stroke-width=".35"/>';
+    if(type === 'CUT') return '<path d="M'+(x-1.6)+' '+(y-1.6)+' L'+(x+1.6)+' '+(y+1.6)+' M'+(x+1.6)+' '+(y-1.6)+' L'+(x-1.6)+' '+(y+1.6)+'" stroke="#ef4444" stroke-width=".7" stroke-linecap="round"/>';
+    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r="0.9" fill="#111827"/>';
     return '';
   }
   function substationSvg(x,y,type,name){
@@ -10166,7 +10211,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   window.tgPrintComposerPreview = function(){
     var opt = getPrintOptions();
     if(opt.mode === 'current'){
-      alert('Current map view uses browser print. Use PRINT button for map view.');
+      try{ if(window.map && map.invalidateSize) map.invalidateSize(); }catch(e){}
+      setTimeout(function(){ try{window.print();}catch(e){} }, 350);
       return;
     }
     var out = selectedSvg();
@@ -10177,7 +10223,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   window.tgPrintComposerPrint = function(){
     var opt = getPrintOptions();
     if(opt.mode === 'current'){
-      window.print();
+      try{ if(window.map && map.invalidateSize) map.invalidateSize(); }catch(e){}
+      setTimeout(function(){ try{window.print();}catch(e){} }, 350);
       return;
     }
     var out = selectedSvg();
