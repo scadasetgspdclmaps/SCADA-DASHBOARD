@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// Firebase Realtime Database — new project "scadagridmap" 
+// Firebase Realtime Database — new project "scadagridmap"
 // If you created the RTDB in a different region, change the URL accordingly:
 //   asia-southeast1 (Singapore) → https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app
 //   us-central1     (US)        → https://scadagridmap-default-rtdb.firebaseio.com
@@ -1462,8 +1462,44 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 /* SCADA / GRID print mode: hide UI and print only map area */
 @media print{
   #topbar,#panel,#ptab,#rpanel,#botbar,#bm-tabs,#editToolbar,#feederStatsCard,#feederStatsPanel,#dfFloatPanel,#legend,.status-legend,#toast,#loader,#gridStylePanel{display:none!important}
-  #map{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;height:100vh!important;width:100vw!important;z-index:1!important}
-  html,body{overflow:visible!important;background:#fff!important;height:auto!important;width:auto!important}
+
+  html,body{
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+    background:#fff!important;
+    width:100%!important;
+    height:100%!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+
+  #map{
+    position:absolute!important;
+    inset:0!important;
+    top:0!important;
+    left:0!important;
+    right:auto!important;
+    bottom:auto!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:100%!important;
+    z-index:1!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+
+  #map.grid-bm-on,
+  #map.grid-view-layer-on{
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+
+  #map.grid-bm-on .leaflet-tile-pane,
+  #map.grid-view-layer-on .leaflet-tile-pane{
+    opacity:1!important;
+  }
+
   .leaflet-control-container{display:none!important}
   .ss33-wrap,.eht-wrap{transform:scale(.62)!important;transform-origin:center center!important}
   .ss-label{font-size:7px!important;max-width:90px!important}
@@ -1499,6 +1535,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
   color:#7c2d12!important;
 }
 
+/* hide ward area labels per Naresh */
+.tg-ward-area-label{display:none!important}
 </style>
 </head>
 <body class="no-anim">
@@ -1629,7 +1667,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 
   async function sha256Hex(str){
     var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('');
+    return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('\n');
   }
 
   function fail(msg){
@@ -1802,12 +1840,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
     <input type="range" min="0.45" max="2.20" step="0.05" value="0.95" oninput="setTGFeederLineThickness(this.value)">
   </div>
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
-    <label style="margin-bottom:0"><span>AREA BORDERS</span>
+    <label style="margin-bottom:0"><span>AREA BORDERS ONLY</span>
       <input type="checkbox" checked onchange="window.tgSetGridShowWards(this.checked)" style="transform:translateY(2px)">
     </label>
   </div>
   <div class="gsp-row">
-    <label style="margin-bottom:0"><span>AREA NAMES</span>
+    <label style="margin-bottom:0"><span>IMPORTANT AREA NAMES</span>
       <input type="checkbox" checked onchange="window.tgSetGridShowAreaNames(this.checked)" style="transform:translateY(2px)">
     </label>
   </div>
@@ -2407,12 +2445,12 @@ async function _buildTGRegionalGridLayer(){
       const wardName = props.WARD_NAME||props.Ward_Name||props.ward_name||
                         props.WardName||props.NAME||props.Name||props.name||
                         props.LOCALITY||props.Locality||props.AREA_NAME||
-                        (props.WARD_NO!=null?('Ward '+props.WARD_NO):null)||
-                        (props.Ward_No!=null?('Ward '+props.Ward_No):null);
-      if(wardName) layer.bindTooltip(String(wardName),{sticky:true,className:'tg-ward-tooltip'});
+                        (props.WARD_NO!=null?'':null)||
+                        (props.Ward_No!=null?'':null);
+      if(wardName){ wardName=String(wardName).replace(/\bWard\b\s*\d*\s*/ig,'').trim(); if(wardName && !/^\d+$/.test(wardName)) layer.bindTooltip(wardName,{sticky:true,className:'tg-ward-tooltip'}); }
     });
     if(window.tgGridShowWards) wardLayer.addTo(group);
-    if(window.tgGridShowWards) addWardLabelsFromGeoJSON(feats3);
+    // Ward labels intentionally disabled: they clutter the map. Important area names remain separate.
     _tgGhmcWardLayer = wardLayer;
   }catch(err){
     console.warn('GHMC ward boundary GeoJSON failed; falling back to district-level granularity only:', err);
@@ -2611,7 +2649,7 @@ function toggleAnimation(){
 const LGstate={'ug-lines':true,'oh-lines':true,points:false,dp:false,ab:false,cut:false,ss33:true,ehts:true,fsegs:true};
 let cableFilter='all';
 let globalFeederFallback=true;
-let focusedFeeder=null;
+let focusedFeeder=null;window.focusedFeeder=null;
 let editLayerCounter=0;
 // Shared canvas renderer for all circle markers (major perf boost)
 // Canvas renderer for tiny pole markers. tolerance=8 gives a forgiving hit
@@ -3038,7 +3076,7 @@ function escJS(s){
     .split('\\').join('\\\\')
     .split("'").join("\\'")
     .split('"').join('&quot;')
-    .split('\n').join(' ');
+    .split('\n').join('\n');
 }
 
 function feederRoutePopup(feat, regEntry, feederName, cableType, layer, latlng){
@@ -3231,7 +3269,7 @@ function focusFeeder(fn){
   if(focusedFeeder===fn){
     exitFocusedFeeder();return;
   }
-  focusedFeeder=fn;const coords=[];
+  focusedFeeder=fn;window.focusedFeeder=fn;const coords=[];
   allLayers.forEach(i=>{
     const isTarget=i.feederName===fn||i.reg.type.startsWith('ss')||i.reg.type.startsWith('eht');
     if(i.layer.setStyle&&(i.reg.type==='lines'||i.reg.type==='fsegs')){
@@ -4473,7 +4511,7 @@ function deleteEditPoint(){
 function exitFocusedFeeder(){
   if(editModeActive){editModeActive=true;toggleEditMode();}
   closeEditPanel();
-  focusedFeeder=null;
+  focusedFeeder=null;window.focusedFeeder=null;
   allLayers.forEach(i=>{
     if(i.layer.setStyle&&(i.reg.type==='lines'||i.reg.type==='fsegs')){
       i.layer.setStyle({opacity:.92});
@@ -4726,7 +4764,7 @@ function showFeederStats(fn){
     <div class="fsc-item">
       <span class="fsc-lbl">${it.lbl}</span>
       <span class="fsc-val ${it.cls}">${it.val}</span>
-    </div>`).join('');
+    </div>`).join('\n');
   const nameEl=document.getElementById('fscFeederName');
   if(nameEl)nameEl.textContent=fn.split('→')[1]?.trim()||fn;
   card.classList.add('visible');
@@ -5639,7 +5677,7 @@ function _acronymMatches(a, b){
   const initialsOf = (s) => {
     const w = s.split(/\s+/).filter(Boolean);
     if (w.length < 2) return '';            // need ≥2 words to form an acronym
-    return w.map(x => x[0]).join('');
+    return w.map(x => x[0]).join('\n');
   };
   const isShortToken = (s) => /^[A-Z]{2,6}$/.test(s) && s.indexOf(' ') === -1;
   // a is acronym of b ?
@@ -5734,7 +5772,7 @@ function flyToSS(ss){
         + `<div style="font-size:9px;color:${col};font-family:var(--mono);letter-spacing:.5px;margin-top:2px">${sLabel}</div>`
       + `</div>`
       + `</div>`;
-  }).join('');
+  }).join('\n');
   L.popup({maxWidth:380,minWidth:280,className:'ss-popup'}).setLatLng([ss.lat,ss.lon])
     .setContent(
       `<div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#0f172a;line-height:1.3">${ss.name}</div>`+
@@ -5974,7 +6012,7 @@ function parsePoleNo(raw){
     // Less than 4 means this is actually Format 1 (already caught above).
     if(tokens.length>=4 && tokens.length%2===0){
       const branchSeq=parseInt(tokens[tokens.length-1]);
-      const spurKey=tokens.slice(0,-1).join('');
+      const spurKey=tokens.slice(0,-1).join('\n');
       return {
         base, branchLetter:tokens[0],
         branchSeq, spurKey,
@@ -6220,7 +6258,7 @@ function renderUploadedRows(rows,sourceFileName){
         return mainPoles.find(p=>p.pn.base===baseNum);
       }
       const parentBranchSeq=parseInt(tokens[lastNumIdx]);
-      const parentSpurKey=tokens.slice(0,lastNumIdx).join('');
+      const parentSpurKey=tokens.slice(0,lastNumIdx).join('\n');
       if(!parentSpurKey){
         return mainPoles.find(p=>p.pn.base===baseNum);
       }
@@ -8264,7 +8302,7 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
             + '</div>'
             + '<span class="mbp-dur">' + dur + '</span>'
           + '</div>';
-        }).join('');
+        }).join('\n');
       }
     }
   }
@@ -9808,7 +9846,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     <div class="tgp-row">
       <label class="tgp-lbl">PRINT MODE</label>
       <select id="tgpMode" class="tgp-select">
-        <option value="selected">Selected / Focused Feeder Drawing</option>
+        <option value="selected" selected>Selected / Focused Feeder Drawing</option>
         <option value="current">Current Map View</option>
         <option value="group">Division / Sub-Division / Section Drawing</option>
       </select>
@@ -9857,7 +9895,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
         <label class="tgp-check"><input type="checkbox" id="tgpTitle" checked> Title block</label>
         <label class="tgp-check"><input type="checkbox" id="tgpLegend" checked> Legend</label>
         <label class="tgp-check"><input type="checkbox" id="tgpNorth" checked> North arrow</label>
-        <label class="tgp-check"><input type="checkbox" id="tgpGoogleBg" checked> Google map bg</label>
+        <label class="tgp-check"><input type="checkbox" id="tgpGoogleBg" checked> Map background</label>
       </div>
     </div>
 
@@ -9869,7 +9907,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     </div>
 
     <div class="tgp-note">
-      For best quality, this composer creates a clean vector feeder drawing from loaded map geometry.
+      For selected feeder print: first click/focus a feeder, then PRINT. Map background is OFF by default because external Google tiles can make Chrome print a blank page. Turn it on only if needed.
       DXF export is AutoCAD-compatible basic polyline output.
     </div>
   </div>
@@ -9916,6 +9954,27 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   function currentFeederName(){
     if(typeof focusedFeeder !== 'undefined' && focusedFeeder) return focusedFeeder;
     if(window.focusedFeeder) return window.focusedFeeder;
+
+    // Fallback 1: if edit toolbar label is visible, match it back to feeder list.
+    try{
+      var lbl = document.getElementById('etFeederLabel');
+      var txt = lbl ? String(lbl.textContent||'').trim() : '';
+      if(txt && Array.isArray(window.allLayers)){
+        var allNames = Array.from(new Set(window.allLayers.map(function(i){return i && i.feederName;}).filter(Boolean)));
+        var nTxt = _normFeederNameForPrint(txt);
+        var hit = allNames.find(function(n){ var nn=_normFeederNameForPrint(n); return nn===nTxt || nn.indexOf(nTxt)>=0 || nTxt.indexOf(nn)>=0; });
+        if(hit) return hit;
+      }
+    }catch(e){}
+
+    // Fallback 2: if exactly one feeder is visible/checked, use it.
+    try{
+      if(typeof feederState !== 'undefined'){
+        var on = Object.keys(feederState).filter(function(k){return feederState[k];});
+        if(on.length === 1) return on[0];
+      }
+    }catch(e){}
+
     return '';
   }
 
@@ -9963,9 +10022,19 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     return [];
   }
 
+  function _normFeederNameForPrint(s){
+    return String(s||'').toUpperCase().replace(/33\s*KV|132\s*KV|11\s*KV|FEEDER|LINE/g,' ').replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+  }
   function getFeederItems(fn){
     var all = Array.isArray(window.allLayers) ? window.allLayers.filter(function(i){return i && !i._deleted;}) : [];
-    return all.filter(function(i){ return getFeederName(i) === fn || i.feederName === fn; });
+    var exact = all.filter(function(i){ return getFeederName(i) === fn || i.feederName === fn; });
+    if(exact.length) return exact;
+    var nf = _normFeederNameForPrint(fn);
+    if(!nf) return [];
+    return all.filter(function(i){
+      var ni = _normFeederNameForPrint(getFeederName(i) || i.feederName);
+      return ni && (ni === nf || ni.indexOf(nf) >= 0 || nf.indexOf(ni) >= 0);
+    });
   }
 
   function getFeederSegments(fn){
@@ -10060,6 +10129,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   }
   function googleBackgroundSvg(ctx, opt){
     if(!opt.googleBg) return '';
+    if(opt._embeddedBgSvg) return opt._embeddedBgSvg;
+
+    // Fallback only. PRINT/PREVIEW embeds tiles first using googleBackgroundSvgEmbedded().
     var b = ctx.bounds;
     var z = (opt.paper === 'A0' || opt.paper === 'A1') ? 16 : (opt.paper === 'A5' || opt.paper === 'A6') ? 14 : 15;
     var nw = lngLatToTile(b.maxLat, b.minLng, z);
@@ -10073,19 +10145,77 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     }
     var out = [];
     out.push('<defs><clipPath id="tgMapClip"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath></defs>');
-    out.push('<g clip-path="url(#tgMapClip)" opacity="0.72">');
+    out.push('<g clip-path="url(#tgMapClip)" opacity="0.82">');
     for(var x = nw.x; x <= se.x; x++){
       for(var y = nw.y; y <= se.y; y++){
         var tl = tileToLngLat(x,y,z), br = tileToLngLat(x+1,y+1,z);
         var p1 = ctx.project({lat:tl.lat, lng:tl.lng}), p2 = ctx.project({lat:br.lat, lng:br.lng});
         var xx = Math.min(p1.x,p2.x), yy = Math.min(p1.y,p2.y), ww = Math.abs(p2.x-p1.x), hh = Math.abs(p2.y-p1.y);
-        var href = 'https://mt.google.com/vt/lyrs=m&x='+x+'&y='+y+'&z='+z;
-        out.push('<image href="'+href+'" x="'+xx.toFixed(2)+'" y="'+yy.toFixed(2)+'" width="'+ww.toFixed(2)+'" height="'+hh.toFixed(2)+'" preserveAspectRatio="none"/>');
+        var href = 'https://a.basemaps.cartocdn.com/rastertiles/voyager/'+z+'/'+x+'/'+y+'.png';
+        out.push('<image href="'+href+'" xlink:href="'+href+'" x="'+xx.toFixed(2)+'" y="'+yy.toFixed(2)+'" width="'+ww.toFixed(2)+'" height="'+hh.toFixed(2)+'" preserveAspectRatio="none"/>');
       }
     }
     out.push('</g>');
-    out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="rgba(255,255,255,0.16)"/>');
-    return out.join('');
+    return out.join('\n');
+  }
+
+  function blobToDataUrl(blob){
+    return new Promise(function(resolve,reject){
+      var fr = new FileReader();
+      fr.onload = function(){ resolve(fr.result); };
+      fr.onerror = reject;
+      fr.readAsDataURL(blob);
+    });
+  }
+
+  async function fetchTileDataUrl(url){
+    var res = await fetch(url, {mode:'cors', cache:'force-cache'});
+    if(!res.ok) throw new Error('tile '+res.status);
+    return blobToDataUrl(await res.blob());
+  }
+
+  async function googleBackgroundSvgEmbedded(ctx,opt){
+    if(!opt.googleBg) return '';
+    var b = ctx.bounds;
+    // CORS-friendly CARTO Voyager tiles embedded as base64 data URLs.
+    // This avoids Chrome printing blank SVG pages.
+    var z = (opt.paper === 'A0' || opt.paper === 'A1') ? 17 : (opt.paper === 'A2' || opt.paper === 'A3') ? 16 : 15;
+    var nw = lngLatToTile(b.maxLat, b.minLng, z);
+    var se = lngLatToTile(b.minLat, b.maxLng, z);
+    var tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
+    while(tileCount > 160 && z > 11){
+      z--;
+      nw = lngLatToTile(b.maxLat, b.minLng, z);
+      se = lngLatToTile(b.minLat, b.maxLng, z);
+      tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
+    }
+
+    var out = [];
+    out.push('<defs><clipPath id="tgMapClip"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath></defs>');
+    out.push('<g clip-path="url(#tgMapClip)" opacity="0.88">');
+
+    var jobs = [];
+    for(var x = nw.x; x <= se.x; x++){
+      for(var y = nw.y; y <= se.y; y++){
+        (function(x,y){
+          var tl = tileToLngLat(x,y,z), br = tileToLngLat(x+1,y+1,z);
+          var p1 = ctx.project({lat:tl.lat, lng:tl.lng}), p2 = ctx.project({lat:br.lat, lng:br.lng});
+          var xx = Math.min(p1.x,p2.x), yy = Math.min(p1.y,p2.y), ww = Math.abs(p2.x-p1.x), hh = Math.abs(p2.y-p1.y);
+          var sub = ['a','b','c','d'][(x+y)%4];
+          var url = 'https://'+sub+'.basemaps.cartocdn.com/rastertiles/voyager/'+z+'/'+x+'/'+y+'.png';
+          jobs.push(
+            fetchTileDataUrl(url).then(function(dataUrl){
+              return '<image href="'+dataUrl+'" xlink:href="'+dataUrl+'" x="'+xx.toFixed(2)+'" y="'+yy.toFixed(2)+'" width="'+ww.toFixed(2)+'" height="'+hh.toFixed(2)+'" preserveAspectRatio="none"/>';
+            }).catch(function(){ return ''; })
+          );
+        })(x,y);
+      }
+    }
+
+    var imgs = await Promise.all(jobs);
+    out.push(imgs.join(''));
+    out.push('</g>');
+    return out.join('\n');
   }
 
   // ---------- symbols ----------
@@ -10148,7 +10278,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       if(s.pts.length < 2) return;
       var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
       var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
-      var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
+      var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join('\n');
       svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
     });
 
@@ -10217,20 +10347,32 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
 
     svg.push('<text x="'+(page.w/2)+'" y="'+(page.h-4)+'" font-size="2.3" text-anchor="middle">Generated from TGSPDCL SCADA Feeder Route Map</text>');
     svg.push('</svg>');
-    return svg.join('');
+    return svg.join('\n');
   }
 
-  function openPrintWindow(html,title){
-    var w = window.open('', '_blank');
+  function openPrintWindow(html,title,autoPrint){
+    var printScript =
+      '<script>'+
+      'function __readyPrint(){'+
+      '  var imgs=[].slice.call(document.images||[]);'+
+      '  var wait=imgs.map(function(im){return im.complete?Promise.resolve():new Promise(function(res){im.onload=im.onerror=res;});});'+
+      '  Promise.all(wait).then(function(){setTimeout(function(){'+(autoPrint?'try{window.focus();window.print();}catch(e){}':'')+'},350);});'+
+      '}'+
+      'window.onload=function(){setTimeout(__readyPrint,250)};'+
+      '<\\/script>';
+
+    var doc = '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'+
+      '<style>html,body{margin:0;background:#eee;min-height:100%;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{background:white;box-shadow:0 8px 30px rgba(0,0,0,.25)}svg{max-width:100vw;max-height:100vh}@page{size:auto;margin:6mm}@media print{html,body{background:#fff;display:block;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.sheet{box-shadow:none}}</style>'+
+      '</head><body><div class="sheet">'+html+'</div>'+printScript+'</body></html>';
+
+    var url = URL.createObjectURL(new Blob([doc], {type:'text/html'}));
+    var w = window.open(url, '_blank');
     if(!w){ alert('Popup blocked. Please allow popups for this page.'); return null; }
-    w.document.open();
-    w.document.write('<!doctype html><html><head><title>'+esc(title)+'</title><style>body{margin:0;background:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh}.sheet{background:white;box-shadow:0 8px 30px rgba(0,0,0,.25)}@media print{body{background:#fff}.sheet{box-shadow:none}}</style></head><body><div class="sheet">'+html+'</div></body></html>');
-    w.document.close();
+    setTimeout(function(){ try{URL.revokeObjectURL(url);}catch(e){} }, 120000);
     return w;
   }
   function _tgCollectHeadAssets(){
-    return Array.from(document.querySelectorAll('head link[rel="stylesheet"], head style')).map(n=>n.outerHTML).join('
-');
+    return Array.from(document.querySelectorAll('head link[rel="stylesheet"], head style')).map(n=>n.outerHTML).join('\\n');
   }
   function _tgCurrentMapPrintHtml(autoPrint){
     var mapEl = document.getElementById('map');
@@ -10272,29 +10414,75 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     return {svg:svg, fn:fn};
   }
 
-  window.tgPrintComposerPreview = function(){
+
+  async function selectedSvgAsync(){
+    var opt = getPrintOptions();
+    var fn = currentFeederName();
+    if(opt.mode === 'current') return null;
+    if(!fn){
+      console.warn('[PRINT] No focused feeder. focusedFeeder=', (typeof focusedFeeder!=='undefined'?focusedFeeder:null), 'window.focusedFeeder=', window.focusedFeeder);
+      alert('No feeder is focused. Click the feeder NAME/LINE first so it highlights, then press PRINT. If only one feeder is checked, I will use that automatically.');
+      return '';
+    }
+
+    var segs = getFeederSegments(fn);
+    if(!segs.length){
+      console.warn('[PRINT] No printable geometry for feeder:', fn, 'allLayers:', window.allLayers && window.allLayers.length);
+      alert('No printable geometry found for selected feeder: '+fn+'\nTry clicking the feeder line/name again, or choose Current Map View.');
+      return '';
+    }
+
+    if(opt.googleBg){
+      try{
+        var page = paperSize(opt);
+        var routePts = [];
+        segs.forEach(function(s){ routePts = routePts.concat(s.pts); });
+        var routeBounds = {
+          minLat: Math.min.apply(null, routePts.map(function(p){return p.lat;})),
+          maxLat: Math.max.apply(null, routePts.map(function(p){return p.lat;})),
+          minLng: Math.min.apply(null, routePts.map(function(p){return p.lng;})),
+          maxLng: Math.max.apply(null, routePts.map(function(p){return p.lng;}))
+        };
+        var nearSS = nearbySubstations(routeBounds);
+        var ctx = projectFactory(segs, nearSS, page);
+        if(ctx){
+          opt._embeddedBgSvg = await googleBackgroundSvgEmbedded(ctx,opt);
+        }
+      }catch(e){
+        console.warn('Embedded map background failed:', e);
+        alert('Map background could not be embedded due to network/CORS. Please try again with internet stable, or uncheck Map background for vector-only print.');
+        opt.googleBg = false;
+      }
+    }
+
+    var svg = buildFeederSvg(fn,opt);
+    if(!svg){ alert('No printable geometry found for selected feeder.'); return ''; }
+    return {svg:svg, fn:fn};
+  }
+
+  window.tgPrintComposerPreview = async function(){
     var opt = getPrintOptions();
     if(opt.mode === 'current'){
       try{ if(window.map && map.invalidateSize) map.invalidateSize(); }catch(e){}
       _tgOpenCurrentMapPrint(false);
       return;
     }
-    var out = selectedSvg();
+    var out = await selectedSvgAsync();
     if(!out) return;
     openPrintWindow(out.svg, 'Feeder Drawing - '+out.fn);
   };
 
-  window.tgPrintComposerPrint = function(){
+  window.tgPrintComposerPrint = async function(){
     var opt = getPrintOptions();
     if(opt.mode === 'current'){
       try{ if(window.map && map.invalidateSize) map.invalidateSize(); }catch(e){}
       _tgOpenCurrentMapPrint(true);
       return;
     }
-    var out = selectedSvg();
+    try{ if(window.toast) toast('Preparing printable map background… please wait',2500); }catch(e){}
+    var out = await selectedSvgAsync();
     if(!out) return;
-    var w = openPrintWindow(out.svg, 'Print Feeder - '+out.fn);
-    if(w) setTimeout(function(){ w.focus(); w.print(); }, 900);
+    openPrintWindow(out.svg, 'Print Feeder - '+out.fn, true);
   };
 
   window.tgPrintComposerDownloadSVG = function(){
@@ -10538,7 +10726,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     }
     out.push('</g>');
     out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="rgba(255,255,255,0.3)"/>');
-    return out.join('');
+    return out.join('\n');
   }
 
   function substationSvg(x,y,type,name){
@@ -10633,7 +10821,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
         if(s.pts.length > longest.pts.length) longest = s;
         var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
         var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
-        var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
+        var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join('\n');
         svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
         // rough km tally (planar approx fine for a visual summary)
         for(var i=1;i<s.pts.length;i++){
@@ -10699,12 +10887,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     return { svg: svg.join(''), feeders: feeders, scopeLabel: scopeLabel };
   }
 
-  function openPrintWindow(html,title){
-    var w = window.open('', '_blank');
+  function openPrintWindow(html,title,autoPrint){
+    var doc = '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'+
+      '<style>html,body{margin:0;background:#eee;min-height:100%;display:flex;align-items:center;justify-content:center}.sheet{background:white;box-shadow:0 8px 30px rgba(0,0,0,.25)}@page{size:auto;margin:6mm}@media print{html,body{background:#fff;display:block}.sheet{box-shadow:none}}</style>'+
+      '</head><body><div class="sheet">'+html+'</div><script>window.onload=function(){setTimeout(function(){'+(autoPrint?'try{window.focus();window.print();}catch(e){}':'')+'},700)}<\/script></body></html>';
+    var url = URL.createObjectURL(new Blob([doc], {type:'text/html'}));
+    var w = window.open(url, '_blank');
     if(!w){ alert('Popup blocked. Please allow popups for this page.'); return null; }
-    w.document.open();
-    w.document.write('<!doctype html><html><head><title>'+esc(title)+'</title><style>body{margin:0;background:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh}.sheet{background:white;box-shadow:0 8px 30px rgba(0,0,0,.25)}@media print{body{background:#fff}.sheet{box-shadow:none}}</style></head><body><div class="sheet">'+html+'</div></body></html>');
-    w.document.close();
+    setTimeout(function(){ try{URL.revokeObjectURL(url);}catch(e){} }, 60000);
     return w;
   }
 
@@ -10730,8 +10920,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     if(!isGroupMode()) return _origPrint.apply(this, arguments);
     var out = buildGroupSvg(_groupOptions());
     if(!out){ alert('No feeder geometry found for this Division/Sub-Division/Section selection.'); return; }
-    var w = openPrintWindow(out.svg, 'Print Group — ' + out.scopeLabel);
-    if(w) setTimeout(function(){ w.focus(); w.print(); }, 900);
+    openPrintWindow(out.svg, 'Print Group — ' + out.scopeLabel, true);
   };
   window.tgPrintComposerDownloadSVG = function(){
     if(!isGroupMode()) return _origSVG.apply(this, arguments);
