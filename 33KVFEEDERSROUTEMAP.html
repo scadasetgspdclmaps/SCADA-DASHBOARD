@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// Firebase Realtime Database — new project "scadagridmap" (per Naresh, 22 May 2026)
+// Firebase Realtime Database — new project "scadagridmap" 
 // If you created the RTDB in a different region, change the URL accordingly:
 //   asia-southeast1 (Singapore) → https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app
 //   us-central1     (US)        → https://scadagridmap-default-rtdb.firebaseio.com
@@ -1474,17 +1474,17 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 
 /* ── Permanent important area labels inside GRID MAP VIEW (Naresh request) ── */
 .tg-important-area-label{
-  background:rgba(255,255,255,.78)!important;
-  border:1px solid rgba(30,64,175,.35)!important;
+  background:rgba(255,255,255,.76)!important;
+  border:1px solid rgba(30,64,175,.28)!important;
   border-radius:4px!important;
   color:#111827!important;
   font-family:Arial,Helvetica,sans-serif!important;
-  font-size:var(--tg-grid-label-size,11px)!important;
+  font-size:var(--tg-grid-label-size,10px)!important;
   font-weight:800!important;
-  padding:1px 5px!important;
+  padding:1px 4px!important;
   box-shadow:none!important;
   pointer-events:none!important;
-  white-space:nowrap!important;
+  white-space:normal!important;line-height:1.05!important;text-align:center!important;max-width:92px!important;
   text-shadow:0 1px 0 rgba(255,255,255,.85)!important;
 }
 .tg-important-area-label.core{
@@ -1802,13 +1802,18 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
     <input type="range" min="0.45" max="2.20" step="0.05" value="0.95" oninput="setTGFeederLineThickness(this.value)">
   </div>
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
-    <label style="margin-bottom:0"><span>GHMC WARD BORDERS &amp; NAMES</span>
+    <label style="margin-bottom:0"><span>AREA BORDERS</span>
       <input type="checkbox" checked onchange="window.tgSetGridShowWards(this.checked)" style="transform:translateY(2px)">
     </label>
   </div>
   <div class="gsp-row">
-    <label style="margin-bottom:0"><span>IMPORTANT AREA NAMES</span>
-      <input type="checkbox" checked onchange="window.tgSetGridShowImportantAreas(this.checked)" style="transform:translateY(2px)">
+    <label style="margin-bottom:0"><span>AREA NAMES</span>
+      <input type="checkbox" checked onchange="window.tgSetGridShowAreaNames(this.checked)" style="transform:translateY(2px)">
+    </label>
+  </div>
+  <div class="gsp-row">
+    <label style="margin-bottom:0"><span>ORR / RRR ROADS</span>
+      <input type="checkbox" checked onchange="window.tgSetGridShowMajorRoads(this.checked)" style="transform:translateY(2px)">
     </label>
   </div>
 </div>
@@ -2165,6 +2170,8 @@ window.tgGridShowDistricts = window.tgGridShowDistricts ?? true;
 let _tgRegionalGridLayerGroup = null;
 let _tgGhmcWardLayer = null;
 let _tgImportantAreaLabelLayer = null;
+let _tgMajorRoadLayer = null;
+let _tgAreaNamesOn = true;
 
 function _tgConvexHull(points){
   if(points.length<3) return points.slice();
@@ -2264,13 +2271,14 @@ function addWardLabelsFromGeoJSON(feats){
     const pt=_tgFeatureLabelPoint(f);
     if(!pt) return;
     const props=f.properties||{};
-    const name=(props.WARD_NAME||props.Ward_Name||props.ward_name||props.WardName||props.NAME||props.Name||props.name||props.LOCALITY||props.Locality||props.AREA_NAME||(props.WARD_NO!=null?('Ward '+props.WARD_NO):null)||(props.Ward_No!=null?('Ward '+props.Ward_No):null)||'');
-    if(!name) return;
+    let name=(props.WARD_NAME||props.Ward_Name||props.ward_name||props.WardName||props.NAME||props.Name||props.name||props.LOCALITY||props.Locality||props.AREA_NAME||props.area_name||'');
+    name=String(name||'').replace(/Ward\s*\d*\s*/ig,'').replace(/^[-,:\s]+|[-,:\s]+$/g,'').trim();
+    if(!name || /^\d+$/.test(name) || name.length<3) return;
     const marker=L.marker([pt.lat,pt.lng],{
       icon:L.divIcon({className:'',html:`<div class="tg-ward-area-label">${String(name)}</div>`,iconSize:[0,0],iconAnchor:[0,0]}),
       interactive:false, keyboard:false
     });
-    marker.addTo(map);
+    if(window.tgGridShowAreaNames !== false) marker.addTo(map);
     _tgWardLabelMarkers.push(marker);
   });
 }
@@ -2437,12 +2445,35 @@ window.tgSetGridShowImportantAreas = function(on){
   if(on) _tgRegionalGridLayerGroup.addLayer(_tgImportantAreaLabelLayer);
   else _tgRegionalGridLayerGroup.removeLayer(_tgImportantAreaLabelLayer);
 };
+window.tgSetGridShowAreaNames = function(on){
+  window.tgGridShowAreaNames = !!on;
+  _tgAreaNamesOn = !!on;
+  if(_tgImportantAreaLabelLayer && _tgRegionalGridLayerGroup){
+    if(on) _tgRegionalGridLayerGroup.addLayer(_tgImportantAreaLabelLayer);
+    else _tgRegionalGridLayerGroup.removeLayer(_tgImportantAreaLabelLayer);
+  }
+  _tgWardLabelMarkers.forEach(m=>{ if(on) m.addTo(map); else if(map.hasLayer(m)) map.removeLayer(m); });
+};
+window.tgSetGridShowMajorRoads = function(on){
+  if(!_tgMajorRoadLayer || !_tgRegionalGridLayerGroup) return;
+  if(on) _tgRegionalGridLayerGroup.addLayer(_tgMajorRoadLayer);
+  else _tgRegionalGridLayerGroup.removeLayer(_tgMajorRoadLayer);
+};
 var _origTgSetGridShowWards = window.tgSetGridShowWards;
 window.tgSetGridShowWards = function(on){
   _origTgSetGridShowWards(on);
-  if(on) _tgWardLabelMarkers.forEach(m=>m.addTo(map));
-  else _tgWardLabelMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
 };
+function tgUpdateGridZoomClasses(){
+  try{
+    if(!window.map || !map.getZoom) return;
+    document.body.classList.remove('gridzoom-out','gridzoom-mid','gridzoom-in');
+    var z = map.getZoom();
+    if(z <= 11.5) document.body.classList.add('gridzoom-out');
+    else if(z <= 13.5) document.body.classList.add('gridzoom-mid');
+    else document.body.classList.add('gridzoom-in');
+  }catch(e){}
+}
+setTimeout(function(){ try{ tgUpdateGridZoomClasses(); map.on('zoomend', tgUpdateGridZoomClasses); }catch(e){} }, 800);
 
 function getBM(n){
   if(BM[n])return BM[n];
@@ -10197,6 +10228,39 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     w.document.close();
     return w;
   }
+  function _tgCollectHeadAssets(){
+    return Array.from(document.querySelectorAll('head link[rel="stylesheet"], head style')).map(n=>n.outerHTML).join('
+');
+  }
+  function _tgCurrentMapPrintHtml(autoPrint){
+    var mapEl = document.getElementById('map');
+    if(!mapEl) return '';
+    var clone = mapEl.cloneNode(true);
+    clone.id = 'tg-print-map';
+    clone.style.position = 'relative';
+    clone.style.left = '0'; clone.style.top = '0'; clone.style.right='auto'; clone.style.bottom='auto';
+    clone.style.width = '100%'; clone.style.height = 'calc(100vh - 56px)'; clone.style.margin = '0';
+    clone.querySelectorAll('.leaflet-control-container,.leaflet-top,.leaflet-bottom').forEach(n=>n.remove());
+    var head = _tgCollectHeadAssets();
+    var title = 'TGSPDCL SCADA Grid Map';
+    return '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'+head+
+      '<style>html,body{margin:0;padding:0;background:#fff;height:100%;overflow:hidden}body{font-family:Arial,sans-serif}'+
+      '.tgph{height:56px;border-bottom:1px solid #888;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:14px;font-weight:700}'+
+      '.tgp-sub{font-size:11px;font-weight:600;color:#555}.tgpw{height:calc(100vh - 56px);overflow:hidden}#tg-print-map{height:100%!important;width:100%!important;background:#fff}'+
+      '#tg-print-map .leaflet-control-container{display:none!important}.tg-important-area-label,.tg-district-label,.tg-ward-area-label{box-shadow:none!important}'+
+      '#tg-print-map .ss33-wrap,#tg-print-map .eht-wrap{transform:scale(.88);transform-origin:center center}.tg-road-label{font-size:10px!important}'+
+      '@page{size:auto;margin:8mm} @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>'+
+      '<div class="tgph"><div>TGSPDCL — SCADA 33KV FEEDER ROUTE MAP<div class="tgp-sub">Current Grid / Map View Print</div></div><div>'+new Date().toLocaleString()+'</div></div>'+
+      '<div class="tgpw">'+clone.outerHTML+'</div>'+
+      '<script>window.onload=function(){setTimeout(function(){ try{document.title="TGSPDCL Grid Print";}catch(e){} '+(''+('AUTO')).replace('AUTO', autoPrint ? 'try{window.focus();window.print();}catch(e){}' : '')+' },700)}<\/script></body></html>';
+  }
+  function _tgOpenCurrentMapPrint(autoPrint){
+    var w = window.open('', '_blank');
+    if(!w){ alert('Popup blocked. Please allow popups for this page.'); return null; }
+    var html = _tgCurrentMapPrintHtml(autoPrint);
+    w.document.open(); w.document.write(html); w.document.close();
+    return w;
+  }
 
   function selectedSvg(){
     var opt = getPrintOptions();
@@ -10212,7 +10276,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     var opt = getPrintOptions();
     if(opt.mode === 'current'){
       try{ if(window.map && map.invalidateSize) map.invalidateSize(); }catch(e){}
-      setTimeout(function(){ try{window.print();}catch(e){} }, 350);
+      _tgOpenCurrentMapPrint(false);
       return;
     }
     var out = selectedSvg();
@@ -10224,7 +10288,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     var opt = getPrintOptions();
     if(opt.mode === 'current'){
       try{ if(window.map && map.invalidateSize) map.invalidateSize(); }catch(e){}
-      setTimeout(function(){ try{window.print();}catch(e){} }, 350);
+      _tgOpenCurrentMapPrint(true);
       return;
     }
     var out = selectedSvg();
