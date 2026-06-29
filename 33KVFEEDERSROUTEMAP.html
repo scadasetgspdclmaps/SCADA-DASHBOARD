@@ -1458,6 +1458,35 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 /* Chart.js canvas in messages */
 .ai-canvas-wrap{position:relative;height:180px;margin-top:6px}
 
+
+
+/* ── Permanent important area labels inside GRID MAP VIEW (Naresh request) ── */
+.tg-important-area-label{
+  background:rgba(255,255,255,.78)!important;
+  border:1px solid rgba(30,64,175,.35)!important;
+  border-radius:4px!important;
+  color:#111827!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  font-size:var(--tg-grid-label-size,11px)!important;
+  font-weight:800!important;
+  padding:1px 5px!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+  white-space:nowrap!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.85)!important;
+}
+.tg-important-area-label.core{
+  background:rgba(185,28,28,.88)!important;
+  border-color:rgba(255,255,255,.7)!important;
+  color:#fff!important;
+  text-shadow:none!important;
+}
+.tg-important-area-label.corridor{
+  background:rgba(254,249,195,.82)!important;
+  border-color:rgba(180,83,9,.45)!important;
+  color:#7c2d12!important;
+}
+
 </style>
 </head>
 <body class="no-anim">
@@ -1763,6 +1792,11 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
     <label style="margin-bottom:0"><span>GHMC WARD BORDERS &amp; NAMES</span>
       <input type="checkbox" checked onchange="window.tgSetGridShowWards(this.checked)" style="transform:translateY(2px)">
+    </label>
+  </div>
+  <div class="gsp-row">
+    <label style="margin-bottom:0"><span>IMPORTANT AREA NAMES</span>
+      <input type="checkbox" checked onchange="window.tgSetGridShowImportantAreas(this.checked)" style="transform:translateY(2px)">
     </label>
   </div>
 </div>
@@ -2118,6 +2152,7 @@ const TG_GHMC_WARDS_GEOJSON_URL = 'https://raw.githubusercontent.com/datameet/Mu
 window.tgGridShowDistricts = window.tgGridShowDistricts ?? true;
 let _tgRegionalGridLayerGroup = null;
 let _tgGhmcWardLayer = null;
+let _tgImportantAreaLabelLayer = null;
 
 function _tgConvexHull(points){
   if(points.length<3) return points.slice();
@@ -2210,6 +2245,58 @@ function addLabelsFromGeoJSON(feats){
   });
 }
 
+
+function _tgImportantAreaPoints(){
+  // Permanent area names based on the GHMC/CMC/MMC planning-map style Naresh referenced.
+  // Coords are approximate label anchors only; boundary lines come from GeoJSON/shapefile layers.
+  return [
+    // Core Hyderabad / central load pocket
+    ['CORE HYDERABAD',17.402,78.475,'core'],['Khairatabad',17.409,78.462,'core'],['Ameerpet',17.438,78.448,'core'],
+    ['Secunderabad',17.439,78.498,'core'],['Begumpet',17.444,78.466,'core'],['Jubilee Hills',17.432,78.407,'core'],
+    ['Madhapur',17.448,78.391,'core'],['Banjara Hills',17.414,78.438,'core'],['Charminar',17.361,78.474,'core'],
+
+    // West / North-West growth support
+    ['Patancheru',17.530,78.265,'corridor'],['BHEL',17.494,78.318,'corridor'],['Ameenpur',17.520,78.340,'corridor'],
+    ['Miyapur',17.494,78.357,'corridor'],['Serilingampally',17.479,78.319,'corridor'],['Narsingi',17.386,78.354,'corridor'],
+    ['Kokapet',17.393,78.335,'corridor'],['Financial District',17.410,78.345,'corridor'],['Gachibowli',17.440,78.348,'corridor'],
+
+    // North support
+    ['Medchal',17.629,78.481,'corridor'],['Dundigal',17.603,78.420,'corridor'],['Kompally',17.540,78.489,'corridor'],
+    ['Shamirpet',17.594,78.574,'corridor'],['Alwal',17.504,78.503,'corridor'],['Jeedimetla',17.516,78.456,'corridor'],
+    ['Kukatpally',17.493,78.399,'corridor'],['Quthbullapur',17.501,78.445,'corridor'],
+
+    // East / North-East support
+    ['Malkajgiri',17.450,78.533,'corridor'],['Kapra',17.489,78.565,'corridor'],['Keesara',17.528,78.662,'corridor'],
+    ['Cherlapally',17.470,78.600,'corridor'],['Ghatkesar',17.448,78.685,'corridor'],['Uppal',17.405,78.560,'corridor'],
+    ['Boduppal',17.413,78.585,'corridor'],['Pocharam',17.431,78.648,'corridor'],
+
+    // South / South-West / Airport support
+    ['Rajendra Nagar',17.322,78.403,'corridor'],['Attapur',17.368,78.429,'corridor'],['Shamshabad',17.251,78.437,'corridor'],
+    ['RGIA / Airport',17.240,78.429,'corridor'],['Jalpally',17.312,78.470,'corridor'],['Badangpet',17.305,78.525,'corridor'],
+    ['Maheshwaram',17.131,78.430,'corridor'],
+
+    // South-East / industrial-aerospace support
+    ['Adibatla',17.235,78.545,'corridor'],['Ibrahimpatnam',17.193,78.646,'corridor'],['Hayathnagar',17.327,78.605,'corridor'],
+    ['Nagole',17.371,78.565,'corridor'],['LB Nagar',17.347,78.557,'corridor']
+  ];
+}
+function _tgBuildImportantAreaLabels(){
+  const g=L.layerGroup();
+  _tgImportantAreaPoints().forEach(function(a){
+    const name=a[0], lat=a[1], lng=a[2], cls=a[3]||'';
+    L.marker([lat,lng],{
+      interactive:false,
+      pane:'markerPane',
+      icon:L.divIcon({
+        className:'tg-important-area-label '+cls,
+        html:name,
+        iconSize:null
+      })
+    }).addTo(g);
+  });
+  return g;
+}
+
 async function _buildTGRegionalGridLayer(){
   if(_tgRegionalGridLayerGroup){ if(window.tgGridShowDistricts) _tgRegionalGridLayerGroup.addTo(map); return; }
   _tgRegionalGridLayerGroup = L.layerGroup();
@@ -2291,6 +2378,11 @@ async function _buildTGRegionalGridLayer(){
   }catch(err){
     console.warn('GHMC ward boundary GeoJSON failed; falling back to district-level granularity only:', err);
   }
+
+  // Permanent important area names like the GHMC rainfall / planning map references.
+  window.tgGridShowImportantAreas = window.tgGridShowImportantAreas ?? true;
+  _tgImportantAreaLabelLayer = _tgBuildImportantAreaLabels();
+  if(window.tgGridShowImportantAreas) _tgImportantAreaLabelLayer.addTo(group);
 }
 
 window.tgSetGridShowWards = function(on){
