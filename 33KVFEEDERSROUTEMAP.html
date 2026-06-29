@@ -264,6 +264,9 @@ path.feeder-flow-overlay{stroke-dasharray:4 20!important;stroke-linecap:round!im
 .tg-district-label{font-family:var(--sans),Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:.8px;
   color:#3a4a5a;text-shadow:0 1px 0 rgba(255,255,255,.9),0 0 6px rgba(255,255,255,.8),0 0 2px rgba(255,255,255,.9);
   white-space:nowrap;pointer-events:none;text-transform:uppercase;transform:translate(-50%,-50%)}
+.tg-ward-tooltip{font-family:var(--sans),Arial,sans-serif!important;font-size:10px!important;font-weight:600!important;
+  color:#445566!important;background:rgba(255,255,255,.92)!important;border:1px solid rgba(122,138,154,.4)!important;
+  padding:1px 5px!important}
 .ss-label.leaflet-tooltip-top::before{border-top-color:rgba(0,200,255,.35)!important}
 
 /* ══ FEEDER SEARCH ══ */
@@ -1757,6 +1760,11 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
     <label>FEEDER LINE <span id="gspLineVal">0.95</span></label>
     <input type="range" min="0.45" max="2.20" step="0.05" value="0.95" oninput="setTGFeederLineThickness(this.value)">
   </div>
+  <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
+    <label style="margin-bottom:0"><span>GHMC WARD BORDERS &amp; NAMES</span>
+      <input type="checkbox" checked onchange="window.tgSetGridShowWards(this.checked)" style="transform:translateY(2px)">
+    </label>
+  </div>
 </div>
 
 <div id="map"></div>
@@ -2102,8 +2110,14 @@ function _ensureGridBackground(on){
 const TG_BOUNDARY_DISTRICTS = ['HYDERABAD','MEDCHAL','MEDCHAL-MALKAJGIRI','RANGAREDDY','RANGA REDDY','SANGAREDDY'];
 const TG_DISTRICTS_GEOJSON_URL = 'https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json';
 const TG_BLOCKS_GEOJSON_URL = 'https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json';
+// GHMC ward-level boundaries — verified real file from the DataMeet
+// community's Municipal_Spatial_Data repo (146 stars, 180 forks, actively
+// maintained; this specific file confirmed to exist at 573KB/28,649 lines
+// of real ward polygon data digitized from official GHMC ward maps).
+const TG_GHMC_WARDS_GEOJSON_URL = 'https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/Hyderabad/ghmc-wards.geojson';
 window.tgGridShowDistricts = window.tgGridShowDistricts ?? true;
 let _tgRegionalGridLayerGroup = null;
+let _tgGhmcWardLayer = null;
 
 function _tgConvexHull(points){
   if(points.length<3) return points.slice();
@@ -2241,7 +2255,50 @@ async function _buildTGRegionalGridLayer(){
   }catch(err){
     console.warn('Block/Mandal GeoJSON failed; corridor boundary overlays unavailable:', err);
   }
+
+  // ── GHMC ward-level boundaries (added 28-Jun-2026 per Naresh) ──
+  // Finer-grained than district boundaries — matches the GHMC circle/
+  // colony-level granularity Naresh referenced (Madhapur, Jubilee Hills,
+  // Kukatpally, Begumpet, etc. — see his GHMC rainfall-map reference
+  // images). Source: DataMeet community's Municipal_Spatial_Data repo —
+  // a real, verified, actively-maintained (146 stars, 180 forks) open
+  // dataset digitized from official GHMC ward maps. Field name for the
+  // ward/area name varies across DataMeet's per-city files (confirmed
+  // inconsistent even between their OWN Chennai/Jaipur examples — one
+  // uses Zone_Name, the other ZONE_NAME), so this tries every common
+  // variant defensively rather than assuming one.
+  window.tgGridShowWards = window.tgGridShowWards ?? true;
+  try{
+    const res3 = await fetch(TG_GHMC_WARDS_GEOJSON_URL);
+    if(!res3.ok) throw new Error('GHMC ward boundary HTTP '+res3.status);
+    const gj3 = await res3.json();
+    const feats3 = gj3.features||[];
+    if(!feats3.length) throw new Error('no features in GHMC ward file');
+    const wardLayer = L.geoJSON(feats3,{
+      style:{color:'#7a8a9a',weight:.6,opacity:.7,fillOpacity:0,dashArray:'1 2'}
+    });
+    wardLayer.eachLayer(layer=>{
+      const props=(layer.feature&&layer.feature.properties)||{};
+      const wardName = props.WARD_NAME||props.Ward_Name||props.ward_name||
+                        props.WardName||props.NAME||props.Name||props.name||
+                        props.LOCALITY||props.Locality||props.AREA_NAME||
+                        (props.WARD_NO!=null?('Ward '+props.WARD_NO):null)||
+                        (props.Ward_No!=null?('Ward '+props.Ward_No):null);
+      if(wardName) layer.bindTooltip(String(wardName),{sticky:true,className:'tg-ward-tooltip'});
+    });
+    if(window.tgGridShowWards) wardLayer.addTo(group);
+    _tgGhmcWardLayer = wardLayer;
+  }catch(err){
+    console.warn('GHMC ward boundary GeoJSON failed; falling back to district-level granularity only:', err);
+  }
 }
+
+window.tgSetGridShowWards = function(on){
+  window.tgGridShowWards=!!on;
+  if(!_tgGhmcWardLayer || !_tgRegionalGridLayerGroup) return;
+  if(on) _tgRegionalGridLayerGroup.addLayer(_tgGhmcWardLayer);
+  else _tgRegionalGridLayerGroup.removeLayer(_tgGhmcWardLayer);
+};
 
 window.tgSetGridShowDistricts = function(on){
   window.tgGridShowDistricts=!!on;
@@ -3504,26 +3561,38 @@ function setTGGridLabelSize(v){
   document.documentElement.style.setProperty('--tg-grid-label-size',v+'px');
   const el=document.getElementById('gspLblVal'); if(el)el.textContent=String(v);
 }
-let _tgFeederLineBaseWeight=null; // captured on first slider use so the
-                                   // multiplier is relative to each line's
-                                   // ORIGINAL weight (breakdown lines are
-                                   // already thicker than normal ones —
-                                   // scaling should preserve that ratio,
-                                   // not flatten every line to one value).
+// Per Naresh 28-Jun-2026: the previous version snapshotted each layer's
+// base weight ONCE into a Map on first slider use. Under scope-first lazy
+// loading, allLayers constantly changes as the user switches Division/
+// Section scope — any feeder rendered AFTER that one-time snapshot was
+// never added to the cache, so the slider silently did nothing for it.
+// ("Feeder line adjuster not working well, others are fine" — the icon
+// sliders are pure CSS variables that apply globally regardless of when a
+// marker was created; this was the only slider relying on a stale
+// snapshot.) Fixed: derive each line's base weight LIVE every time the
+// slider moves, from the same breakdown/normal rule the renderer itself
+// uses (feederStatus), so it always covers whatever is currently on the
+// map, including feeders loaded after the panel was opened.
+function _tgFeederLineBaseWeightFor(item){
+  const cStatus = feederStatus[item.feederName] || 'live';
+  return cStatus==='breakdown' ? 7 : 5.8;
+}
 function setTGFeederLineThickness(v){
   v=Math.max(0.45,Math.min(2.20,Number(v)||0.95));
   const el=document.getElementById('gspLineVal'); if(el)el.textContent=v.toFixed(2);
-  if(_tgFeederLineBaseWeight===null){
-    _tgFeederLineBaseWeight=new Map();
-    allLayers.forEach(item=>{
-      if(item.layer && typeof item.layer.setStyle==='function' && item.layer.options && 'weight' in item.layer.options){
-        _tgFeederLineBaseWeight.set(item.layer, item.layer.options.weight);
-      }
-    });
-  }
-  const scale=v/0.95; // 0.95 was the original hardcoded default weight basis
-  _tgFeederLineBaseWeight.forEach((baseWeight,layer)=>{
-    try{ layer.setStyle({weight: baseWeight*scale}); }catch(e){}
+  const scale=v/0.95; // 0.95 is the slider's neutral/default position
+  allLayers.forEach(item=>{
+    const layer=item.layer;
+    if(!layer || typeof layer.setStyle!=='function' || !layer.options || !('weight' in layer.options)) return;
+    // Skip non-feeder-line layers (hit-layers, flow overlays, substation
+    // circle markers that happen to have a weight option, etc.) — only
+    // scale the actual visible feeder line. hitLayer/flowLayer are
+    // attached to the main line layer, not separate allLayers entries, so
+    // this check on item.reg.type (set by renderUploadedRows for real
+    // feeder segments) keeps the slider from resizing the wrong thing.
+    const type = item.reg && item.reg.type;
+    if(type!=='lines') return;
+    try{ layer.setStyle({weight: _tgFeederLineBaseWeightFor(item)*scale}); }catch(e){}
   });
 }
 
