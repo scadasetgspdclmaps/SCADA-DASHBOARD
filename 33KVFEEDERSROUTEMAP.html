@@ -29,6 +29,7 @@ const FIREBASE_URL = "https://scadagridmap-default-rtdb.asia-southeast1.firebase
   --ok:#00e676;--border:rgba(0,200,255,0.18);--text:#b0cce0;
   --mono:'Share Tech Mono',monospace;--sans:'Arial',sans-serif;
   --ease:cubic-bezier(.4,0,.2,1);
+  --tg-ss-icon-scale:1;--tg-eht-icon-scale:1;--tg-grid-label-size:11px;
 }
 html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 
@@ -187,11 +188,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 @keyframes ss33-ring-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes ss33-core-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.85}}
 @keyframes eht-ring-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,100,0,.7),0 0 8px rgba(255,100,0,.5)}60%{box-shadow:0 0 0 8px rgba(255,100,0,0),0 0 20px rgba(255,100,0,.8)}}
-.ss33-wrap{position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all}
+.ss33-wrap{position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transform:scale(var(--tg-ss-icon-scale,1));transform-origin:center center}
 .ss33-ring{position:absolute;inset:0;border-radius:50%;border:2px dashed rgba(0,180,255,.9);animation:ss33-ring-spin 4s linear infinite;box-shadow:0 0 8px rgba(0,180,255,.5),inset 0 0 8px rgba(0,180,255,.15);pointer-events:none}
-.ss33-core{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle,#1e88e5 0%,#0d47a1 100%);border:2px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(33,150,243,.8);animation:ss33-core-pulse 2s ease-in-out infinite;z-index:1;pointer-events:none}
+.ss33-core{width:19px;height:19px;border-radius:50%;background:radial-gradient(circle,#1e88e5 0%,#0d47a1 100%);border:2px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(33,150,243,.8);animation:ss33-core-pulse 2s ease-in-out infinite;z-index:1;pointer-events:none}
 .ss33-bolt{font-size:11px;line-height:1;color:#fff;text-shadow:0 0 4px #fff;margin-top:-1px;pointer-events:none}
-.eht-wrap{position:relative;width:40px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all}
+.eht-wrap{position:relative;width:40px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transform:scale(var(--tg-eht-icon-scale,1));transform-origin:center center}
 .eht-rect{position:absolute;inset:0;border:2px solid rgba(255,120,0,.95);border-radius:4px;animation:eht-ring-pulse 1.8s ease-in-out infinite;background:rgba(30,10,0,.75);pointer-events:none}
 .eht-core{z-index:1;display:flex;align-items:center;justify-content:center;gap:3px;pointer-events:none}
 .eht-power{font-size:16px;line-height:1;filter:drop-shadow(0 0 4px #ff6600);pointer-events:none}
@@ -259,6 +260,10 @@ path.feeder-flow-overlay{stroke-dasharray:4 20!important;stroke-linecap:round!im
 .fi-breakdown.fi-active{background:rgba(255,23,68,.25);color:#ff1744;border-color:#ff1744;animation:sos-blink .8s infinite}
 .fi-idle.fi-active{background:rgba(158,158,158,.25);color:#aaa;border-color:#aaa}
 .ss-label{background:rgba(9,22,37,.88)!important;border:1px solid rgba(0,200,255,.35)!important;border-radius:4px!important;color:#00c8ff!important;font-family:'Share Tech Mono',monospace!important;font-weight:normal;font-size:9px!important;letter-spacing:.3px!important;padding:2px 5px!important;white-space:nowrap!important;box-shadow:0 2px 6px rgba(0,0,0,.4)!important;opacity:.9!important;max-width:120px!important;overflow:hidden!important;text-overflow:ellipsis!important;pointer-events:none!important}
+.leaflet-tooltip.ss-label{font-size:var(--tg-grid-label-size,9px)!important}
+.tg-district-label{font-family:var(--sans),Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:.8px;
+  color:#3a4a5a;text-shadow:0 1px 0 rgba(255,255,255,.9),0 0 6px rgba(255,255,255,.8),0 0 2px rgba(255,255,255,.9);
+  white-space:nowrap;pointer-events:none;text-transform:uppercase;transform:translate(-50%,-50%)}
 .ss-label.leaflet-tooltip-top::before{border-top-color:rgba(0,200,255,.35)!important}
 
 /* ══ FEEDER SEARCH ══ */
@@ -664,6 +669,19 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 #rulerBtn:hover{background:rgba(255,200,0,.18);color:#fff}
 #rulerBtn.measuring{background:#ffab00;border-color:#ffab00;color:#000;font-weight:700;
   box-shadow:0 0 12px rgba(255,171,0,.5)}
+
+#gridStyleBtn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:16px;
+  border:1px solid rgba(15,118,110,.4);background:rgba(15,118,110,.12);color:#5eead4;
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .2s;flex-shrink:0}
+#gridStyleBtn:hover{background:rgba(15,118,110,.28);color:#fff}
+#gridStylePanel{position:fixed;top:60px;right:14px;z-index:9500;width:300px;
+  background:#fff;border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.35);
+  padding:14px 16px;display:none;font-family:var(--sans)}
+#gridStylePanel.open{display:block}
+.gsp-title{font-size:11px;font-weight:900;color:#0f766e;letter-spacing:1.4px;margin-bottom:10px}
+.gsp-row{margin-bottom:9px}
+.gsp-row label{display:flex;justify-content:space-between;gap:10px;font-size:9px;font-weight:800;letter-spacing:.6px;margin-bottom:3px;color:#334155}
+.gsp-row input[type=range]{width:100%}
 
 #ruler-readout{
   position:fixed;bottom:56px;left:50%;transform:translateX(-50%);z-index:1450;
@@ -1437,137 +1455,6 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 /* Chart.js canvas in messages */
 .ai-canvas-wrap{position:relative;height:180px;margin-top:6px}
 
-
-/* SCADA minimal print mode: hide UI and print only map/network area when browser print is used */
-@media print{
-  #topbar,#panel,#ptab,#rpanel,#botbar,#bm-tabs,#editToolbar,#feederStatsCard,#feederStatsPanel,#dfFloatPanel,#legend,.status-legend,#toast,#loader{display:none!important}
-  #map{inset:0!important}
-  body,html{background:#fff!important}
-}
-
-
-/* ── SCADA minimal declutter: icons/labels scale by zoom and selection ── */
-#map.sg-zoom-out .eht-wrap{transform:scale(.70);transform-origin:center center}
-#map.sg-zoom-mid .eht-wrap{transform:scale(.82);transform-origin:center center}
-#map.sg-zoom-mid .ss33-wrap{transform:scale(.72);transform-origin:center center}
-#map.sg-zoom-in .ss33-wrap{transform:scale(.88);transform-origin:center center}
-#map.sg-zoom-out .ss-label{display:none!important}
-#map.sg-zoom-mid .ss-label{font-size:8px!important;max-width:85px!important}
-#map.sg-zoom-in .ss-label{font-size:9px!important;max-width:120px!important}
-
-
-@media print{
-  .ss33-wrap{transform:scale(.55)!important;transform-origin:center center!important}
-  .eht-wrap{transform:scale(.65)!important;transform-origin:center center!important}
-  .ss-label{font-size:7px!important;max-width:85px!important}
-  .pole-label{display:none!important}
-}
-
-
-/* ── View 3 layer mode: regional grid-map background, like a shapefile sheet ── */
-#map.grid-view-layer-on{background:#fffaf0!important}
-.tg-grid-label{
-  background:rgba(255,255,255,.72)!important;
-  border:1px solid rgba(120,53,15,.28)!important;
-  border-radius:4px!important;
-  color:#78350f!important;
-  font-family:Arial,Helvetica,sans-serif!important;
-  font-size:11px!important;
-  font-weight:800!important;
-  padding:2px 5px!important;
-  box-shadow:none!important;
-  pointer-events:none!important;
-}
-#lineThicknessCtl{display:none!important;
-  position:fixed;right:14px;bottom:92px;z-index:1250;
-  background:rgba(255,255,255,.94);border:1px solid #cbd5e1;border-radius:12px;
-  padding:8px 10px;width:210px;box-shadow:0 4px 18px rgba(0,0,0,.18);
-  font-family:var(--mono);font-size:9px;color:#1e3a5f;
-}
-#lineThicknessCtl .lt-title{font-weight:800;letter-spacing:1.2px;margin-bottom:5px}
-#lineThicknessCtl input{width:100%}
-#lineThicknessCtl .lt-val{float:right;color:#0f766e;font-weight:800}
-
-/* Make 33/11KV SS symbol comparable to EHT symbol footprint */
-.ss33-wrap{width:40px!important;height:28px!important}
-.ss33-ring{width:28px!important;height:28px!important;inset:auto!important;left:6px!important;top:0!important}
-.ss33-core{width:20px!important;height:20px!important}
-
-
-/* ── GRID MAP STYLE ADJUSTER ── */
-:root{
-  --tg-feeder-live-weight:0.95;
-  --tg-ss-icon-scale:1.00;
-  --tg-eht-icon-scale:1.00;
-  --tg-grid-label-size:11px;
-  --tg-grid-fill-opacity:.40;
-  --tg-grid-boundary-opacity:.70;
-}
-#gridStyleBtn{
-  position:fixed;top:58px;right:18px;z-index:2200;
-  background:#0f766e;color:#fff;border:0;border-radius:18px;
-  padding:9px 15px;font-family:var(--mono);font-size:11px;font-weight:900;
-  letter-spacing:1px;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.28)
-}
-#gridStylePanel{
-  position:fixed;top:98px;right:18px;z-index:2201;width:285px;
-  background:rgba(255,255,255,.98);border:1px solid #cbd5e1;border-radius:14px;
-  padding:12px 14px;box-shadow:0 6px 28px rgba(0,0,0,.25);
-  display:none;font-family:var(--mono);color:#1e293b
-}
-#gridStylePanel.open{display:block}
-.gsp-title{font-size:11px;font-weight:900;color:#0f766e;letter-spacing:1.5px;margin-bottom:10px}
-.gsp-row{margin-bottom:9px}
-.gsp-row label{display:flex;justify-content:space-between;font-size:9px;font-weight:800;letter-spacing:.8px;margin-bottom:3px;color:#334155}
-.gsp-row input[type=range]{width:100%}
-.gsp-row input[type=checkbox]{transform:translateY(2px)}
-body.grid-style-equal-icons .ss33-wrap{transform:scale(var(--tg-ss-icon-scale))!important;transform-origin:center center!important}
-body.grid-style-equal-icons .eht-wrap{transform:scale(var(--tg-eht-icon-scale))!important;transform-origin:center center!important}
-.tg-grid-label{font-size:var(--tg-grid-label-size)!important}
-
-
-/* ── Hyderabad Power Support Corridors for Grid Map View ── */
-.tg-corridor-label{
-  background:rgba(255,255,255,.80)!important;
-  border:1px solid rgba(15,118,110,.35)!important;
-  border-radius:5px!important;
-  color:#0f766e!important;
-  font-family:Arial,Helvetica,sans-serif!important;
-  font-size:10px!important;
-  font-weight:800!important;
-  padding:2px 5px!important;
-  box-shadow:none!important;
-  pointer-events:none!important;
-}
-.tg-core-label{
-  background:rgba(185,28,28,.88)!important;
-  border:1px solid rgba(255,255,255,.9)!important;
-  border-radius:6px!important;
-  color:#fff!important;
-  font-family:Arial,Helvetica,sans-serif!important;
-  font-size:11px!important;
-  font-weight:900!important;
-  padding:3px 7px!important;
-  box-shadow:none!important;
-  pointer-events:none!important;
-}
-.gsp-subtitle{font-size:8px;color:#64748b;margin:8px 0 5px;border-top:1px solid #e2e8f0;padding-top:7px;font-weight:900;letter-spacing:1px}
-
-
-/* ── Mandal / boundary-based support corridors ── */
-.tg-block-label{
-  background:rgba(255,255,255,.72)!important;
-  border:1px solid rgba(30,64,175,.28)!important;
-  border-radius:4px!important;
-  color:#1e40af!important;
-  font-family:Arial,Helvetica,sans-serif!important;
-  font-size:9px!important;
-  font-weight:800!important;
-  padding:1px 4px!important;
-  box-shadow:none!important;
-  pointer-events:none!important;
-}
-
 </style>
 </head>
 <body class="no-anim">
@@ -1755,6 +1642,7 @@ body.grid-style-equal-icons .eht-wrap{transform:scale(var(--tg-eht-icon-scale))!
   <div id="tbPrintBtn" onclick="togglePrintComposer()" title="Print / feeder drawing composer">🖨 PRINT</div>
   <div id="coordPickBtn" onclick="toggleCoordPicker()" title="Pick coordinates on map">📍 PICK COORDS</div>
   <div id="rulerBtn" onclick="toggleRuler()" title="Measure distance — click points on map, ESC to clear">📏 RULER</div>
+  <div id="gridStyleBtn" onclick="toggleGridStylePanel()" title="Adjust substation/EHT symbol size, label size, and feeder line thickness">⚙ SYMBOL ADJUSTER</div>
   <div id="srchWrap" style="position:relative">
     <input id="srchInput" placeholder="Search feeders, pole no., cable point…" autocomplete="off"/>
     <div id="fsDropdown"></div>
@@ -1779,12 +1667,9 @@ body.grid-style-equal-icons .eht-wrap{transform:scale(var(--tg-eht-icon-scale))!
 <div id="panel">
   <div id="panel-resize"></div>
 
-  <!-- ── SCOPE SELECTOR (added 26-Jun-2026 per Naresh) ── -->
+  <!-- ── SCOPE SELECTOR (re-applied 28-Jun-2026 per Naresh) ── -->
   <!-- This is THE control that loads data. Map starts empty by design —   -->
   <!-- nothing renders until a Division (or narrower) is picked here.      -->
-  <!-- Moved to the top of the LEFT panel and made always-visible after a  -->
-  <!-- prior placement bug buried it inside a collapsed right-panel        -->
-  <!-- accordion where no one could find it. ──                            -->
   <div id="scopeSelectorBox" style="background:linear-gradient(135deg,#1565c0,#1976d2);border-radius:8px;padding:10px 12px;margin:8px 8px 4px 8px;box-shadow:0 2px 8px rgba(21,101,192,.25)">
     <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
       <span style="font-size:13px">⚡</span> SELECT SCOPE TO LOAD MAP DATA
@@ -1853,10 +1738,25 @@ body.grid-style-equal-icons .eht-wrap{transform:scale(var(--tg-eht-icon-scale))!
 
 </div>
 
-<div id="lineThicknessCtl">
-  <div class="lt-title">FEEDER LINE THICKNESS <span class="lt-val" id="ltVal">0.95</span></div>
-  <input id="lineThicknessRange" type="range" min="0.45" max="2.20" step="0.05" value="0.95"
-         oninput="setTGFeederLineThickness(this.value)">
+<div id="gridStylePanel">
+  <div class="gsp-title">SYMBOL / GRID STYLE SETTINGS</div>
+
+  <div class="gsp-row">
+    <label>33/11KV SS SIZE <span id="gspSSVal">1.00</span></label>
+    <input type="range" min="0.55" max="1.8" step="0.05" value="1" oninput="setTGSSIconScale(this.value)">
+  </div>
+  <div class="gsp-row">
+    <label>EHT SS SIZE <span id="gspEHTVal">1.00</span></label>
+    <input type="range" min="0.55" max="1.8" step="0.05" value="1" oninput="setTGEHTIconScale(this.value)">
+  </div>
+  <div class="gsp-row">
+    <label>LABEL SIZE <span id="gspLblVal">11</span></label>
+    <input type="range" min="7" max="18" step="1" value="11" oninput="setTGGridLabelSize(this.value)">
+  </div>
+  <div class="gsp-row">
+    <label>FEEDER LINE <span id="gspLineVal">0.95</span></label>
+    <input type="range" min="0.45" max="2.20" step="0.05" value="0.95" oninput="setTGFeederLineThickness(this.value)">
+  </div>
 </div>
 
 <div id="map"></div>
@@ -1958,13 +1858,12 @@ body.grid-style-equal-icons .eht-wrap{transform:scale(var(--tg-eht-icon-scale))!
 </div>
 
 <div id="bm-tabs">
-  <div class="bm-tab active" id="bm-dark"      onclick="setBM('dark')">🌑 DARK</div>
+  <div class="bm-tab"        id="bm-dark"      onclick="setBM('dark')">🌑 DARK</div>
   <div class="bm-tab"        id="bm-grid"      onclick="setBM('grid')">⚡ GRID</div>
   <div class="bm-tab"        id="bm-satellite" onclick="setBM('satellite')">🛰 SATELLITE</div>
   <div class="bm-tab"        id="bm-street"    onclick="setBM('street')">🗺 STREET</div>
   <div class="bm-tab"        id="bm-google"    onclick="setBM('google')">📍 GOOGLE</div>
-  <div class="bm-tab"        id="bm-grid_view"  onclick="setBM('grid_view')" title="Pastel Hyderabad-region district boundary view">▧ GRID MAP VIEW</div>
-  <div class="bm-tab"        id="bm-scadamin_light" onclick="setBM('scadamin_light')">🧭 SCADA LIGHT</div>
+  <div class="bm-tab active" id="bm-grid_view" onclick="setBM('grid_view')" title="Pastel Hyderabad-region district boundary view">▧ GRID MAP VIEW</div>
 </div>
 
 <div id="rpanel">
@@ -1980,13 +1879,13 @@ body.grid-style-equal-icons .eht-wrap{transform:scale(var(--tg-eht-icon-scale))!
       <div class="lrow off" id="lyr-points" onclick="toggleLyr('points')" title="Off by default — this layer has 12,000+ points and is the main thing that slows initial load. Turn on only when you need to see individual cable points.">
         <div class="lswatch legend-icon"><svg width="11" height="11" viewBox="0 0 11 11"><circle cx="5.5" cy="5.5" r="3.6" fill="#fff" stroke="#2196f3" stroke-width="1.6"/></svg></div>
         <div class="lname">Cable Points</div><div class="lcnt" id="cnt-points">—</div><div class="tog"></div></div>
-      <div class="lrow" id="lyr-dp" onclick="toggleLyr('dp')">
+      <div class="lrow off" id="lyr-dp" onclick="toggleLyr('dp')">
         <div class="lswatch legend-icon"><svg width="14" height="16" viewBox="0 0 14 16"><line x1="3" y1="1" x2="3" y2="15" stroke="#9c27b0" stroke-width="2.4" stroke-linecap="round"/><line x1="11" y1="1" x2="11" y2="15" stroke="#9c27b0" stroke-width="2.4" stroke-linecap="round"/><line x1="3" y1="6" x2="11" y2="6" stroke="#9c27b0" stroke-width="1.8"/><circle cx="3" cy="3" r="1.6" fill="#9c27b0"/><circle cx="11" cy="3" r="1.6" fill="#9c27b0"/></svg></div>
         <div class="lname">DP Structures</div><div class="lcnt" id="cnt-dp">—</div><div class="tog"></div></div>
-      <div class="lrow" id="lyr-ab" onclick="toggleLyr('ab')">
+      <div class="lrow off" id="lyr-ab" onclick="toggleLyr('ab')">
         <div class="lswatch legend-icon"><svg width="18" height="18" viewBox="0 0 18 18"><rect x="2" y="2" width="14" height="14" rx="2" transform="rotate(45 9 9)" fill="#ff9800" stroke="#fff" stroke-width="1.4" style="filter:drop-shadow(0 0 2px #ff9800)"/><line x1="4.5" y1="9" x2="13.5" y2="9" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg></div>
         <div class="lname">AB Switches</div><div class="lcnt" id="cnt-ab">—</div><div class="tog"></div></div>
-      <div class="lrow" id="lyr-cut" onclick="toggleLyr('cut')">
+      <div class="lrow off" id="lyr-cut" onclick="toggleLyr('cut')">
         <div class="lswatch legend-icon"><svg width="12" height="12" viewBox="0 0 12 12"><line x1="2" y1="2" x2="10" y2="10" stroke="#ffeb3b" stroke-width="2.4" stroke-linecap="round"/><line x1="10" y1="2" x2="2" y2="10" stroke="#ffeb3b" stroke-width="2.4" stroke-linecap="round"/></svg></div>
         <div class="lname">Cut Points</div><div class="lcnt" id="cnt-cut">—</div><div class="tog"></div></div>
       <div class="lrow" id="lyr-ss33" onclick="toggleLyr('ss33')">
@@ -2187,301 +2086,169 @@ function _ensureGridBackground(on){
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// GRID MAP VIEW — district/region boundaries (re-built 28-Jun-2026
+// per Naresh, item 3 & 5 of handwritten notes). Pulls REAL district
+// and mandal/block boundary GeoJSON sourced from the Telangana Tank
+// Information System (via the public gggodhwani/telangana_boundaries
+// GitHub repo) — not an approximation. Filtered to the districts
+// actually surrounding Hyderabad's Outer Ring Road (Hyderabad,
+// Medchal-Malkajgiri, Rangareddy, Sangareddy), matching the
+// peri-urban growth-corridor framing Naresh described. Falls back to
+// a convex hull around the embedded STATIC_SS33 points if the real
+// boundary fetch fails (offline, CDN blocked, etc.) so the view is
+// never blank.
+// ─────────────────────────────────────────────────────────────
+const TG_BOUNDARY_DISTRICTS = ['HYDERABAD','MEDCHAL','MEDCHAL-MALKAJGIRI','RANGAREDDY','RANGA REDDY','SANGAREDDY'];
+const TG_DISTRICTS_GEOJSON_URL = 'https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json';
+const TG_BLOCKS_GEOJSON_URL = 'https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json';
+window.tgGridShowDistricts = window.tgGridShowDistricts ?? true;
+let _tgRegionalGridLayerGroup = null;
 
-// ── GRID MAP VIEW basemap layer: pastel regional hulls like a shapefile sheet ──
-function _tgConvexHullLatLng(points){
-  const pts = points
-    .filter(p=>Number.isFinite(+p.lat)&&Number.isFinite(+(p.lon??p.lng)))
-    .map(p=>({x:+(p.lon??p.lng), y:+p.lat, raw:p}))
-    .sort((a,b)=>a.x-b.x||a.y-b.y);
-  if(pts.length<3)return pts.map(p=>[p.y,p.x]);
+function _tgConvexHull(points){
+  if(points.length<3) return points.slice();
+  const pts = points.slice().sort((a,b)=>a.x-b.x||a.y-b.y);
   const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
-  const lower=[]; for(const p of pts){ while(lower.length>=2&&cross(lower[lower.length-2],lower[lower.length-1],p)<=0)lower.pop(); lower.push(p); }
-  const upper=[]; for(let i=pts.length-1;i>=0;i--){ const p=pts[i]; while(upper.length>=2&&cross(upper[upper.length-2],upper[upper.length-1],p)<=0)upper.pop(); upper.push(p); }
-  return lower.slice(0,-1).concat(upper.slice(0,-1)).map(p=>[p.y,p.x]);
-}
-function _tgCentroidLatLng(points){
-  let a=0,b=0,n=0;
-  points.forEach(p=>{ const lat=+p.lat, lon=+(p.lon??p.lng); if(Number.isFinite(lat)&&Number.isFinite(lon)){a+=lat;b+=lon;n++;} });
-  return n ? [a/n,b/n] : null;
+  const lower=[];
+  for(const p of pts){ while(lower.length>=2 && cross(lower[lower.length-2],lower[lower.length-1],p)<=0) lower.pop(); lower.push(p); }
+  const upper=[];
+  for(let i=pts.length-1;i>=0;i--){ const p=pts[i]; while(upper.length>=2 && cross(upper[upper.length-2],upper[upper.length-1],p)<=0) upper.pop(); upper.push(p); }
+  lower.pop(); upper.pop();
+  return lower.concat(upper);
 }
 
+function _tgAddFallbackHullLayer(group){
+  const pts=(STATIC_SS33||[]).filter(s=>s.lat&&s.lon).map(s=>({x:s.lon,y:s.lat}));
+  if(!pts.length)return;
+  const hull=_tgConvexHull(pts);
+  if(hull.length<3)return;
+  const latlngs=hull.map(p=>[p.y,p.x]);
+  L.polygon(latlngs,{color:'#888',weight:1,opacity:.5,fillColor:'#7fb3d5',fillOpacity:.12,dashArray:'4 3'})
+    .bindTooltip('Hyderabad SCADA coverage area (approximate — real district boundaries unavailable)',{sticky:true})
+    .addTo(group);
+}
 
-function _tgProp(props, keys){
-  props=props||{};
-  for(const k of keys){
-    if(props[k]!=null && String(props[k]).trim()!=='') return String(props[k]).trim();
+// Per Naresh 28-Jun-2026: addLabelsFromGeoJSON was previously called via
+// optional chaining (addLabelsFromGeoJSON?.(feats)) but never actually
+// implemented — district boundaries rendered with NO name labels at all.
+// This computes a sensible label point per district (centroid of its
+// largest ring, robust to MultiPolygon districts with several disjoint
+// parts) and places a permanent text label there.
+function _tgPolygonRingArea(ring){
+  // Shoelace formula — works fine for relative-size comparison between
+  // rings even in lon/lat degrees (we don't need true km² here).
+  let area=0;
+  for(let i=0;i<ring.length;i++){
+    const [x1,y1]=ring[i];
+    const [x2,y2]=ring[(i+1)%ring.length];
+    area += x1*y2 - x2*y1;
   }
-  const lower={};
-  Object.keys(props).forEach(k=>lower[k.toLowerCase()]=props[k]);
-  for(const k of keys){
-    const v=lower[String(k).toLowerCase()];
-    if(v!=null && String(v).trim()!=='') return String(v).trim();
+  return Math.abs(area/2);
+}
+function _tgRingCentroid(ring){
+  // GeoJSON rings repeat the first point as the last (closing the ring) —
+  // exclude that duplicate or it double-weights one vertex and skews the
+  // average toward wherever the ring happens to start.
+  let pts=ring;
+  if(pts.length>1){
+    const [fx,fy]=pts[0], [lx,ly]=pts[pts.length-1];
+    if(fx===lx && fy===ly) pts=pts.slice(0,-1);
   }
-  return '';
+  let cx=0, cy=0;
+  for(const [x,y] of pts){ cx+=x; cy+=y; }
+  return { lng: cx/pts.length, lat: cy/pts.length };
 }
-function _tgFeatureName(f){
-  const p=f&&f.properties||{};
-  return _tgProp(p,['block_name','BLOCK_NAME','block','Block','BLOCK','mandal','Mandal','MANDAL','mandal_name','MANDAL_NAME','name','Name','NAME','dtname']);
+function _tgFeatureLabelPoint(feature){
+  const geom=feature.geometry;
+  if(!geom) return null;
+  let rings=[];
+  if(geom.type==='Polygon'){
+    rings=[geom.coordinates[0]]; // outer ring only
+  }else if(geom.type==='MultiPolygon'){
+    rings=geom.coordinates.map(poly=>poly[0]);
+  }else{
+    return null;
+  }
+  let best=null, bestArea=-1;
+  rings.forEach(ring=>{
+    const a=_tgPolygonRingArea(ring);
+    if(a>bestArea){ bestArea=a; best=ring; }
+  });
+  if(!best) return null;
+  return _tgRingCentroid(best);
 }
-function _tgFeatureDistrict(f){
-  const p=f&&f.properties||{};
-  return _tgProp(p,['district','District','DISTRICT','district_name','DISTRICT_NAME','dist_name','DIST_NAME','dtname','DTNAME']);
-}
-function _tgCleanName(s){
-  return String(s||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
-}
-function _tgMatchesAny(name, arr){
-  const n=_tgCleanName(name);
-  return arr.some(a=>{
-    const x=_tgCleanName(a);
-    return n===x || n.includes(x) || x.includes(n);
+let _tgDistrictLabelMarkers=[];
+function addLabelsFromGeoJSON(feats){
+  _tgDistrictLabelMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
+  _tgDistrictLabelMarkers=[];
+  (feats||[]).forEach(f=>{
+    const pt=_tgFeatureLabelPoint(f);
+    if(!pt) return;
+    const props=f.properties||{};
+    const name=String(props.DISTRICT||props.DIST_NAME||props.district||props.name||'').trim();
+    if(!name) return;
+    const marker=L.marker([pt.lat,pt.lng],{
+      icon:L.divIcon({className:'',html:`<div class="tg-district-label">${name}</div>`,iconSize:[0,0],iconAnchor:[0,0]}),
+      interactive:false, keyboard:false
+    });
+    marker.addTo(map);
+    _tgDistrictLabelMarkers.push(marker);
   });
 }
-function _tgWantedDistricts(){
-  return ['HYDERABAD','MEDCHAL','MEDCHAL MALKAJGIRI','MEDCHAL-MALKAJGIRI','RANGAREDDY','RANGA REDDY','SANGAREDDY'];
-}
-function _tgCorridorGroups(){
-  return [
-    {key:'airport',short:'AIRPORT / RAJENDRANAGAR',color:'#f97316',districts:['RANGAREDDY','RANGA REDDY','HYDERABAD'],blocks:['RAJENDRANAGAR','SHAMSHABAD','MOINABAD','CHEVELLA']},
-    {key:'west',short:'PATANCHERU / BHEL / SANGAREDDY',color:'#2563eb',districts:['SANGAREDDY','RANGAREDDY','RANGA REDDY'],blocks:['PATANCHERU','RAMACHANDRAPURAM','SANGAREDDY','KANDI','AMEENPUR']},
-    {key:'it',short:'KOKAPET / FINANCIAL DISTRICT',color:'#7c3aed',districts:['RANGAREDDY','RANGA REDDY','HYDERABAD'],blocks:['GANDIPET','SERILINGAMPALLY','RAJENDRANAGAR','MOINABAD']},
-    {key:'north',short:'MEDCHAL / KOMPALLY / SHAMIRPET',color:'#16a34a',districts:['MEDCHAL','MEDCHAL MALKAJGIRI'],blocks:['MEDCHAL','SHAMIRPET','QUTHBULLAPUR','KUKATPALLY','MALKAJGIRI']},
-    {key:'east',short:'ECIL / CHERLAPALLY / GHATKESAR',color:'#0ea5e9',districts:['MEDCHAL','MEDCHAL MALKAJGIRI','RANGAREDDY','RANGA REDDY'],blocks:['GHATKESAR','KEESARA','KAPRA','UPPAL','MEDIPALLY']},
-    {key:'southeast',short:'ADIBATLA / IBRAHIMPATNAM / MAHESHWARAM',color:'#dc2626',districts:['RANGAREDDY','RANGA REDDY'],blocks:['IBRAHIMPATNAM','MAHESHWARAM','KANDUKUR','MANCHAL','YACHARAM']},
-    {key:'uppal',short:'UPPAL / POCHARAM',color:'#0891b2',districts:['MEDCHAL','MEDCHAL MALKAJGIRI','RANGAREDDY','RANGA REDDY'],blocks:['UPPAL','MEDIPALLY','GHATKESAR','KEESARA']}
-  ];
-}
-function _tgCoreBlockNames(){
-  return ['KHAIRATABAD','AMEERPET','SECUNDERABAD','MUSHEERABAD','CHARMINAR','ASIFNAGAR','SAIDABAD','NAMPALLY','GOLCONDA','HIMAYATNAGAR','BANDLAGUDA'];
-}
-function _tgFeatureCoordList(f){
-  const pts=[];
-  function walk(c){
-    if(!c)return;
-    if(typeof c[0]==='number' && typeof c[1]==='number') pts.push({lat:c[1], lon:c[0]});
-    else if(Array.isArray(c)) c.forEach(walk);
-  }
-  walk(f && f.geometry && f.geometry.coordinates);
-  return pts;
-}
-function _tgFeatureCentroid(f){
-  return _tgCentroidLatLng(_tgFeatureCoordList(f));
-}
-function _tgBuildSupportLayersFromBlocks(group, blockGeoJSON){
-  const fc = blockGeoJSON.type==='FeatureCollection' ? blockGeoJSON : {type:'FeatureCollection',features:Array.isArray(blockGeoJSON)?blockGeoJSON:[]};
-  const features = (fc.features||[]);
-  const wantedDistrictFeatures = features.filter(f=>_tgMatchesAny(_tgFeatureDistrict(f), _tgWantedDistricts()));
 
-  if(window.tgGridShowMandalBorders !== false){
-    group.addLayer(L.geoJSON({type:'FeatureCollection',features:wantedDistrictFeatures},{
-      pane:'tilePane',
-      interactive:false,
-      style:function(){ return {color:'#475569',weight:0.65,opacity:0.38,fillOpacity:0,interactive:false}; }
-    }));
-  }
+async function _buildTGRegionalGridLayer(){
+  if(_tgRegionalGridLayerGroup){ if(window.tgGridShowDistricts) _tgRegionalGridLayerGroup.addTo(map); return; }
+  _tgRegionalGridLayerGroup = L.layerGroup();
+  const group = _tgRegionalGridLayerGroup;
+  const palette=['#fde2c8','#cfe8ff','#d9f7d4','#f6d9f9','#fff3b0'];
 
-  if(window.tgGridShowCorridors){
-    _tgCorridorGroups().forEach(cg=>{
-      const feats = wantedDistrictFeatures.filter(f=>_tgMatchesAny(_tgFeatureDistrict(f),cg.districts) && _tgMatchesAny(_tgFeatureName(f),cg.blocks));
-      if(!feats.length)return;
-      group.addLayer(L.geoJSON({type:'FeatureCollection',features:feats},{
-        pane:'tilePane',
-        interactive:false,
-        style:function(){ return {color:cg.color,weight:1.45,opacity:0.88,fillColor:cg.color,fillOpacity:0.20,interactive:false}; }
-      }));
-      const cen=_tgCentroidLatLng(feats.flatMap(_tgFeatureCoordList));
-      if(cen){
-        group.addLayer(L.marker(cen,{interactive:false,pane:'markerPane',icon:L.divIcon({className:'tg-corridor-label',html:cg.short,iconSize:null})}));
-      }
+  try{
+    const res = await fetch(TG_DISTRICTS_GEOJSON_URL);
+    if(!res.ok) throw new Error('district boundary HTTP '+res.status);
+    const gj = await res.json();
+    const feats = (gj.features||[]).filter(f=>{
+      const props=f.properties||{};
+      const name=String(props.DISTRICT||props.DIST_NAME||props.district||props.name||'').toUpperCase();
+      return TG_BOUNDARY_DISTRICTS.some(d=>name.includes(d)||d.includes(name));
     });
-  }
-
-  if(window.tgGridShowCore){
-    const coreFeats = wantedDistrictFeatures.filter(f=>_tgMatchesAny(_tgFeatureDistrict(f),['HYDERABAD']) && _tgMatchesAny(_tgFeatureName(f),_tgCoreBlockNames()));
-    if(coreFeats.length){
-      group.addLayer(L.geoJSON({type:'FeatureCollection',features:coreFeats},{
-        pane:'tilePane',
-        interactive:false,
-        style:function(){ return {color:'#b91c1c',weight:2.0,opacity:0.92,fillColor:'#b91c1c',fillOpacity:0.23,interactive:false}; }
-      }));
-      const cen=_tgCentroidLatLng(coreFeats.flatMap(_tgFeatureCoordList));
-      if(cen){
-        group.addLayer(L.marker(cen,{interactive:false,pane:'markerPane',icon:L.divIcon({className:'tg-core-label',html:'CORE HYDERABAD LOAD ZONE',iconSize:null})}));
-      }
-    }
-  }
-
-  if(window.tgGridShowArrows){
-    const coreFeats = wantedDistrictFeatures.filter(f=>_tgMatchesAny(_tgFeatureDistrict(f),['HYDERABAD']) && _tgMatchesAny(_tgFeatureName(f),_tgCoreBlockNames()));
-    const coreCen=_tgCentroidLatLng(coreFeats.flatMap(_tgFeatureCoordList)) || [17.400,78.475];
-    _tgCorridorGroups().forEach(cg=>{
-      const feats=wantedDistrictFeatures.filter(f=>_tgMatchesAny(_tgFeatureDistrict(f),cg.districts)&&_tgMatchesAny(_tgFeatureName(f),cg.blocks));
-      const cen=_tgCentroidLatLng(feats.flatMap(_tgFeatureCoordList));
-      if(!cen)return;
-      group.addLayer(L.polyline([cen,coreCen],{pane:'linePane',color:cg.color,weight:2.2,opacity:0.65,dashArray:'8 6',interactive:false}));
-      const mid=[(cen[0]+coreCen[0])/2,(cen[1]+coreCen[1])/2];
-      group.addLayer(L.marker(mid,{interactive:false,pane:'markerPane',icon:L.divIcon({className:'tg-corridor-label',html:'➜ '+cg.short,iconSize:null})}));
+    if(!feats.length) throw new Error('no matching districts in boundary file');
+    feats.forEach((f,i)=>{
+      const layer=L.geoJSON(f,{style:{color:'#555',weight:1,fillColor:palette[i%palette.length],fillOpacity:.25}});
+      const props=f.properties||{};
+      const name=props.DISTRICT||props.DIST_NAME||props.district||props.name||'District';
+      layer.bindTooltip(String(name),{sticky:true});
+      layer.addTo(group);
     });
+    if(window.tgGridShowDistricts){ group.addTo(map); addLabelsFromGeoJSON(feats); }
+  }catch(err){
+    console.warn('District GeoJSON failed, using SS-derived fallback hulls:', err);
+    if(window.tgGridShowDistricts) _tgAddFallbackHullLayer(group);
+    if(window.tgGridShowDistricts) group.addTo(map);
+  }
+
+  try{
+    const res2 = await fetch(TG_BLOCKS_GEOJSON_URL);
+    if(!res2.ok) throw new Error('blocks boundary HTTP '+res2.status);
+    const gj2 = await res2.json();
+    const feats2 = (gj2.features||[]).filter(f=>{
+      const props=f.properties||{};
+      const dname=String(props.DISTRICT||props.DIST_NAME||props.district||'').toUpperCase();
+      return TG_BOUNDARY_DISTRICTS.some(d=>dname.includes(d)||d.includes(dname));
+    });
+    feats2.forEach(f=>{
+      L.geoJSON(f,{style:{color:'#999',weight:.5,fillOpacity:0,dashArray:'2 2'}}).addTo(group);
+    });
+  }catch(err){
+    console.warn('Block/Mandal GeoJSON failed; corridor boundary overlays unavailable:', err);
   }
 }
-function _buildTGRegionalGridLayer(){
-  const group=L.layerGroup();
-  group.addLayer(L.tileLayer(_gridBlankTileUrl(),{
-    maxZoom:22,maxNativeZoom:22,tileSize:256,keepBuffer:1,updateWhenIdle:true,updateWhenZooming:false,attribution:''
-  }));
 
-  const ssList = (typeof STATIC_SS33!=='undefined' ? STATIC_SS33 : (window.STATIC_SS33||[])) || [];
-  const ehtList = (typeof STATIC_EHT!=='undefined' ? STATIC_EHT : (window.STATIC_EHT||[])) || [];
-
-  const wantedDistricts=[
-    'HYDERABAD',
-    'MEDCHAL',
-    'MEDCHAL MALKAJGIRI',
-    'MEDCHAL-MALKAJGIRI',
-    'RANGAREDDY',
-    'RANGA REDDY',
-    'SANGAREDDY',
-    'SANGAREDDY DISTRICT'
-  ];
-  const districtPalette={
-    HYDERABAD:'#fee2e2',
-    MEDCHAL:'#dbeafe',
-    'MEDCHAL MALKAJGIRI':'#dbeafe',
-    RANGAREDDY:'#dcfce7',
-    'RANGA REDDY':'#dcfce7',
-    SANGAREDDY:'#fef3c7'
-  };
-  function propName(props){
-    props=props||{};
-    return String(props.DISTRICT||props.District||props.district||props.DIST_NAME||props.dist_name||props.NAME||props.Name||props.name||props.dtname||'').toUpperCase();
-  }
-  function normDistrictName(n){
-    return String(n||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
-  }
-  function isWantedFeature(f){
-    const n=normDistrictName(propName(f.properties));
-    return wantedDistricts.some(w=>n.includes(normDistrictName(w)) || normDistrictName(w).includes(n));
-  }
-  function styleForFeature(f){
-    const n=normDistrictName(propName(f.properties));
-    let fill='#e0e7ff';
-    Object.keys(districtPalette).forEach(k=>{ if(n.includes(normDistrictName(k))) fill=districtPalette[k]; });
-    return {
-      color:'#7c2d12',
-      weight:1.4,
-      opacity:window.tgGridBoundaryOpacity ?? 0.70,
-      fillColor:fill,
-      fillOpacity:window.tgGridFillOpacity ?? 0.40,
-      interactive:false
-    };
-  }
-  function addLabelsFromGeoJSON(geo){
-    try{
-      (geo.features||[]).filter(isWantedFeature).forEach(f=>{
-        const pts=[];
-        function walk(c){
-          if(!c)return;
-          if(typeof c[0]==='number' && typeof c[1]==='number') pts.push({lat:c[1],lon:c[0]});
-          else if(Array.isArray(c)) c.forEach(walk);
-        }
-        walk(f.geometry && f.geometry.coordinates);
-        const c=_tgCentroidLatLng(pts);
-        if(c){
-          const nm=propName(f.properties).replace(/\s+DISTRICT$/,'');
-          group.addLayer(L.marker(c,{
-            interactive:false,
-            pane:'markerPane',
-            icon:L.divIcon({className:'tg-grid-label',html:nm,iconSize:null})
-          }));
-        }
-      });
-    }catch(e){ console.warn('district labels failed',e); }
-  }
-
-  function addFallbackHullLayer(){
-    const palette=['#fee2e2','#dbeafe','#dcfce7','#fef3c7','#ede9fe','#cffafe','#fce7f3','#e0e7ff'];
-    const byDiv={};
-    ssList.forEach(s=>{
-      const d=String(s.division||'HYDERABAD REGION').toUpperCase();
-      if(!byDiv[d])byDiv[d]=[];
-      byDiv[d].push(s);
-    });
-    let i=0;
-    Object.keys(byDiv).sort().forEach(div=>{
-      const pts=byDiv[div];
-      const hull=_tgConvexHullLatLng(pts);
-      if(hull.length>=3){
-        group.addLayer(L.polygon(hull,{
-          pane:'tilePane',
-          color:'#7c2d12',
-          weight:1.2,
-          fillColor:palette[i++%palette.length],
-          fillOpacity:window.tgGridFillOpacity ?? 0.40,
-          opacity:window.tgGridBoundaryOpacity ?? 0.70,
-          interactive:false
-        }));
-      }
-      const c=_tgCentroidLatLng(pts);
-      if(c){
-        group.addLayer(L.marker(c,{
-          interactive:false,pane:'markerPane',
-          icon:L.divIcon({className:'tg-grid-label',html:div.replace(/\s+DIVISION$/,''),iconSize:null})
-        }));
-      }
-    });
-  }
-
-  const url='https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json';
-  fetch(url,{cache:'force-cache'})
-    .then(r=>{ if(!r.ok) throw new Error('district boundary HTTP '+r.status); return r.json(); })
-    .then(geo=>{
-      const fc = geo.type==='FeatureCollection' ? geo : {type:'FeatureCollection',features:Array.isArray(geo)?geo:[]};
-      const selected={type:'FeatureCollection',features:(fc.features||[]).filter(isWantedFeature)};
-      if(!selected.features.length) throw new Error('Hyderabad region districts not found in districts.json');
-      const gj=L.geoJSON(selected,{style:styleForFeature,interactive:false,pane:'tilePane'});
-      if(window.tgGridShowDistricts){ group.addLayer(gj); addLabelsFromGeoJSON(selected); }
-      try{ if(window.toast) toast('Grid Map View: Hyderabad region district boundaries loaded',2200); }catch(_){}
-    })
-    .catch(err=>{
-      console.warn('District GeoJSON failed, using SS-derived fallback hulls:',err);
-      if(window.tgGridShowDistricts){ addFallbackHullLayer(); }
-      try{ if(window.toast) toast('Grid Map View: district GeoJSON failed, fallback hull shown',2800); }catch(_){}
-    });
-
-  // Real mandal/block boundaries from the same Telangana boundaries repository.
-  fetch('https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json',{cache:'force-cache'})
-    .then(r=>{ if(!r.ok) throw new Error('blocks boundary HTTP '+r.status); return r.json(); })
-    .then(blockGeo=>{ _tgBuildSupportLayersFromBlocks(group, blockGeo); })
-    .catch(err=>{
-      console.warn('Block/Mandal GeoJSON failed; corridor boundary overlays unavailable:',err);
-      try{ if(window.toast) toast('Grid Map View: mandal/block GeoJSON failed',2600); }catch(_){}
-    });
-
-const allPts=ssList.concat(ehtList);
-  const outer=_tgConvexHullLatLng(allPts);
-  if(outer.length>=3){
-    group.addLayer(L.polygon(outer,{
-      pane:'tilePane',
-      color:'#b91c1c',
-      weight:2.0,
-      fillOpacity:0,
-      opacity:0.75,
-      interactive:false
-    }));
-  }
-
-  const hyd=_tgCentroidLatLng(ssList.filter(s=>/HYDERABAD|HYD/i.test(String(s.division||'')+' '+String(s.section||'')))) || _tgCentroidLatLng(ssList);
-  if(hyd){
-    group.addLayer(L.marker(hyd,{interactive:false,icon:L.divIcon({
-      className:'tg-grid-label',
-      html:'HYDERABAD REGION',
-      iconSize:null
-    })}));
-  }
-  window.tgGridBoundaryLayer=group;
-  return group;
-}
+window.tgSetGridShowDistricts = function(on){
+  window.tgGridShowDistricts=!!on;
+  if(!_tgRegionalGridLayerGroup)return;
+  if(on) _tgRegionalGridLayerGroup.addTo(map);
+  else map.removeLayer(_tgRegionalGridLayerGroup);
+};
 
 function getBM(n){
   if(BM[n])return BM[n];
@@ -2493,44 +2260,26 @@ function getBM(n){
       attribution:''
     });
   }else if(n==='grid_view'){
-    BM[n]=_buildTGRegionalGridLayer();
-  }else if(n==='scadamin_dark' || n==='scadamin_light'){
-    // SCADA Minimal Layers — additional basemaps only, no existing layer disturbed.
-    // They use CARTO no-labels tiles plus a low-opacity labels-only tile layer.
-    // This keeps roads/localities visible without loading heavy POI clutter.
-    const isLight = n === 'scadamin_light';
-    const baseName = isLight ? 'light_nolabels' : 'dark_nolabels';
-    const labelName = isLight ? 'light_only_labels' : 'dark_only_labels';
-    const labelOpacity = isLight ? 0.42 : 0.28;
-    const scadaMinimalBase = L.tileLayer(
-      `https://{s}.basemaps.cartocdn.com/${baseName}/{z}/{x}/{y}{r}.png`,
-      {..._tileOpts, subdomains:'abcd', attribution:'© OpenStreetMap © CARTO'}
-    );
-    const scadaMinimalLabels = L.tileLayer(
-      `https://{s}.basemaps.cartocdn.com/${labelName}/{z}/{x}/{y}{r}.png`,
-      {..._tileOpts, subdomains:'abcd', opacity:labelOpacity}
-    );
-    BM[n] = L.layerGroup([scadaMinimalBase, scadaMinimalLabels]);
+    BM[n]=L.tileLayer(_gridBlankTileUrl(),{
+      maxZoom:22, maxNativeZoom:22, tileSize:256,
+      keepBuffer:1, updateWhenIdle:true, updateWhenZooming:false,
+      attribution:'District boundaries: Telangana Tank Information System (gggodhwani/telangana_boundaries)'
+    });
+    _buildTGRegionalGridLayer();
   }else if(_bmDefs[n]){
     BM[n]=L.tileLayer(_bmDefs[n][0],_bmDefs[n][1]);
   }
   return BM[n];
 }
-let curBM='dark'; getBM('dark').addTo(map);
+let curBM='grid_view'; getBM('grid_view').addTo(map);
 setTimeout(()=>{getBM('google');getBM('satellite');},2000);
 
 function setBM(name){
-  if(name!=='grid'&&name!=='grid_view'&&name!=='scadamin_dark'&&name!=='scadamin_light'&&!_bmDefs[name])return;
+  if(name!=='grid'&&name!=='grid_view'&&!_bmDefs[name])return;
   map.removeLayer(getBM(curBM));
-  if(name==='grid_view'){ delete BM.grid_view; }
   _ensureGridBackground(name==='grid');
-  map.getContainer().classList.toggle('grid-view-layer-on', name==='grid_view');
   getBM(name).addTo(map);
-  if(name!=='grid' && name!=='grid_view'){
-    const bm = getBM(name);
-    if(bm && bm.eachLayer) bm.eachLayer(l=>{ if(l.bringToBack) l.bringToBack(); });
-    else if(bm && bm.bringToBack) bm.bringToBack();
-  }
+  if(name!=='grid'&&getBM(name).bringToBack)getBM(name).bringToBack();
   curBM=name;
   document.querySelectorAll('.bmbtn,.bm-tab').forEach(b=>b.classList.remove('active'));
   const el=document.getElementById('bm-'+name);if(el)el.classList.add('active');
@@ -2542,103 +2291,6 @@ function safelyManageClass(layer,className,add){
   const el=layer.getElement?layer.getElement():layer._path;
   if(el){if(add)el.classList.add(className);else el.classList.remove(className);}
 }
-
-window.tgPrintLineWidth = window.tgPrintLineWidth || 0.95;
-function setTGFeederLineThickness(v){
-  v = Math.max(0.45, Math.min(2.20, Number(v)||0.95));
-  window.tgPrintLineWidth = v;
-  const val=document.getElementById('ltVal'); if(val)val.textContent=v.toFixed(2); const gv=document.getElementById('gspLineVal'); if(gv)gv.textContent=v.toFixed(2);
-  try{
-    (window.allLayers||allLayers||[]).forEach(item=>{
-      if(!item || !item.layer || !item.layer.setStyle)return;
-      const t=String(item.reg&&item.reg.type||'');
-      if(!(t==='lines'||t.startsWith('fseg')))return;
-      if(item.layer.__tgBaseWeight==null){
-        item.layer.__tgBaseWeight = (item.layer.options && Number(item.layer.options.weight)) || 3;
-      }
-      const liveWeight = Math.max(0.8, item.layer.__tgBaseWeight * (v/0.95) * 0.75);
-      item.layer.setStyle({weight:liveWeight});
-      if(item.layer.flowLayer && item.layer.flowLayer.setStyle){
-        item.layer.flowLayer.setStyle({weight:Math.max(0.6, liveWeight*0.55)});
-      }
-    });
-  }catch(e){ console.warn('line thickness update failed', e); }
-}
-
-
-window.tgGridFillOpacity = window.tgGridFillOpacity ?? 0.40;
-window.tgGridBoundaryOpacity = window.tgGridBoundaryOpacity ?? 0.70;
-window.tgGridShowDistricts = window.tgGridShowDistricts ?? true;
-window.tgGridShowCorridors = window.tgGridShowCorridors ?? true;
-window.tgGridShowCore = window.tgGridShowCore ?? true;
-window.tgGridShowArrows = window.tgGridShowArrows ?? true;
-window.tgGridShowMandalBorders = window.tgGridShowMandalBorders ?? true;
-function toggleGridStylePanel(){
-  const p=document.getElementById('gridStylePanel');
-  if(p)p.classList.toggle('open');
-}
-function setTGSSIconScale(v){
-  v=Math.max(0.55,Math.min(1.8,Number(v)||1));
-  document.documentElement.style.setProperty('--tg-ss-icon-scale',v.toFixed(2));
-  document.body.classList.add('grid-style-equal-icons');
-  const el=document.getElementById('gspSSVal'); if(el)el.textContent=v.toFixed(2);
-}
-function setTGEHTIconScale(v){
-  v=Math.max(0.55,Math.min(1.8,Number(v)||1));
-  document.documentElement.style.setProperty('--tg-eht-icon-scale',v.toFixed(2));
-  document.body.classList.add('grid-style-equal-icons');
-  const el=document.getElementById('gspEHTVal'); if(el)el.textContent=v.toFixed(2);
-}
-function setTGGridLabelSize(v){
-  v=Math.max(7,Math.min(18,Number(v)||11));
-  document.documentElement.style.setProperty('--tg-grid-label-size',v+'px');
-  const el=document.getElementById('gspLblVal'); if(el)el.textContent=String(v);
-}
-function setTGGridFillOpacity(v){
-  v=Math.max(0,Math.min(80,Number(v)||40));
-  window.tgGridFillOpacity=v/100;
-  const el=document.getElementById('gspFillVal'); if(el)el.textContent=v+'%';
-  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
-}
-function setTGGridBoundaryOpacity(v){
-  v=Math.max(10,Math.min(100,Number(v)||70));
-  window.tgGridBoundaryOpacity=v/100;
-  const el=document.getElementById('gspBndVal'); if(el)el.textContent=v+'%';
-  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
-}
-function toggleTGGridFeederNames(on){
-  document.body.classList.toggle('hide-feeder-labels-grid',!on);
-  try{ syncLabels(); }catch(_){}
-}
-function toggleTGGridSSNames(on){
-  document.body.classList.toggle('hide-ss-labels-grid',!on);
-  try{ syncLabels(); }catch(_){}
-}
-
-
-
-function toggleTGGridMandalLayer(on){
-  window.tgGridShowMandalBorders=!!on;
-  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
-}
-
-function toggleTGGridDistrictLayer(on){
-  window.tgGridShowDistricts=!!on;
-  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
-}
-function toggleTGGridCorridors(on){
-  window.tgGridShowCorridors=!!on;
-  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
-}
-function toggleTGGridCore(on){
-  window.tgGridShowCore=!!on;
-  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
-}
-function toggleTGGridArrows(on){
-  window.tgGridShowArrows=!!on;
-  try{ if(curBM==='grid_view') setBM('grid_view'); }catch(_){}
-}
-
 function toggleRcard(id){const c=document.getElementById(id);if(c)c.classList.toggle('collapsed');}
 function toggleFullscreen(){
   if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(e=>toast('Fullscreen: '+e.message));
@@ -2657,7 +2309,7 @@ const feederHierarchy={};  // div→subdiv→section→[feederNames]
 const feederMetaMap={};    // fn→{div,sub,sec,eht}
 const feederSectionMap={};
 const feederHierarchyMap={};  // fn → {division,sub_division,section}
-// ── LAZY / SCOPE-FIRST RENDERING (added 26-Jun-2026 per Naresh) ──
+// ── LAZY / SCOPE-FIRST RENDERING (re-applied 28-Jun-2026 per Naresh) ──
 // feederIndex holds METADATA for every feeder known from Firebase divisions/,
 // without ever drawing geometry or creating markers/popups. A feeder only
 // gets its rowsJson parsed and its layers built once renderScope() decides
@@ -2668,11 +2320,10 @@ const feederHierarchyMap={};  // fn → {division,sub_division,section}
 const feederIndex={};       // fn → {feederName,division,subDivision,section,feederType,sourceEHT,destinationSS,rowsJson}
 const renderedFeederSet=new Set();
 let currentScope={division:'ALL',subDivision:'ALL',section:'ALL',feederName:'ALL'};
-// Per Naresh 27-Jun-2026: distinguishes "page just loaded, nothing chosen
-// yet" (map should be empty) from "user explicitly picked ALL DIVISIONS
-// from the dropdown" (that's a deliberate request to load everything, not
-// an idle state — fixes the earlier bug where ALL/ALL/ALL/ALL was treated
-// as empty in both cases).
+// Distinguishes "page just loaded, nothing chosen yet" (map stays empty)
+// from "user explicitly picked ALL DIVISIONS" (deliberate request to load
+// everything) — fixes the bug where ALL/ALL/ALL/ALL was treated as empty
+// in both cases.
 let userHasInteractedWithScope=false;
 
 // ── Feeder NATURE (33KV / Link Line / HT Services) — added 31 May 2026 per Naresh ──
@@ -2732,7 +2383,7 @@ function toggleAnimation(){
   document.getElementById('lyr-anim')?.classList.toggle('off', !_animationOn);
   toast(_animationOn ? '✨ Flow animation ON' : '⏸ Flow animation OFF', 1800);
 }
-const LGstate={'ug-lines':true,'oh-lines':true,points:false,dp:true,ab:true,cut:true,ss33:true,ehts:true,fsegs:true};
+const LGstate={'ug-lines':true,'oh-lines':true,points:false,dp:false,ab:false,cut:false,ss33:true,ehts:true,fsegs:true};
 let cableFilter='all';
 let globalFeederFallback=true;
 let focusedFeeder=null;
@@ -2808,9 +2459,8 @@ function renderStaticSS(filterFn){
   // Uploaded qgis2web SS layers are skipped later in DATA_REGISTRY rendering.
   // filterFn(ss, type) — optional. Lets renderScope() request only the
   // substations relevant to the current Division/Sub-Division/Section
-  // scope, so we stop constructing all 136+25 markers at startup. Omit
-  // filterFn (or pass nothing) to keep old all-substations behaviour for
-  // any other existing caller.
+  // scope, so we stop constructing all SS33+EHT markers at startup. Omit
+  // filterFn to keep old all-substations behaviour for any other caller.
   const passes = (ss, type) => (typeof filterFn === 'function') ? !!filterFn(ss, type) : true;
 
   // ── 33/11KV Substations ──
@@ -2824,7 +2474,7 @@ function renderStaticSS(filterFn){
     _registerSSCoord(ss.lat,ss.lon);
 
     const h=`<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>`;
-    const layer=L.marker([ss.lat,ss.lon],{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[40,28],iconAnchor:[20,14]})});
+    const layer=L.marker([ss.lat,ss.lon],{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[36,36],iconAnchor:[18,18]})});
     const popHtml=`<div class="pc-header-id">${ss.name}</div>
       <table class="popup-table">
         <tr><th>Section</th><td>${ss.section||''}</td></tr>
@@ -3052,7 +2702,7 @@ DATA_REGISTRY.forEach(reg=>{
         layer=L.marker(ll,{icon:isAB?L.divIcon({className:'',html:`<svg xmlns='http://www.w3.org/2000/svg' width='22' height='16' viewBox='0 0 22 16'><line x1='0' y1='8' x2='6' y2='8' stroke='#ff9800' stroke-width='1.5'/><circle cx='11' cy='8' r='6' fill='rgba(8,18,30,.9)' stroke='#ff9800' stroke-width='1.5'/><rect x='5.5' y='5.5' width='11' height='3' rx='1' fill='#ff9800'/><circle cx='6.5' cy='10' r='1.5' fill='rgba(8,18,30,.9)' stroke='#ff9800' stroke-width='1'/><circle cx='15.5' cy='10' r='1.5' fill='rgba(8,18,30,.9)' stroke='#ff9800' stroke-width='1'/><line x1='16' y1='8' x2='22' y2='8' stroke='#ff9800' stroke-width='1.5'/></svg>`,iconSize:[22,16],iconAnchor:[11,8]}):L.divIcon({className:'',html:`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='18' viewBox='0 0 16 18'><line x1='4' y1='0' x2='4' y2='18' stroke='#2196f3' stroke-width='2.5' stroke-linecap='round'/><line x1='12' y1='0' x2='12' y2='18' stroke='#2196f3' stroke-width='2.5' stroke-linecap='round'/><line x1='4' y1='7' x2='12' y2='7' stroke='#2196f3' stroke-width='2' stroke-linecap='round'/><circle cx='4' cy='3' r='2' fill='#2196f3'/><circle cx='12' cy='3' r='2' fill='#2196f3'/></svg>`,iconSize:[16,18],iconAnchor:[8,9]}),pane:'pointsPane'});
       }else if(reg.type.startsWith('ss33')){
         const h=`<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>`;
-        layer=L.marker(ll,{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[40,28],iconAnchor:[20,14]})});
+        layer=L.marker(ll,{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[36,36],iconAnchor:[18,18]})});
       }else if(reg.type.startsWith('eht')){
         const h=`<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">EHT</span></div></div>`;
         layer=L.marker(ll,{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[40,28],iconAnchor:[20,14]})});
@@ -3084,172 +2734,6 @@ DATA_REGISTRY.forEach(reg=>{
   }catch(e){}
 });
 
-
-// ─────────────────────────────────────────────────────────────
-// SCADA MINIMAL SCOPE + DECLUTTER ENGINE
-// Shows only substations connected to currently visible feeders,
-// and reduces labels/icons until zoomed in. This makes South/selected
-// divisions print like a clean TRANSCO-style sheet instead of all 136 SS.
-// ─────────────────────────────────────────────────────────────
-function _sgBaseType(item){
-  let t=(item&&item.reg&&item.reg.type)||'';
-  if(t==='lines')t=item.cable==='UG'?'ug-lines':'oh-lines';
-  if(t.startsWith('ss33'))t='ss33';
-  if(t.startsWith('eht'))t='ehts';
-  if(t.startsWith('fseg'))t='fsegs';
-  if(t==='fpoles')t='points';
-  return t;
-}
-function _sgIsSS(item){
-  const t=_sgBaseType(item);
-  return t==='ss33'||t==='ehts';
-}
-function _sgNorm(s){
-  return String(s||'').toUpperCase()
-    .replace(/33\s*\/\s*11\s*KV|33\s*KV|132\s*KV|220\s*KV|400\s*KV|SUBSTATION|SUB-STATION|\bSS\b|\bGIS\b|\bKV\b/g,' ')
-    .replace(/[^A-Z0-9]+/g,' ')
-    .replace(/\s+/g,' ')
-    .trim();
-}
-function _sgTokens(s){
-  const stop=new Set(['THE','AND','ROAD','RD','NO','NEW','OLD','NORTH','SOUTH','EAST','WEST','KV','SS','FEEDER','LINE','LINK','HT','SERVICE']);
-  return _sgNorm(s).split(' ').filter(x=>x.length>=3&&!stop.has(x));
-}
-function _sgLineVisibleBase(item){
-  const t=_sgBaseType(item);
-  const typeIsOn=LGstate[t]!==false;
-  if(!typeIsOn)return false;
-  const fState=feederState[item.feederName];
-  const feederIsOn=(fState!==undefined)?(fState!==false):globalFeederFallback;
-  if(!feederIsOn)return false;
-  if(cableFilter==='ug'&&item.cable!=='UG'&&item.cable!=='-')return false;
-  if(cableFilter==='oh'&&item.cable!=='OH'&&item.cable!=='-')return false;
-  return true;
-}
-function _sgVisibleFeederSet(){
-  const s=new Set();
-  allLayers.forEach(item=>{
-    if(!item||_sgIsSS(item))return;
-    if(!_sgLineVisibleBase(item))return;
-    const fn=item.feederName;
-    if(fn && fn!=='33/11KV SS' && fn!=='EHT SS')s.add(fn);
-  });
-  return s;
-}
-function _sgScopeSets(visibleFeeders){
-  const divs=new Set(), subs=new Set(), secs=new Set();
-  visibleFeeders.forEach(fn=>{
-    let h={};
-    try{h=getFeederHierarchy(fn)||{};}catch(_){}
-    if(h.division)divs.add(String(h.division).toUpperCase());
-    if(h.sub_division)subs.add(String(h.sub_division).toUpperCase());
-    if(h.section)secs.add(String(h.section).toUpperCase());
-  });
-  return {divs,subs,secs};
-}
-function _sgFeederCorpus(visibleFeeders){
-  return Array.from(visibleFeeders).map(fn=>{
-    let h={}; try{h=getFeederHierarchy(fn)||{};}catch(_){}
-    return [fn,h.division,h.sub_division,h.section].join(' ');
-  }).join(' ').toUpperCase();
-}
-function _sgIsSubstationRelated(item, visibleFeeders){
-  if(!item||!item.ssObj)return false;
-  const t=_sgBaseType(item);
-  const z=map.getZoom();
-  // Per Naresh 27-Jun-2026: under scope-first lazy rendering, feederNames
-  // now ONLY contains the feeders the user's Division/Sub-Division/Section
-  // scope already selected — it's no longer "everything, with some hidden
-  // by checkboxes." The old visibleFeeders.size<total heuristic for
-  // detecting "is the user scoped down" almost always evaluated false here
-  // (visible == total, since both ARE the scope), which fell through to a
-  // strict z>=14 zoom-gate and hid every substation at normal zoom levels —
-  // even for a real, deliberate Division selection. Use currentScope
-  // directly: any real (non-ALL) selection counts as scoped, regardless of
-  // current zoom.
-  const hasRealScope = typeof currentScope!=='undefined' && currentScope && (
-    (currentScope.division&&currentScope.division!=='ALL') ||
-    (currentScope.subDivision&&currentScope.subDivision!=='ALL') ||
-    (currentScope.section&&currentScope.section!=='ALL') ||
-    (currentScope.feederName&&currentScope.feederName!=='ALL')
-  );
-  const total=Math.max(1, feederNames.size||1);
-  const scoped = hasRealScope || (visibleFeeders.size>0 && visibleFeeders.size<total);
-  if(!scoped){
-    if(t==='ehts')return true;
-    return z>=14; // full map: show 33/11KV SS only when zoomed in
-  }
-  const ss=item.ssObj||{};
-  const name=ss.name||item.ssName||'';
-  const corpus=_sgFeederCorpus(visibleFeeders);
-  const toks=_sgTokens(name);
-  const tokenHit=toks.some(tok=>corpus.includes(tok));
-  if(t==='ehts')return tokenHit || z>=14 || hasRealScope;
-
-  // For 33/11KV SS, prefer hierarchy scope (division/subdivision/section).
-  const sets=_sgScopeSets(visibleFeeders);
-  const sd=String(ss.division||'').toUpperCase();
-  const ssb=String(ss.sub_div||ss.sub_division||'').toUpperCase();
-  const sec=String(ss.section||'').toUpperCase();
-
-  // If user narrowed to one/few sections, show only those SS.
-  if(sets.secs.size>0 && sets.secs.size<=4 && sec && sets.secs.has(sec))return true;
-  if(sets.subs.size>0 && sets.subs.size<=4 && ssb && sets.subs.has(ssb))return true;
-  if(sets.divs.size>0 && sets.divs.size<=4 && sd && sets.divs.has(sd))return true;
-  // Under a real Division/Sub-Division/Section scope selection, the
-  // substation was already filtered to be relevant by renderScope() before
-  // it was even created — don't re-impose a stricter "few sections" cap
-  // here, or a wide Division selection (with many sections) would hide
-  // markers updateVisibility() should be keeping.
-  if(hasRealScope)return true;
-  return tokenHit;
-}
-function _sgShouldShowSS(item, visibleFeeders){
-  const t=_sgBaseType(item);
-  if(LGstate[t]===false)return false;
-  if(!item.ssObj)return false; // suppress duplicate qgis2web SS labels/markers in minimal view
-  const z=map.getZoom();
-  const related=_sgIsSubstationRelated(item, visibleFeeders);
-  if(!related)return false;
-  if(t==='ehts')return true;
-  // 33/11KV nodes appear only when zoom/selection has enough room.
-  const total=Math.max(1, feederNames.size||1);
-  const scoped=visibleFeeders.size>0 && visibleFeeders.size<total;
-  if(z<12)return false;
-  if(!scoped && z<14)return false;
-  if(scoped && visibleFeeders.size>80 && z<13)return false;
-  return true;
-}
-function _sgDeclutterSSLabels(){
-  const z=map.getZoom();
-  const bounds=map.getBounds();
-  const boxes=[];
-  const candidates=[];
-  allLayers.forEach(item=>{
-    if(!_sgIsSS(item)||!item.ssObj||!map.hasLayer(item.layer)||!item.layer.getLatLng)return;
-    const ll=item.layer.getLatLng();
-    if(!bounds.pad(.05).contains(ll))return;
-    const t=_sgBaseType(item);
-    // EHT labels first; 33/11KV labels only from closer zoom.
-    if(t==='ss33' && z<15){ item.layer.closeTooltip&&item.layer.closeTooltip(); return; }
-    if(t==='ehts' && z<12){ item.layer.closeTooltip&&item.layer.closeTooltip(); return; }
-    const name=item.ssObj.name||item.ssName||'';
-    const p=map.latLngToContainerPoint(ll);
-    const w=Math.min(150, Math.max(42, _sgNorm(name).length*5.8));
-    const h=16;
-    const priority=(t==='ehts'?10000:1000) + (parseFloat(item.ssObj.feeders||0)||0);
-    candidates.push({item,p,w,h,priority});
-  });
-  candidates.sort((a,b)=>b.priority-a.priority || String(a.item.ssName).localeCompare(String(b.item.ssName)));
-  const overlaps=(a,b)=>!(a.x2<b.x1||a.x1>b.x2||a.y2<b.y1||a.y1>b.y2);
-  candidates.forEach(c=>{
-    const box={x1:c.p.x-c.w/2, x2:c.p.x+c.w/2, y1:c.p.y-34, y2:c.p.y-34+c.h};
-    const ok=!boxes.some(b=>overlaps(box,b));
-    if(ok){ boxes.push(box); c.item.layer.openTooltip&&c.item.layer.openTooltip(); }
-    else { c.item.layer.closeTooltip&&c.item.layer.closeTooltip(); }
-  });
-}
-
 // ── VISIBILITY ──
 let _visRAF=null;
 function requestVisibilityUpdate(){
@@ -3259,19 +2743,24 @@ function requestVisibilityUpdate(){
 
 function updateVisibility(){
   let vis=0;
-  const visibleFeeders=_sgVisibleFeederSet();
-
   allLayers.forEach(item=>{
-    const t=_sgBaseType(item);
-    const isSS=_sgIsSS(item);
-    let show=false;
-
-    if(isSS){
-      show=_sgShouldShowSS(item, visibleFeeders);
-    }else{
-      show=_sgLineVisibleBase(item);
+    let t=item.reg.type;
+    if(t==='lines')t=item.cable==='UG'?'ug-lines':'oh-lines';
+    if(t.startsWith('ss33'))t='ss33';
+    if(t.startsWith('eht'))t='ehts';
+    if(t.startsWith('fseg'))t='fsegs';
+    if(t==='fpoles')t='points';
+    const typeIsOn=LGstate[t]!==false;
+    const isSS=(t==='ss33'||t==='ehts');
+    const fState=feederState[item.feederName];
+    let feederIsOn=(fState!==undefined)?(fState!==false):globalFeederFallback;
+    if(isSS)feederIsOn=true;
+    let cableIsOn=true;
+    if(!isSS){
+      if(cableFilter==='ug'&&item.cable!=='UG'&&item.cable!=='-')cableIsOn=false;
+      if(cableFilter==='oh'&&item.cable!=='OH'&&item.cable!=='-')cableIsOn=false;
     }
-
+    const show=typeIsOn&&feederIsOn&&cableIsOn;
     if(show){
       if(!map.hasLayer(item.layer))map.addLayer(item.layer);
       if(item.layer.flowLayer&&!map.hasLayer(item.layer.flowLayer))map.addLayer(item.layer.flowLayer);
@@ -3281,12 +2770,9 @@ function updateVisibility(){
       if(map.hasLayer(item.layer))map.removeLayer(item.layer);
       if(item.layer.flowLayer&&map.hasLayer(item.layer.flowLayer))map.removeLayer(item.layer.flowLayer);
       if(item.layer.hitLayer&&map.hasLayer(item.layer.hitLayer))map.removeLayer(item.layer.hitLayer);
-      if(isSS && item.layer.closeTooltip)item.layer.closeTooltip();
     }
   });
-
-  const st=document.getElementById('st-visible');
-  if(st)st.textContent=vis;
+  document.getElementById('st-visible').textContent=vis;
   syncLabels();
 }
 
@@ -3996,6 +3482,49 @@ function toggleRuler(){
     clearRuler();
     toast('📏 Ruler ON — click points on the map. ESC to clear, EXIT to close.',3500);
   }
+}
+
+// ── SYMBOL ADJUSTER (built 28-Jun-2026 per Naresh, handwritten note #2) ──
+function toggleGridStylePanel(){
+  const p=document.getElementById('gridStylePanel');
+  if(p)p.classList.toggle('open');
+}
+function setTGSSIconScale(v){
+  v=Math.max(0.55,Math.min(1.8,Number(v)||1));
+  document.documentElement.style.setProperty('--tg-ss-icon-scale',v.toFixed(2));
+  const el=document.getElementById('gspSSVal'); if(el)el.textContent=v.toFixed(2);
+}
+function setTGEHTIconScale(v){
+  v=Math.max(0.55,Math.min(1.8,Number(v)||1));
+  document.documentElement.style.setProperty('--tg-eht-icon-scale',v.toFixed(2));
+  const el=document.getElementById('gspEHTVal'); if(el)el.textContent=v.toFixed(2);
+}
+function setTGGridLabelSize(v){
+  v=Math.max(7,Math.min(18,Number(v)||11));
+  document.documentElement.style.setProperty('--tg-grid-label-size',v+'px');
+  const el=document.getElementById('gspLblVal'); if(el)el.textContent=String(v);
+}
+let _tgFeederLineBaseWeight=null; // captured on first slider use so the
+                                   // multiplier is relative to each line's
+                                   // ORIGINAL weight (breakdown lines are
+                                   // already thicker than normal ones —
+                                   // scaling should preserve that ratio,
+                                   // not flatten every line to one value).
+function setTGFeederLineThickness(v){
+  v=Math.max(0.45,Math.min(2.20,Number(v)||0.95));
+  const el=document.getElementById('gspLineVal'); if(el)el.textContent=v.toFixed(2);
+  if(_tgFeederLineBaseWeight===null){
+    _tgFeederLineBaseWeight=new Map();
+    allLayers.forEach(item=>{
+      if(item.layer && typeof item.layer.setStyle==='function' && item.layer.options && 'weight' in item.layer.options){
+        _tgFeederLineBaseWeight.set(item.layer, item.layer.options.weight);
+      }
+    });
+  }
+  const scale=v/0.95; // 0.95 was the original hardcoded default weight basis
+  _tgFeederLineBaseWeight.forEach((baseWeight,layer)=>{
+    try{ layer.setStyle({weight: baseWeight*scale}); }catch(e){}
+  });
 }
 
 function _exitRuler(){
@@ -4839,8 +4368,8 @@ function dismissLoader(){
 }
 
 setTimeout(()=>{
-  // ── Per Naresh, 26-Jun-2026: renderStaticSS() no longer runs here ──
-  // unconditionally. All 161 substation markers used to be created at
+  // ── Per Naresh, 28-Jun-2026: renderStaticSS() no longer runs here ──
+  // unconditionally. All substation markers used to be created at
   // startup regardless of scope; now they're created lazily inside
   // renderScope() only for the Division/Sub-Division/Section the user
   // actually selects. The map shell + basemap still appear immediately.
@@ -4858,46 +4387,33 @@ setTimeout(()=>dismissLoader(),5000);
 
 function syncLabels(){
   const z=map.getZoom();
-  const showPoleLabels=z>=17;
+  const showPoleLabels=z>=17;const showSSLabels=z>=13;
   const showFlow=z>=13;
 
+  // Toggle the "zoomed-far" class on the map container — when zoomed out,
+  // we strip glow filters & flow animations from every polyline at once
+  // via CSS rules. This is the single biggest perf lever for smoothness.
   const mapEl=map.getContainer();
-  mapEl.classList.toggle('map-zoomed-far', z<13);
-  mapEl.classList.toggle('sg-zoom-out', z<12);
-  mapEl.classList.toggle('sg-zoom-mid', z>=12 && z<15);
-  mapEl.classList.toggle('sg-zoom-in', z>=15);
+  if(z<13)mapEl.classList.add('map-zoomed-far');
+  else mapEl.classList.remove('map-zoomed-far');
 
   allLayers.forEach(item=>{
-    if(_sgIsSS(item)){
-      // SS/EHT labels are handled by collision detection below.
-      if(item.layer.closeTooltip)item.layer.closeTooltip();
+    if(item.reg.type.startsWith('ss')||item.reg.type.startsWith('eht')){
+      if(item.layer.getTooltip){const tip=item.layer.getTooltip();if(tip){if(showSSLabels&&map.hasLayer(item.layer))item.layer.openTooltip&&item.layer.openTooltip();else item.layer.closeTooltip&&item.layer.closeTooltip();}}
     }
-
-    // Pole/feeder point labels only when zoomed in; otherwise they clutter print.
     if(item.poleNo){
-      if(showPoleLabels&&map.hasLayer(item.layer)){
-        if(!item.layer.getTooltip())item.layer.bindTooltip(item.poleNo,{permanent:true,direction:'right',className:'pole-label',offset:[6,0]});
-      }else{
-        if(item.layer.getTooltip())item.layer.unbindTooltip();
-      }
+      if(showPoleLabels&&map.hasLayer(item.layer)){if(!item.layer.getTooltip())item.layer.bindTooltip(item.poleNo,{permanent:true,direction:'right',className:'pole-label',offset:[6,0]});}
+      else{if(item.layer.getTooltip())item.layer.unbindTooltip();}
     }
-
+    // Flow animation: only when zoomed in enough AND feeder is live
     if(item.layer.flowLayer){
       const cs=feederStatus[item.feederName]||'live';
       const shouldShow=showFlow&&cs==='live'&&map.hasLayer(item.layer);
       safelyManageClass(item.layer.flowLayer,'hidden-flow',!shouldShow);
     }
   });
-
-  _sgDeclutterSSLabels();
-
-  const zl=document.getElementById('zoomLvl');
-  if(zl)zl.textContent=z;
+  document.getElementById('zoomLvl').textContent=z;
 }
-
-
-// Recompute SS/icon scope after zoom and pan; label visibility is screen-space.
-map.on('zoomend moveend', ()=>{ if(typeof updateVisibility==='function') updateVisibility(); });
 
 // ══════════════════════════════════════════════════
 // FEEDER STATS CARD
@@ -6650,24 +6166,16 @@ function removeFeederLayers(fn){
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SCOPE-FIRST / LAZY RENDERING  (added 26-Jun-2026 per Naresh)
+// SCOPE-FIRST / LAZY RENDERING (re-applied 28-Jun-2026 per Naresh)
 // renderScope() is the ONLY place feeder geometry gets built from the
 // feederIndex. Until it's called with a real scope, no polylines, no
 // SS/EHT markers, no popups exist beyond whatever's already on screen.
-// Switching scope diffs old-vs-new feeder sets so we only construct what's
-// newly in scope and tear down what fell out — never a full rebuild.
 // ═══════════════════════════════════════════════════════════════════
 function _scopeMatches(meta, scope){
   if(scope.feederName && scope.feederName!=='ALL') return meta.feederName===scope.feederName;
   if(scope.division && scope.division!=='ALL' && meta.division!==scope.division) return false;
   if(scope.subDivision && scope.subDivision!=='ALL' && meta.subDivision!==scope.subDivision) return false;
   if(scope.section && scope.section!=='ALL' && meta.section!==scope.section) return false;
-  // Before the user has ever touched the scope selector, ALL/ALL/ALL/ALL
-  // means "nothing chosen yet" → map shell stays empty (per original
-  // requirement #1). Once the user has interacted with the dropdown even
-  // once — including explicitly picking "ALL DIVISIONS" — that's a real,
-  // deliberate request to see everything, and must match every feeder.
-  // (Fixed 27-Jun-2026 — this was the cause of "ALL shows nothing" bug.)
   if(userHasInteractedWithScope) return true;
   const hasAnyRealSelection = (scope.division&&scope.division!=='ALL')
     || (scope.subDivision&&scope.subDivision!=='ALL')
@@ -6685,9 +6193,6 @@ function _lazyParseFeederRows(meta){
   return [];
 }
 
-// Builds the lightweight per-feeder nature classification without needing
-// full geometry — same logic fbLoadHierarchical used to run eagerly,
-// now run once per feeder at the moment it's actually rendered.
 function _classifyFeederNatureLazy(fn, rows){
   if(feederNatureMap[fn])return;
   let raw='';
@@ -6698,6 +6203,13 @@ function _classifyFeederNatureLazy(fn, rows){
   }
   feederNatureMap[fn]=_classifyFeederNature(raw, fn);
 }
+
+// Division-name normalizer: the Firebase divisions/ tree uses long-form
+// keys (e.g. "CENTRAL DIVISION", "SOUTH DIVISION"), while STATIC_SS33's
+// division field uses short-form names (e.g. "Central", "South"). A
+// literal string comparison between these never matches. Strips
+// "DIVISION" and whitespace so both forms compare equal.
+const _normDiv = (s)=> String(s||'').toUpperCase().replace(/\bDIVISION\b/g,'').replace(/[^A-Z]+/g,'').trim();
 
 function renderScope(scope){
   scope = Object.assign({division:'ALL',subDivision:'ALL',section:'ALL',feederName:'ALL'}, scope||{});
@@ -6726,10 +6238,6 @@ function renderScope(scope){
     const rows=_lazyParseFeederRows(meta);
     if(!rows.length)return;
 
-    // Populate uploadedFiles NOW (render time) — every existing
-    // edit/delete/force-sync function reads this and expects it to exist
-    // once a feeder is visible. Previously populated eagerly at index
-    // time; behaviour for an already-rendered feeder is unchanged.
     uploadedFiles[fn] = { fileName: meta.fileName||fn, feederName:fn, rows, section: meta.section };
 
     renderUploadedRows(rows, fn); // unchanged — draws polylines/markers/popups
@@ -6738,44 +6246,30 @@ function renderScope(scope){
     addedCount++;
   });
 
-  // ── substations: only the ones related to the new scope get created;
-  //    ones that fell out of scope get torn down. Reuses the same
-  //    relatedness philosophy as the existing _sg* visibility system
-  //    (token/hierarchy matching), but applied at CREATION time so we
-  //    stop instantiating all 161 markers up front. ──
-  // Per Naresh 27-Jun-2026: discovered a real, pre-existing naming
-  // mismatch between two independent data sources — the Firebase
-  // divisions/ tree uses long-form division keys (e.g. "CENTRAL
-  // DIVISION", "SOUTH DIVISION" — confirmed from the actual print
-  // composer title block and the real scope dropdown), while
-  // STATIC_SS33's `division` field uses short-form names (e.g.
-  // "Central", "South" — confirmed from the actual embedded data).
-  // A literal string-equality comparison between these NEVER matches,
-  // which is why substation counts were always wrong/small (falling
-  // through to the weaker name-token fallback) even for a real,
-  // correctly-loaded Division selection. _normDiv() strips the
-  // "DIVISION" suffix and whitespace so both forms compare equal.
-  const _normDiv = (s)=> String(s||'').toUpperCase().replace(/\bDIVISION\b/g,'').replace(/[^A-Z]+/g,'').trim();
-
+  // ── substations: only the ones related to the new scope get created ──
   const noScope = wantedNames.size===0;
   if(noScope){
-    removeSubstationLayers(()=>true); // scope cleared entirely → no SS/EHT either
+    removeSubstationLayers(()=>true);
   }else{
     const scopedDiv = scope.division!=='ALL' ? scope.division : null;
     const scopedSub = scope.subDivision!=='ALL' ? scope.subDivision : null;
     const scopedSec = scope.section!=='ALL' ? scope.section : null;
 
-    // Geographic nearest-centroid assignment for EHT relatedness, since
+    const wantedCorpus = [...wantedNames].join(' ').toUpperCase();
+    const ssNameTokenHit = (ss)=>{
+      const name = ss.name || '';
+      const toks = name.toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(' ').filter(t=>t.length>=3);
+      return toks.some(t=>wantedCorpus.includes(t));
+    };
+    const ssRelated = (ss)=>{
+      if(scopedSec) return String(ss.section||'').toUpperCase()===String(scopedSec).toUpperCase();
+      if(scopedSub) return String(ss.sub_div||ss.sub_division||'').toUpperCase()===String(scopedSub).toUpperCase();
+      if(scopedDiv) return _normDiv(ss.division)===_normDiv(scopedDiv);
+      return ssNameTokenHit(ss);
+    };
+
+    // Nearest-centroid division assignment for EHT relatedness, since
     // STATIC_EHT has no division/sub_div/section fields to match against.
-    // A bounding-box approach was tried and rejected: real Hyderabad
-    // division bounding boxes overlap heavily (verified against the actual
-    // STATIC_SS33 data — even ZERO padding produces several EHTs matching
-    // multiple divisions simultaneously, and several others matching none
-    // at all). Nearest-centroid instead computes each division's
-    // substation-cluster centroid and assigns every EHT to whichever
-    // centroid it's closest to — this gives every one of the 25 real EHTs
-    // exactly one unambiguous home division, verified against the actual
-    // dataset before shipping this approach.
     const divCentroids = {};
     {
       const byDiv = {};
@@ -6800,40 +6294,6 @@ function renderScope(scope){
       return best;
     };
 
-    const wantedCorpus = [...wantedNames].join(' ').toUpperCase();
-    const ssNameTokenHit = (ss)=>{
-      const name = ss.name || '';
-      const toks = name.toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(' ').filter(t=>t.length>=3);
-      return toks.some(t=>wantedCorpus.includes(t));
-    };
-    const ssRelated = (ss)=>{
-      if(scopedSec) return String(ss.section||'').toUpperCase()===String(scopedSec).toUpperCase();
-      if(scopedSub) return String(ss.sub_div||ss.sub_division||'').toUpperCase()===String(scopedSub).toUpperCase();
-      if(scopedDiv) return _normDiv(ss.division)===_normDiv(scopedDiv);
-      // Single-feeder scope with no div/sub/sec narrowing: do NOT show every
-      // 33/11KV substation — only ones whose name shares a token with the
-      // feeder name(s) actually in view (e.g. "ALLWYN" feeder ↔ "ALLWYN SS").
-      // This was a real bug caught by testing — a bare `return true` here
-      // meant every substation in the whole dataset was treated as related.
-      return ssNameTokenHit(ss);
-    };
-
-    // EHT relatedness: STATIC_EHT entries have NO division/sub_div/section
-    // fields at all (confirmed in the real dataset) — so ssRelated(eht)
-    // would always return false under a hierarchy-scoped selection, no
-    // matter which division/section was picked. EHT relatedness now uses
-    // nearest-centroid geographic assignment when a Division/Sub/Section is
-    // scoped, OR name-token matching as a secondary signal — whichever
-    // hits. When the scope is a deliberate "ALL" selection (every
-    // Division), show every EHT — there are only 25, and the live map
-    // already treats EHT as always-visible when nothing is scoped.
-    // If scoped by sub-division/section/single-feeder without an explicit
-    // division value (the cascading dropdowns shouldn't normally produce
-    // sub/sec without a division, but a single-feeder selection genuinely
-    // can have no division/sub/section narrowing at all), derive the
-    // division from whichever 33/11KV substation already matched
-    // ssRelated for this scope — gives the EHT centroid check something
-    // to anchor to even for a bare single-feeder selection.
     let derivedDiv = scopedDiv;
     if(!derivedDiv){
       const matchingSS = (window.STATIC_SS33||STATIC_SS33||[]).find(ssRelated);
@@ -6841,14 +6301,6 @@ function renderScope(scope){
     }
 
     const ehtRelated = (eht)=>{
-      // "Show everything" only applies when the user deliberately selected
-      // ALL at every level, INCLUDING feeder — not merely "no division/sub/
-      // section narrowing" on its own, since a single-feeder scope (e.g.
-      // picking one feeder directly from the FEEDER dropdown with Division
-      // left on ALL) also has scopedDiv/Sub/Sec all null, but must NOT show
-      // all 25 EHTs — only the one or two actually feeding that feeder.
-      // This was a real bug caught by testing: single-feeder Madhapur scope
-      // was showing 26 substations (every EHT) instead of ~1-2 related ones.
       const isWholeAllSelection = !scopedSec && !scopedSub && !scopedDiv && (!scope.feederName || scope.feederName==='ALL');
       if(isWholeAllSelection) return true;
       const nearestDiv = ehtNearestDivision(eht);
@@ -6864,9 +6316,6 @@ function renderScope(scope){
     renderStaticSS((ssObj,type)=> type==='ehts' ? ehtRelated(ssObj) : ssRelated(ssObj));
   }
 
-  // ── existing bookkeeping, now run after every scope change instead of
-  //    only once at startup — all idempotent/cheap over the (now much
-  //    smaller) in-scope set ──
   buildFeederChecks();
   updateCounts();
   if(typeof buildHierFilters==='function')buildHierFilters();
@@ -6879,7 +6328,6 @@ function renderScope(scope){
     toast(`Scope updated — ${renderedFeederSet.size} feeder(s) in view`+(removedCount?` (${removedCount} unloaded)`:''),3000);
   }
 
-  // Fly to the new scope's bounds only when something is actually on screen
   if(addedCount>0){
     const pts=[];
     renderedFeederSet.forEach(fn=>{
@@ -6899,9 +6347,6 @@ function renderScope(scope){
   return { added:addedCount, removed:removedCount, inScope:renderedFeederSet.size };
 }
 
-// Build/refresh the scope-selection dropdowns from the lightweight index
-// (division/sub-division/section/feeder) — works BEFORE anything is
-// rendered, since it only reads feederIndex metadata, never geometry.
 function buildScopeSelectors(){
   const divs=new Set(), subsByDiv={}, secsByDivSub={};
   Object.values(feederIndex).forEach(m=>{
@@ -6918,7 +6363,7 @@ function buildScopeSelectors(){
   const subEl=document.getElementById('scopeSub');
   const secEl=document.getElementById('scopeSec');
   const fnEl=document.getElementById('scopeFeeder');
-  if(!divEl)return; // UI not present in this build — index-only is still safe
+  if(!divEl)return;
 
   const cur={
     div: divEl.value||'ALL',
@@ -6968,28 +6413,21 @@ function buildScopeSelectors(){
   }
 }
 
-// Wired to the scope dropdown onchange handlers — reads current selector
-// values and triggers the lazy render for exactly that scope.
 function applyScopeSelection(){
   userHasInteractedWithScope = true;
   const div = document.getElementById('scopeDiv')?.value || 'ALL';
   const sub = document.getElementById('scopeSub')?.value || 'ALL';
   const sec = document.getElementById('scopeSec')?.value || 'ALL';
   const fn  = document.getElementById('scopeFeeder')?.value || 'ALL';
-  buildScopeSelectors(); // refresh cascading options for the new parent selection
+  buildScopeSelectors();
   renderScope({division:div, subDivision:sub, section:sec, feederName:fn});
 }
 
 async function deleteUploadedFeeder(){
   const sel=document.getElementById('dfFileSelect');
   const key=sel.value;
-  // Per Naresh 26-Jun-2026 (scope-first rendering): a feeder may be indexed
-  // but not yet rendered (uploadedFiles only populates at render time now),
-  // so fall back to feederIndex for the lookup — this function never
-  // actually needed parsed rows, only the feeder's name + hierarchy.
-  const src = uploadedFiles[key] || feederIndex[key];
-  if(!key||!src){toast('Select a file to delete');return;}
-  const feederName = src.feederName;
+  if(!key||!uploadedFiles[key]){toast('Select a file to delete');return;}
+  const {feederName}=uploadedFiles[key];
   if(!confirm('Delete feeder "'+feederName+'" from map and Firebase?'))return;
   // Capture hierarchy BEFORE local cleanup wipes it
   const m=feederMetaMap[feederName]||{};
@@ -6998,13 +6436,11 @@ async function deleteUploadedFeeder(){
   // ── Local removal of EVERY state map ──
   removeFeederLayers(feederName);
   feederNames.delete(feederName);
-  renderedFeederSet.delete(feederName);
   delete feederState[feederName];
   delete feederStatus[feederName];
   delete feederSectionMap[feederName];
   delete feederHierarchyMap[feederName];
   delete feederMetaMap[feederName];
-  delete feederIndex[feederName];
   delete uploadedFiles[key];
   sel.querySelector('option[value="'+CSS.escape(key)+'"]')?.remove();
   sel.value='';
@@ -7029,7 +6465,6 @@ async function deleteFeederFromMap(fn,e){
   // ── Local cleanup of EVERY state map ──
   removeFeederLayers(fn);
   feederNames.delete(fn);
-  renderedFeederSet.delete(fn);
   delete feederState[fn];
   delete feederStatus[fn];
   delete feederSectionMap[fn];
@@ -7042,7 +6477,6 @@ async function deleteFeederFromMap(fn,e){
       document.getElementById('dfFileSelect')?.querySelector('option[value="'+CSS.escape(k)+'"]')?.remove();
     }
   });
-  delete feederIndex[fn];
   buildFeederChecks();updateCounts();
   if(typeof buildHierFilters==='function')buildHierFilters();
   if(typeof refreshSectionDeleteDropdown==='function')refreshSectionDeleteDropdown();
@@ -7104,23 +6538,17 @@ async function deleteWholeSection(){
   const key=sel?.value;
   if(!key){toast('Pick a section first',2000);return;}
   const [div,sub,sec]=key.split('|');
-  // Find every KNOWN feeder matching this exact hierarchy triple — iterate
-  // feederIndex (the full set indexed from Firebase) rather than
-  // uploadedFiles, since uploadedFiles now only contains feeders that have
-  // actually been rendered into view (per Naresh 26-Jun-2026 scope-first
-  // rendering). Iterating uploadedFiles here would silently skip any
-  // feeder in this section that hasn't been scoped into view yet — a real
-  // bug for a destructive bulk-delete.
+  // Find every uploaded feeder matching this exact hierarchy triple
   const targets=[];
-  Object.entries(feederIndex||{}).forEach(([fkey,f])=>{
+  Object.entries(uploadedFiles||{}).forEach(([fkey,f])=>{
     if(!f||!f.feederName)return;
     const fn=f.feederName;
     const h=feederHierarchyMap[fn]||{};
     const m=feederMetaMap[fn]||{};
-    const fDiv=(h.division||m.div||f.division||'').toString().trim();
-    const fSub=(h.sub_division||m.sub||f.subDivision||'').toString().trim();
-    const fSec=(h.section||m.sec||f.section||feederSectionMap[fn]||'').toString().trim();
-    if(fDiv===div&&fSub===sub&&fSec===sec)targets.push({key:fn,fn});
+    const fDiv=(h.division||m.div||'').toString().trim();
+    const fSub=(h.sub_division||m.sub||'').toString().trim();
+    const fSec=(h.section||m.sec||feederSectionMap[fn]||'').toString().trim();
+    if(fDiv===div&&fSub===sub&&fSec===sec)targets.push({key:fkey,fn});
   });
   if(!targets.length){toast('No feeders found in '+sec,2000);return;}
   if(!confirm(`Delete the entire section "${sec}"?\n\nThis will remove ${targets.length} feeder(s) from:\n  • the map\n  • the side panel\n  • Firebase divisions/${div}/sub_divisions/${sub}/sections/${sec}/\n\nThis cannot be undone.`))return;
@@ -7130,13 +6558,11 @@ async function deleteWholeSection(){
     if(focusedFeeder===fn)exitFocusedFeeder();
     removeFeederLayers(fn);
     feederNames.delete(fn);
-    renderedFeederSet.delete(fn);
     delete feederState[fn];
     delete feederStatus[fn];
     delete feederSectionMap[fn];
     delete feederHierarchyMap[fn];
     delete feederMetaMap[fn];
-    delete feederIndex[fn];
     delete uploadedFiles[key];
     document.getElementById('dfFileSelect')?.querySelector('option[value="'+CSS.escape(key)+'"]')?.remove();
     n++;
@@ -7531,9 +6957,7 @@ async function fbLoadHierarchical(){
             // ── INDEX ONLY — do NOT parse rowsJson, do NOT render geometry ──
             // Row parsing + renderUploadedRows() now happen lazily inside
             // renderScope(), only for feeders the user has actually scoped
-            // into view. This is the fix for "load everything then hide":
-            // we no longer touch row data or create a single marker/polyline
-            // here at all.
+            // into view.
             if (!item.rowsJson && !Array.isArray(item.rows)){
               continue; // nothing to index — no row payload at all
             }
@@ -7548,7 +6972,7 @@ async function fbLoadHierarchical(){
               subDivision: sub,
               section: sec,
               feederType: meta.feederType || meta.nature || '',
-              sourceEHT: meta.sourceEHT || meta.eht || extractEHT(feederName),
+              sourceEHT: meta.sourceEHT || meta.eht || (typeof extractEHT==='function' ? extractEHT(feederName) : ''),
               destinationSS: meta.destinationSS || '',
               rowsJson: item.rowsJson || null,
               rowsInline: Array.isArray(item.rows) ? item.rows : null,
@@ -8296,37 +7720,38 @@ setTimeout(async ()=>{
 
 /* ── Expose app internals so the PRINT COMPOSER (separate script scope)
       can reach them. Top-level const/let are NOT auto-attached to window,
-      which is why the print button previously found no data. ── */
+      which is why the print button previously found no data. ──
+   Per Naresh 28-Jun-2026: this was previously ONE try/catch wrapping
+   every exposure — if any single line threw, the catch silently
+   swallowed it and EVERY OTHER exposure after the failing line never
+   ran either, since a throw aborts the rest of the try block. Each
+   exposure below is now wrapped individually so one failure can't take
+   the rest down with it, and failures are visible in console instead
+   of silent. */
+function _tgExposeOne(name, valueFn){
+  try{ window[name] = valueFn(); }
+  catch(e){ console.error('[expose] '+name+' failed:', e.message); }
+}
+_tgExposeOne('allLayers', ()=>allLayers);
+_tgExposeOne('feederNames', ()=>feederNames);
+_tgExposeOne('calcFeederStats', ()=> typeof calcFeederStats==='function' ? calcFeederStats : undefined);
+_tgExposeOne('focusFeeder', ()=> typeof focusFeeder==='function' ? focusFeeder : undefined);
 try {
-  window.allLayers = allLayers;        // const array — same reference, stays live
-  window.feederNames = feederNames;    // Set — same reference, stays live
-  if (typeof calcFeederStats === 'function') window.calcFeederStats = calcFeederStats;
-  if (typeof focusFeeder === 'function')      window.focusFeeder = focusFeeder;
-  // focusedFeeder is reassigned with `let`, so expose a live getter
   Object.defineProperty(window, 'focusedFeeder', {
     configurable: true,
     get: function(){ return focusedFeeder; }
   });
-  // ── Added: same const/window gap, found while building the group-print
-  //    feature. window.STATIC_SS33 / window.STATIC_EHT were always undefined,
-  //    so the print composer's nearbySubstations() silently returned zero
-  //    substations on every print — no error, just empty. This is why
-  //    substation markers/names never appeared in any printout regardless
-  //    of paper size or feeder. Same root cause for feederHierarchyMap /
-  //    feederMetaMap / feederStatus (Division/Section/Source-EHT enrichment
-  //    in the XLSX export, PTR popup matching) and map (post-login
-  //    invalidateSize() call). ──
-  window.STATIC_SS33 = STATIC_SS33;
-  window.STATIC_EHT = STATIC_EHT;
-  window.feederHierarchyMap = feederHierarchyMap;
-  window.feederMetaMap = feederMetaMap;
-  window.feederStatus = feederStatus;
-  window.map = map;
-  // ── Scope-first lazy rendering (added 26-Jun-2026 per Naresh) ──
-  window.feederIndex = feederIndex;       // fn -> metadata, full universe, no geometry
-  window.renderScope = renderScope;       // the one function that builds/tears down geometry
-  window.renderedFeederSet = renderedFeederSet;
-} catch (e) { console.error('[print-composer] expose failed:', e); }
+} catch(e){ console.error('[expose] focusedFeeder getter failed:', e.message); }
+_tgExposeOne('STATIC_SS33', ()=>STATIC_SS33);
+_tgExposeOne('STATIC_EHT', ()=>STATIC_EHT);
+_tgExposeOne('feederHierarchyMap', ()=>feederHierarchyMap);
+_tgExposeOne('feederMetaMap', ()=>feederMetaMap);
+_tgExposeOne('feederStatus', ()=>feederStatus);
+_tgExposeOne('map', ()=>map);
+_tgExposeOne('feederIndex', ()=>feederIndex);
+_tgExposeOne('renderScope', ()=>renderScope);
+_tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
+
 </script>
 
 <div id="feederStatsPanel">
@@ -10195,28 +9620,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
         <label class="tgp-check"><input type="checkbox" id="tgpTitle" checked> Title block</label>
         <label class="tgp-check"><input type="checkbox" id="tgpLegend" checked> Legend</label>
         <label class="tgp-check"><input type="checkbox" id="tgpNorth" checked> North arrow</label>
-        <label class="tgp-check"><input type="checkbox" id="tgpGoogleBg" checked> SCADA minimal bg</label>
-      </div>
-      <label class="tgp-lbl" style="margin-top:8px">PRINT BACKGROUND</label>
-      <select id="tgpPrintBgStyle" class="tgp-select">
-        <option value="minimal_light" selected>SCADA Minimal Light — print recommended</option>
-        <option value="minimal_dark">SCADA Minimal Dark</option>
-        <option value="none">No basemap / white schematic only</option>
-      </select>
-      <div class="tgp-note" style="margin-top:6px">This prints only the minimal road/locality context, not the full Google feature layer.</div>
-    </div>
-
-    <div class="tgp-row">
-      <label class="tgp-lbl">ZONE FILL (TRANSCO-style, in export)</label>
-      <select id="tgpZoneStyleExport" class="tgp-select">
-        <option value="blob" selected>Smoothed Blob (recommended)</option>
-        <option value="hull">Tight Hull</option>
-        <option value="voronoi">Voronoi (full coverage)</option>
-        <option value="off">Off</option>
-      </select>
-      <div class="tgp-grid" style="margin-top:6px">
-        <label class="tgp-check"><input type="checkbox" id="tgpInsetHyderabad"> Hyderabad urban cluster inset</label>
-        <label class="tgp-check"><input type="checkbox" id="tgpInsetFocus"> Substation focus inset</label>
+        <label class="tgp-check"><input type="checkbox" id="tgpGoogleBg" checked> Google map bg</label>
       </div>
     </div>
 
@@ -10268,11 +9672,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       title: el('tgpTitle') ? el('tgpTitle').checked : true,
       legend: el('tgpLegend') ? el('tgpLegend').checked : true,
       north: el('tgpNorth') ? el('tgpNorth').checked : true,
-      googleBg: el('tgpGoogleBg') ? el('tgpGoogleBg').checked : true,
-      printBgStyle: el('tgpPrintBgStyle') ? el('tgpPrintBgStyle').value : 'minimal_light',
-      zoneStyle: el('tgpZoneStyleExport') ? el('tgpZoneStyleExport').value : 'blob',
-      insetHyderabad: el('tgpInsetHyderabad') ? el('tgpInsetHyderabad').checked : false,
-      insetFocus: el('tgpInsetFocus') ? el('tgpInsetFocus').checked : false
+      googleBg: el('tgpGoogleBg') ? el('tgpGoogleBg').checked : true
     };
   }
 
@@ -10422,164 +9822,57 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     return { lat: latRad*180/Math.PI, lng: lng };
   }
   function googleBackgroundSvg(ctx, opt){
-    if(!opt.googleBg || opt.printBgStyle === 'none') return '';
+    if(!opt.googleBg) return '';
     var b = ctx.bounds;
-    var style = opt.printBgStyle || 'minimal_light';
-    var isDark = style === 'minimal_dark';
-    var z = (opt.paper === 'A0' || opt.paper === 'A1') ? 13 : (opt.paper === 'A5' || opt.paper === 'A6') ? 11 : 12;
+    var z = (opt.paper === 'A0' || opt.paper === 'A1') ? 16 : (opt.paper === 'A5' || opt.paper === 'A6') ? 14 : 15;
     var nw = lngLatToTile(b.maxLat, b.minLng, z);
     var se = lngLatToTile(b.minLat, b.maxLng, z);
     var tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
-    while(tileCount > MAX_BG_TILES && z > 8){
+    while(tileCount > MAX_BG_TILES && z > 10){
       z--;
       nw = lngLatToTile(b.maxLat, b.minLng, z);
       se = lngLatToTile(b.minLat, b.maxLng, z);
       tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
     }
-    var baseName  = isDark ? 'dark_all' : 'light_all';
-    var labelName = '';
-    var baseOpacity  = 1;
-    var labelOpacity = 0;
     var out = [];
-    var clipId = 'tgScadaMinClip' + Math.round(ctx.draw.x*10) + '_' + Math.round(ctx.draw.y*10) + '_' + Math.round(ctx.draw.w*10);
-    out.push('<defs><clipPath id="'+clipId+'"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath><filter id="tgPrintTileEnhance"><feComponentTransfer><feFuncR type="linear" slope="1.12" intercept="-0.03"/><feFuncG type="linear" slope="1.12" intercept="-0.03"/><feFuncB type="linear" slope="1.12" intercept="-0.03"/></feComponentTransfer></filter></defs>');
-    out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="'+(isDark?'#07111f':'#f8fafc')+'"/>');
-    function addTiles(layerName, opacity){
-      out.push('<g clip-path="url(#'+clipId+')" opacity="'+opacity+'">');
-      for(var x = nw.x; x <= se.x; x++){
-        for(var y = nw.y; y <= se.y; y++){
-          var tl = tileToLngLat(x,y,z), br = tileToLngLat(x+1,y+1,z);
-          var p1 = ctx.project({lat:tl.lat, lng:tl.lng}), p2 = ctx.project({lat:br.lat, lng:br.lng});
-          var xx = Math.min(p1.x,p2.x), yy = Math.min(p1.y,p2.y), ww = Math.abs(p2.x-p1.x), hh = Math.abs(p2.y-p1.y);
-          var href = 'https://a.basemaps.cartocdn.com/'+layerName+'/'+z+'/'+x+'/'+y+'.png';
-          out.push('<image href="'+href+'" x="'+xx.toFixed(2)+'" y="'+yy.toFixed(2)+'" width="'+ww.toFixed(2)+'" height="'+hh.toFixed(2)+'" preserveAspectRatio="none"/>');
-        }
-      }
-      out.push('</g>');
-    }
-    addTiles(baseName, baseOpacity);
-    if(labelName) addTiles(labelName, labelOpacity);
-    // No wash overlay; it made the background look blank/grey in print.
-    return out.join('');
-  }
-
-
-  // ---------- CORS-safe basemap for print/SVG ----------
-  // Remote tile <image href="https://..."> often becomes blank when the SVG is
-  // opened/printed in a new tab. We therefore fetch each CARTO tile first and
-  // embed it as a data:image/png;base64 URL inside the SVG.
-  var _tgTileDataCache = window._tgTileDataCache || (window._tgTileDataCache = {});
-  function tgCartoTileUrl(layerName,z,x,y){
-    // Retina tiles for print clarity. Voyager is clearer than light_all for roads/locality labels.
-    if(layerName === 'light_all'){
-      return 'https://a.basemaps.cartocdn.com/rastertiles/voyager/'+z+'/'+x+'/'+y+'@2x.png';
-    }
-    if(layerName === 'dark_all'){
-      return 'https://a.basemaps.cartocdn.com/dark_all/'+z+'/'+x+'/'+y+'@2x.png';
-    }
-    return 'https://a.basemaps.cartocdn.com/'+layerName+'/'+z+'/'+x+'/'+y+'@2x.png';
-  }
-  function tgTransparentTile(){
-    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
-  }
-  async function tgFetchTileDataUrl(url){
-    if(_tgTileDataCache[url]) return _tgTileDataCache[url];
-    try{
-      var r = await fetch(url, {mode:'cors', cache:'force-cache'});
-      if(!r.ok) throw new Error('tile '+r.status);
-      var blob = await r.blob();
-      var data = await new Promise(function(resolve,reject){
-        var fr = new FileReader();
-        fr.onload = function(){ resolve(fr.result); };
-        fr.onerror = reject;
-        fr.readAsDataURL(blob);
-      });
-      _tgTileDataCache[url] = data;
-      return data;
-    }catch(e){
-      console.warn('[print tiles] failed:', url, e);
-      return tgTransparentTile();
-    }
-  }
-  async function googleBackgroundSvgAsync(ctx, opt){
-    if(!opt.googleBg || opt.printBgStyle === 'none') return '';
-    var b = ctx.bounds;
-    var style = opt.printBgStyle || 'minimal_light';
-    var isDark = style === 'minimal_dark';
-
-    // HIGH-RES PRINT TILE FIX:
-    // Previous print used z=11/12 CARTO tiles and enlarged them into the sheet,
-    // so the background looked like a pale/blank grey image. For single-feeder
-    // drawings we start high and reduce only if too many tiles are required.
-    var z = (opt.paper === 'A0' || opt.paper === 'A1') ? 18 :
-            (opt.paper === 'A2' || opt.paper === 'A3') ? 18 :
-            (opt.paper === 'A4') ? 17 : 16;
-
-    var nw = lngLatToTile(b.maxLat, b.minLng, z);
-    var se = lngLatToTile(b.minLat, b.maxLng, z);
-    var tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
-    var maxTiles = (opt && opt.mode === 'group') ? 900 : 1200;
-    while(tileCount > maxTiles && z > 14){
-      z--;
-      nw = lngLatToTile(b.maxLat, b.minLng, z);
-      se = lngLatToTile(b.minLat, b.maxLng, z);
-      tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
-    }
-
-    // Use one clear CARTO all-in-one layer instead of no-labels + low-opacity labels.
-    // This keeps roads/locality labels visible like the 11KV reference.
-    var layerName = isDark ? 'dark_all' : 'light_all';
-    var out = [];
-    var clipId = 'tgScadaPrintClip' + Math.round(ctx.draw.x*10) + '_' + Math.round(ctx.draw.y*10) + '_' + Math.round(ctx.draw.w*10) + '_' + Math.round(Math.random()*1e6);
-    out.push('<defs><clipPath id="'+clipId+'"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath></defs>');
-    out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="'+(isDark?'#07111f':'#ffffff')+'"/>');
-
-    out.push('<g clip-path="url(#'+clipId+')" opacity="1">');
-    var jobs=[];
+    out.push('<defs><clipPath id="tgMapClip"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath></defs>');
+    out.push('<g clip-path="url(#tgMapClip)" opacity="0.72">');
     for(var x = nw.x; x <= se.x; x++){
       for(var y = nw.y; y <= se.y; y++){
-        (function(x,y){
-          jobs.push((async function(){
-            var tl = tileToLngLat(x,y,z), br = tileToLngLat(x+1,y+1,z);
-            var p1 = ctx.project({lat:tl.lat, lng:tl.lng}), p2 = ctx.project({lat:br.lat, lng:br.lng});
-            var xx = Math.min(p1.x,p2.x), yy = Math.min(p1.y,p2.y), ww = Math.abs(p2.x-p1.x), hh = Math.abs(p2.y-p1.y);
-            var href = await tgFetchTileDataUrl(tgCartoTileUrl(layerName,z,x,y));
-            return '<image href="'+href+'" x="'+xx.toFixed(2)+'" y="'+yy.toFixed(2)+'" width="'+ww.toFixed(2)+'" height="'+hh.toFixed(2)+'" preserveAspectRatio="none" filter="url(#tgPrintTileEnhance)"/>';
-          })());
-        })(x,y);
+        var tl = tileToLngLat(x,y,z), br = tileToLngLat(x+1,y+1,z);
+        var p1 = ctx.project({lat:tl.lat, lng:tl.lng}), p2 = ctx.project({lat:br.lat, lng:br.lng});
+        var xx = Math.min(p1.x,p2.x), yy = Math.min(p1.y,p2.y), ww = Math.abs(p2.x-p1.x), hh = Math.abs(p2.y-p1.y);
+        var href = 'https://mt.google.com/vt/lyrs=m&x='+x+'&y='+y+'&z='+z;
+        out.push('<image href="'+href+'" x="'+xx.toFixed(2)+'" y="'+yy.toFixed(2)+'" width="'+ww.toFixed(2)+'" height="'+hh.toFixed(2)+'" preserveAspectRatio="none"/>');
       }
     }
-    var imgs = await Promise.all(jobs);
-    out.push(imgs.join(''));
     out.push('</g>');
-
-    // No white/grey wash overlay. The overlay was the reason the output still looked blank.
+    out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="rgba(255,255,255,0.16)"/>');
     return out.join('');
   }
 
   // ---------- symbols ----------
   function symbolSvg(x,y,type){
-    // Small print symbols — large live-map markers should not dominate a drawing.
-    if(type === 'SS')  return '<rect x="'+(x-0.9)+'" y="'+(y-0.9)+'" width="1.8" height="1.8" fill="#ef4444" stroke="#7f1d1d" stroke-width=".32"/>';
-    if(type === 'AB')  return '<circle cx="'+x+'" cy="'+y+'" r="0.55" fill="#ff9800" stroke="#7c2d12" stroke-width=".18"/>';
-    if(type === 'DP')  return '<rect x="'+(x-0.65)+'" y="'+(y-0.65)+'" width="1.3" height="1.3" fill="#d946ef" stroke="#701a75" stroke-width=".18"/>';
-    if(type === 'CUT') return '<path d="M'+(x-0.85)+' '+(y-0.85)+' L'+(x+0.85)+' '+(y+0.85)+' M'+(x+0.85)+' '+(y-0.85)+' L'+(x-0.85)+' '+(y+0.85)+'" stroke="#ef4444" stroke-width=".32" stroke-linecap="round"/>';
-    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r=".38" fill="#111827"/>';
+    if(type === 'SS')  return '<rect x="'+(x-2.5)+'" y="'+(y-2.5)+'" width="5" height="5" fill="#ef4444" stroke="#7f1d1d" stroke-width=".5"/>';
+    if(type === 'AB')  return '<circle cx="'+x+'" cy="'+y+'" r="2.3" fill="#ff9800" stroke="#7c2d12" stroke-width=".4"/>';
+    if(type === 'DP')  return '<rect x="'+(x-2.5)+'" y="'+(y-2.5)+'" width="5" height="5" fill="#d946ef" stroke="#701a75" stroke-width=".4"/>';
+    if(type === 'CUT') return '<path d="M'+(x-3)+' '+(y-3)+' L'+(x+3)+' '+(y+3)+' M'+(x+3)+' '+(y-3)+' L'+(x-3)+' '+(y+3)+'" stroke="#ef4444" stroke-width="1"/>';
+    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r="1" fill="#111827"/>';
     return '';
   }
   function substationSvg(x,y,type,name){
     if(type === 'eht'){
-      return '<g><rect x="'+(x-3.2)+'" y="'+(y-2.3)+'" width="6.4" height="4.6" rx=".8" fill="#fff7ed" stroke="#f97316" stroke-width=".65"/>'
-        + '<text x="'+x+'" y="'+(y+1.2)+'" font-size="2.3" text-anchor="middle" fill="#c2410c">&#9889;</text>'
-        + '<text x="'+(x+4.0)+'" y="'+(y-3.0)+'" font-size="2.2" font-weight="700" fill="#7c2d12">'+esc(name)+'</text></g>';
+      return '<g><rect x="'+(x-4.2)+'" y="'+(y-3)+'" width="8.4" height="6" rx="1" fill="#fff7ed" stroke="#f97316" stroke-width=".65"/>'
+        + '<text x="'+x+'" y="'+(y+1.2)+'" font-size="3" text-anchor="middle" fill="#c2410c">&#9889;</text>'
+        + '<text x="'+(x+5.2)+'" y="'+(y-4)+'" font-size="2.6" font-weight="700" fill="#7c2d12">'+esc(name)+'</text></g>';
     }
-    return '<g><circle cx="'+x+'" cy="'+y+'" r="1.6" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".65"/>'
-      + '<text x="'+x+'" y="'+(y+1.1)+'" font-size="2.1" text-anchor="middle" fill="#1d4ed8">&#9889;</text>'
-      + '<text x="'+(x+3.3)+'" y="'+(y-2.7)+'" font-size="2.1" font-weight="700" fill="#0f172a">'+esc(name)+'</text></g>';
+    return '<g><circle cx="'+x+'" cy="'+y+'" r="3.3" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".65"/>'
+      + '<text x="'+x+'" y="'+(y+1.1)+'" font-size="2.8" text-anchor="middle" fill="#1d4ed8">&#9889;</text>'
+      + '<text x="'+(x+4.7)+'" y="'+(y-3.8)+'" font-size="2.6" font-weight="700" fill="#0f172a">'+esc(name)+'</text></g>';
   }
 
   // ---------- main SVG builder ----------
-  async function buildFeederSvg(fn, opt){
+  function buildFeederSvg(fn, opt){
     var segs = getFeederSegments(fn);
     if(!segs.length) return '';
     var page = paperSize(opt);
@@ -10612,14 +9905,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     }
 
     // Google map background — drawn first so the route/symbols sit on top of it
-    svg.push(await googleBackgroundSvgAsync(ctx, opt));
+    svg.push(googleBackgroundSvg(ctx, opt));
 
     segs.forEach(function(s){
       if(s.pts.length < 2) return;
       var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
       var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
       var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(window.tgPrintLineWidth||0.95)+'" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
     });
 
     if(opt.symbols || opt.poleLabels){
@@ -10660,10 +9953,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       var lx = 10, ly = page.h - 46;
       svg.push('<rect x="'+lx+'" y="'+ly+'" width="50" height="38" fill="#fff" stroke="#777" stroke-width=".25"/>');
       svg.push('<text x="'+(lx+3)+'" y="'+(ly+5)+'" font-size="2.4" font-weight="700">LEGEND</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+10)+'" x2="'+(lx+14)+'" y2="'+(ly+10)+'" stroke="#2196f3" stroke-width="1.8"/><text x="'+(lx+17)+'" y="'+(ly+11)+'" font-size="2.2">UG Line</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+16)+'" x2="'+(lx+14)+'" y2="'+(ly+16)+'" stroke="#ff9800" stroke-width="1.8" stroke-dasharray="2 1"/><text x="'+(lx+17)+'" y="'+(ly+17)+'" font-size="2.2">OH Line</text>');
-      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+22)+'" r="1.1" fill="#ff9800"/><text x="'+(lx+17)+'" y="'+(ly+23)+'" font-size="2.2">AB / device</text>');
-      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+28)+'" r="1.6" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+29)+'" font-size="2.2">33/11KV SS</text>');
+      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+10)+'" x2="'+(lx+14)+'" y2="'+(ly+10)+'" stroke="#2196f3" stroke-width="1.1"/><text x="'+(lx+17)+'" y="'+(ly+11)+'" font-size="2.2">UG Line</text>');
+      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+16)+'" x2="'+(lx+14)+'" y2="'+(ly+16)+'" stroke="#ff9800" stroke-width="1.1" stroke-dasharray="2 1"/><text x="'+(lx+17)+'" y="'+(ly+17)+'" font-size="2.2">OH Line</text>');
+      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+22)+'" r="2" fill="#ff9800"/><text x="'+(lx+17)+'" y="'+(ly+23)+'" font-size="2.2">AB / device</text>');
+      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+28)+'" r="2.4" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+29)+'" font-size="2.2">33/11KV SS</text>');
       svg.push('<rect x="'+(lx+6.6)+'" y="'+(ly+32)+'" width="6.6" height="4.4" rx=".8" fill="#fff7ed" stroke="#f97316" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+35.6)+'" font-size="2.2">EHT SS</text>');
     }
 
@@ -10699,47 +9992,41 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     return w;
   }
 
-  async function selectedSvg(){
+  function selectedSvg(){
     var opt = getPrintOptions();
     var fn = currentFeederName();
     if(opt.mode === 'current') return null;
     if(!fn){ alert('Please click/focus a feeder first, then press PRINT.'); return ''; }
-    var svg;
-    try{
-      svg = await buildFeederSvgV2(fn, opt);
-    }catch(e){
-      console.warn('buildFeederSvgV2 failed, falling back to legacy renderer:', e);
-      svg = await buildFeederSvg(fn, opt);
-    }
+    var svg = buildFeederSvg(fn,opt);
     if(!svg){ alert('No printable geometry found for selected feeder.'); return ''; }
     return {svg:svg, fn:fn};
   }
 
-  window.tgPrintComposerPreview = async function(){
+  window.tgPrintComposerPreview = function(){
     var opt = getPrintOptions();
     if(opt.mode === 'current'){
       alert('Current map view uses browser print. Use PRINT button for map view.');
       return;
     }
-    var out = await selectedSvg();
+    var out = selectedSvg();
     if(!out) return;
     openPrintWindow(out.svg, 'Feeder Drawing - '+out.fn);
   };
 
-  window.tgPrintComposerPrint = async function(){
+  window.tgPrintComposerPrint = function(){
     var opt = getPrintOptions();
     if(opt.mode === 'current'){
       window.print();
       return;
     }
-    var out = await selectedSvg();
+    var out = selectedSvg();
     if(!out) return;
     var w = openPrintWindow(out.svg, 'Print Feeder - '+out.fn);
     if(w) setTimeout(function(){ w.focus(); w.print(); }, 900);
   };
 
-  window.tgPrintComposerDownloadSVG = async function(){
-    var out = await selectedSvg();
+  window.tgPrintComposerDownloadSVG = function(){
+    var out = selectedSvg();
     if(!out) return;
     var blob = new Blob([out.svg], {type:'image/svg+xml;charset=utf-8'});
     var a = document.createElement('a');
@@ -10771,223 +10058,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     a.click();
     setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
   };
-
-  // ── V2 export renderer additions (26-Jun-2026): collision-safe labels,
-  //    zone fills, grid-sheet layout. New function, original buildFeederSvg
-  //    untouched above. ──
-function R(){ return window.tgExportRenderer; }
-
-  // ───────────────────────────────────────────────────────────
-  // shared: collect label candidates for a set of substations +
-  // optional feeder-name labels, then resolve via the collision
-  // placer, then emit <text> elements only for survivors.
-  // ───────────────────────────────────────────────────────────
-  function buildSubstationLabelSvg(ehtList, ss33List, project, feederNameCandidates){
-    var Rr = R();
-    var candidates = [];
-    ehtList.forEach(function(s, i){
-      if(s.lat == null || s.lon == null) return;
-      var q = project({lat:Number(s.lat), lng:Number(s.lon)});
-      var name = s.name || 'EHT SS';
-      var feeders = parseFloat(s.feeders)||0, load = parseFloat(String(s.per_load||'').replace('%',''))||0;
-      candidates.push({
-        id:'eht_'+i, x:q.x+4.4, y:q.y-3.2, text:name, fontSize:2.3,
-        tier:Rr.TIER.EHT, priority: feeders*2+load, anchor:'start'
-      });
-    });
-    ss33List.forEach(function(s, i){
-      if(s.lat == null || s.lon == null) return;
-      var q = project({lat:Number(s.lat), lng:Number(s.lon)});
-      var name = s.name || '33/11KV SS';
-      candidates.push({
-        id:'ss33_'+i, x:q.x+3.8, y:q.y-3, text:name, fontSize:2.1,
-        tier:Rr.TIER.SS33, priority:0, anchor:'start'
-      });
-    });
-    (feederNameCandidates||[]).forEach(function(c, i){
-      candidates.push({
-        id:'fn_'+i, x:c.x, y:c.y, text:c.text, fontSize:1.7,
-        tier:Rr.TIER.FEEDER_NAME, priority:0, anchor:'middle', angle:c.angle
-      });
-    });
-
-    var accepted = Rr.placeLabels(candidates);
-    var acceptedIds = {};
-    accepted.forEach(function(c){ acceptedIds[c.id] = c; });
-
-    var out = [];
-    accepted.forEach(function(c){
-      if(c.tier === Rr.TIER.FEEDER_NAME && c.angle != null){
-        out.push('<text x="'+c.x.toFixed(2)+'" y="'+c.y.toFixed(2)+'" font-size="'+c.fontSize+'" fill="#1e293b" '
-          + 'transform="rotate('+c.angle.toFixed(1)+' '+c.x.toFixed(2)+' '+c.y.toFixed(2)+')" '
-          + 'text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:0.6px">'+esc(c.text)+'</text>');
-      } else if(c.tier === Rr.TIER.EHT){
-        out.push('<text x="'+c.x.toFixed(2)+'" y="'+c.y.toFixed(2)+'" font-size="'+c.fontSize+'" font-weight="700" fill="#7c2d12">'+esc(c.text)+'</text>');
-      } else {
-        out.push('<text x="'+c.x.toFixed(2)+'" y="'+c.y.toFixed(2)+'" font-size="'+c.fontSize+'" font-weight="700" fill="#0f172a">'+esc(c.text)+'</text>');
-      }
-    });
-    return out.join('');
-  }
-
-  // substation SYMBOLS only (no inline label text — labels are handled
-  // separately by buildSubstationLabelSvg via the collision placer)
-  function substationSymbolOnlySvg(x,y,type){
-    if(type === 'eht'){
-      return '<g><rect x="'+(x-3.4)+'" y="'+(y-2.4)+'" width="6.8" height="4.8" rx="0.8" fill="#fff7ed" stroke="#f97316" stroke-width=".55"/>'
-        + '<text x="'+x+'" y="'+(y+1)+'" font-size="2.4" text-anchor="middle" fill="#c2410c">&#9889;</text></g>';
-    }
-    return '<g><circle cx="'+x+'" cy="'+y+'" r="1.7" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".55"/>'
-      + '<text x="'+x+'" y="'+(y+0.9)+'" font-size="2.3" text-anchor="middle" fill="#1d4ed8">&#9889;</text></g>';
-  }
-
-async function buildFeederSvgV2(fn, opt){
-    var segs = getFeederSegments(fn);
-    if(!segs.length) return '';
-    var page = paperSize(opt);
-    var routePts = [];
-    segs.forEach(function(s){ routePts = routePts.concat(s.pts); });
-    var routeBounds = {
-      minLat: Math.min.apply(null, routePts.map(function(p){return p.lat;})),
-      maxLat: Math.max.apply(null, routePts.map(function(p){return p.lat;})),
-      minLng: Math.min.apply(null, routePts.map(function(p){return p.lng;})),
-      maxLng: Math.max.apply(null, routePts.map(function(p){return p.lng;}))
-    };
-    var nearSS = nearbySubstations(routeBounds);
-    var ctx = projectFactory(segs, nearSS, page);
-    if(!ctx) return '';
-    var project = ctx.project;
-    var stats = getStats(fn);
-    var now = new Date().toLocaleDateString('en-IN');
-    var Rr = R();
-    var svg = [];
-
-    svg.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+page.w+'mm" height="'+page.h+'mm" viewBox="0 0 '+page.w+' '+page.h+'">');
-    svg.push('<rect width="100%" height="100%" fill="#fbfbf9"/>');
-    svg.push('<rect x="5" y="5" width="'+(page.w-10)+'" height="'+(page.h-10)+'" fill="none" stroke="#222" stroke-width=".35"/>');
-
-    if(opt.title){
-      svg.push(Rr.buildTitleBlockSvg(page, {
-        subtitle: 'FEEDER: '+fn,
-        dateStr: now,
-        leftLabel: 'TGSPDCL',
-        rightSubLabel: ''
-      }));
-    }
-
-    // zone fill — restrict to sections whose substations actually fall in
-    // this feeder's view bounds, so a single-feeder print isn't cluttered
-    // with unrelated zones from across the whole circle
-    if(opt.zoneStyle && opt.zoneStyle !== 'off' && window.tgZoneGeometry){
-      var geo = window.tgZoneGeometry;
-      var secMap = geo.buildSectionMap();
-      var relevantKeys = Object.keys(secMap).filter(function(k){
-        return secMap[k].some(function(p){
-          return p.y >= ctx.bounds.minLat && p.y <= ctx.bounds.maxLat && p.x >= ctx.bounds.minLng && p.x <= ctx.bounds.maxLng;
-        });
-      });
-      svg.push(Rr.buildZoneFillSvg({ zoneStyle: opt.zoneStyle, project: project, secKeyFilter: function(k){ return relevantKeys.indexOf(k) >= 0; } }));
-    }
-
-    if(opt.googleBg) svg.push(await googleBackgroundSvgAsync(ctx, opt));
-
-    segs.forEach(function(s){
-      if(s.pts.length < 2) return;
-      var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
-      var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
-      var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(window.tgPrintLineWidth||0.95)+'" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
-    });
-
-    if(opt.symbols){
-      var labelStep = opt.paper === 'A0' || opt.paper === 'A1' ? 1 : opt.paper === 'A2' || opt.paper === 'A3' ? 3 : 6;
-      var c = 0;
-      getFeederItems(fn).forEach(function(item){
-        var pts = latLngsOfLayer(item.layer);
-        if(!pts.length) return;
-        var p = pts[0], q = project(p);
-        var reg = getReg(item);
-        svg.push(symbolSvg(q.x,q.y,reg));
-        c++;
-      });
-    }
-
-    if(opt.symbols){
-      nearSS.eht.forEach(function(s){
-        if(s && s.lat != null && s.lon != null){
-          var q = project({lat:Number(s.lat), lng:Number(s.lon)});
-          svg.push(substationSymbolOnlySvg(q.x,q.y,'eht'));
-        }
-      });
-      nearSS.ss33.forEach(function(s){
-        if(s && s.lat != null && s.lon != null){
-          var q = project({lat:Number(s.lat), lng:Number(s.lon)});
-          svg.push(substationSymbolOnlySvg(q.x,q.y,'ss33'));
-        }
-      });
-    }
-
-    // collision-safe labels for substations (pole labels are dense/numerous
-    // and stay as-is via opt.poleLabels rendering below — those are a
-    // different visual tier from substation names and feeder names)
-    svg.push(buildSubstationLabelSvg(nearSS.eht, nearSS.ss33, project, []));
-
-    if(opt.poleLabels){
-      var labelStep2 = opt.paper === 'A0' || opt.paper === 'A1' ? 1 : opt.paper === 'A2' || opt.paper === 'A3' ? 3 : 6;
-      var c2 = 0;
-      getFeederItems(fn).forEach(function(item){
-        var pts = latLngsOfLayer(item.layer);
-        if(!pts.length) return;
-        var p = pts[0], q = project(p);
-        var props = getLayerProps(item);
-        if(c2 % labelStep2 === 0){
-          var label = props.pole_number || props['Pole Number'] || props.pole || props['Cable Point'] || props.cable_point || '';
-          if(label) svg.push('<text x="'+(q.x+1.8).toFixed(2)+'" y="'+(q.y-1.8).toFixed(2)+'" font-size="2.2" fill="#111827">'+esc(label)+'</text>');
-        }
-        c2++;
-      });
-    }
-
-    if(opt.legend){
-      var lx = 10, ly = page.h - 46;
-      svg.push('<rect x="'+lx+'" y="'+ly+'" width="50" height="38" fill="#fff" stroke="#777" stroke-width=".25"/>');
-      svg.push('<text x="'+(lx+3)+'" y="'+(ly+5)+'" font-size="2.4" font-weight="700">LEGEND</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+10)+'" x2="'+(lx+14)+'" y2="'+(ly+10)+'" stroke="#2196f3" stroke-width="1.8"/><text x="'+(lx+17)+'" y="'+(ly+11)+'" font-size="2.2">UG Line</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+16)+'" x2="'+(lx+14)+'" y2="'+(ly+16)+'" stroke="#ff9800" stroke-width="1.8" stroke-dasharray="2 1"/><text x="'+(lx+17)+'" y="'+(ly+17)+'" font-size="2.2">OH Line</text>');
-      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+22)+'" r="1.1" fill="#ff9800"/><text x="'+(lx+17)+'" y="'+(ly+23)+'" font-size="2.2">AB / device</text>');
-      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+28)+'" r="1.6" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+29)+'" font-size="2.2">33/11KV SS</text>');
-      svg.push('<rect x="'+(lx+6.6)+'" y="'+(ly+32)+'" width="6.6" height="4.4" rx=".8" fill="#fff7ed" stroke="#f97316" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+35.6)+'" font-size="2.2">EHT SS</text>');
-    }
-
-    // route breakdown table for THIS single feeder (UG/OH/Mixed/Total = 1 row meaningfully, but kept consistent)
-    var cableSet = new Set();
-    segs.forEach(function(s){ if(s.cable==='UG'||s.cable==='OH') cableSet.add(s.cable); });
-    var routeCounts = Rr.classifyFeeders({ _self: cableSet });
-    svg.push(Rr.buildRouteTableSvg(page.w-72, page.h-84, 62, 36, routeCounts));
-
-    if(opt.north){
-      svg.push(Rr.buildNorthArrowSvg(page.w - 28, page.h - 38));
-    }
-
-    if(opt.stats){
-      var sx = page.w - 82, sy = page.h - 42;
-      var r2 = function(v){ return (v == null || isNaN(v)) ? null : (Math.round(v*100)/100); };
-      var tk = r2(stats.totalKm), uk = r2(stats.ugKm), ok = r2(stats.ohKm);
-      svg.push('<rect x="'+sx+'" y="'+sy+'" width="72" height="32" fill="#fff" stroke="#777" stroke-width=".25"/>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+5)+'" font-size="2.6" font-weight="700">FEEDER STATISTICS</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+11)+'" font-size="2.3">Total Length: '+esc(tk!=null?tk+" km":"—")+'</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+16)+'" font-size="2.3">UG Length: '+esc(uk!=null?uk+" km":"—")+'</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+21)+'" font-size="2.3">OH Length: '+esc(ok!=null?ok+" km":"—")+'</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+26)+'" font-size="2.3">Points: '+getFeederItems(fn).length+'</text>');
-    }
-
-    svg.push('<text x="'+(page.w/2)+'" y="'+(page.h-4)+'" font-size="2.3" text-anchor="middle">Generated from TGSPDCL SCADA Feeder Route Map</text>');
-    svg.push('</svg>');
-    return svg.join('');
-  }
-
-  // expose for verification before switchover
-  window._tgBuildFeederSvgV2 = buildFeederSvgV2;
 
 })();
 </script>
@@ -11170,10 +10240,8 @@ async function buildFeederSvgV2(fn, opt){
     return { lat: latRad*180/Math.PI, lng: lng };
   }
   function googleBackgroundSvg(ctx, opt){
-    if(!opt.googleBg || opt.printBgStyle === 'none') return '';
+    if(!opt.googleBg) return '';
     var b = ctx.bounds;
-    var style = opt.printBgStyle || 'minimal_light';
-    var isDark = style === 'minimal_dark';
     var z = (opt.paper === 'A0' || opt.paper === 'A1') ? 13 : (opt.paper === 'A5' || opt.paper === 'A6') ? 11 : 12;
     var nw = lngLatToTile(b.maxLat, b.minLng, z);
     var se = lngLatToTile(b.minLat, b.maxLng, z);
@@ -11184,30 +10252,20 @@ async function buildFeederSvgV2(fn, opt){
       se = lngLatToTile(b.minLat, b.maxLng, z);
       tileCount = Math.max(1,(se.x-nw.x+1)) * Math.max(1,(se.y-nw.y+1));
     }
-    var baseName  = isDark ? 'dark_all' : 'light_all';
-    var labelName = '';
-    var baseOpacity  = 1;
-    var labelOpacity = 0;
     var out = [];
-    var clipId = 'tgScadaMinClip' + Math.round(ctx.draw.x*10) + '_' + Math.round(ctx.draw.y*10) + '_' + Math.round(ctx.draw.w*10);
-    out.push('<defs><clipPath id="'+clipId+'"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath></defs>');
-    out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="'+(isDark?'#07111f':'#f8fafc')+'"/>');
-    function addTiles(layerName, opacity){
-      out.push('<g clip-path="url(#'+clipId+')" opacity="'+opacity+'">');
-      for(var x = nw.x; x <= se.x; x++){
-        for(var y = nw.y; y <= se.y; y++){
-          var tl = tileToLngLat(x,y,z), br = tileToLngLat(x+1,y+1,z);
-          var p1 = ctx.project({lat:tl.lat, lng:tl.lng}), p2 = ctx.project({lat:br.lat, lng:br.lng});
-          var xx = Math.min(p1.x,p2.x), yy = Math.min(p1.y,p2.y), ww = Math.abs(p2.x-p1.x), hh = Math.abs(p2.y-p1.y);
-          var href = 'https://a.basemaps.cartocdn.com/'+layerName+'/'+z+'/'+x+'/'+y+'.png';
-          out.push('<image href="'+href+'" x="'+xx.toFixed(2)+'" y="'+yy.toFixed(2)+'" width="'+ww.toFixed(2)+'" height="'+hh.toFixed(2)+'" preserveAspectRatio="none"/>');
-        }
+    out.push('<defs><clipPath id="tgGroupMapClip"><rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'"/></clipPath></defs>');
+    out.push('<g clip-path="url(#tgGroupMapClip)" opacity="0.55">');
+    for(var x = nw.x; x <= se.x; x++){
+      for(var y = nw.y; y <= se.y; y++){
+        var tl = tileToLngLat(x,y,z), br = tileToLngLat(x+1,y+1,z);
+        var p1 = ctx.project({lat:tl.lat, lng:tl.lng}), p2 = ctx.project({lat:br.lat, lng:br.lng});
+        var xx = Math.min(p1.x,p2.x), yy = Math.min(p1.y,p2.y), ww = Math.abs(p2.x-p1.x), hh = Math.abs(p2.y-p1.y);
+        var href = 'https://mt.google.com/vt/lyrs=m&x='+x+'&y='+y+'&z='+z;
+        out.push('<image href="'+href+'" x="'+xx.toFixed(2)+'" y="'+yy.toFixed(2)+'" width="'+ww.toFixed(2)+'" height="'+hh.toFixed(2)+'" preserveAspectRatio="none"/>');
       }
-      out.push('</g>');
     }
-    addTiles(baseName, baseOpacity);
-    if(labelName) addTiles(labelName, labelOpacity);
-    // No wash overlay; it made the background look blank/grey in print.
+    out.push('</g>');
+    out.push('<rect x="'+ctx.draw.x+'" y="'+ctx.draw.y+'" width="'+ctx.draw.w+'" height="'+ctx.draw.h+'" fill="rgba(255,255,255,0.3)"/>');
     return out.join('');
   }
 
@@ -11217,13 +10275,13 @@ async function buildFeederSvgV2(fn, opt){
         + '<text x="'+x+'" y="'+(y+1)+'" font-size="2.4" text-anchor="middle" fill="#c2410c">&#9889;</text>'
         + '<text x="'+(x+4.4)+'" y="'+(y-3.2)+'" font-size="2.3" font-weight="700" fill="#7c2d12">'+esc(name)+'</text></g>';
     }
-    return '<g><circle cx="'+x+'" cy="'+y+'" r="1.7" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".55"/>'
+    return '<g><circle cx="'+x+'" cy="'+y+'" r="2.6" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".55"/>'
       + '<text x="'+x+'" y="'+(y+0.9)+'" font-size="2.3" text-anchor="middle" fill="#1d4ed8">&#9889;</text>'
       + '<text x="'+(x+3.8)+'" y="'+(y-3)+'" font-size="2.1" font-weight="700" fill="#0f172a">'+esc(name)+'</text></g>';
   }
 
   // ═════════════ MAIN GROUP SVG BUILDER ═════════════
-  async function buildGroupSvg(opt){
+  function buildGroupSvg(opt){
     var feeders = groupFeederList();
     if(!feeders.length) return null;
 
@@ -11290,7 +10348,7 @@ async function buildFeederSvgV2(fn, opt){
       svg.push('<text x="'+(page.w-9)+'" y="17" font-size="2.6" text-anchor="end">'+feeders.length+' feeder(s)</text>');
     }
 
-    svg.push(await googleBackgroundSvgAsync(ctx, opt));
+    svg.push(googleBackgroundSvg(ctx, opt));
 
     // Feeder lines + small name label at the midpoint of the longest run
     var totalUgKm = 0, totalOhKm = 0;
@@ -11304,7 +10362,7 @@ async function buildFeederSvgV2(fn, opt){
         var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
         var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
         var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(window.tgPrintLineWidth||0.82)+'" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
         // rough km tally (planar approx fine for a visual summary)
         for(var i=1;i<s.pts.length;i++){
           var R=6371, dLat=(s.pts[i].lat-s.pts[i-1].lat)*Math.PI/180, dLng=(s.pts[i].lng-s.pts[i-1].lng)*Math.PI/180;
@@ -11390,32 +10448,22 @@ async function buildFeederSvgV2(fn, opt){
   var _origSVG        = window.tgPrintComposerDownloadSVG;
   var _origDXF        = window.tgPrintComposerDownloadDXF;
 
-  async function buildGroupSvgSafe(opt){
-    try{
-      var out = await buildGroupSvgV2(opt);
-      if(out) return out;
-    }catch(e){
-      console.warn('buildGroupSvgV2 failed, falling back to legacy renderer:', e);
-    }
-    return await buildGroupSvg(opt);
-  }
-
-  window.tgPrintComposerPreview = async function(){
+  window.tgPrintComposerPreview = function(){
     if(!isGroupMode()) return _origPreview.apply(this, arguments);
-    var out = await buildGroupSvgSafe(_groupOptions());
+    var out = buildGroupSvg(_groupOptions());
     if(!out){ alert('No feeder geometry found for this Division/Sub-Division/Section selection.'); return; }
     openPrintWindow(out.svg, 'Group Drawing — ' + out.scopeLabel);
   };
-  window.tgPrintComposerPrint = async function(){
+  window.tgPrintComposerPrint = function(){
     if(!isGroupMode()) return _origPrint.apply(this, arguments);
-    var out = await buildGroupSvgSafe(_groupOptions());
+    var out = buildGroupSvg(_groupOptions());
     if(!out){ alert('No feeder geometry found for this Division/Sub-Division/Section selection.'); return; }
     var w = openPrintWindow(out.svg, 'Print Group — ' + out.scopeLabel);
     if(w) setTimeout(function(){ w.focus(); w.print(); }, 900);
   };
-  window.tgPrintComposerDownloadSVG = async function(){
+  window.tgPrintComposerDownloadSVG = function(){
     if(!isGroupMode()) return _origSVG.apply(this, arguments);
-    var out = await buildGroupSvgSafe(_groupOptions());
+    var out = buildGroupSvg(_groupOptions());
     if(!out){ alert('No feeder geometry found for this Division/Sub-Division/Section selection.'); return; }
     var blob = new Blob([out.svg], {type:'image/svg+xml;charset=utf-8'});
     var a = document.createElement('a');
@@ -11461,10 +10509,7 @@ async function buildFeederSvgV2(fn, opt){
       legend: $('tgpLegend') ? $('tgpLegend').checked : true,
       north: $('tgpNorth') ? $('tgpNorth').checked : true,
       stats: $('tgpStats') ? $('tgpStats').checked : true,
-      googleBg: $('tgpGoogleBg') ? $('tgpGoogleBg').checked : true,
-      zoneStyle: $('tgpZoneStyleExport') ? $('tgpZoneStyleExport').value : 'blob',
-      insetHyderabad: $('tgpInsetHyderabad') ? $('tgpInsetHyderabad').checked : false,
-      insetFocus: $('tgpInsetFocus') ? $('tgpInsetFocus').checked : false
+      googleBg: $('tgpGoogleBg') ? $('tgpGoogleBg').checked : true
     };
   }
 
@@ -11488,269 +10533,6 @@ async function buildFeederSvgV2(fn, opt){
   }
   if(document.readyState === 'complete' || document.readyState === 'interactive') wire();
   else document.addEventListener('DOMContentLoaded', wire);
-
-  // ── V2 export renderer addition (26-Jun-2026): collision-safe labels,
-  //    zone fills, route table, insets. New function, original buildGroupSvg
-  //    untouched above. ──
-  function R(){ return window.tgExportRenderer; }
-
-  function buildSubstationLabelSvg(ehtList, ss33List, project, feederNameCandidates){
-    var Rr = R();
-    var candidates = [];
-    ehtList.forEach(function(s, i){
-      if(s.lat == null || s.lon == null) return;
-      var q = project({lat:Number(s.lat), lng:Number(s.lon)});
-      var name = s.name || 'EHT SS';
-      var feeders = parseFloat(s.feeders)||0, load = parseFloat(String(s.per_load||'').replace('%',''))||0;
-      candidates.push({
-        id:'eht_'+i, x:q.x+4.4, y:q.y-3.2, text:name, fontSize:2.3,
-        tier:Rr.TIER.EHT, priority: feeders*2+load, anchor:'start'
-      });
-    });
-    ss33List.forEach(function(s, i){
-      if(s.lat == null || s.lon == null) return;
-      var q = project({lat:Number(s.lat), lng:Number(s.lon)});
-      var name = s.name || '33/11KV SS';
-      candidates.push({
-        id:'ss33_'+i, x:q.x+3.8, y:q.y-3, text:name, fontSize:2.1,
-        tier:Rr.TIER.SS33, priority:0, anchor:'start'
-      });
-    });
-    (feederNameCandidates||[]).forEach(function(c, i){
-      candidates.push({
-        id:'fn_'+i, x:c.x, y:c.y, text:c.text, fontSize:1.7,
-        tier:Rr.TIER.FEEDER_NAME, priority:0, anchor:'middle', angle:c.angle
-      });
-    });
-
-    var accepted = Rr.placeLabels(candidates);
-
-    var out = [];
-    accepted.forEach(function(c){
-      if(c.tier === Rr.TIER.FEEDER_NAME && c.angle != null){
-        out.push('<text x="'+c.x.toFixed(2)+'" y="'+c.y.toFixed(2)+'" font-size="'+c.fontSize+'" fill="#1e293b" '
-          + 'transform="rotate('+c.angle.toFixed(1)+' '+c.x.toFixed(2)+' '+c.y.toFixed(2)+')" '
-          + 'text-anchor="middle" style="paint-order:stroke;stroke:#fff;stroke-width:0.6px">'+esc(c.text)+'</text>');
-      } else if(c.tier === Rr.TIER.EHT){
-        out.push('<text x="'+c.x.toFixed(2)+'" y="'+c.y.toFixed(2)+'" font-size="'+c.fontSize+'" font-weight="700" fill="#7c2d12">'+esc(c.text)+'</text>');
-      } else {
-        out.push('<text x="'+c.x.toFixed(2)+'" y="'+c.y.toFixed(2)+'" font-size="'+c.fontSize+'" font-weight="700" fill="#0f172a">'+esc(c.text)+'</text>');
-      }
-    });
-    return out.join('');
-  }
-
-  function substationSymbolOnlySvg(x,y,type){
-    if(type === 'eht'){
-      return '<g><rect x="'+(x-3.4)+'" y="'+(y-2.4)+'" width="6.8" height="4.8" rx="0.8" fill="#fff7ed" stroke="#f97316" stroke-width=".55"/>'
-        + '<text x="'+x+'" y="'+(y+1)+'" font-size="2.4" text-anchor="middle" fill="#c2410c">&#9889;</text></g>';
-    }
-    return '<g><circle cx="'+x+'" cy="'+y+'" r="1.7" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".55"/>'
-      + '<text x="'+x+'" y="'+(y+0.9)+'" font-size="2.3" text-anchor="middle" fill="#1d4ed8">&#9889;</text></g>';
-  }
-
-async function buildGroupSvgV2(opt){
-    // reuse all the existing geometry-gathering logic by calling the
-    // internal helpers already defined in this same closure scope
-    // (groupFeederList, lineSegmentsForFeeder, expandBounds, inBounds,
-    // paperSize, googleBackgroundSvg, $, currentFeederName) — these
-    // are all already in scope here because this script block sits
-    // inside the same IIFE namespace as the group print patch.
-    var feeders = groupFeederList();
-    if(!feeders.length) return null;
-
-    var feederSegs = {};
-    var allPts = [];
-    var perFeederCableSets = {};
-    feeders.forEach(function(fn){
-      var segs = lineSegmentsForFeeder(fn);
-      if(segs.length){
-        feederSegs[fn] = segs;
-        perFeederCableSets[fn] = new Set();
-        segs.forEach(function(s){
-          allPts = allPts.concat(s.pts);
-          if(s.cable === 'UG' || s.cable === 'OH') perFeederCableSets[fn].add(s.cable);
-        });
-      }
-    });
-    if(!allPts.length) return null;
-
-    var routeBounds = {
-      minLat: Math.min.apply(null, allPts.map(function(p){return p.lat;})),
-      maxLat: Math.max.apply(null, allPts.map(function(p){return p.lat;})),
-      minLng: Math.min.apply(null, allPts.map(function(p){return p.lng;})),
-      maxLng: Math.max.apply(null, allPts.map(function(p){return p.lng;}))
-    };
-    var searchBounds = expandBounds(routeBounds, 0.06);
-    var ss33 = (window.STATIC_SS33 || []).filter(function(s){ return inBounds(s, searchBounds); });
-    var eht  = (window.STATIC_EHT  || []).filter(function(s){ return inBounds(s, searchBounds); });
-
-    var bounds = routeBounds;
-    ss33.concat(eht).forEach(function(s){
-      bounds.minLat = Math.min(bounds.minLat, Number(s.lat)); bounds.maxLat = Math.max(bounds.maxLat, Number(s.lat));
-      bounds.minLng = Math.min(bounds.minLng, Number(s.lon)); bounds.maxLng = Math.max(bounds.maxLng, Number(s.lon));
-    });
-    bounds = expandBounds(bounds, 0.05);
-
-    var page = paperSize(opt);
-    var pad = Math.max(page.w,page.h) * 0.06;
-    var titleH = 24, statH = 30;
-    var legendW = 52, insetW = 58;
-    var x0 = pad, y0 = pad + titleH;
-    var dw = page.w - pad*2;
-    var dh = page.h - pad*2 - titleH - statH;
-    var lngSpan = bounds.maxLng - bounds.minLng || 0.000001;
-    var latSpan = bounds.maxLat - bounds.minLat || 0.000001;
-    var scale = Math.min(dw/lngSpan, dh/latSpan);
-    var usedW = lngSpan*scale, usedH = latSpan*scale;
-    var ox = x0 + (dw-usedW)/2, oy = y0 + (dh-usedH)/2;
-    function project(p){ return { x: ox + (p.lng - bounds.minLng)*scale, y: oy + (bounds.maxLat - p.lat)*scale }; }
-
-    var div = $('tgpGroupDiv') ? $('tgpGroupDiv').value : 'ALL';
-    var sub = $('tgpGroupSub') ? $('tgpGroupSub').value : 'ALL';
-    var sec = $('tgpGroupSec') ? $('tgpGroupSec').value : 'ALL';
-    var scopeLabel = (sec!=='ALL' ? sec : sub!=='ALL' ? sub : div!=='ALL' ? div : 'ENTIRE CIRCLE');
-    var now = new Date().toLocaleDateString('en-IN');
-
-    var Rr = R();
-    var svg = [];
-    svg.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+page.w+'mm" height="'+page.h+'mm" viewBox="0 0 '+page.w+' '+page.h+'">');
-    svg.push('<rect width="100%" height="100%" fill="#fbfbf9"/>'); // off-white sheet background
-    svg.push('<rect x="5" y="5" width="'+(page.w-10)+'" height="'+(page.h-10)+'" fill="none" stroke="#222" stroke-width=".35"/>');
-
-    // ── 1. TITLE BLOCK ──
-    if(opt.title){
-      svg.push(Rr.buildTitleBlockSvg(page, {
-        subtitle: scopeLabel.toUpperCase()+'  ·  DIV: '+(div==='ALL'?'ALL':div)+'  ·  SUB-DIV: '+(sub==='ALL'?'ALL':sub)+'  ·  SECTION: '+(sec==='ALL'?'ALL':sec),
-        dateStr: now,
-        leftLabel: 'TGSPDCL',
-        rightSubLabel: feeders.length+' feeder(s)'
-      }));
-    }
-
-    // ── 2. ZONE FILLS (pastel, thin grey boundary) — drawn BELOW feeder lines ──
-    if(opt.zoneStyle && opt.zoneStyle !== 'off' && window.tgZoneGeometry){
-      svg.push(Rr.buildZoneFillSvg({ zoneStyle: opt.zoneStyle, project: project }));
-    }
-
-    // ── 3. Google/basemap background (kept optional, sits between zones and lines per user's raster-bg-is-OK rule) ──
-    var ctxForBg = { project:project, bounds:bounds, draw:{x:x0,y:y0,w:dw,h:dh} };
-    if(opt.googleBg) svg.push(await googleBackgroundSvgAsync(ctxForBg, opt));
-
-    // ── 4. FEEDER LINES (vector, above zone fill + background) ──
-    var totalUgKm = 0, totalOhKm = 0;
-    var feederNameCandidates = [];
-    feeders.forEach(function(fn){
-      var segs = feederSegs[fn];
-      if(!segs || !segs.length) return;
-      var longest = segs[0];
-      segs.forEach(function(s){
-        if(s.pts.length < 2) return;
-        if(s.pts.length > longest.pts.length) longest = s;
-        var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
-        var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
-        var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join(' ');
-        svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(window.tgPrintLineWidth||0.82)+'" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
-        for(var i=1;i<s.pts.length;i++){
-          var Rrad=6371, dLat=(s.pts[i].lat-s.pts[i-1].lat)*Math.PI/180, dLng=(s.pts[i].lng-s.pts[i-1].lng)*Math.PI/180;
-          var aa=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(s.pts[i-1].lat*Math.PI/180)*Math.cos(s.pts[i].lat*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
-          var km=Rrad*2*Math.atan2(Math.sqrt(aa),Math.sqrt(1-aa));
-          if(s.cable==='OH') totalOhKm+=km; else totalUgKm+=km;
-        }
-      });
-      if(opt.poleLabels !== false && longest && longest.pts.length >= 2){
-        var midIdx = Math.floor(longest.pts.length/2);
-        var mp = project(longest.pts[midIdx]);
-        var p0 = project(longest.pts[Math.max(0,midIdx-1)]);
-        var p1 = project(longest.pts[Math.min(longest.pts.length-1,midIdx+1)]);
-        var angle = Math.atan2(p1.y-p0.y, p1.x-p0.x) * 180/Math.PI;
-        if(angle > 90) angle -= 180; if(angle < -90) angle += 180;
-        var label = fn.length > 30 ? fn.substring(0,28)+'…' : fn;
-        feederNameCandidates.push({ x:mp.x, y:mp.y, text:label, angle:angle });
-      }
-    });
-
-    // ── 5. SUBSTATION SYMBOLS (above feeder lines) ──
-    if(opt.symbols !== false){
-      eht.forEach(function(s){
-        var q = project({lat:Number(s.lat), lng:Number(s.lon)});
-        svg.push(substationSymbolOnlySvg(q.x,q.y,'eht'));
-      });
-      ss33.forEach(function(s){
-        var q = project({lat:Number(s.lat), lng:Number(s.lon)});
-        svg.push(substationSymbolOnlySvg(q.x,q.y,'ss33'));
-      });
-    }
-
-    // ── 6. ALL LABELS via collision placer (above everything else) ──
-    svg.push(buildSubstationLabelSvg(eht, ss33, project, feederNameCandidates));
-
-    // ── 7. LEGEND ──
-    if(opt.legend){
-      var lx = 10, ly = page.h - 38;
-      svg.push('<rect x="'+lx+'" y="'+ly+'" width="50" height="30" fill="#fff" stroke="#777" stroke-width=".25"/>');
-      svg.push('<text x="'+(lx+3)+'" y="'+(ly+5)+'" font-size="2.4" font-weight="700">LEGEND</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+10)+'" x2="'+(lx+14)+'" y2="'+(ly+10)+'" stroke="#2196f3" stroke-width="1"/><text x="'+(lx+17)+'" y="'+(ly+11)+'" font-size="2.2">UG Feeder</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+16)+'" x2="'+(lx+14)+'" y2="'+(ly+16)+'" stroke="#ff9800" stroke-width="1" stroke-dasharray="2 1"/><text x="'+(lx+17)+'" y="'+(ly+17)+'" font-size="2.2">OH Feeder</text>');
-      svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+22)+'" r="2" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+23)+'" font-size="2.2">33/11KV SS</text>');
-      svg.push('<rect x="'+(lx+6.6)+'" y="'+(ly+26)+'" width="5.4" height="3.6" rx=".6" fill="#fff7ed" stroke="#f97316" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+29)+'" font-size="2.2">EHT SS</text>');
-    }
-
-    // ── 8. ROUTE BREAKDOWN TABLE (UG/OH/Mixed/Total) ──
-    var routeCounts = Rr.classifyFeeders(perFeederCableSets);
-    svg.push(Rr.buildRouteTableSvg(page.w-72, page.h-46, 62, 36, routeCounts));
-
-    // ── 9. NORTH ARROW ──
-    if(opt.north){
-      svg.push(Rr.buildNorthArrowSvg(x0+dw-16, y0+8));
-    }
-
-    // ── 10. SCOPE STATS ──
-    if(opt.stats){
-      var sx = page.w - 80, sy = page.h - 84;
-      svg.push('<rect x="'+sx+'" y="'+sy+'" width="70" height="28" fill="#fff" stroke="#777" stroke-width=".25"/>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+5)+'" font-size="2.5" font-weight="700">SCOPE STATISTICS</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+11)+'" font-size="2.2">Feeders: '+feeders.length+'</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+16)+'" font-size="2.2">UG ~'+totalUgKm.toFixed(1)+' km  ·  OH ~'+totalOhKm.toFixed(1)+' km</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+21)+'" font-size="2.2">Substations shown: '+(ss33.length+eht.length)+'</text>');
-      svg.push('<text x="'+(sx+4)+'" y="'+(sy+26)+'" font-size="2.2">EHT: '+eht.length+'  ·  33/11KV: '+ss33.length+'</text>');
-    }
-
-    // ── 11. INSET BOXES (optional) ──
-    if(opt.insetHyderabad){
-      var hydPts = ss33.concat(eht).map(function(s){return {lat:Number(s.lat), lng:Number(s.lon)};});
-      if(hydPts.length){
-        svg.push(Rr.buildInsetBox(x0+2, y0+2, insetW, 42, 'HYDERABAD URBAN CLUSTER', hydPts, function(mp){
-          var inner = [];
-          eht.forEach(function(s){ var q=mp({lat:Number(s.lat),lng:Number(s.lon)}); inner.push('<rect x="'+(q.x-1.2)+'" y="'+(q.y-0.9)+'" width="2.4" height="1.8" fill="#f97316"/>'); });
-          ss33.forEach(function(s){ var q=mp({lat:Number(s.lat),lng:Number(s.lon)}); inner.push('<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="0.7" fill="#1d4ed8"/>'); });
-          return inner.join('');
-        }));
-      }
-    }
-    if(opt.insetFocus){
-      var focusSel = (typeof window.tgGetFocusSelection === 'function') ? window.tgGetFocusSelection() : {eht:[],ss33:[]};
-      var focusPts = [];
-      eht.forEach(function(s){ if(focusSel.eht.indexOf(s.name)>=0) focusPts.push({lat:Number(s.lat), lng:Number(s.lon), eht:true}); });
-      ss33.forEach(function(s){ if(focusSel.ss33.indexOf(s.name)>=0) focusPts.push({lat:Number(s.lat), lng:Number(s.lon), eht:false}); });
-      if(focusPts.length){
-        svg.push(Rr.buildInsetBox(x0+dw-insetW-2, y0+2, insetW, 42, 'SUBSTATION FOCUS', focusPts, function(mp){
-          return focusPts.map(function(p){
-            var q = mp(p);
-            return p.eht
-              ? '<rect x="'+(q.x-1.4)+'" y="'+(q.y-1)+'" width="2.8" height="2" fill="#f97316" stroke="#7c2d12" stroke-width=".2"/>'
-              : '<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="1" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".2"/>';
-          }).join('');
-        }));
-      }
-    }
-
-    svg.push('<text x="'+(page.w/2)+'" y="'+(page.h-4)+'" font-size="2.2" text-anchor="middle">Generated from TGSPDCL SCADA Feeder Route Map — Group/Area Drawing</text>');
-    svg.push('</svg>');
-    return { svg: svg.join(''), feeders: feeders, scopeLabel: scopeLabel };
-  }
-
-  window._tgBuildGroupSvgV2 = buildGroupSvgV2;
 
 })();
 </script>
@@ -11818,616 +10600,6 @@ function exportAITrainingData() {
   a.click();
   if (typeof toast === 'function') toast('Training data exported — ' + dataset.length + ' samples');
 }
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     TGSPDCL ZONE & SUBSTATION FOCUS MODULE  (added 26-Jun-2026)
-     - Division/Sub-Division/Section boundary zones (Tight Hull /
-       Smoothed Blob / Voronoi), colored fill, TRANSCO-style.
-     - EHT quick-filter + individual 33/11KV multi-select for
-       focusing future analysis on a subset of substations.
-     - Collision-aware label placer reused by both the live map
-       and the print composer's SVG output, to stop label overlap.
-     Self-contained: does not modify any existing function. Reads
-     window.STATIC_SS33 / window.STATIC_EHT / window.map / L.
-   ═══════════════════════════════════════════════════════════════ -->
-<style>
-  #tgZonePanel{position:fixed;top:70px;right:14px;width:300px;max-height:80vh;overflow:auto;
-    background:#0e1430;border:1px solid #2a3464;border-radius:10px;color:#e8ecff;
-    font-family:Arial,sans-serif;font-size:12px;z-index:9000;box-shadow:0 10px 30px rgba(0,0,0,.5);
-    display:none;}
-  #tgZonePanel.open{display:block;}
-  #tgZonePanel h3{margin:0;padding:10px 12px;font-size:13px;background:#161c44;border-bottom:1px solid #2a3464;
-    border-radius:10px 10px 0 0;display:flex;justify-content:space-between;align-items:center;}
-  #tgZonePanel .tgz-body{padding:10px 12px;}
-  #tgZonePanel .tgz-sec{margin-bottom:12px;}
-  #tgZonePanel .tgz-lbl{font-weight:700;opacity:.85;display:block;margin-bottom:5px;letter-spacing:.4px;}
-  #tgZonePanel select, #tgZonePanel .tgz-search{width:100%;background:#1a2150;color:#e8ecff;border:1px solid #303a72;
-    border-radius:6px;padding:5px 7px;font-size:12px;margin-bottom:6px;}
-  #tgZonePanel .tgz-tree{max-height:220px;overflow:auto;border:1px solid #2a3464;border-radius:6px;padding:4px 6px;background:#10173a;}
-  #tgZonePanel .tgz-div{font-weight:700;color:#7fd4ff;margin-top:4px;}
-  #tgZonePanel .tgz-sub{font-weight:600;color:#ffd27f;margin-left:8px;}
-  #tgZonePanel .tgz-ss{margin-left:16px;display:flex;align-items:center;gap:5px;padding:1px 0;}
-  #tgZonePanel .tgz-ss label{cursor:pointer;}
-  #tgZonePanel .tgz-eht{display:flex;align-items:center;gap:6px;padding:2px 0;}
-  #tgZonePanel .tgz-eht .ld{margin-left:auto;font-size:10px;opacity:.7;}
-  #tgZonePanel .tgz-btn{background:#2541c2;color:#fff;border:none;border-radius:6px;padding:6px 10px;
-    font-size:11px;font-weight:700;cursor:pointer;margin-right:6px;}
-  #tgZonePanel .tgz-btn.warn{background:#444c7a;}
-  #tgZonePanel .tgz-close{cursor:pointer;opacity:.7;font-size:16px;line-height:1;}
-  #tgZonePanel .tgz-count{font-size:10.5px;opacity:.75;margin-top:4px;}
-  #tgZoneToggleBtn{position:fixed;top:70px;right:14px;z-index:8999;background:#2541c2;color:#fff;
-    border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;
-    box-shadow:0 4px 14px rgba(0,0,0,.4);}
-</style>
-
-<button id="tgZoneToggleBtn" onclick="window.tgToggleZonePanel()">🗺️ Zones / Substation Focus</button>
-
-<div id="tgZonePanel">
-  <h3><span>ZONE &amp; SUBSTATION FOCUS</span><span class="tgz-close" onclick="window.tgToggleZonePanel(false)">✕</span></h3>
-  <div class="tgz-body">
-
-    <div class="tgz-sec">
-      <span class="tgz-lbl">BOUNDARY ZONE STYLE</span>
-      <select id="tgzZoneStyle">
-        <option value="hull">Tight Hull (exact, may be jagged)</option>
-        <option value="blob" selected>Smoothed Blob (padded, rounded)</option>
-        <option value="voronoi">Voronoi (full coverage, no gaps)</option>
-        <option value="off">Off (no zone fill)</option>
-      </select>
-      <button class="tgz-btn" onclick="window.tgRenderZones()">APPLY TO MAP</button>
-    </div>
-
-    <div class="tgz-sec">
-      <span class="tgz-lbl">EHT QUICK FILTER (132/220/400KV)</span>
-      <div class="tgz-tree" id="tgzEhtList"></div>
-      <div class="tgz-count" id="tgzEhtCount">0 of 25 selected</div>
-    </div>
-
-    <div class="tgz-sec">
-      <span class="tgz-lbl">33/11KV SUBSTATIONS (by Division ▸ Sub-Div ▸ Section)</span>
-      <input class="tgz-search" id="tgzSsSearch" placeholder="Filter by name…" oninput="window.tgFilterSsTree()">
-      <div class="tgz-tree" id="tgzSsTree"></div>
-      <div class="tgz-count" id="tgzSsCount">0 of 136 selected</div>
-    </div>
-
-    <div class="tgz-sec">
-      <button class="tgz-btn" onclick="window.tgApplyFocus()">FOCUS MAP ON SELECTION</button>
-      <button class="tgz-btn warn" onclick="window.tgClearFocus()">CLEAR FOCUS</button>
-    </div>
-
-  </div>
-</div>
-
-<script>
-(function(){
-  'use strict';
-
-  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-
-  // ───────── state ─────────
-  var selectedEht = new Set();   // EHT substation names
-  var selectedSs  = new Set();   // 33/11KV substation names
-  var zoneLayerGroup = null;     // Leaflet layer group for zone fills
-  var focusLayerGroup = null;    // highlight layer for focused substations
-
-  function ss33(){ return window.STATIC_SS33 || []; }
-  function eht(){ return window.STATIC_EHT || []; }
-
-  // ───────── geometry: convex hull (monotone chain) ─────────
-  function convexHull(points){
-    if(points.length < 3) return points.slice();
-    var pts = points.slice().sort(function(a,b){ return a.x - b.x || a.y - b.y; });
-    function cross(o,a,b){ return (a.x-o.x)*(b.y-o.y) - (a.y-o.y)*(b.x-o.x); }
-    var lower = [];
-    for(var i=0;i<pts.length;i++){
-      while(lower.length>=2 && cross(lower[lower.length-2],lower[lower.length-1],pts[i])<=0) lower.pop();
-      lower.push(pts[i]);
-    }
-    var upper = [];
-    for(var j=pts.length-1;j>=0;j--){
-      while(upper.length>=2 && cross(upper[upper.length-2],upper[upper.length-1],pts[j])<=0) upper.pop();
-      upper.push(pts[j]);
-    }
-    lower.pop(); upper.pop();
-    return lower.concat(upper);
-  }
-
-  // ───────── geometry: pad + smooth a hull into a rounded blob ─────────
-  function smoothBlob(hullPts, padFactor){
-    if(hullPts.length < 3) return hullPts;
-    var cx=0,cy=0;
-    hullPts.forEach(function(p){cx+=p.x;cy+=p.y;});
-    cx/=hullPts.length; cy/=hullPts.length;
-    // push every hull point outward from centroid by padFactor, default ~35%
-    var padded = hullPts.map(function(p){
-      var dx=p.x-cx, dy=p.y-cy;
-      var d = Math.sqrt(dx*dx+dy*dy) || 1;
-      var pad = Math.max(0.0015, d*(padFactor||0.35)); // lat/lng-space pad
-      return { x: p.x + dx/d*pad, y: p.y + dy/d*pad };
-    });
-    // Catmull-Rom-ish subdivision for rounded corners
-    var smoothed = [];
-    var n = padded.length;
-    for(var i=0;i<n;i++){
-      var p0=padded[(i-1+n)%n], p1=padded[i], p2=padded[(i+1)%n], p3=padded[(i+2)%n];
-      for(var t=0;t<1;t+=0.25){
-        var t2=t*t, t3=t2*t;
-        var x=0.5*((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3);
-        var y=0.5*((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3);
-        smoothed.push({x:x,y:y});
-      }
-    }
-    return smoothed;
-  }
-
-  // ───────── geometry: Voronoi-ish partition via nearest-section grid ─────────
-  // Lightweight approach (no external lib): sample a grid over the whole
-  // bounding box, assign each cell to its nearest section centroid, then
-  // trace the boundary of each region as a polygon via marching-squares-lite.
-  function voronoiRegions(sectionPoints, fullBounds, gridN){
-    gridN = gridN || 70;
-    var keys = Object.keys(sectionPoints);
-    var centroids = keys.map(function(k){
-      var pts = sectionPoints[k];
-      var cx=0,cy=0;
-      pts.forEach(function(p){cx+=p.x;cy+=p.y;});
-      return {key:k, x:cx/pts.length, y:cy/pts.length};
-    });
-    var dx = (fullBounds.maxX-fullBounds.minX)/gridN;
-    var dy = (fullBounds.maxY-fullBounds.minY)/gridN;
-    var grid = [];
-    for(var i=0;i<=gridN;i++){
-      grid[i]=[];
-      for(var j=0;j<=gridN;j++){
-        var x=fullBounds.minX+i*dx, y=fullBounds.minY+j*dy;
-        var best=null,bd=Infinity;
-        for(var c=0;c<centroids.length;c++){
-          var cd=(centroids[c].x-x)*(centroids[c].x-x)+(centroids[c].y-y)*(centroids[c].y-y);
-          if(cd<bd){bd=cd;best=centroids[c].key;}
-        }
-        grid[i][j]=best;
-      }
-    }
-    // For each section, collect boundary grid points (cells belonging to it
-    // or adjacent to a different owner) and hull them for a clean polygon.
-    var regionPts = {};
-    keys.forEach(function(k){ regionPts[k]=[]; });
-    for(var i2=0;i2<=gridN;i2++){
-      for(var j2=0;j2<=gridN;j2++){
-        var owner = grid[i2][j2];
-        var x2=fullBounds.minX+i2*dx, y2=fullBounds.minY+j2*dy;
-        regionPts[owner].push({x:x2,y:y2});
-      }
-    }
-    var out = {};
-    keys.forEach(function(k){
-      out[k] = convexHull(regionPts[k]);
-    });
-    return out;
-  }
-
-  // ───────── build section -> points map from STATIC_SS33 ─────────
-  function buildSectionMap(){
-    var map = {};
-    ss33().forEach(function(s){
-      var key = s.division+' ▸ '+s.sub_div+' ▸ '+s.section;
-      if(!map[key]) map[key]=[];
-      map[key].push({x:s.lon, y:s.lat, name:s.name});
-    });
-    return map;
-  }
-
-  var ZONE_PALETTE = ['#fde2c8','#cfe8ff','#d9f7d4','#f6d9f9','#fff3b0','#cdeee2','#e6d6ff','#ffe0d6',
-                       '#d6f0ff','#e8f0c8','#ffd6e6','#d0e8e8','#f0e0c8','#dce8ff','#e0ffe0','#ffe8d0',
-                       '#e8d8ff','#d8ffe8'];
-
-  function zoneColor(key, idx){ return ZONE_PALETTE[idx % ZONE_PALETTE.length]; }
-
-  // ───────── render zone fills on the LIVE map ─────────
-  window.tgRenderZones = function(){
-    if(!window.map || typeof L === 'undefined'){ if(window.toast) toast('Map not ready'); return; }
-    var style = document.getElementById('tgzZoneStyle').value;
-    if(zoneLayerGroup){ window.map.removeLayer(zoneLayerGroup); zoneLayerGroup=null; }
-    if(style === 'off'){ if(window.toast) toast('Zone fill turned off'); return; }
-
-    var secMap = buildSectionMap();
-    var keys = Object.keys(secMap);
-    zoneLayerGroup = L.layerGroup().addTo(window.map);
-
-    if(style === 'voronoi'){
-      var allPts = [];
-      keys.forEach(function(k){ secMap[k].forEach(function(p){ allPts.push(p); }); });
-      var bounds = {
-        minX: Math.min.apply(null, allPts.map(function(p){return p.x;})) - 0.01,
-        maxX: Math.max.apply(null, allPts.map(function(p){return p.x;})) + 0.01,
-        minY: Math.min.apply(null, allPts.map(function(p){return p.y;})) - 0.01,
-        maxY: Math.max.apply(null, allPts.map(function(p){return p.y;})) + 0.01
-      };
-      var regions = voronoiRegions(secMap, bounds, 60);
-      keys.forEach(function(k, idx){
-        var poly = regions[k];
-        if(!poly || poly.length < 3) return;
-        var latlngs = poly.map(function(p){ return [p.y, p.x]; });
-        L.polygon(latlngs, {
-          color:'#888', weight:0.6, opacity:0.5,
-          fillColor: zoneColor(k, idx), fillOpacity:0.35
-        }).addTo(zoneLayerGroup).bindTooltip(esc(k), {sticky:true});
-      });
-    } else {
-      keys.forEach(function(k, idx){
-        var pts = secMap[k];
-        if(pts.length < 1) return;
-        var hull = pts.length >= 3 ? convexHull(pts) : pts;
-        var shape = style === 'blob' ? smoothBlob(hull, 0.4) : hull;
-        if(shape.length < 3){
-          // fallback: draw a small circle around lone/duo points
-          var cx=0,cy=0; pts.forEach(function(p){cx+=p.x;cy+=p.y;}); cx/=pts.length; cy/=pts.length;
-          L.circle([cy,cx], {radius:600, color:'#888', weight:0.6, fillColor:zoneColor(k,idx), fillOpacity:0.35})
-            .addTo(zoneLayerGroup).bindTooltip(esc(k), {sticky:true});
-          return;
-        }
-        var latlngs = shape.map(function(p){ return [p.y, p.x]; });
-        L.polygon(latlngs, {
-          color:'#888', weight:0.6, opacity:0.5,
-          fillColor: zoneColor(k, idx), fillOpacity:0.35
-        }).addTo(zoneLayerGroup).bindTooltip(esc(k), {sticky:true});
-      });
-    }
-    if(window.toast) toast('🎨 Zone fill applied: '+style);
-  };
-
-  // expose geometry builders for the print composer to reuse
-  window.tgZoneGeometry = {
-    convexHull: convexHull,
-    smoothBlob: smoothBlob,
-    voronoiRegions: voronoiRegions,
-    buildSectionMap: buildSectionMap,
-    zoneColor: zoneColor,
-    palette: ZONE_PALETTE
-  };
-
-  // ───────── EHT quick-filter list ─────────
-  function renderEhtList(){
-    var box = document.getElementById('tgzEhtList');
-    if(!box) return;
-    var rows = eht().slice().sort(function(a,b){ return a.name.localeCompare(b.name); });
-    box.innerHTML = rows.map(function(s){
-      var id = 'tgzEht_'+esc(s.name).replace(/[^a-zA-Z0-9]/g,'_');
-      return '<div class="tgz-eht"><input type="checkbox" id="'+id+'" onchange="window.tgToggleEht('+JSON.stringify(s.name)+',this.checked)">'
-        + '<label for="'+id+'">'+esc(s.name)+'</label>'
-        + '<span class="ld">'+esc(s.per_load||'')+'</span></div>';
-    }).join('');
-    updateEhtCount();
-  }
-  function updateEhtCount(){
-    var el = document.getElementById('tgzEhtCount');
-    if(el) el.textContent = selectedEht.size+' of '+eht().length+' selected';
-  }
-  window.tgToggleEht = function(name, checked){
-    if(checked) selectedEht.add(name); else selectedEht.delete(name);
-    updateEhtCount();
-  };
-
-  // ───────── 33/11KV tree (Division > Sub-Div > Section > SS) ─────────
-  function renderSsTree(){
-    var box = document.getElementById('tgzSsTree');
-    if(!box) return;
-    var byDiv = {};
-    ss33().forEach(function(s){
-      byDiv[s.division] = byDiv[s.division] || {};
-      byDiv[s.division][s.sub_div] = byDiv[s.division][s.sub_div] || {};
-      byDiv[s.division][s.sub_div][s.section] = byDiv[s.division][s.sub_div][s.section] || [];
-      byDiv[s.division][s.sub_div][s.section].push(s);
-    });
-    var html = '';
-    Object.keys(byDiv).sort().forEach(function(div){
-      html += '<div class="tgz-div" data-row="div">'+esc(div)+'</div>';
-      Object.keys(byDiv[div]).sort().forEach(function(sub){
-        html += '<div class="tgz-sub" data-row="sub">'+esc(sub)+'</div>';
-        Object.keys(byDiv[div][sub]).sort().forEach(function(sec){
-          var list = byDiv[div][sub][sec];
-          list.forEach(function(s){
-            var id = 'tgzSs_'+esc(s.name).replace(/[^a-zA-Z0-9]/g,'_');
-            html += '<div class="tgz-ss" data-row="ss" data-name="'+esc(s.name).toLowerCase()+'">'
-              + '<input type="checkbox" id="'+id+'" onchange="window.tgToggleSs('+JSON.stringify(s.name)+',this.checked)">'
-              + '<label for="'+id+'">'+esc(s.name)+'</label></div>';
-          });
-        });
-      });
-    });
-    box.innerHTML = html;
-    updateSsCount();
-  }
-  function updateSsCount(){
-    var el = document.getElementById('tgzSsCount');
-    if(el) el.textContent = selectedSs.size+' of '+ss33().length+' selected';
-  }
-  window.tgToggleSs = function(name, checked){
-    if(checked) selectedSs.add(name); else selectedSs.delete(name);
-    updateSsCount();
-  };
-  window.tgFilterSsTree = function(){
-    var q = (document.getElementById('tgzSsSearch').value||'').toLowerCase().trim();
-    var rows = document.querySelectorAll('#tgzSsTree [data-row="ss"]');
-    rows.forEach(function(r){
-      r.style.display = (!q || r.getAttribute('data-name').indexOf(q) >= 0) ? '' : 'none';
-    });
-  };
-
-  // ───────── focus highlight on live map ─────────
-  window.tgApplyFocus = function(){
-    if(!window.map || typeof L === 'undefined'){ if(window.toast) toast('Map not ready'); return; }
-    if(focusLayerGroup){ window.map.removeLayer(focusLayerGroup); focusLayerGroup=null; }
-    focusLayerGroup = L.layerGroup().addTo(window.map);
-    var pts = [];
-    ss33().forEach(function(s){
-      if(selectedSs.has(s.name)){
-        pts.push([s.lat,s.lon]);
-        L.circleMarker([s.lat,s.lon], {radius:9, color:'#ff1744', weight:2, fillColor:'#ff1744', fillOpacity:.25})
-          .addTo(focusLayerGroup).bindTooltip(esc(s.name));
-      }
-    });
-    eht().forEach(function(s){
-      if(selectedEht.has(s.name)){
-        pts.push([s.lat,s.lon]);
-        L.circleMarker([s.lat,s.lon], {radius:12, color:'#ff6f00', weight:3, fillColor:'#ff6f00', fillOpacity:.2})
-          .addTo(focusLayerGroup).bindTooltip(esc(s.name));
-      }
-    });
-    if(pts.length){
-      window.map.flyToBounds(L.latLngBounds(pts), {padding:[80,80], maxZoom:16, animate:true, duration:.7});
-      if(window.toast) toast('🎯 Focused on '+pts.length+' substation(s)');
-    } else if(window.toast){
-      toast('Select at least one substation first');
-    }
-  };
-  window.tgClearFocus = function(){
-    if(focusLayerGroup && window.map){ window.map.removeLayer(focusLayerGroup); focusLayerGroup=null; }
-    if(window.toast) toast('Focus cleared');
-  };
-
-  // expose selection state for the print composer
-  window.tgGetFocusSelection = function(){
-    return { eht: Array.from(selectedEht), ss33: Array.from(selectedSs) };
-  };
-
-  // ───────── panel toggle ─────────
-  window.tgToggleZonePanel = function(force){
-    var p = document.getElementById('tgZonePanel');
-    if(!p) return;
-    var open = typeof force === 'boolean' ? force : !p.classList.contains('open');
-    p.classList.toggle('open', open);
-    if(open){ renderEhtList(); renderSsTree(); }
-  };
-
-})();
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     TGSPDCL LABEL DECLUTTER MODULE  (added 26-Jun-2026)
-     Screen-space collision avoidance for the permanent substation
-     tooltips (ss-label). Runs on zoomend/moveend. Does not alter
-     marker creation — only toggles each existing tooltip's
-     open/closed state based on whether it overlaps a
-     higher-priority label already accepted this pass.
-     Priority: EHT substations always outrank 33/11KV; within EHT,
-     higher feeder-count + higher %loading outranks others; within
-     33/11KV, alphabetical (deterministic, no metric available).
-   ═══════════════════════════════════════════════════════════════ -->
-<script>
-(function(){
-  'use strict';
-
-  var ENABLED = true;
-  var lastRun = 0;
-  var RUN_THROTTLE_MS = 80; // avoid running on every intermediate zoom-animation frame
-
-  function ehtPriorityScore(eht){
-    var feeders = parseFloat(eht.feeders) || 0;
-    var load = parseFloat(String(eht.per_load||'').replace('%','')) || 0;
-    return feeders * 2 + load; // simple weighted score; feeders matter slightly more
-  }
-
-  function getSubstationLayers(){
-    var all = window.allLayers || [];
-    var out = [];
-    all.forEach(function(item){
-      if(!item || item._deleted || !item.layer) return;
-      var type = item.reg && item.reg.type;
-      if(type === 'ss33' || type === 'ehts'){
-        out.push(item);
-      }
-    });
-    return out;
-  }
-
-  // build a name->EHT-record lookup once (for priority scoring)
-  var ehtByName = null;
-  function getEhtByName(){
-    if(ehtByName) return ehtByName;
-    ehtByName = {};
-    (window.STATIC_EHT||[]).forEach(function(e){ ehtByName[e.name] = e; });
-    return ehtByName;
-  }
-
-  function estimateLabelBox(layer){
-    // Tooltip text length-based estimate (cheap, avoids forced reflow from
-    // measuring real DOM rects on every pan, which would be the slow path).
-    var tt = layer.getTooltip && layer.getTooltip();
-    if(!tt) return null;
-    var content = tt.getContent ? String(tt.getContent()||'') : '';
-    var charW = 5.6; // approx px per character at the ss-label font-size
-    var w = Math.max(24, content.length * charW);
-    var h = 14;
-    return {w:w, h:h};
-  }
-
-  function rectsOverlap(a, b, pad){
-    pad = pad || 2;
-    return !(a.x2+pad < b.x1 || b.x2+pad < a.x1 || a.y2+pad < b.y1 || b.y2+pad < a.y1);
-  }
-
-  window.tgDeclutterLabels = function(){
-    if(!ENABLED) return;
-    if(!window.map || typeof L === 'undefined') return;
-    var now = Date.now();
-    if(now - lastRun < RUN_THROTTLE_MS) return;
-    lastRun = now;
-
-    var items = getSubstationLayers();
-    if(!items.length) return;
-
-    var mapBounds = window.map.getBounds();
-    var ehtMap = getEhtByName();
-
-    // build candidate list: only currently-visible substations need checking
-    var candidates = [];
-    items.forEach(function(item){
-      var ll = item.layer.getLatLng && item.layer.getLatLng();
-      if(!ll || !mapBounds.contains(ll)) {
-        // out of view — make sure its tooltip is closed to avoid stray DOM nodes
-        if(item.layer.getTooltip && item.layer.getTooltip() && item.layer.isTooltipOpen && item.layer.isTooltipOpen()){
-          item.layer.closeTooltip();
-        }
-        return;
-      }
-      var type = item.reg.type;
-      var isEht = type === 'ehts';
-      var priority;
-      if(isEht){
-        var rec = ehtMap[item.feederName] || ehtMap[(item.layer.getTooltip()&&item.layer.getTooltip().getContent())] || null;
-        // fall back: try matching via popup header text isn't reliable; use a
-        // high base priority for all EHT regardless if exact record not found
-        priority = 100000 + (rec ? ehtPriorityScore(rec) : 0);
-      } else {
-        priority = 0; // 33/11KV baseline; tie-broken by name below
-      }
-      candidates.push({ item:item, ll:ll, isEht:isEht, priority:priority });
-    });
-
-    // sort: EHT first (by score desc), then 33/11KV alphabetically by tooltip text
-    candidates.sort(function(a,b){
-      if(b.priority !== a.priority) return b.priority - a.priority;
-      var an = (a.item.layer.getTooltip()&&a.item.layer.getTooltip().getContent())||'';
-      var bn = (b.item.layer.getTooltip()&&b.item.layer.getTooltip().getContent())||'';
-      return String(an).localeCompare(String(bn));
-    });
-
-    var acceptedBoxes = [];
-    candidates.forEach(function(c){
-      var layer = c.item.layer;
-      var tt = layer.getTooltip && layer.getTooltip();
-      if(!tt){ return; }
-      var box = estimateLabelBox(layer);
-      if(!box){ return; }
-      var pt = window.map.latLngToContainerPoint(c.ll);
-      // tooltip is anchored 'top' with offset [0,-18] or [0,-16] in the
-      // original bindTooltip calls — approximate the rendered box center
-      // as directly above the marker.
-      var cx = pt.x, cy = pt.y - 18;
-      var rect = { x1: cx - box.w/2, x2: cx + box.w/2, y1: cy - box.h/2, y2: cy + box.h/2 };
-
-      var collides = false;
-      for(var i=0;i<acceptedBoxes.length;i++){
-        if(rectsOverlap(rect, acceptedBoxes[i])){ collides = true; break; }
-      }
-
-      var isOpen = layer.isTooltipOpen && layer.isTooltipOpen();
-      if(collides){
-        if(isOpen) layer.closeTooltip();
-      } else {
-        acceptedBoxes.push(rect);
-        if(!isOpen) layer.openTooltip();
-      }
-    });
-  };
-
-  window.tgSetDeclutterEnabled = function(on){
-    ENABLED = !!on;
-    if(ENABLED){
-      window.tgDeclutterLabels();
-    } else {
-      // restore all labels to visible (original behaviour) when turned off
-      getSubstationLayers().forEach(function(item){
-        var layer = item.layer;
-        if(layer.getTooltip && layer.getTooltip() && layer.openTooltip) layer.openTooltip();
-      });
-    }
-  };
-
-  function wireMapEvents(){
-    if(!window.map) { setTimeout(wireMapEvents, 300); return; }
-    window.map.on('zoomend moveend', window.tgDeclutterLabels);
-    // initial pass once markers exist
-    setTimeout(window.tgDeclutterLabels, 1200);
-  }
-  wireMapEvents();
-
-})();
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     ON-PAGE DIAGNOSTIC PANEL (added 27-Jun-2026 per Naresh)
-     No DevTools/console needed — everything shows directly on screen.
-     Temporary debugging aid; safe to delete this whole block once the
-     substation-loading issue is confirmed fixed.
-   ═══════════════════════════════════════════════════════════════ -->
-<div id="tgDiagPanel" style="position:fixed;bottom:10px;left:10px;z-index:99999;background:#0b1220;color:#9fe3ff;
-  font-family:monospace;font-size:11px;padding:10px 12px;border-radius:8px;border:1px solid #1e3a5f;
-  max-width:380px;box-shadow:0 6px 24px rgba(0,0,0,.5);line-height:1.5">
-  <div style="font-weight:700;color:#fff;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
-    <span>🔍 DIAGNOSTIC</span>
-    <span style="cursor:pointer;opacity:.6" onclick="document.getElementById('tgDiagPanel').style.display='none'">✕</span>
-  </div>
-  <div id="tgDiagOutput">Loading…</div>
-  <button onclick="window.tgRunDiagnostic()" style="margin-top:8px;background:#1565c0;color:#fff;border:none;
-    border-radius:5px;padding:5px 10px;font-size:11px;cursor:pointer;width:100%">🔁 RE-CHECK NOW</button>
-  <button onclick="window.tgTestBanjaraHills()" style="margin-top:6px;background:#2e7d32;color:#fff;border:none;
-    border-radius:5px;padding:5px 10px;font-size:11px;cursor:pointer;width:100%">▶ LOAD BANJARA HILLS NOW</button>
-</div>
-<script>
-window.tgRunDiagnostic = function(){
-  var out = document.getElementById('tgDiagOutput');
-  if(!out) return;
-  function line(label, ok, extra){
-    return '<div>'+(ok?'✅':'❌')+' '+label+(extra?' <span style="color:#7fb3d5">'+extra+'</span>':'')+'</div>';
-  }
-  var html = '';
-  try{
-    html += line('feederIndex', typeof window.feederIndex==='object',
-      typeof window.feederIndex==='object' ? Object.keys(window.feederIndex).length+' feeders' : 'MISSING');
-    html += line('STATIC_SS33', Array.isArray(window.STATIC_SS33),
-      Array.isArray(window.STATIC_SS33) ? window.STATIC_SS33.length+' substations' : 'MISSING');
-    html += line('STATIC_EHT', Array.isArray(window.STATIC_EHT),
-      Array.isArray(window.STATIC_EHT) ? window.STATIC_EHT.length+' EHTs' : 'MISSING');
-    html += line('renderScope fn', typeof window.renderScope==='function');
-    var divEl = document.getElementById('scopeDiv');
-    html += line('scopeDiv dropdown', !!divEl, divEl ? divEl.options.length+' options' : '');
-    if(divEl) html += '<div style="color:#7fb3d5;margin-left:18px">'+Array.from(divEl.options).map(function(o){return o.value;}).join(', ')+'</div>';
-    html += line('renderedFeederSet', typeof renderedFeederSet!=='undefined',
-      typeof renderedFeederSet!=='undefined' ? renderedFeederSet.size+' rendered' : '');
-    html += line('staticSSLayers (live markers)', typeof staticSSLayers!=='undefined',
-      typeof staticSSLayers!=='undefined' ? staticSSLayers.length+' on map NOW' : '');
-    html += line('userHasInteractedWithScope', typeof userHasInteractedWithScope!=='undefined',
-      String(typeof userHasInteractedWithScope!=='undefined' ? userHasInteractedWithScope : ''));
-  }catch(e){
-    html += '<div style="color:#ff6b6b">EXCEPTION: '+e.message+'</div>';
-  }
-  out.innerHTML = html;
-};
-window.tgTestBanjaraHills = function(){
-  var out = document.getElementById('tgDiagOutput');
-  try{
-    var result = window.renderScope({division:'Banjara Hills', subDivision:'ALL', section:'ALL', feederName:'ALL'});
-    out.innerHTML = '<div style="color:#7fff9f">✅ renderScope ran. Result: '+JSON.stringify(result)+'</div>'
-      + '<div style="color:#7fff9f">Substation markers now on map: '+staticSSLayers.length+'</div>'
-      + '<div style="color:#7fff9f">Feeders now rendered: '+renderedFeederSet.size+'</div>';
-  }catch(e){
-    out.innerHTML = '<div style="color:#ff6b6b">❌ THREW: '+e.message+'</div><div style="color:#ff6b6b;font-size:10px">'+(e.stack||'').replace(/\n/g,'<br>')+'</div>';
-  }
-};
-setTimeout(function(){ if(typeof window.tgRunDiagnostic==='function') window.tgRunDiagnostic(); }, 4500);
 </script>
 
 </body>
