@@ -1537,6 +1537,18 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 
 /* hide ward area labels per Naresh */
 .tg-ward-area-label{display:none!important}
+
+body.gridzoom-out .tg-important-area-label.corridor,body.gridzoom-out .tg-important-area-label.local{display:none!important}
+body.gridzoom-out .tg-important-area-label.core{font-size:7px!important;max-width:50px!important;opacity:.88!important;padding:1px 2px!important}
+body.gridzoom-mid .tg-important-area-label.corridor{font-size:7.4px!important;max-width:58px!important;opacity:.88!important;padding:1px 2px!important}
+body.gridzoom-mid .tg-important-area-label.local{display:none!important}
+body.gridzoom-mid .tg-important-area-label.core{font-size:8.2px!important;max-width:64px!important;opacity:.94!important;padding:1px 3px!important}
+body.gridzoom-in .tg-important-area-label{font-size:var(--tg-grid-label-size,9px)!important;max-width:84px!important;opacity:1!important}
+body.gridzoom-in .tg-important-area-label.local{font-size:calc(var(--tg-grid-label-size,9px) - 1px)!important;max-width:74px!important}
+body.gridzoom-out .tg-district-label{font-size:9px!important;opacity:.62!important}
+body.gridzoom-mid .tg-district-label{font-size:10px!important;opacity:.76!important}
+body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!important}
+
 </style>
 </head>
 <body class="no-anim">
@@ -1669,8 +1681,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
     <input type="range" min="7" max="18" step="1" value="11" oninput="setTGGridLabelSize(this.value)">
   </div>
   <div class="gsp-row">
-    <label>FEEDER LINE <span id="gspLineVal">0.95</span></label>
-    <input type="range" min="0.45" max="2.20" step="0.05" value="0.95" oninput="setTGFeederLineThickness(this.value)">
+    <label>FEEDER LINE <span id="gspLineVal">0.50</span></label>
+    <input type="range" min="0.45" max="2.20" step="0.05" value="0.50" oninput="setTGFeederLineThickness(this.value)">
   </div>
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
     <label style="margin-bottom:0"><span>AREA BORDERS ONLY</span>
@@ -2029,7 +2041,7 @@ function _ensureGridBackground(on){
 // boundary fetch fails (offline, CDN blocked, etc.) so the view is
 // never blank.
 // ─────────────────────────────────────────────────────────────
-const TG_BOUNDARY_DISTRICTS = ['HYDERABAD','MEDCHAL','MEDCHAL-MALKAJGIRI','RANGAREDDY','RANGA REDDY','SANGAREDDY'];
+const TG_BOUNDARY_DISTRICTS = ['HYDERABAD','MEDCHAL','MEDCHAL-MALKAJGIRI','MEDCHAL MALKAJGIRI','RANGAREDDY','RANGA REDDY','SANGAREDDY','VIKARABAD','YADADRI BHUVANAGIRI','YADADRI-BHUVANAGIRI','MEDAK','SIDDIPET','MAHABUBNAGAR','NAGARKURNOOL','NALGONDA','WANAPARTHY'];
 const TG_DISTRICTS_GEOJSON_URL = 'https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json';
 const TG_BLOCKS_GEOJSON_URL = 'https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json';
 // GHMC ward-level boundaries — verified real file from the DataMeet
@@ -2118,6 +2130,7 @@ function _tgFeatureLabelPoint(feature){
 }
 let _tgDistrictLabelMarkers=[];
 let _tgWardLabelMarkers=[];
+let _tgDistrictFeatures=[];
 function addLabelsFromGeoJSON(feats){
   _tgDistrictLabelMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
   _tgDistrictLabelMarkers=[];
@@ -2156,49 +2169,125 @@ function addWardLabelsFromGeoJSON(feats){
 
 
 function _tgImportantAreaPoints(){
-  // Permanent area names based on the GHMC/CMC/MMC planning-map style Naresh referenced.
-  // Coords are approximate label anchors only; boundary lines come from GeoJSON/shapefile layers.
+  // Permanent area names based on GHMC / planning-map style references.
+  // class: core = major inner load zones, corridor = outer growth/support zones,
+  // local = finer neighbourhood labels only intended to appear at higher zoom.
   return [
     // Core Hyderabad / central load pocket
     ['CORE HYDERABAD',17.402,78.475,'core'],['Khairatabad',17.409,78.462,'core'],['Ameerpet',17.438,78.448,'core'],
     ['Secunderabad',17.439,78.498,'core'],['Begumpet',17.444,78.466,'core'],['Jubilee Hills',17.432,78.407,'core'],
     ['Madhapur',17.448,78.391,'core'],['Banjara Hills',17.414,78.438,'core'],['Charminar',17.361,78.474,'core'],
+    ['Kukatpally',17.493,78.399,'core'],['Miyapur',17.494,78.357,'core'],['Somajiguda',17.423,78.459,'core'],
+    ['Uppal',17.405,78.560,'core'],['LB Nagar',17.347,78.557,'core'],
 
     // West / North-West growth support
     ['Patancheru',17.530,78.265,'corridor'],['BHEL',17.494,78.318,'corridor'],['Ameenpur',17.520,78.340,'corridor'],
-    ['Miyapur',17.494,78.357,'corridor'],['Serilingampally',17.479,78.319,'corridor'],['Narsingi',17.386,78.354,'corridor'],
-    ['Kokapet',17.393,78.335,'corridor'],['Financial District',17.410,78.345,'corridor'],['Gachibowli',17.440,78.348,'corridor'],
+    ['Serilingampally',17.479,78.319,'corridor'],['Narsingi',17.386,78.354,'corridor'],['Kokapet',17.393,78.335,'corridor'],
+    ['Financial District',17.410,78.345,'corridor'],['Gachibowli',17.440,78.348,'corridor'],['Quthbullapur',17.501,78.445,'corridor'],
+    ['Kondapur',17.466,78.367,'corridor'],['HITEC City',17.449,78.383,'corridor'],
 
     // North support
     ['Medchal',17.629,78.481,'corridor'],['Dundigal',17.603,78.420,'corridor'],['Kompally',17.540,78.489,'corridor'],
     ['Shamirpet',17.594,78.574,'corridor'],['Alwal',17.504,78.503,'corridor'],['Jeedimetla',17.516,78.456,'corridor'],
-    ['Kukatpally',17.493,78.399,'corridor'],['Quthbullapur',17.501,78.445,'corridor'],
+    ['Suchitra',17.518,78.484,'corridor'],
 
     // East / North-East support
     ['Malkajgiri',17.450,78.533,'corridor'],['Kapra',17.489,78.565,'corridor'],['Keesara',17.528,78.662,'corridor'],
-    ['Cherlapally',17.470,78.600,'corridor'],['Ghatkesar',17.448,78.685,'corridor'],['Uppal',17.405,78.560,'corridor'],
-    ['Boduppal',17.413,78.585,'corridor'],['Pocharam',17.431,78.648,'corridor'],
+    ['Cherlapally',17.470,78.600,'corridor'],['Ghatkesar',17.448,78.685,'corridor'],['Boduppal',17.413,78.585,'corridor'],
+    ['Pocharam',17.431,78.648,'corridor'],['Nagole',17.371,78.565,'corridor'],['Hayathnagar',17.327,78.605,'corridor'],
 
     // South / South-West / Airport support
     ['Rajendra Nagar',17.322,78.403,'corridor'],['Attapur',17.368,78.429,'corridor'],['Shamshabad',17.251,78.437,'corridor'],
     ['RGIA / Airport',17.240,78.429,'corridor'],['Jalpally',17.312,78.470,'corridor'],['Badangpet',17.305,78.525,'corridor'],
-    ['Maheshwaram',17.131,78.430,'corridor'],
+    ['Maheshwaram',17.131,78.430,'corridor'],['Adibatla',17.235,78.545,'corridor'],['Ibrahimpatnam',17.193,78.646,'corridor'],
 
-    // South-East / industrial-aerospace support
-    ['Adibatla',17.235,78.545,'corridor'],['Ibrahimpatnam',17.193,78.646,'corridor'],['Hayathnagar',17.327,78.605,'corridor'],
-    ['Nagole',17.371,78.565,'corridor'],['LB Nagar',17.347,78.557,'corridor']
+    // Finer local names (visible mostly at zoom-in)
+    ['Borabanda',17.452,78.410,'local'],['Yousufguda',17.436,78.430,'local'],['Tarnaka',17.428,78.538,'local'],
+    ['Golconda',17.383,78.401,'local'],['Musheerabad',17.422,78.503,'local'],['Masab Tank',17.399,78.452,'local'],
+    ['Dilsukhnagar',17.368,78.524,'local'],['Moosapet',17.468,78.428,'local'],['Chintal',17.512,78.449,'local'],
+    ['Bowenpally',17.469,78.480,'local'],['Manikonda',17.409,78.369,'local'],['Kavadiguda',17.419,78.492,'local']
   ];
 }
+
+function _tgAreaLabelHtml(name){
+  var explicit={
+    'CORE HYDERABAD':'CORE<br>HYDERABAD',
+    'Banjara Hills':'Banjara<br>Hills',
+    'Jubilee Hills':'Jubilee<br>Hills',
+    'Financial District':'Financial<br>District',
+    'Rajendra Nagar':'Rajendra<br>Nagar',
+    'RGIA / Airport':'RGIA /<br>Airport',
+    'LB Nagar':'LB<br>Nagar',
+    'Somajiguda':'Somaji-<br>guda',
+    'Quthbullapur':'Quthbulla-<br>pur',
+    'Financial District':'Financial<br>District',
+    'Rajendra Nagar':'Rajendra<br>Nagar',
+    'Banjara Hills':'Banjara<br>Hills',
+    'Jubilee Hills':'Jubilee<br>Hills',
+    'CORE HYDERABAD':'CORE<br>HYDERABAD',
+    'RGIA / Airport':'RGIA /<br>Airport',
+    'Malkajgiri':'Malkaj-<br>giri',
+    'HITEC City':'HITEC<br>City',
+    'Yousufguda':'Yousuf-<br>guda',
+    'Dilsukhnagar':'Dilsukh-<br>nagar',
+    'Kavadiguda':'Kavadi-<br>guda',
+    'Boduppal':'Boduppal'
+  };
+  if(explicit[name]) return explicit[name];
+  var words=String(name||'').trim().split(/\s+/);
+  if(words.length===2 && (words[0].length+words[1].length)>12) return words[0]+'<br>'+words[1];
+  if(words.length===3 && String(name).length>15) return words.slice(0,2).join(' ')+'<br>'+words[2];
+  return name;
+}
+
+function _tgNormAreaName(s){
+  return String(s||'').toUpperCase().replace(/\bWARD\b/g,'').replace(/\bCIRCLE\b/g,'').replace(/\bDIVISION\b/g,'').replace(/[^A-Z0-9]+/g,'').trim();
+}
+function _tgFeatureName(props){
+  if(!props) return '';
+  return props.WARD_NAME||props.Ward_Name||props.ward_name||props.WardName||props.NAME||props.Name||props.name||props.LOCALITY||props.Locality||props.AREA_NAME||props.DISTRICT||props.DIST_NAME||props.district||'';
+}
+function _tgFindAreaAnchor(name, lat, lng){
+  var target = _tgNormAreaName(name), best=null;
+  function matchLayer(layer){
+    try{
+      var props=(layer.feature&&layer.feature.properties)||{};
+      var raw=_tgFeatureName(props), norm=_tgNormAreaName(raw);
+      if(!norm) return;
+      if(norm===target || norm.indexOf(target)>=0 || target.indexOf(norm)>=0){
+        var b=layer.getBounds?layer.getBounds():null;
+        if(b && b.isValid && b.isValid()) best=b.getCenter();
+      }
+    }catch(e){}
+  }
+  if(_tgGhmcWardLayer && _tgGhmcWardLayer.eachLayer){ _tgGhmcWardLayer.eachLayer(function(layer){ if(!best) matchLayer(layer); }); }
+  if(!best && Array.isArray(_tgDistrictFeatures)){
+    _tgDistrictFeatures.forEach(function(f){
+      if(best) return;
+      var props=f.properties||{}, raw=_tgFeatureName(props), norm=_tgNormAreaName(raw);
+      if(norm && (norm===target || norm.indexOf(target)>=0 || target.indexOf(norm)>=0)){
+        try{ var gj=L.geoJSON(f); var ls=gj.getLayers(); if(ls && ls[0] && ls[0].getBounds){ var b=ls[0].getBounds(); if(b.isValid()) best=b.getCenter(); } }catch(e){}
+      }
+    });
+  }
+  return best || L.latLng(lat,lng);
+}
+
 function _tgBuildImportantAreaLabels(){
   const g=L.layerGroup();
+  const seen={};
   _tgImportantAreaPoints().forEach(function(a){
     const name=a[0], lat=a[1], lng=a[2], cls=a[3]||'';
-    L.marker([lat,lng],{
+    const key=_tgNormAreaName(name);
+    if(seen[key]) return;
+    seen[key]=1;
+    const anchor=_tgFindAreaAnchor(name, lat, lng);
+    L.marker(anchor,{
       interactive:false,
       pane:'markerPane',
       icon:L.divIcon({
         className:'tg-important-area-label '+cls,
-        html:name,
+        html:_tgAreaLabelHtml(name),
         iconSize:null
       })
     }).addTo(g);
@@ -2222,6 +2311,7 @@ async function _buildTGRegionalGridLayer(){
       return TG_BOUNDARY_DISTRICTS.some(d=>name.includes(d)||d.includes(name));
     });
     if(!feats.length) throw new Error('no matching districts in boundary file');
+    _tgDistrictFeatures = feats;
     feats.forEach((f,i)=>{
       const layer=L.geoJSON(f,{style:{color:'#555',weight:1,fillColor:palette[i%palette.length],fillOpacity:.25}});
       const props=f.properties||{};
@@ -2293,6 +2383,11 @@ async function _buildTGRegionalGridLayer(){
   window.tgGridShowImportantAreas = window.tgGridShowImportantAreas ?? true;
   _tgImportantAreaLabelLayer = _tgBuildImportantAreaLabels();
   if(window.tgGridShowImportantAreas) _tgImportantAreaLabelLayer.addTo(group);
+
+  // ORR / RRR / major radial roads for growth-corridor planning context.
+  window.tgGridShowMajorRoads = window.tgGridShowMajorRoads ?? true;
+  _tgMajorRoadLayer = _tgBuildMajorRoadsLayer();
+  if(window.tgGridShowMajorRoads) _tgMajorRoadLayer.addTo(group);
 }
 
 window.tgSetGridShowWards = function(on){
@@ -2330,6 +2425,34 @@ window.tgSetGridShowMajorRoads = function(on){
   if(on) _tgRegionalGridLayerGroup.addLayer(_tgMajorRoadLayer);
   else _tgRegionalGridLayerGroup.removeLayer(_tgMajorRoadLayer);
 };
+function _tgBuildMajorRoadsLayer(){
+  const g=L.layerGroup();
+  function roadLine(latlngs, color, weight, dash, name, labelAt){
+    L.polyline(latlngs,{color:color,weight:weight,opacity:.92,dashArray:dash||null,interactive:false,pane:'overlayPane'}).addTo(g);
+    if(name && labelAt){
+      L.marker(labelAt,{interactive:false,pane:'markerPane',icon:L.divIcon({className:'',html:'<div class="tg-major-road-label">'+name+'</div>',iconSize:[0,0],iconAnchor:[0,0]})}).addTo(g);
+    }
+  }
+  // ORR (approximate alignment around Hyderabad for planning-context view)
+  roadLine([
+    [17.555,78.355],[17.595,78.405],[17.635,78.500],[17.610,78.590],[17.545,78.660],[17.455,78.705],
+    [17.355,78.695],[17.275,78.640],[17.215,78.575],[17.182,78.475],[17.205,78.390],[17.255,78.320],
+    [17.340,78.275],[17.430,78.270],[17.505,78.300],[17.555,78.355]
+  ], '#c2410c', 3.2, '8 6', 'ORR', [17.61,78.56]);
+  // RRR north/east concept corridor
+  roadLine([
+    [17.760,78.150],[17.780,78.330],[17.785,78.520],[17.730,78.710],[17.610,78.860]
+  ], '#7c3aed', 2.6, '6 5', 'RRR (N/E)', [17.78,78.47]);
+  // RRR south/west concept corridor
+  roadLine([
+    [17.070,78.220],[17.060,78.430],[17.085,78.610],[17.155,78.790]
+  ], '#7c3aed', 2.6, '6 5', 'RRR (S)', [17.07,78.49]);
+  // Major radials / highways
+  roadLine([[17.72,78.47],[17.59,78.47],[17.46,78.47],[17.31,78.46],[17.16,78.45]], '#b45309', 1.8, null, 'NH 44', [17.55,78.475]);
+  roadLine([[17.46,78.20],[17.44,78.33],[17.41,78.45],[17.38,78.56],[17.36,78.72]], '#b45309', 1.8, null, 'NH 65', [17.39,78.57]);
+  roadLine([[17.43,78.45],[17.43,78.57],[17.43,78.71]], '#b45309', 1.6, null, 'NH 163', [17.43,78.65]);
+  return g;
+}
 var _origTgSetGridShowWards = window.tgSetGridShowWards;
 window.tgSetGridShowWards = function(on){
   _origTgSetGridShowWards(on);
@@ -2339,8 +2462,8 @@ function tgUpdateGridZoomClasses(){
     if(!window.map || !map.getZoom) return;
     document.body.classList.remove('gridzoom-out','gridzoom-mid','gridzoom-in');
     var z = map.getZoom();
-    if(z <= 11.5) document.body.classList.add('gridzoom-out');
-    else if(z <= 13.5) document.body.classList.add('gridzoom-mid');
+    if(z <= 12.3) document.body.classList.add('gridzoom-out');
+    else if(z <= 14.2) document.body.classList.add('gridzoom-mid');
     else document.body.classList.add('gridzoom-in');
   }catch(e){}
 }
@@ -2789,7 +2912,7 @@ DATA_REGISTRY.forEach(reg=>{
       const coords=feat.geometry.type==='Point'?feat.geometry.coordinates:feat.geometry.coordinates[0];
       const ll=[coords[1],coords[0]];
       if(reg.type==='points'||reg.type==='fpoles'){
-        layer=L.circleMarker(ll,{radius:3.5,fillColor:'#fff',fillOpacity:1,color:cableColor(cableType,isOH),weight:1.5,pane:'pointsPane',renderer:_CR});
+        layer=L.circleMarker(ll,{radius:2.2,fillColor:'#fff',fillOpacity:1,color:cableColor(cableType,isOH),weight:1.5,pane:'pointsPane',renderer:_CR});
       }else if(reg.type==='cut'){
         layer=L.marker(ll,{icon:L.divIcon({className:'',html:`<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'><line x1='2' y1='2' x2='12' y2='12' stroke='#ffeb3b' stroke-width='2.5' stroke-linecap='round'/><line x1='12' y1='2' x2='2' y2='12' stroke='#ffeb3b' stroke-width='2.5' stroke-linecap='round'/></svg>`,iconSize:[14,14],iconAnchor:[7,7]}),pane:'pointsPane'});
       regType='cut';
@@ -3617,9 +3740,9 @@ function _tgFeederLineBaseWeightFor(item){
   return cStatus==='breakdown' ? 7 : 5.8;
 }
 function setTGFeederLineThickness(v){
-  v=Math.max(0.45,Math.min(2.20,Number(v)||0.95));
+  v=Math.max(0.25,Math.min(2.20,Number(v)||0.50));
   const el=document.getElementById('gspLineVal'); if(el)el.textContent=v.toFixed(2);
-  const scale=v/0.95; // 0.95 is the slider's neutral/default position
+  const scale=v/0.50; // 0.50 is the slider's neutral/default position
   allLayers.forEach(item=>{
     const layer=item.layer;
     if(!layer || typeof layer.setStyle!=='function' || !layer.options || !('weight' in layer.options)) return;
@@ -6174,11 +6297,11 @@ function renderUploadedRows(rows,sourceFileName){
         // AB Switch — orange diamond with central bar. Per Naresh 31-May-2026:
         // reduced from 18→12 px so it's proportional to DP/cut markers.
         layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',
-          html:`<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 16 16'>
+          html:`<svg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 16 16'>
             <rect x='3' y='3' width='10' height='10' rx='1.3' transform='rotate(45 8 8)' fill='#ff9800' stroke='#fff' stroke-width='1.1' style='filter:drop-shadow(0 0 1px #ff9800)'/>
             <line x1='5' y1='8' x2='11' y2='8' stroke='#fff' stroke-width='1.5' stroke-linecap='round'/>
           </svg>`,
-          iconSize:[12,12],iconAnchor:[6,6]}),pane:'pointsPane'});
+          iconSize:[10,10],iconAnchor:[5,5]}),pane:'pointsPane'});
       }else if(isDP){
         regType='dp';
         // DP Structure — purple double-pole symbol
@@ -6195,11 +6318,11 @@ function renderUploadedRows(rows,sourceFileName){
         regType='cut';
         // Cut Point — small yellow "X" the same visual size as a pole dot
         // (Pole circle markers render at ~7 px diameter; the X here is 7×7 too.)
-        layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'cut-pt-icon',html:`<svg xmlns='http://www.w3.org/2000/svg' width='5' height='5' viewBox='0 0 5 5'><line x1='0.8' y1='0.8' x2='4.2' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/><line x1='4.2' y1='0.8' x2='0.8' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/></svg>`,iconSize:[5,5],iconAnchor:[2.5,2.5]}),pane:'pointsPane'});
+        layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'cut-pt-icon',html:`<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 5 5'><line x1='0.8' y1='0.8' x2='4.2' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/><line x1='4.2' y1='0.8' x2='0.8' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/></svg>`,iconSize:[4,4],iconAnchor:[2,2]}),pane:'pointsPane'});
       }else if(p.pn.spurKey){
-        layer=L.circleMarker([p.lat,p.lng],{radius:3,fillColor:'#ffe082',fillOpacity:1,color:'#ff9800',weight:1.5,pane:'pointsPane',renderer:_CR});
+        layer=L.circleMarker([p.lat,p.lng],{radius:2,fillColor:'#ffe082',fillOpacity:1,color:'#ff9800',weight:1.5,pane:'pointsPane',renderer:_CR});
       }else{
-        layer=L.circleMarker([p.lat,p.lng],{radius:3.5,fillColor:'#fff',fillOpacity:1,color:ptColor,weight:1.5,pane:'pointsPane',renderer:_CR});
+        layer=L.circleMarker([p.lat,p.lng],{radius:2.2,fillColor:'#fff',fillOpacity:1,color:ptColor,weight:1.5,pane:'pointsPane',renderer:_CR});
       }
       const reg={type:regType,feeder:feederName,cable};
       layer.feature=feat;layer._editId=editLayerCounter++;
@@ -10054,10 +10177,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   // ---------- symbols ----------
   function symbolSvg(x,y,type){
     if(type === 'SS')  return '<rect x="'+(x-2.2)+'" y="'+(y-2.2)+'" width="4.4" height="4.4" fill="#ef4444" stroke="#7f1d1d" stroke-width=".45"/>';
-    if(type === 'AB')  return '<rect x="'+(x-1.05)+'" y="'+(y-1.05)+'" width="2.1" height="2.1" rx=".35" transform="rotate(45 '+x+' '+y+')" fill="#ff9800" stroke="#7c2d12" stroke-width=".28"/>';
-    if(type === 'DP')  return '<rect x="'+(x-2.0)+'" y="'+(y-2.0)+'" width="4.0" height="4.0" fill="#d946ef" stroke="#701a75" stroke-width=".35"/>';
-    if(type === 'CUT') return '<path d="M'+(x-1.6)+' '+(y-1.6)+' L'+(x+1.6)+' '+(y+1.6)+' M'+(x+1.6)+' '+(y-1.6)+' L'+(x-1.6)+' '+(y+1.6)+'" stroke="#ef4444" stroke-width=".7" stroke-linecap="round"/>';
-    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r="0.9" fill="#111827"/>';
+    if(type === 'AB')  return '<rect x="'+(x-0.6)+'" y="'+(y-0.6)+'" width="1.2" height="1.2" rx=".18" transform="rotate(45 '+x+' '+y+')" fill="#ff9800" stroke="#7c2d12" stroke-width=".18"/>';
+    if(type === 'DP')  return '<rect x="'+(x-1.1)+'" y="'+(y-1.1)+'" width="2.2" height="2.2" fill="#d946ef" stroke="#701a75" stroke-width=".24"/>';
+    if(type === 'CUT') return '<path d="M'+(x-0.85)+' '+(y-0.85)+' L'+(x+0.85)+' '+(y+0.85)+' M'+(x+0.85)+' '+(y-0.85)+' L'+(x-0.85)+' '+(y+0.85)+'" stroke="#ef4444" stroke-width=".42" stroke-linecap="round"/>';
+    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r="0.42" fill="#111827"/>';
     return '';
   }
   function substationSvg(x,y,type,name){
@@ -10112,7 +10235,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       var color = s.cable === 'OH' ? '#ff9800' : '#2196f3';
       var dash = s.cable === 'OH' ? ' stroke-dasharray="2 1"' : '';
       var d = s.pts.map(function(p){ var q=project(p); return q.x.toFixed(2)+','+q.y.toFixed(2); }).join('\n');
-      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
+      svg.push('<polyline points="'+d+'" fill="none" stroke="'+color+'" stroke-width="0.58" stroke-linecap="round" stroke-linejoin="round"'+dash+'/>');
     });
 
     if(opt.symbols || opt.poleLabels){
@@ -10153,8 +10276,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       var lx = 10, ly = page.h - 46;
       svg.push('<rect x="'+lx+'" y="'+ly+'" width="50" height="38" fill="#fff" stroke="#777" stroke-width=".25"/>');
       svg.push('<text x="'+(lx+3)+'" y="'+(ly+5)+'" font-size="2.4" font-weight="700">LEGEND</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+10)+'" x2="'+(lx+14)+'" y2="'+(ly+10)+'" stroke="#2196f3" stroke-width="1.1"/><text x="'+(lx+17)+'" y="'+(ly+11)+'" font-size="2.2">UG Line</text>');
-      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+16)+'" x2="'+(lx+14)+'" y2="'+(ly+16)+'" stroke="#ff9800" stroke-width="1.1" stroke-dasharray="2 1"/><text x="'+(lx+17)+'" y="'+(ly+17)+'" font-size="2.2">OH Line</text>');
+      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+10)+'" x2="'+(lx+14)+'" y2="'+(ly+10)+'" stroke="#2196f3" stroke-width="0.58"/><text x="'+(lx+17)+'" y="'+(ly+11)+'" font-size="2.2">UG Line</text>');
+      svg.push('<line x1="'+(lx+4)+'" y1="'+(ly+16)+'" x2="'+(lx+14)+'" y2="'+(ly+16)+'" stroke="#ff9800" stroke-width="0.58" stroke-dasharray="1.3 0.9"/><text x="'+(lx+17)+'" y="'+(ly+17)+'" font-size="2.2">OH Line</text>');
       svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+22)+'" r="2" fill="#ff9800"/><text x="'+(lx+17)+'" y="'+(ly+23)+'" font-size="2.2">AB / device</text>');
       svg.push('<circle cx="'+(lx+9)+'" cy="'+(ly+28)+'" r="2.4" fill="#dbeafe" stroke="#1d4ed8" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+29)+'" font-size="2.2">33/11KV SS</text>');
       svg.push('<rect x="'+(lx+6.6)+'" y="'+(ly+32)+'" width="6.6" height="4.4" rx=".8" fill="#fff7ed" stroke="#f97316" stroke-width=".5"/><text x="'+(lx+17)+'" y="'+(ly+35.6)+'" font-size="2.2">EHT SS</text>');
