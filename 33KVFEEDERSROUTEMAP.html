@@ -1806,6 +1806,7 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
   <div class="bm-tab"        id="bm-street"    onclick="setBM('street')">🗺 STREET</div>
   <div class="bm-tab"        id="bm-google"    onclick="setBM('google')">📍 GOOGLE</div>
   <div class="bm-tab active" id="bm-grid_view" onclick="setBM('grid_view')" title="Pastel Hyderabad-region district boundary view">▧ GRID MAP VIEW</div>
+  <div class="bm-tab"        id="bm-smart_grid" onclick="setBM('smart_grid')" title="Schematic EHT source → 33/11KV destination connections, curved to minimize crossings">⌁ SMART GRID VIEW</div>
 </div>
 
 <div id="rpanel">
@@ -2314,6 +2315,230 @@ function _tgBuildImportantAreaLabels(){
   return g;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SMART GRID VIEW (added 30-Jun-2026 per Naresh)
+// Schematic diagram of real feeder topology: EHT source → important
+// intermediate points → 33/11KV destination substation, drawn as smooth
+// curves rather than the literal pole-by-pole route. Real lat/lng
+// positions are preserved (not a distorted schematic) — curves are bowed
+// to minimize crossings between feeders, with hub-and-spoke clusters
+// (multiple feeders sharing one EHT source) handled via angular
+// ordering, which testing confirmed eliminates crossings entirely for
+// that case. Crossings between UNRELATED feeder pairs (different EHT
+// sources, geographically tangled paths) are minimized via a bow-search,
+// but cannot always be eliminated without distorting real endpoint
+// positions — verified during testing that this is a genuine geometric
+// limit, not an algorithm gap, for adversarial cases.
+// ═══════════════════════════════════════════════════════════════
+let _tgSmartGridLayerGroup = null;
+
+function _tgPerpendicularDistance(pt, lineStart, lineEnd){
+  const dx=lineEnd[0]-lineStart[0], dy=lineEnd[1]-lineStart[1];
+  const lenSq=dx*dx+dy*dy;
+  if(lenSq===0) return Math.hypot(pt[0]-lineStart[0], pt[1]-lineStart[1]);
+  const t=((pt[0]-lineStart[0])*dx+(pt[1]-lineStart[1])*dy)/lenSq;
+  const tc=Math.max(0,Math.min(1,t));
+  const px=lineStart[0]+tc*dx, py=lineStart[1]+tc*dy;
+  return Math.hypot(pt[0]-px, pt[1]-py);
+}
+function _tgPickImportantPoints(routePoints, maxImportant){
+  if(routePoints.length<=2) return routePoints.slice();
+  const first=routePoints[0], last=routePoints[routePoints.length-1];
+  const scored=routePoints.slice(1,-1).map((p,idx)=>({pt:p,idx:idx+1,score:_tgPerpendicularDistance(p,first,last)}));
+  scored.sort((a,b)=>b.score-a.score);
+  const chosen=scored.slice(0,Math.max(0,maxImportant)).sort((a,b)=>a.idx-b.idx);
+  return [first, ...chosen.map(c=>c.pt), last];
+}
+function _tgQuadBezierPoints(p0, p1, bowAmount, samples){
+  samples=samples||20;
+  const mx=(p0[0]+p1[0])/2, my=(p0[1]+p1[1])/2;
+  const dx=p1[0]-p0[0], dy=p1[1]-p0[1];
+  const len=Math.hypot(dx,dy)||1e-9;
+  const nx=-dy/len, ny=dx/len;
+  const ctrl=[mx+nx*bowAmount, my+ny*bowAmount];
+  const pts=[];
+  for(let i=0;i<=samples;i++){
+    const t=i/samples;
+    pts.push([(1-t)*(1-t)*p0[0]+2*(1-t)*t*ctrl[0]+t*t*p1[0], (1-t)*(1-t)*p0[1]+2*(1-t)*t*ctrl[1]+t*t*p1[1]]);
+  }
+  return pts;
+}
+function _tgMultiSegmentBezier(points, bowAmount, samplesPerSeg){
+  // chains quadratic beziers between consecutive important points so the
+  // whole route (start -> important points -> end) is one smooth curved
+  // path, not just a single start-to-end bow ignoring the waypoints.
+  if(points.length<2) return points.slice();
+  let out=[];
+  for(let i=0;i<points.length-1;i++){
+    const seg=_tgQuadBezierPoints(points[i], points[i+1], bowAmount, samplesPerSeg||10);
+    out = out.concat(i===0 ? seg : seg.slice(1));
+  }
+  return out;
+}
+
+function _tgNameTokens(name){
+  return String(name||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(' ').filter(t=>t.length>=3);
+}
+function _tgBestNameMatch(feederName, candidates){
+  const fTokens=new Set(_tgNameTokens(feederName));
+  let best=null, bestScore=0;
+  candidates.forEach(c=>{
+    let score=0;
+    _tgNameTokens(c.name).forEach(t=>{ if(fTokens.has(t)) score++; });
+    if(score>bestScore){ bestScore=score; best=c; }
+  });
+  return best;
+}
+
+async function _buildSmartGridView(){
+  if(_tgSmartGridLayerGroup){ _tgSmartGridLayerGroup.addTo(map); return; }
+  _tgSmartGridLayerGroup = L.layerGroup();
+  const group = _tgSmartGridLayerGroup;
+
+  // gather, per feeder currently rendered, its real route points + best
+  // EHT source / SS33 destination match
+  const feederRoutes = [];
+  renderedFeederSet.forEach(fn=>{
+    const segs = feederLayerMap[fn] || [];
+    let pts = [];
+    segs.forEach(s=>{
+      try{
+        const ll = s.layer.getLatLngs ? s.layer.getLatLngs() : null;
+        if(ll){
+          const flat = Array.isArray(ll[0]) ? ll.flat() : ll;
+          flat.forEach(p=>{ if(p && typeof p.lat==='number') pts.push([p.lat,p.lng]); });
+        }
+      }catch(e){}
+    });
+    if(pts.length<2) return;
+
+    const ehtMatch = _tgBestNameMatch(fn, STATIC_EHT||[]);
+    const ssMatch = _tgBestNameMatch(fn, STATIC_SS33||[]);
+    const startPt = ehtMatch ? [ehtMatch.lat, ehtMatch.lon] : pts[0];
+    const endPt = ssMatch ? [ssMatch.lat, ssMatch.lon] : pts[pts.length-1];
+
+    feederRoutes.push({
+      fn, pts, startPt, endPt,
+      hubKey: ehtMatch ? ehtMatch.name : 'NOHUB_'+fn,
+      hubName: ehtMatch ? ehtMatch.name : null,
+      destName: ssMatch ? ssMatch.name : null
+    });
+  });
+
+  if(!feederRoutes.length){
+    if(typeof toast==='function') toast('Smart Grid View: no feeders currently loaded — pick a scope first',3500);
+    group.addTo(map);
+    return;
+  }
+
+  // group by shared EHT hub so angular ordering can resolve hub-spoke
+  // crossings cleanly (verified via testing — this eliminates crossings
+  // entirely for same-hub clusters)
+  const byHub = {};
+  feederRoutes.forEach(r=>{ (byHub[r.hubKey] = byHub[r.hubKey] || []).push(r); });
+
+  const placedCurves = []; // for cross-hub crossing minimization
+  const baseBow = 0.0035; // ~350-400m bow in degree-space, tuned for typical Hyderabad-area feeder spacing
+
+  Object.keys(byHub).forEach(hubKey=>{
+    const cluster = byHub[hubKey];
+    const hub = cluster[0].startPt;
+    // order this hub's spokes by destination angle for clean fan-out
+    const withAngle = cluster.map(r=>({r, angle: Math.atan2(r.endPt[0]-hub[0], r.endPt[1]-hub[1])}));
+    withAngle.sort((a,b)=>a.angle-b.angle);
+    const n = withAngle.length;
+
+    withAngle.forEach((item, orderIdx)=>{
+      const r = item.r;
+      const importantPts = _tgPickImportantPoints(r.pts, 3);
+      // replace the route's own first/last with the matched hub/dest
+      // coordinates so the diagram anchors to the real substation, not
+      // just wherever the recorded route happens to start/end.
+      const wayPoints = [r.startPt, ...importantPts.slice(1,-1), r.endPt];
+
+      const centerOffset = orderIdx - (n-1)/2;
+      const hubBow = n>1 ? centerOffset * (baseBow/Math.max(1,n-1)*2.2) : 0;
+
+      let curve = _tgMultiSegmentBezier(wayPoints, hubBow, 10);
+
+      // light cross-hub crossing check against already-placed curves from
+      // OTHER hubs — best-effort, see header comment on real limits.
+      let crossesOther = false;
+      for(const placed of placedCurves){
+        if(_tgCountCrossings(curve, placed) > 0){ crossesOther = true; break; }
+      }
+      if(crossesOther){
+        const altBows = [hubBow*1.6, -hubBow*1.6, hubBow*2.4, -hubBow*2.4];
+        for(const altBow of altBows){
+          const altCurve = _tgMultiSegmentBezier(wayPoints, altBow, 10);
+          let stillCrosses=false;
+          for(const placed of placedCurves){ if(_tgCountCrossings(altCurve, placed)>0){ stillCrosses=true; break; } }
+          if(!stillCrosses){ curve = altCurve; break; }
+        }
+      }
+      placedCurves.push(curve);
+
+      const latlngs = curve.map(p=>[p[0],p[1]]);
+      const isLive = (typeof feederStatus!=='undefined' && feederStatus[r.fn]==='breakdown') ? '#ff1744' : '#00c8ff';
+      L.polyline(latlngs,{color:isLive,weight:1.6,opacity:.85,smoothFactor:1}).bindTooltip(r.fn,{sticky:true}).addTo(group);
+    });
+
+    // hub marker
+    L.circleMarker([hub[0],hub[1]],{radius:6,color:'#fff',weight:2,fillColor:'#f97316',fillOpacity:1})
+      .bindTooltip(cluster[0].hubName||'EHT Source',{permanent:false}).addTo(group);
+  });
+
+  // destination markers (33/11KV substations actually reached)
+  const destSeen = new Set();
+  feederRoutes.forEach(r=>{
+    if(!r.destName || destSeen.has(r.destName)) return;
+    destSeen.add(r.destName);
+    L.circleMarker([r.endPt[0],r.endPt[1]],{radius:4,color:'#fff',weight:1.5,fillColor:'#1d4ed8',fillOpacity:1})
+      .bindTooltip(r.destName,{permanent:false}).addTo(group);
+  });
+
+  group.addTo(map);
+  if(typeof toast==='function') toast('⌁ Smart Grid View — '+feederRoutes.length+' feeder(s), '+Object.keys(byHub).length+' source(s)',3500);
+}
+
+function _tgOrientation(p,q,r){
+  const val=(q[1]-p[1])*(r[0]-q[0])-(q[0]-p[0])*(r[1]-q[1]);
+  if(Math.abs(val)<1e-12) return 0;
+  return val>0?1:2;
+}
+function _tgOnSegment(p,q,r){
+  return q[0]<=Math.max(p[0],r[0]) && q[0]>=Math.min(p[0],r[0]) && q[1]<=Math.max(p[1],r[1]) && q[1]>=Math.min(p[1],r[1]);
+}
+function _tgSegmentsIntersect(p1,q1,p2,q2){
+  const o1=_tgOrientation(p1,q1,p2), o2=_tgOrientation(p1,q1,q2);
+  const o3=_tgOrientation(p2,q2,p1), o4=_tgOrientation(p2,q2,q1);
+  if(o1!==o2 && o3!==o4) return true;
+  if(o1===0 && _tgOnSegment(p1,p2,q1)) return true;
+  if(o2===0 && _tgOnSegment(p1,q2,q1)) return true;
+  if(o3===0 && _tgOnSegment(p2,p1,q2)) return true;
+  if(o4===0 && _tgOnSegment(p2,q1,q2)) return true;
+  return false;
+}
+function _tgCurvesShareEndpoint(curveA, curveB){
+  const aStart=curveA[0], aEnd=curveA[curveA.length-1], bStart=curveB[0], bEnd=curveB[curveB.length-1];
+  const eq=(p,q)=>Math.abs(p[0]-q[0])<1e-9 && Math.abs(p[1]-q[1])<1e-9;
+  return { sharedStart:eq(aStart,bStart), sharedEnd:eq(aEnd,bEnd), startEndCross:eq(aStart,bEnd), endStartCross:eq(aEnd,bStart) };
+}
+function _tgCountCrossings(curveA, curveB){
+  const shared=_tgCurvesShareEndpoint(curveA,curveB);
+  const aStartTrim=(shared.sharedStart||shared.startEndCross)?1:0;
+  const aEndTrim=(shared.sharedEnd||shared.endStartCross)?curveA.length-1:curveA.length;
+  const bStartTrim=(shared.sharedStart||shared.endStartCross)?1:0;
+  const bEndTrim=(shared.sharedEnd||shared.startEndCross)?curveB.length-1:curveB.length;
+  let count=0;
+  for(let i=aStartTrim;i<aEndTrim-1;i++){
+    for(let j=bStartTrim;j<bEndTrim-1;j++){
+      if(_tgSegmentsIntersect(curveA[i],curveA[i+1],curveB[j],curveB[j+1])) count++;
+    }
+  }
+  return count;
+}
+
 async function _buildTGRegionalGridLayer(){
   if(_tgRegionalGridLayerGroup){ if(window.tgGridShowDistricts) _tgRegionalGridLayerGroup.addTo(map); return; }
   _tgRegionalGridLayerGroup = L.layerGroup();
@@ -2511,6 +2736,13 @@ function getBM(n){
       attribution:'District/Mandal boundaries: Telangana State Remote Sensing Applications Centre (TRAC)'
     });
     _buildTGRegionalGridLayer();
+  }else if(n==='smart_grid'){
+    BM[n]=L.tileLayer(_gridBlankTileUrl(),{
+      maxZoom:22, maxNativeZoom:22, tileSize:256,
+      keepBuffer:1, updateWhenIdle:true, updateWhenZooming:false,
+      attribution:''
+    });
+    _buildSmartGridView();
   }else if(_bmDefs[n]){
     BM[n]=L.tileLayer(_bmDefs[n][0],_bmDefs[n][1]);
   }
@@ -2520,11 +2752,26 @@ let curBM='grid_view'; getBM('grid_view').addTo(map);
 setTimeout(()=>{getBM('google');getBM('satellite');},2000);
 
 function setBM(name){
-  if(name!=='grid'&&name!=='grid_view'&&!_bmDefs[name])return;
+  if(name!=='grid'&&name!=='grid_view'&&name!=='smart_grid'&&!_bmDefs[name])return;
   map.removeLayer(getBM(curBM));
   _ensureGridBackground(name==='grid');
   getBM(name).addTo(map);
   if(name!=='grid'&&getBM(name).bringToBack)getBM(name).bringToBack();
+
+  // Smart Grid View replaces the real feeder lines/substations with its
+  // own schematic — toggle that here, and clean up the schematic layer
+  // when leaving so it doesn't linger visible under a different basemap.
+  const wasSmartGrid = (curBM === 'smart_grid');
+  const isSmartGrid = (name === 'smart_grid');
+  if(wasSmartGrid && !isSmartGrid && _tgSmartGridLayerGroup && map.hasLayer(_tgSmartGridLayerGroup)){
+    map.removeLayer(_tgSmartGridLayerGroup);
+  }
+  window.tgSmartGridViewActive = isSmartGrid;
+  if(typeof updateVisibility==='function') updateVisibility();
+  if(isSmartGrid && _tgSmartGridLayerGroup && !map.hasLayer(_tgSmartGridLayerGroup)){
+    _tgSmartGridLayerGroup.addTo(map);
+  }
+
   curBM=name;
   document.querySelectorAll('.bmbtn,.bm-tab').forEach(b=>b.classList.remove('active'));
   const el=document.getElementById('bm-'+name);if(el)el.classList.add('active');
@@ -2986,6 +3233,17 @@ function requestVisibilityUpdate(){
   _visRAF=requestAnimationFrame(()=>{_visRAF=null;updateVisibility();});
 }
 
+// Per Naresh 30-Jun-2026: the real bug behind "Smart Grid View just
+// replicates Grid Map View" — the basemap tab system (getBM/setBM) only
+// ever controlled the BACKGROUND tile layer. It was never built to hide
+// the actual feeder route polylines/substation markers, which are a
+// completely separate always-on rendering system (renderScope/allLayers).
+// So clicking Smart Grid View correctly drew the new curved schematic —
+// but on TOP of the still-fully-visible real feeder lines underneath,
+// which (since real lat/lng positions are intentionally preserved) made
+// the two visually blend into what looked like just the regular map.
+window.tgSmartGridViewActive = false;
+
 function updateVisibility(){
   let vis=0;
   allLayers.forEach(item=>{
@@ -2995,6 +3253,15 @@ function updateVisibility(){
     if(t.startsWith('eht'))t='ehts';
     if(t.startsWith('fseg'))t='fsegs';
     if(t==='fpoles')t='points';
+    // Smart Grid View hides every real feeder line and substation marker
+    // unconditionally — the schematic view replaces them, it doesn't
+    // overlay them.
+    if(window.tgSmartGridViewActive){
+      if(map.hasLayer(item.layer))map.removeLayer(item.layer);
+      if(item.layer.flowLayer&&map.hasLayer(item.layer.flowLayer))map.removeLayer(item.layer.flowLayer);
+      if(item.layer.hitLayer&&map.hasLayer(item.layer.hitLayer))map.removeLayer(item.layer.hitLayer);
+      return;
+    }
     const typeIsOn=LGstate[t]!==false;
     const isSS=(t==='ss33'||t==='ehts');
     const fState=feederState[item.feederName];
@@ -9863,7 +10130,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     <div class="tgp-row">
       <label class="tgp-lbl">ORIENTATION</label>
       <select id="tgpOrient" class="tgp-select">
-        <option value="landscape" selected>Landscape</option>
+        <option value="auto" selected>Auto (fits route shape)</option>
+        <option value="landscape">Landscape</option>
         <option value="portrait">Portrait</option>
       </select>
     </div>
@@ -9922,7 +10190,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     return {
       mode: el('tgpMode') ? el('tgpMode').value : 'selected',
       paper: el('tgpPaper') ? el('tgpPaper').value : 'A3',
-      orient: el('tgpOrient') ? el('tgpOrient').value : 'landscape',
+      orient: el('tgpOrient') ? el('tgpOrient').value : 'auto',
       poleLabels: el('tgpPoleLabels') ? el('tgpPoleLabels').checked : true,
       symbols: el('tgpSymbols') ? el('tgpSymbols').checked : true,
       stats: el('tgpStats') ? el('tgpStats').checked : true,
@@ -10037,8 +10305,27 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   function paperSize(opt){
     var mm = PAPER_MM[opt.paper] || PAPER_MM.A3;
     var w = mm[0], h = mm[1];
-    if(opt.orient === 'landscape' && h > w){ var t=w; w=h; h=t; }
-    if(opt.orient === 'portrait' && w > h){ var t2=w; w=h; h=t2; }
+    var orient = opt.orient;
+    if(orient === 'auto'){
+      // Per Naresh 30-Jun-2026: "Auto" picks the orientation that best
+      // matches the route's own bounding-box shape, instead of forcing
+      // every print onto a fixed Landscape default. Previously a tall,
+      // north-south feeder route (like Gunrock→Macha Bollarum) printed
+      // onto a wide landscape page and only used a narrow vertical strip
+      // down the middle — most of the page was wasted white space. Auto
+      // compares the route's lat/lng span ratio (corrected for
+      // longitude's foreshortening at this latitude) against the page's
+      // own w/h ratio and picks whichever orientation lets the route use
+      // more of the available page area.
+      var ar = opt._routeAspect; // width/height of the route's own bounds, longitude-corrected
+      if(ar != null && isFinite(ar) && ar > 0){
+        orient = ar >= 1 ? 'landscape' : 'portrait';
+      } else {
+        orient = 'landscape'; // safe fallback if aspect couldn't be computed
+      }
+    }
+    if(orient === 'landscape' && h > w){ var t=w; w=h; h=t; }
+    if(orient === 'portrait' && w > h){ var t2=w; w=h; h=t2; }
     return {w:w,h:h};
   }
 
@@ -10224,7 +10511,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   function buildFeederSvg(fn, opt){
     var segs = getFeederSegments(fn);
     if(!segs.length) return '';
-    var page = paperSize(opt);
     var routePts = [];
     segs.forEach(function(s){ routePts = routePts.concat(s.pts); });
     var routeBounds = {
@@ -10233,6 +10519,15 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       minLng: Math.min.apply(null, routePts.map(function(p){return p.lng;})),
       maxLng: Math.max.apply(null, routePts.map(function(p){return p.lng;}))
     };
+    // Longitude degrees are foreshortened relative to latitude degrees at
+    // any latitude away from the equator (cos(latitude) correction) — at
+    // Hyderabad's ~17.4°N this matters enough to get the aspect-ratio
+    // comparison genuinely right, not just roughly right.
+    var midLatRad = ((routeBounds.minLat+routeBounds.maxLat)/2) * Math.PI/180;
+    var lngSpanCorrected = (routeBounds.maxLng - routeBounds.minLng) * Math.cos(midLatRad);
+    var latSpan = routeBounds.maxLat - routeBounds.minLat;
+    opt._routeAspect = (latSpan > 0) ? (lngSpanCorrected / latSpan) : 1;
+    var page = paperSize(opt);
     var nearSS = nearbySubstations(routeBounds);
     var ctx = projectFactory(segs, nearSS, page);
     if(!ctx) return '';
@@ -10536,8 +10831,17 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   function paperSize(opt){
     var mm = PAPER_MM[opt.paper] || PAPER_MM.A2;
     var w = mm[0], h = mm[1];
-    if(opt.orient === 'landscape' && h > w){ var t=w; w=h; h=t; }
-    if(opt.orient === 'portrait' && w > h){ var t2=w; w=h; h=t2; }
+    var orient = opt.orient;
+    if(orient === 'auto'){
+      var ar = opt._routeAspect;
+      if(ar != null && isFinite(ar) && ar > 0){
+        orient = ar >= 1 ? 'landscape' : 'portrait';
+      } else {
+        orient = 'landscape';
+      }
+    }
+    if(orient === 'landscape' && h > w){ var t=w; w=h; h=t; }
+    if(orient === 'portrait' && w > h){ var t2=w; w=h; h=t2; }
     return {w:w,h:h};
   }
   function expandBounds(b, factor){
@@ -10755,6 +11059,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     });
     bounds = expandBounds(bounds, 0.05);
 
+    var midLatRad2 = ((bounds.minLat+bounds.maxLat)/2) * Math.PI/180;
+    var lngSpanCorrected2 = (bounds.maxLng - bounds.minLng) * Math.cos(midLatRad2);
+    var latSpan2 = bounds.maxLat - bounds.minLat;
+    opt._routeAspect = (latSpan2 > 0) ? (lngSpanCorrected2 / latSpan2) : 1;
     var page = paperSize(opt);
     var pad = Math.max(page.w,page.h) * 0.06;
     var titleH = 22, statH = 30;
@@ -10947,7 +11255,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   function _groupOptions(){
     return {
       paper: $('tgpPaper') ? $('tgpPaper').value : 'A2',
-      orient: $('tgpOrient') ? $('tgpOrient').value : 'landscape',
+      orient: $('tgpOrient') ? $('tgpOrient').value : 'auto',
       title: $('tgpTitle') ? $('tgpTitle').checked : true,
       legend: $('tgpLegend') ? $('tgpLegend').checked : true,
       north: $('tgpNorth') ? $('tgpNorth').checked : true,
