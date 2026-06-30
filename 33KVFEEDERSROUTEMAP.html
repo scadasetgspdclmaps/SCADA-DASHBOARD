@@ -2376,17 +2376,51 @@ function _tgMultiSegmentBezier(points, bowAmount, samplesPerSeg){
   return out;
 }
 
+// Per Naresh 30-Jun-2026: found the actual cause of "connecting randomly"
+// — EVERY substation name in STATIC_SS33/STATIC_EHT contains generic
+// tokens like "SS" and "KV" (confirmed directly against the real data:
+// "33/11KV ALLWYN SS", "132 KV ERRAGADDA SS", etc. — every single one).
+// The old matching gave ANY shared token a point with no minimum
+// threshold, so virtually every feeder scored >=1 against virtually
+// every substation just from "SS" alone, and with no tie-break the
+// function returned an essentially arbitrary candidate — producing the
+// wild, geographically meaningless long-distance lines in the
+// screenshot. Fixed: strip generic/universal tokens before scoring,
+// require a real minimum match, and when scores tie, prefer whichever
+// candidate is geographically closer to the feeder's own actual route
+// (a real sanity check, not just trusting the name string).
+const TG_GENERIC_NAME_TOKENS = new Set(['SS','KV','THE','AND','FOR']);
 function _tgNameTokens(name){
-  return String(name||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(' ').filter(t=>t.length>=3);
+  return String(name||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(' ')
+    .filter(t=>t.length>=3 && !TG_GENERIC_NAME_TOKENS.has(t));
 }
-function _tgBestNameMatch(feederName, candidates){
+function _tgBestNameMatch(feederName, candidates, routeMidpoint){
   const fTokens=new Set(_tgNameTokens(feederName));
-  let best=null, bestScore=0;
+  if(fTokens.size===0) return null; // nothing meaningful to match against
+  let best=null, bestScore=0, bestDist=Infinity;
   candidates.forEach(c=>{
+    if(c.lat==null||c.lon==null) return;
     let score=0;
     _tgNameTokens(c.name).forEach(t=>{ if(fTokens.has(t)) score++; });
-    if(score>bestScore){ bestScore=score; best=c; }
+    if(score===0) return; // require at least one REAL (non-generic) token match
+    let dist=Infinity;
+    if(routeMidpoint){
+      dist=(Number(c.lat)-routeMidpoint[0])**2 + (Number(c.lon)-routeMidpoint[1])**2;
+    }
+    if(score>bestScore || (score===bestScore && dist<bestDist)){
+      bestScore=score; best=c; bestDist=dist;
+    }
   });
+  // Sanity check: even a genuine token match should be within a plausible
+  // distance of the feeder's own route — Hyderabad's metro area spans
+  // roughly 0.5° lat/lng, so a "match" more than ~0.35° away (≈35-40km)
+  // from the feeder's own route is almost certainly a false positive
+  // (e.g. two unrelated substations that happen to share a place-name
+  // fragment), not a real source/destination relationship.
+  if(best && routeMidpoint){
+    const d=Math.hypot(Number(best.lat)-routeMidpoint[0], Number(best.lon)-routeMidpoint[1]);
+    if(d>0.35) return null;
+  }
   return best;
 }
 
@@ -2412,8 +2446,14 @@ async function _buildSmartGridView(){
     });
     if(pts.length<2) return;
 
-    const ehtMatch = _tgBestNameMatch(fn, STATIC_EHT||[]);
-    const ssMatch = _tgBestNameMatch(fn, STATIC_SS33||[]);
+    // route midpoint (simple average of all real points) — used as the
+    // geographic anchor for sanity-checking name matches, not for display.
+    const midLat = pts.reduce((s,p)=>s+p[0],0)/pts.length;
+    const midLng = pts.reduce((s,p)=>s+p[1],0)/pts.length;
+    const routeMid = [midLat, midLng];
+
+    const ehtMatch = _tgBestNameMatch(fn, STATIC_EHT||[], routeMid);
+    const ssMatch = _tgBestNameMatch(fn, STATIC_SS33||[], routeMid);
     const startPt = ehtMatch ? [ehtMatch.lat, ehtMatch.lon] : pts[0];
     const endPt = ssMatch ? [ssMatch.lat, ssMatch.lon] : pts[pts.length-1];
 
