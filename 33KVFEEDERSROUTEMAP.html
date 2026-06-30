@@ -1682,7 +1682,7 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
   </div>
   <div class="gsp-row">
     <label>FEEDER LINE <span id="gspLineVal">0.50</span></label>
-    <input type="range" min="0.45" max="2.20" step="0.05" value="0.50" oninput="setTGFeederLineThickness(this.value)">
+    <input type="range" min="0.05" max="2.20" step="0.05" value="0.50" oninput="setTGFeederLineThickness(this.value)">
   </div>
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
     <label style="margin-bottom:0"><span>AREA BORDERS ONLY</span>
@@ -2041,9 +2041,23 @@ function _ensureGridBackground(on){
 // boundary fetch fails (offline, CDN blocked, etc.) so the view is
 // never blank.
 // ─────────────────────────────────────────────────────────────
-const TG_BOUNDARY_DISTRICTS = ['HYDERABAD','MEDCHAL','MEDCHAL-MALKAJGIRI','MEDCHAL MALKAJGIRI','RANGAREDDY','RANGA REDDY','SANGAREDDY','VIKARABAD','YADADRI BHUVANAGIRI','YADADRI-BHUVANAGIRI','MEDAK','SIDDIPET','MAHABUBNAGAR','NAGARKURNOOL','NALGONDA','WANAPARTHY'];
-const TG_DISTRICTS_GEOJSON_URL = 'https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json';
-const TG_BLOCKS_GEOJSON_URL = 'https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json';
+// Per Naresh 30-Jun-2026: the previous TG_DISTRICTS_GEOJSON_URL source
+// (gggodhwani/telangana_boundaries) turned out to be STALE — verified
+// against the real shapefile Naresh supplied (TS_District_Boundary_33_
+// FINAL.shp, sourced from the Telangana government's own GIS data,
+// confirmed to contain exactly 33 districts including Mulugu, Narayanpet,
+// and Hanumakonda — the three newest, added 2019 and after the Warangal
+// Urban/Rural split). The old source was missing these and was showing
+// outdated ~19-district boundaries. Converted from the real shapefile
+// (UTM Zone 44N) to WGS84 GeoJSON with verified-correct reprojection
+// (Hyderabad district centroid checked against its known real coordinates
+// before shipping), then simplified for web performance (6MB→560KB for
+// districts, 27MB→2.3MB for the 621-mandal inside-boundary layer).
+// These ship alongside this HTML file — host them at the same path/
+// folder level as this page (e.g. same GitHub Pages repo) since they're
+// fetched via a relative path, not hardcoded to an external server.
+const TG_DISTRICTS_GEOJSON_URL = 'telangana_33_districts.geojson';
+const TG_MANDALS_GEOJSON_URL = 'telangana_621_mandals.geojson';
 // GHMC ward-level boundaries — verified real file from the DataMeet
 // community's Municipal_Spatial_Data repo (146 stars, 180 forks, actively
 // maintained; this specific file confirmed to exist at 573KB/28,649 lines
@@ -2052,6 +2066,7 @@ const TG_GHMC_WARDS_GEOJSON_URL = 'https://raw.githubusercontent.com/datameet/Mu
 window.tgGridShowDistricts = window.tgGridShowDistricts ?? true;
 let _tgRegionalGridLayerGroup = null;
 let _tgGhmcWardLayer = null;
+let _tgMandalLayer = null;
 let _tgImportantAreaLabelLayer = null;
 let _tgMajorRoadLayer = null;
 let _tgAreaNamesOn = true;
@@ -2144,7 +2159,11 @@ function addLabelsFromGeoJSON(feats){
       icon:L.divIcon({className:'',html:`<div class="tg-district-label">${name}</div>`,iconSize:[0,0],iconAnchor:[0,0]}),
       interactive:false, keyboard:false
     });
-    marker.addTo(map);
+    // Respect the existing "IMPORTANT AREA NAMES" toggle — district name
+    // labels are area names too, so they should turn off together with
+    // ward/area names rather than always showing regardless of the
+    // checkbox state.
+    if(window.tgGridShowAreaNames!==false) marker.addTo(map);
     _tgDistrictLabelMarkers.push(marker);
   });
 }
@@ -2299,21 +2318,22 @@ async function _buildTGRegionalGridLayer(){
   if(_tgRegionalGridLayerGroup){ if(window.tgGridShowDistricts) _tgRegionalGridLayerGroup.addTo(map); return; }
   _tgRegionalGridLayerGroup = L.layerGroup();
   const group = _tgRegionalGridLayerGroup;
-  const palette=['#fde2c8','#cfe8ff','#d9f7d4','#f6d9f9','#fff3b0'];
+  // 33 distinct pastel tones so neighbouring districts are visually
+  // distinguishable across the whole state, not just a 5-color repeat.
+  const palette=['#fde2c8','#cfe8ff','#d9f7d4','#f6d9f9','#fff3b0','#ffe0e0','#e0f7e9','#e0e8ff',
+    '#fff0d9','#d9f0ff','#f0d9ff','#d9ffe9','#ffd9e8','#e8ffd9','#d9e8ff','#ffe8d9','#e8d9ff',
+    '#d9ffd0','#ffd0d9','#d0e8ff','#e8d0ff','#d0ffe8','#ffe8c0','#c0e8ff','#e8c0ff','#c0ffe8',
+    '#ffc0d0','#d0c0ff','#c0ffd0','#ffd0c0','#d0ffc0','#c0d0ff','#ffc0e8'];
 
   try{
     const res = await fetch(TG_DISTRICTS_GEOJSON_URL);
     if(!res.ok) throw new Error('district boundary HTTP '+res.status);
     const gj = await res.json();
-    const feats = (gj.features||[]).filter(f=>{
-      const props=f.properties||{};
-      const name=String(props.DISTRICT||props.DIST_NAME||props.district||props.name||'').toUpperCase();
-      return TG_BOUNDARY_DISTRICTS.some(d=>name.includes(d)||d.includes(name));
-    });
-    if(!feats.length) throw new Error('no matching districts in boundary file');
+    const feats = gj.features||[];
+    if(!feats.length) throw new Error('no districts in boundary file');
     _tgDistrictFeatures = feats;
     feats.forEach((f,i)=>{
-      const layer=L.geoJSON(f,{style:{color:'#555',weight:1,fillColor:palette[i%palette.length],fillOpacity:.25}});
+      const layer=L.geoJSON(f,{style:{color:'#555',weight:1.2,fillColor:palette[i%palette.length],fillOpacity:.3}});
       const props=f.properties||{};
       const name=props.DISTRICT||props.DIST_NAME||props.district||props.name||'District';
       layer.bindTooltip(String(name),{sticky:true});
@@ -2326,20 +2346,25 @@ async function _buildTGRegionalGridLayer(){
     if(window.tgGridShowDistricts) group.addTo(map);
   }
 
+  // ── Mandal boundaries (inside-district detail, per Naresh's "I need
+  //    inside boundaries too") — all 621 real mandals across all 33
+  //    districts, thin grey lines with no fill so they read as internal
+  //    subdivision detail rather than competing with the district colors. ──
   try{
-    const res2 = await fetch(TG_BLOCKS_GEOJSON_URL);
-    if(!res2.ok) throw new Error('blocks boundary HTTP '+res2.status);
+    const res2 = await fetch(TG_MANDALS_GEOJSON_URL);
+    if(!res2.ok) throw new Error('mandal boundary HTTP '+res2.status);
     const gj2 = await res2.json();
-    const feats2 = (gj2.features||[]).filter(f=>{
-      const props=f.properties||{};
-      const dname=String(props.DISTRICT||props.DIST_NAME||props.district||'').toUpperCase();
-      return TG_BOUNDARY_DISTRICTS.some(d=>dname.includes(d)||d.includes(dname));
+    const feats2 = gj2.features||[];
+    const mandalLayer = L.geoJSON(feats2,{style:{color:'#999',weight:.5,opacity:.65,fillOpacity:0,dashArray:'2 2'}});
+    mandalLayer.eachLayer(layer=>{
+      const props=(layer.feature&&layer.feature.properties)||{};
+      const mandalName = props.MANDAL||props.Mandal||props.mandal;
+      if(mandalName) layer.bindTooltip(String(mandalName),{sticky:true,className:'tg-ward-tooltip'});
     });
-    feats2.forEach(f=>{
-      L.geoJSON(f,{style:{color:'#999',weight:.5,fillOpacity:0,dashArray:'2 2'}}).addTo(group);
-    });
+    if(window.tgGridShowMandals!==false) mandalLayer.addTo(group);
+    _tgMandalLayer = mandalLayer;
   }catch(err){
-    console.warn('Block/Mandal GeoJSON failed; corridor boundary overlays unavailable:', err);
+    console.warn('Mandal GeoJSON failed; inside-district boundary detail unavailable:', err);
   }
 
   // ── GHMC ward-level boundaries (added 28-Jun-2026 per Naresh) ──
@@ -2419,6 +2444,7 @@ window.tgSetGridShowAreaNames = function(on){
     else _tgRegionalGridLayerGroup.removeLayer(_tgImportantAreaLabelLayer);
   }
   _tgWardLabelMarkers.forEach(m=>{ if(on) m.addTo(map); else if(map.hasLayer(m)) map.removeLayer(m); });
+  _tgDistrictLabelMarkers.forEach(m=>{ if(on) m.addTo(map); else if(map.hasLayer(m)) map.removeLayer(m); });
 };
 window.tgSetGridShowMajorRoads = function(on){
   if(!_tgMajorRoadLayer || !_tgRegionalGridLayerGroup) return;
@@ -2482,7 +2508,7 @@ function getBM(n){
     BM[n]=L.tileLayer(_gridBlankTileUrl(),{
       maxZoom:22, maxNativeZoom:22, tileSize:256,
       keepBuffer:1, updateWhenIdle:true, updateWhenZooming:false,
-      attribution:'District boundaries: Telangana Tank Information System (gggodhwani/telangana_boundaries)'
+      attribution:'District/Mandal boundaries: Telangana State Remote Sensing Applications Centre (TRAC)'
     });
     _buildTGRegionalGridLayer();
   }else if(_bmDefs[n]){
@@ -3740,7 +3766,7 @@ function _tgFeederLineBaseWeightFor(item){
   return cStatus==='breakdown' ? 7 : 5.8;
 }
 function setTGFeederLineThickness(v){
-  v=Math.max(0.25,Math.min(2.20,Number(v)||0.50));
+  v=Math.max(0.05,Math.min(2.20,Number(v)||0.50));
   const el=document.getElementById('gspLineVal'); if(el)el.textContent=v.toFixed(2);
   const scale=v/0.50; // 0.50 is the slider's neutral/default position
   allLayers.forEach(item=>{
@@ -11017,6 +11043,71 @@ function exportAITrainingData() {
   a.click();
   if (typeof toast === 'function') toast('Training data exported — ' + dataset.length + ' samples');
 }
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     BOUNDARY-LOADING DIAGNOSTIC (added 30-Jun-2026 per Naresh)
+     No DevTools needed — shows directly on screen exactly why
+     district/mandal boundaries did or didn't load. Safe to delete
+     this whole block once the boundary display is confirmed working.
+   ═══════════════════════════════════════════════════════════════ -->
+<div id="tgBoundaryDiagPanel" style="position:fixed;bottom:10px;right:10px;z-index:99999;background:#0b1220;color:#9fe3ff;
+  font-family:monospace;font-size:11px;padding:10px 12px;border-radius:8px;border:1px solid #1e3a5f;
+  max-width:420px;box-shadow:0 6px 24px rgba(0,0,0,.5);line-height:1.5">
+  <div style="font-weight:700;color:#fff;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+    <span>🔍 BOUNDARY DIAGNOSTIC</span>
+    <span style="cursor:pointer;opacity:.6" onclick="document.getElementById('tgBoundaryDiagPanel').style.display='none'">✕</span>
+  </div>
+  <div id="tgBoundaryDiagOutput">Running checks…</div>
+  <button onclick="window.tgRunBoundaryDiagnostic()" style="margin-top:8px;background:#1565c0;color:#fff;border:none;
+    border-radius:5px;padding:5px 10px;font-size:11px;cursor:pointer;width:100%">🔁 RE-CHECK NOW</button>
+</div>
+<script>
+window.tgRunBoundaryDiagnostic = async function(){
+  var out = document.getElementById('tgBoundaryDiagOutput');
+  if(!out) return;
+  function line(label, ok, extra){
+    return '<div>'+(ok?'✅':'❌')+' '+label+(extra?' <span style="color:#7fb3d5">'+extra+'</span>':'')+'</div>';
+  }
+  var html = '';
+  html += line('Page URL', true, window.location.href);
+  html += line('TG_DISTRICTS_GEOJSON_URL', typeof TG_DISTRICTS_GEOJSON_URL!=='undefined', String(typeof TG_DISTRICTS_GEOJSON_URL!=='undefined'?TG_DISTRICTS_GEOJSON_URL:''));
+  html += line('Resolved district URL', true, new URL(TG_DISTRICTS_GEOJSON_URL, window.location.href).href);
+  html += line('window.tgGridShowDistricts', typeof window.tgGridShowDistricts!=='undefined', String(window.tgGridShowDistricts));
+  html += line('_tgRegionalGridLayerGroup exists', typeof _tgRegionalGridLayerGroup!=='undefined' && !!_tgRegionalGridLayerGroup);
+  html += line('Current basemap (curBM)', true, typeof curBM!=='undefined' ? curBM : '?');
+
+  try{
+    var res = await fetch(TG_DISTRICTS_GEOJSON_URL);
+    html += line('District GeoJSON fetch', res.ok, 'HTTP '+res.status+' '+res.statusText);
+    if(res.ok){
+      var gj = await res.json();
+      html += line('District GeoJSON parsed', Array.isArray(gj.features), (gj.features||[]).length+' features');
+    }
+  }catch(e){
+    html += line('District GeoJSON fetch', false, 'THREW: '+e.message);
+  }
+
+  try{
+    var res2 = await fetch(TG_MANDALS_GEOJSON_URL);
+    html += line('Mandal GeoJSON fetch', res2.ok, 'HTTP '+res2.status+' '+res2.statusText);
+  }catch(e){
+    html += line('Mandal GeoJSON fetch', false, 'THREW: '+e.message);
+  }
+
+  html += '<div style="margin-top:6px;color:#ffd27f">Trying to manually trigger boundary build…</div>';
+  try{
+    await _buildTGRegionalGridLayer();
+    html += line('_buildTGRegionalGridLayer() ran', true);
+    html += line('Layers in group after build', true, (_tgRegionalGridLayerGroup ? _tgRegionalGridLayerGroup.getLayers().length : 0)+' layers');
+    html += line('Group attached to map', !!_tgRegionalGridLayerGroup && map.hasLayer(_tgRegionalGridLayerGroup));
+  }catch(e){
+    html += line('_buildTGRegionalGridLayer() THREW', false, e.message+'<br>'+(e.stack||'').replace(/\n/g,'<br>').substring(0,400));
+  }
+
+  out.innerHTML = html;
+};
+setTimeout(function(){ if(typeof window.tgRunBoundaryDiagnostic==='function') window.tgRunBoundaryDiagnostic(); }, 3000);
 </script>
 
 </body>
