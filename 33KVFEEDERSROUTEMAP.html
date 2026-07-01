@@ -687,7 +687,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
   border:1px solid rgba(15,118,110,.4);background:rgba(15,118,110,.12);color:#5eead4;
   font-family:var(--mono);font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .2s;flex-shrink:0}
 #gridStyleBtn:hover{background:rgba(15,118,110,.28);color:#fff}
-#gridStylePanel{position:fixed;top:60px;right:14px;z-index:9500;width:300px;
+#gridStylePanel{position:fixed;top:60px;right:300px;z-index:9500;width:300px;
+  max-height:calc(100vh - 90px);overflow-y:auto;
   background:#fff;border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.35);
   padding:14px 16px;display:none;font-family:var(--sans)}
 #gridStylePanel.open{display:block}
@@ -2408,11 +2409,40 @@ async function _buildTGRegionalGridLayer(){
     // once you're zoomed into a specific region/section, same as the
     // screenshot.
     const mandalLabelLayer = L.layerGroup();
+    // Per Naresh 01-Jul-2026: "names of the region are repeating" — the
+    // hardcoded important-area labels (Secunderabad, Ameerpet, Charminar
+    // etc.) and the mandal GeoJSON labels produce the same names at
+    // slightly different positions, creating visible duplicates. Build a
+    // case-insensitive set of names already covered by the important-area
+    // system so we can skip them here. Also collapses common spelling
+    // variants (AMBERPETA→AMBERPET, SECUNDEARABAD→SECUNDERABAD, etc.)
+    const _iaSet = new Set();
+    _tgImportantAreaPoints().forEach(function(a){
+      var n = String(a[0]).toUpperCase().replace(/[^A-Z]/g,'');
+      _iaSet.add(n);
+    });
+    function _mandalMatchesIA(name){
+      var n = String(name).toUpperCase().replace(/[^A-Z]/g,'');
+      if(_iaSet.has(n)) return true;
+      // Check substring both ways (AMBERPETA contains AMBERPET, etc.)
+      for(var existing of _iaSet){
+        if(n.length>=5 && existing.length>=5 && (n.includes(existing) || existing.includes(n))) return true;
+      }
+      return false;
+    }
+    const _seenMandals = new Set();
     mandalLayer.eachLayer(layer=>{
       const props=(layer.feature&&layer.feature.properties)||{};
       const mandalName = props.MANDAL||props.Mandal||props.mandal;
       if(mandalName) layer.bindTooltip(String(mandalName),{sticky:true,className:'tg-ward-tooltip'});
       if(mandalName && layer.getBounds){
+        const normName = String(mandalName).toUpperCase().replace(/[^A-Z]/g,'');
+        // Skip if this mandal name duplicates a hardcoded important-area
+        // label, or if we've already placed this same mandal name from an
+        // earlier polygon (mandal boundaries can have multiple polygons).
+        if(_mandalMatchesIA(mandalName)) return;
+        if(_seenMandals.has(normName)) return;
+        _seenMandals.add(normName);
         try{
           const b=layer.getBounds();
           if(b && b.isValid && b.isValid()){
