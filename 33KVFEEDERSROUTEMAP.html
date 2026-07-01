@@ -142,10 +142,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 .pc-sv-btn-row{margin-top:8px;border-top:1px solid #eee;padding-top:8px}
 .pc-sv-btn{width:100%;padding:6px 10px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:.3px;cursor:pointer;transition:.15s}
 .pc-sv-btn:hover{background:#1558b3}
-.pc-streetview{display:none;margin-top:2px}
-.pc-sv-back{padding:4px 9px;margin-bottom:6px;background:#f1f5f9;color:#334155;border:1px solid #dde3ea;border-radius:5px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}
-.pc-sv-back:hover{background:#e2e8f0}
-.pc-sv-frame{display:block;width:280px;height:210px;border:1px solid #dde3ea;border-radius:5px}
 
 /* POLE LABELS */
 .pole-label{background:transparent!important;border:none!important;box-shadow:none!important;
@@ -2715,7 +2711,17 @@ let editLayerCounter=0;
 // Shared canvas renderer for all circle markers (major perf boost)
 // Canvas renderer for tiny pole markers. tolerance=8 gives a forgiving hit
 // target so a quick click on a 3.5-px circle still registers a popup.
-const _CR=L.canvas({padding:0.5,tolerance:8});
+// Per Naresh 01-Jul-2026: points were "frequently" losing clicks to the
+// feeder line's invisible 24px hit-box underneath them. Root cause: this
+// renderer had no `pane` set, so despite every circleMarker specifying
+// `pane:'pointsPane'` (z-index 650, created specifically to sit above
+// everything), Leaflet ignores a layer's own `pane` option whenever an
+// explicit `renderer` is also given — the renderer's OWN bound pane wins,
+// and an unbound canvas renderer defaults to `overlayPane` (z-index 400),
+// which sits BELOW `linePane` (410) where the line hit-boxes live. Binding
+// the renderer to `pointsPane` directly makes points actually render (and
+// hit-test) above the lines, matching what the pane setup already intended.
+const _CR=L.canvas({padding:0.5,tolerance:8,pane:'pointsPane'});
 
 // ══════════════════════════════════════════════════
 // STATIC SS / EHT DATA (always visible, embedded from CSV)
@@ -3131,10 +3137,10 @@ function popup(feat,regEntry){
   }
   if(!rows&&!headerId)rows='<tr><td colspan="2" style="color:#999;font-style:italic;padding:4px">No attributes available</td></tr>';
 
-  // ── Street View button/panel — per Naresh 01-Jul-2026: click a pole
-  // point, get a small Street View option with a way back. Only added
-  // for point-type features (poles/AB/DP/cut) that actually carry a
-  // Point geometry — line/segment popups are untouched.
+  // ── Street View button — per Naresh 01-Jul-2026: click a pole point,
+  // get a Street View option. Only added for point-type features
+  // (poles/AB/DP/cut) that actually carry a Point geometry — line/segment
+  // popups are untouched.
   let streetViewHtml='';
   const isPointFeature = feat.geometry && feat.geometry.type==='Point'
     && (!regEntry || ['points','fpoles','ab','dp','cut'].includes(regEntry.type));
@@ -3142,45 +3148,28 @@ function popup(feat,regEntry){
     const lng=feat.geometry.coordinates[0], lat=feat.geometry.coordinates[1];
     streetViewHtml=`
       <div class="pc-sv-btn-row">
-        <button class="pc-sv-btn" onclick="tgShowStreetView(this,${lat},${lng})">📍 STREET VIEW</button>
-      </div>
-      <div class="pc-streetview">
-        <button class="pc-sv-back" onclick="tgHideStreetView(this)">← BACK</button>
-        <iframe class="pc-sv-frame" loading="lazy" allowfullscreen></iframe>
+        <button class="pc-sv-btn" onclick="tgShowStreetView(${lat},${lng})">📍 STREET VIEW</button>
       </div>`;
   }
-  return `<div class="pc-popup-wrap"><div class="pc-info">${headerId}<table class="popup-table">${rows}</table>${statusBar}${streetViewHtml}</div></div>`;
+  return `${headerId}<table class="popup-table">${rows}</table>${statusBar}${streetViewHtml}`;
 }
 
-function tgShowStreetView(btn,lat,lng){
-  const wrap=btn.closest('.pc-popup-wrap');
-  if(!wrap)return;
-  const info=wrap.querySelector('.pc-info');
-  let sv=wrap.querySelector('.pc-streetview');
-  const frame=sv&&sv.querySelector('.pc-sv-frame');
-  // Hide the attribute table, show a lightweight Street View panel.
-  // No API key required — uses Google's classic "output=svembed" embed
-  // format, which has worked without one for years.
-  if(frame && !frame.getAttribute('src')){
-    frame.src='https://maps.google.com/maps?q=&layer=c&cbll='+lat+','+lng+'&cbp=11,0,0,0,0&output=svembed';
-  }
-  btn.parentElement.style.display='none';
-  if(sv)sv.style.display='block';
-  // Leaflet sizes the popup box once at open time; without an explicit
-  // update() call the newly-shown Street View panel would just get an
-  // internal scrollbar instead of the popup box growing to fit it.
-  try{ if(window.map && map._popup && map._popup.update) map._popup.update(); }catch(e){}
+function tgShowStreetView(lat,lng){
+  // Per Naresh 01-Jul-2026: the earlier iframe embed ("output=svembed")
+  // wasn't opening — that's a known, unofficial Google endpoint that
+  // Google actively blocks from being embedded in a third-party page's
+  // iframe (X-Frame-Options), and reliability has gotten worse over time.
+  // The only way to show Street View inline in-page without hitting that
+  // wall is Google's OFFICIAL Maps Embed API, which requires a billed
+  // API key we don't have configured anywhere in this file.
+  // This opens real Google Maps Street View in a small separate window
+  // instead — no API key needed, guaranteed to work, and it comes with
+  // Google's own back arrow built in; closing the small window returns
+  // you to the map exactly where you left it (nothing here ever navigates
+  // away from the main page).
+  const url='https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+lat+','+lng;
+  window.open(url,'tg_streetview','width=480,height=440,noopener');
 }
-function tgHideStreetView(btn){
-  const wrap=btn.closest('.pc-popup-wrap');
-  if(!wrap)return;
-  const sv=wrap.querySelector('.pc-streetview');
-  const btnRow=wrap.querySelector('.pc-sv-btn-row');
-  if(sv)sv.style.display='none';
-  if(btnRow)btnRow.style.display='';
-  try{ if(window.map && map._popup && map._popup.update) map._popup.update(); }catch(e){}
-}
-
 function escJS(s){
   return String(s || '')
     .split('\\').join('\\\\')
