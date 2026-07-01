@@ -139,6 +139,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 .popup-table th,.popup-table td{padding:2px 0;vertical-align:top;font-family:Arial,sans-serif;font-size:11px;color:#222;line-height:1.4}
 .popup-table th{font-weight:700;width:50%;padding-right:10px;text-align:left}
 .popup-table td{text-align:left;word-break:break-word}
+.pc-sv-btn-row{margin-top:8px;border-top:1px solid #eee;padding-top:8px}
+.pc-sv-btn{width:100%;padding:6px 10px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:.3px;cursor:pointer;transition:.15s}
+.pc-sv-btn:hover{background:#1558b3}
+.pc-streetview{display:none;margin-top:2px}
+.pc-sv-back{padding:4px 9px;margin-bottom:6px;background:#f1f5f9;color:#334155;border:1px solid #dde3ea;border-radius:5px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}
+.pc-sv-back:hover{background:#e2e8f0}
+.pc-sv-frame{display:block;width:280px;height:210px;border:1px solid #dde3ea;border-radius:5px}
 
 /* POLE LABELS */
 .pole-label{background:transparent!important;border:none!important;box-shadow:none!important;
@@ -1548,6 +1555,13 @@ body.gridzoom-mid .tg-important-area-label.local{display:none!important}
 body.gridzoom-mid .tg-important-area-label.core{font-size:8.2px!important;max-width:64px!important;opacity:.94!important;padding:1px 3px!important}
 body.gridzoom-in .tg-important-area-label{font-size:var(--tg-grid-label-size,9px)!important;max-width:84px!important;opacity:1!important}
 body.gridzoom-in .tg-important-area-label.local{font-size:calc(var(--tg-grid-label-size,9px) - 1px)!important;max-width:74px!important}
+/* Per Naresh 01-Jul-2026: mandal names should stay visible at every zoom
+   level and just grow/shrink with it — unlike .local (which fully hides
+   at gridzoom-out/mid), .mandal only shrinks and fades slightly so 621
+   names never disappear, just get out of the way when zoomed out. */
+body.gridzoom-out .tg-important-area-label.mandal{font-size:6px!important;max-width:44px!important;opacity:.55!important;padding:0 2px!important}
+body.gridzoom-mid .tg-important-area-label.mandal{font-size:7.5px!important;max-width:60px!important;opacity:.78!important;padding:1px 2px!important}
+body.gridzoom-in .tg-important-area-label.mandal{font-size:var(--tg-grid-label-size,9px)!important;max-width:84px!important;opacity:1!important}
 body.gridzoom-out .tg-district-label{font-size:9px!important;opacity:.62!important}
 body.gridzoom-mid .tg-district-label{font-size:10px!important;opacity:.76!important}
 body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!important}
@@ -1681,7 +1695,11 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
   </div>
   <div class="gsp-row">
     <label>LABEL SIZE <span id="gspLblVal">11</span></label>
-    <input type="range" min="7" max="18" step="1" value="11" oninput="setTGGridLabelSize(this.value)">
+    <input type="range" min="1" max="18" step="1" value="11" oninput="setTGGridLabelSize(this.value)">
+  </div>
+  <div class="gsp-row">
+    <label>POINT SIZE <span id="gspPointVal">1.00</span></label>
+    <input type="range" min="0.3" max="3" step="0.05" value="1" oninput="setTGPointScale(this.value)">
   </div>
   <div class="gsp-row">
     <label>FEEDER LINE <span id="gspLineVal">0.50</span></label>
@@ -1917,6 +1935,8 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
         <div class="fstat-item"><span class="fstat-lbl">UG LENGTH</span><span class="fstat-val ug" id="st-len-ug">—</span></div>
         <div class="fstat-item"><span class="fstat-lbl">OH LENGTH</span><span class="fstat-val oh" id="st-len-oh">—</span></div>
         <div class="fstat-item"><span class="fstat-lbl">AB SWITCHES</span><span class="fstat-val" id="st-ab-cnt">—</span></div>
+        <div class="fstat-item"><span class="fstat-lbl">DP STRUCTURES</span><span class="fstat-val" id="st-dp-cnt">—</span></div>
+        <div class="fstat-item"><span class="fstat-lbl">CUT POINTS</span><span class="fstat-val" id="st-cut-cnt">—</span></div>
       </div>
       <!-- ── FEEDER TYPE BREAKDOWN (added Jun-2026) ── -->
       <div style="border-top:1px solid rgba(0,0,0,.08);margin:10px 0 6px;padding-top:8px">
@@ -2400,7 +2420,7 @@ async function _buildTGRegionalGridLayer(){
               interactive:false,
               pane:'markerPane',
               icon:L.divIcon({
-                className:'tg-important-area-label local mandal',
+                className:'tg-important-area-label mandal',
                 html:_tgAreaLabelHtml(String(mandalName)),
                 iconSize:null
               })
@@ -2997,7 +3017,8 @@ DATA_REGISTRY.forEach(reg=>{
       const coords=feat.geometry.type==='Point'?feat.geometry.coordinates:feat.geometry.coordinates[0];
       const ll=[coords[1],coords[0]];
       if(reg.type==='points'||reg.type==='fpoles'){
-        layer=L.circleMarker(ll,{radius:2.2,fillColor:'#fff',fillOpacity:1,color:cableColor(cableType,isOH),weight:1.5,pane:'pointsPane',renderer:_CR});
+        layer=L.circleMarker(ll,{radius:2.2*(window.tgPointScale||1),fillColor:'#fff',fillOpacity:1,color:cableColor(cableType,isOH),weight:1.5,pane:'pointsPane',renderer:_CR});
+        layer._tgBaseR=2.2;
       }else if(reg.type==='cut'){
         layer=L.marker(ll,{icon:L.divIcon({className:'',html:`<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'><line x1='2' y1='2' x2='12' y2='12' stroke='#ffeb3b' stroke-width='2.5' stroke-linecap='round'/><line x1='12' y1='2' x2='2' y2='12' stroke='#ffeb3b' stroke-width='2.5' stroke-linecap='round'/></svg>`,iconSize:[14,14],iconAnchor:[7,7]}),pane:'pointsPane'});
       regType='cut';
@@ -3109,7 +3130,55 @@ function popup(feat,regEntry){
     </div>`;
   }
   if(!rows&&!headerId)rows='<tr><td colspan="2" style="color:#999;font-style:italic;padding:4px">No attributes available</td></tr>';
-  return `${headerId}<table class="popup-table">${rows}</table>${statusBar}`;
+
+  // ── Street View button/panel — per Naresh 01-Jul-2026: click a pole
+  // point, get a small Street View option with a way back. Only added
+  // for point-type features (poles/AB/DP/cut) that actually carry a
+  // Point geometry — line/segment popups are untouched.
+  let streetViewHtml='';
+  const isPointFeature = feat.geometry && feat.geometry.type==='Point'
+    && (!regEntry || ['points','fpoles','ab','dp','cut'].includes(regEntry.type));
+  if(isPointFeature){
+    const lng=feat.geometry.coordinates[0], lat=feat.geometry.coordinates[1];
+    streetViewHtml=`
+      <div class="pc-sv-btn-row">
+        <button class="pc-sv-btn" onclick="tgShowStreetView(this,${lat},${lng})">📍 STREET VIEW</button>
+      </div>
+      <div class="pc-streetview">
+        <button class="pc-sv-back" onclick="tgHideStreetView(this)">← BACK</button>
+        <iframe class="pc-sv-frame" loading="lazy" allowfullscreen></iframe>
+      </div>`;
+  }
+  return `<div class="pc-popup-wrap"><div class="pc-info">${headerId}<table class="popup-table">${rows}</table>${statusBar}${streetViewHtml}</div></div>`;
+}
+
+function tgShowStreetView(btn,lat,lng){
+  const wrap=btn.closest('.pc-popup-wrap');
+  if(!wrap)return;
+  const info=wrap.querySelector('.pc-info');
+  let sv=wrap.querySelector('.pc-streetview');
+  const frame=sv&&sv.querySelector('.pc-sv-frame');
+  // Hide the attribute table, show a lightweight Street View panel.
+  // No API key required — uses Google's classic "output=svembed" embed
+  // format, which has worked without one for years.
+  if(frame && !frame.getAttribute('src')){
+    frame.src='https://maps.google.com/maps?q=&layer=c&cbll='+lat+','+lng+'&cbp=11,0,0,0,0&output=svembed';
+  }
+  btn.parentElement.style.display='none';
+  if(sv)sv.style.display='block';
+  // Leaflet sizes the popup box once at open time; without an explicit
+  // update() call the newly-shown Street View panel would just get an
+  // internal scrollbar instead of the popup box growing to fit it.
+  try{ if(window.map && map._popup && map._popup.update) map._popup.update(); }catch(e){}
+}
+function tgHideStreetView(btn){
+  const wrap=btn.closest('.pc-popup-wrap');
+  if(!wrap)return;
+  const sv=wrap.querySelector('.pc-streetview');
+  const btnRow=wrap.querySelector('.pc-sv-btn-row');
+  if(sv)sv.style.display='none';
+  if(btnRow)btnRow.style.display='';
+  try{ if(window.map && map._popup && map._popup.update) map._popup.update(); }catch(e){}
 }
 
 function escJS(s){
@@ -3234,12 +3303,14 @@ function updateCounts(){
   document.getElementById('cnt-ehts').textContent=allLayers.filter(i=>i.reg.type.startsWith('eht')).length;
   document.getElementById('cnt-fsegs').textContent=allLayers.filter(i=>i.reg.type.startsWith('fseg')).length;
   // Feeder statistics
-  let ugKm=0,ohKm=0,poles=0,abCnt=0;
+  let ugKm=0,ohKm=0,poles=0,abCnt=0,dpCnt=0,cutCnt=0;
   allLayers.forEach(i=>{
     if(i._deleted)return;
     if(i.reg.type==='lines'){const km=calcLineLength(i.layer);if(i.cable==='UG')ugKm+=km;else ohKm+=km;}
     if(i.reg.type==='points'||i.reg.type==='fpoles')poles++;
     if(i.reg.type==='ab')abCnt++;
+    if(i.reg.type==='dp')dpCnt++;
+    if(i.reg.type==='cut')cutCnt++;
   });
   const totalKm=ugKm+ohKm;
   document.getElementById('st-feeders').textContent=feederNames.size;
@@ -3248,6 +3319,8 @@ function updateCounts(){
   document.getElementById('st-len-ug').textContent=ugKm.toFixed(2)+' km';
   document.getElementById('st-len-oh').textContent=ohKm.toFixed(2)+' km';
   document.getElementById('st-ab-cnt').textContent=abCnt;
+  document.getElementById('st-dp-cnt').textContent=dpCnt;
+  document.getElementById('st-cut-cnt').textContent=cutCnt;
 }
 
 // Auto-fit bounds
@@ -3818,8 +3891,28 @@ function setTGDPIconScale(v){
   document.documentElement.style.setProperty('--tg-dp-icon-scale',v.toFixed(2));
   const el=document.getElementById('gspDPVal'); if(el)el.textContent=v.toFixed(2);
 }
+let _tgPointScaleRAF=null;
+function setTGPointScale(v){
+  v=Math.max(0.3,Math.min(3,Number(v)||1));
+  window.tgPointScale=v;
+  const el=document.getElementById('gspPointVal'); if(el)el.textContent=v.toFixed(2);
+  // Points are canvas-rendered circleMarkers (shared renderer, not divIcons),
+  // so unlike AB/Cut/DP/SS/EHT this can't be a CSS transform — each marker's
+  // radius must be set directly. With 12,000+ points a slider drag would
+  // fire this on every pixel of movement, so it's rAF-debounced to collapse
+  // rapid oninput events into one redraw per frame instead of thousands.
+  if(_tgPointScaleRAF)return;
+  _tgPointScaleRAF=requestAnimationFrame(()=>{
+    _tgPointScaleRAF=null;
+    allLayers.forEach(i=>{
+      if(i.layer && i.layer._tgBaseR!=null && typeof i.layer.setRadius==='function'){
+        i.layer.setRadius(i.layer._tgBaseR*v);
+      }
+    });
+  });
+}
 function setTGGridLabelSize(v){
-  v=Math.max(7,Math.min(18,Number(v)||11));
+  v=Math.max(1,Math.min(18,Number(v)||11));
   document.documentElement.style.setProperty('--tg-grid-label-size',v+'px');
   const el=document.getElementById('gspLblVal'); if(el)el.textContent=String(v);
 }
@@ -6420,9 +6513,11 @@ function renderUploadedRows(rows,sourceFileName){
         // (Pole circle markers render at ~7 px diameter; the X here is 7×7 too.)
         layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'cut-pt-icon',html:`<div class='cut-wrap'><svg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 5 5'><line x1='0.8' y1='0.8' x2='4.2' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/><line x1='4.2' y1='0.8' x2='0.8' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/></svg></div>`,iconSize:[4,4],iconAnchor:[2,2]}),pane:'pointsPane'});
       }else if(p.pn.spurKey){
-        layer=L.circleMarker([p.lat,p.lng],{radius:2,fillColor:'#ffe082',fillOpacity:1,color:'#ff9800',weight:1.5,pane:'pointsPane',renderer:_CR});
+        layer=L.circleMarker([p.lat,p.lng],{radius:2*(window.tgPointScale||1),fillColor:'#ffe082',fillOpacity:1,color:'#ff9800',weight:1.5,pane:'pointsPane',renderer:_CR});
+        layer._tgBaseR=2;
       }else{
-        layer=L.circleMarker([p.lat,p.lng],{radius:2.2,fillColor:'#fff',fillOpacity:1,color:ptColor,weight:1.5,pane:'pointsPane',renderer:_CR});
+        layer=L.circleMarker([p.lat,p.lng],{radius:2.2*(window.tgPointScale||1),fillColor:'#fff',fillOpacity:1,color:ptColor,weight:1.5,pane:'pointsPane',renderer:_CR});
+        layer._tgBaseR=2.2;
       }
       const reg={type:regType,feeder:feederName,cable};
       layer.feature=feat;layer._editId=editLayerCounter++;
