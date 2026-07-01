@@ -195,6 +195,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 .eht-wrap{position:relative;width:40px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transform:scale(var(--tg-eht-icon-scale,1));transform-origin:center center}
 .eht-rect{position:absolute;inset:0;border:2px solid rgba(255,120,0,.95);border-radius:4px;animation:eht-ring-pulse 1.8s ease-in-out infinite;background:rgba(30,10,0,.75);pointer-events:none}
 .eht-core{z-index:1;display:flex;align-items:center;justify-content:center;gap:3px;pointer-events:none}
+.ab-wrap{display:flex;align-items:center;justify-content:center;transform:scale(var(--tg-ab-icon-scale,1));transform-origin:center center}
+.dp-wrap{display:flex;align-items:center;justify-content:center;transform:scale(var(--tg-dp-icon-scale,1));transform-origin:center center}
+.cut-wrap{display:flex;align-items:center;justify-content:center;transform:scale(var(--tg-cut-icon-scale,1));transform-origin:center center}
 .eht-power{font-size:16px;line-height:1;filter:drop-shadow(0 0 4px #ff6600);pointer-events:none}
 .eht-kv{font-family:var(--mono);font-size:7px;color:rgba(255,160,60,.9);line-height:1;letter-spacing:.5px;pointer-events:none}
 
@@ -1685,6 +1688,18 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
     <input type="range" min="0.05" max="2.20" step="0.05" value="0.50" oninput="setTGFeederLineThickness(this.value)">
   </div>
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
+    <label>AB SWITCH SIZE <span id="gspABVal">1.00</span></label>
+    <input type="range" min="0.5" max="2.5" step="0.05" value="1" oninput="setTGABIconScale(this.value)">
+  </div>
+  <div class="gsp-row">
+    <label>CUT POINT SIZE <span id="gspCutVal">1.00</span></label>
+    <input type="range" min="0.5" max="2.5" step="0.05" value="1" oninput="setTGCutIconScale(this.value)">
+  </div>
+  <div class="gsp-row">
+    <label>DP STRUCTURE SIZE <span id="gspDPVal">1.00</span></label>
+    <input type="range" min="0.5" max="2.5" step="0.05" value="1" oninput="setTGDPIconScale(this.value)">
+  </div>
+  <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
     <label style="margin-bottom:0"><span>AREA BORDERS ONLY</span>
       <input type="checkbox" checked onchange="window.tgSetGridShowWards(this.checked)" style="transform:translateY(2px)">
     </label>
@@ -1692,6 +1707,11 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
   <div class="gsp-row">
     <label style="margin-bottom:0"><span>IMPORTANT AREA NAMES</span>
       <input type="checkbox" checked onchange="window.tgSetGridShowAreaNames(this.checked)" style="transform:translateY(2px)">
+    </label>
+  </div>
+  <div class="gsp-row">
+    <label style="margin-bottom:0"><span>MANDAL NAMES</span>
+      <input type="checkbox" checked onchange="window.tgSetGridShowMandalNames(this.checked)" style="transform:translateY(2px)">
     </label>
   </div>
   <div class="gsp-row">
@@ -1806,7 +1826,6 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
   <div class="bm-tab"        id="bm-street"    onclick="setBM('street')">🗺 STREET</div>
   <div class="bm-tab"        id="bm-google"    onclick="setBM('google')">📍 GOOGLE</div>
   <div class="bm-tab active" id="bm-grid_view" onclick="setBM('grid_view')" title="Pastel Hyderabad-region district boundary view">▧ GRID MAP VIEW</div>
-  <div class="bm-tab"        id="bm-smart_grid" onclick="setBM('smart_grid')" title="Schematic EHT source → 33/11KV destination connections, curved to minimize crossings">⌁ SMART GRID VIEW</div>
 </div>
 
 <div id="rpanel">
@@ -2068,6 +2087,7 @@ window.tgGridShowDistricts = window.tgGridShowDistricts ?? true;
 let _tgRegionalGridLayerGroup = null;
 let _tgGhmcWardLayer = null;
 let _tgMandalLayer = null;
+let _tgMandalLabelLayer = null;
 let _tgImportantAreaLabelLayer = null;
 let _tgMajorRoadLayer = null;
 let _tgAreaNamesOn = true;
@@ -2315,270 +2335,6 @@ function _tgBuildImportantAreaLabels(){
   return g;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SMART GRID VIEW (added 30-Jun-2026 per Naresh)
-// Schematic diagram of real feeder topology: EHT source → important
-// intermediate points → 33/11KV destination substation, drawn as smooth
-// curves rather than the literal pole-by-pole route. Real lat/lng
-// positions are preserved (not a distorted schematic) — curves are bowed
-// to minimize crossings between feeders, with hub-and-spoke clusters
-// (multiple feeders sharing one EHT source) handled via angular
-// ordering, which testing confirmed eliminates crossings entirely for
-// that case. Crossings between UNRELATED feeder pairs (different EHT
-// sources, geographically tangled paths) are minimized via a bow-search,
-// but cannot always be eliminated without distorting real endpoint
-// positions — verified during testing that this is a genuine geometric
-// limit, not an algorithm gap, for adversarial cases.
-// ═══════════════════════════════════════════════════════════════
-let _tgSmartGridLayerGroup = null;
-
-function _tgPerpendicularDistance(pt, lineStart, lineEnd){
-  const dx=lineEnd[0]-lineStart[0], dy=lineEnd[1]-lineStart[1];
-  const lenSq=dx*dx+dy*dy;
-  if(lenSq===0) return Math.hypot(pt[0]-lineStart[0], pt[1]-lineStart[1]);
-  const t=((pt[0]-lineStart[0])*dx+(pt[1]-lineStart[1])*dy)/lenSq;
-  const tc=Math.max(0,Math.min(1,t));
-  const px=lineStart[0]+tc*dx, py=lineStart[1]+tc*dy;
-  return Math.hypot(pt[0]-px, pt[1]-py);
-}
-function _tgPickImportantPoints(routePoints, maxImportant){
-  if(routePoints.length<=2) return routePoints.slice();
-  const first=routePoints[0], last=routePoints[routePoints.length-1];
-  const scored=routePoints.slice(1,-1).map((p,idx)=>({pt:p,idx:idx+1,score:_tgPerpendicularDistance(p,first,last)}));
-  scored.sort((a,b)=>b.score-a.score);
-  const chosen=scored.slice(0,Math.max(0,maxImportant)).sort((a,b)=>a.idx-b.idx);
-  return [first, ...chosen.map(c=>c.pt), last];
-}
-function _tgQuadBezierPoints(p0, p1, bowAmount, samples){
-  samples=samples||20;
-  const mx=(p0[0]+p1[0])/2, my=(p0[1]+p1[1])/2;
-  const dx=p1[0]-p0[0], dy=p1[1]-p0[1];
-  const len=Math.hypot(dx,dy)||1e-9;
-  const nx=-dy/len, ny=dx/len;
-  const ctrl=[mx+nx*bowAmount, my+ny*bowAmount];
-  const pts=[];
-  for(let i=0;i<=samples;i++){
-    const t=i/samples;
-    pts.push([(1-t)*(1-t)*p0[0]+2*(1-t)*t*ctrl[0]+t*t*p1[0], (1-t)*(1-t)*p0[1]+2*(1-t)*t*ctrl[1]+t*t*p1[1]]);
-  }
-  return pts;
-}
-function _tgMultiSegmentBezier(points, bowAmount, samplesPerSeg){
-  // chains quadratic beziers between consecutive important points so the
-  // whole route (start -> important points -> end) is one smooth curved
-  // path, not just a single start-to-end bow ignoring the waypoints.
-  if(points.length<2) return points.slice();
-  let out=[];
-  for(let i=0;i<points.length-1;i++){
-    const seg=_tgQuadBezierPoints(points[i], points[i+1], bowAmount, samplesPerSeg||10);
-    out = out.concat(i===0 ? seg : seg.slice(1));
-  }
-  return out;
-}
-
-// Per Naresh 30-Jun-2026: found the actual cause of "connecting randomly"
-// — EVERY substation name in STATIC_SS33/STATIC_EHT contains generic
-// tokens like "SS" and "KV" (confirmed directly against the real data:
-// "33/11KV ALLWYN SS", "132 KV ERRAGADDA SS", etc. — every single one).
-// The old matching gave ANY shared token a point with no minimum
-// threshold, so virtually every feeder scored >=1 against virtually
-// every substation just from "SS" alone, and with no tie-break the
-// function returned an essentially arbitrary candidate — producing the
-// wild, geographically meaningless long-distance lines in the
-// screenshot. Fixed: strip generic/universal tokens before scoring,
-// require a real minimum match, and when scores tie, prefer whichever
-// candidate is geographically closer to the feeder's own actual route
-// (a real sanity check, not just trusting the name string).
-const TG_GENERIC_NAME_TOKENS = new Set(['SS','KV','THE','AND','FOR']);
-function _tgNameTokens(name){
-  return String(name||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(' ')
-    .filter(t=>t.length>=3 && !TG_GENERIC_NAME_TOKENS.has(t));
-}
-function _tgBestNameMatch(feederName, candidates, routeMidpoint){
-  const fTokens=new Set(_tgNameTokens(feederName));
-  if(fTokens.size===0) return null; // nothing meaningful to match against
-  let best=null, bestScore=0, bestDist=Infinity;
-  candidates.forEach(c=>{
-    if(c.lat==null||c.lon==null) return;
-    let score=0;
-    _tgNameTokens(c.name).forEach(t=>{ if(fTokens.has(t)) score++; });
-    if(score===0) return; // require at least one REAL (non-generic) token match
-    let dist=Infinity;
-    if(routeMidpoint){
-      dist=(Number(c.lat)-routeMidpoint[0])**2 + (Number(c.lon)-routeMidpoint[1])**2;
-    }
-    if(score>bestScore || (score===bestScore && dist<bestDist)){
-      bestScore=score; best=c; bestDist=dist;
-    }
-  });
-  // Sanity check: even a genuine token match should be within a plausible
-  // distance of the feeder's own route — Hyderabad's metro area spans
-  // roughly 0.5° lat/lng, so a "match" more than ~0.35° away (≈35-40km)
-  // from the feeder's own route is almost certainly a false positive
-  // (e.g. two unrelated substations that happen to share a place-name
-  // fragment), not a real source/destination relationship.
-  if(best && routeMidpoint){
-    const d=Math.hypot(Number(best.lat)-routeMidpoint[0], Number(best.lon)-routeMidpoint[1]);
-    if(d>0.35) return null;
-  }
-  return best;
-}
-
-async function _buildSmartGridView(){
-  if(_tgSmartGridLayerGroup){ _tgSmartGridLayerGroup.addTo(map); return; }
-  _tgSmartGridLayerGroup = L.layerGroup();
-  const group = _tgSmartGridLayerGroup;
-
-  // gather, per feeder currently rendered, its real route points + best
-  // EHT source / SS33 destination match
-  const feederRoutes = [];
-  renderedFeederSet.forEach(fn=>{
-    const segs = feederLayerMap[fn] || [];
-    let pts = [];
-    segs.forEach(s=>{
-      try{
-        const ll = s.layer.getLatLngs ? s.layer.getLatLngs() : null;
-        if(ll){
-          const flat = Array.isArray(ll[0]) ? ll.flat() : ll;
-          flat.forEach(p=>{ if(p && typeof p.lat==='number') pts.push([p.lat,p.lng]); });
-        }
-      }catch(e){}
-    });
-    if(pts.length<2) return;
-
-    // route midpoint (simple average of all real points) — used as the
-    // geographic anchor for sanity-checking name matches, not for display.
-    const midLat = pts.reduce((s,p)=>s+p[0],0)/pts.length;
-    const midLng = pts.reduce((s,p)=>s+p[1],0)/pts.length;
-    const routeMid = [midLat, midLng];
-
-    const ehtMatch = _tgBestNameMatch(fn, STATIC_EHT||[], routeMid);
-    const ssMatch = _tgBestNameMatch(fn, STATIC_SS33||[], routeMid);
-    const startPt = ehtMatch ? [ehtMatch.lat, ehtMatch.lon] : pts[0];
-    const endPt = ssMatch ? [ssMatch.lat, ssMatch.lon] : pts[pts.length-1];
-
-    feederRoutes.push({
-      fn, pts, startPt, endPt,
-      hubKey: ehtMatch ? ehtMatch.name : 'NOHUB_'+fn,
-      hubName: ehtMatch ? ehtMatch.name : null,
-      destName: ssMatch ? ssMatch.name : null
-    });
-  });
-
-  if(!feederRoutes.length){
-    if(typeof toast==='function') toast('Smart Grid View: no feeders currently loaded — pick a scope first',3500);
-    group.addTo(map);
-    return;
-  }
-
-  // group by shared EHT hub so angular ordering can resolve hub-spoke
-  // crossings cleanly (verified via testing — this eliminates crossings
-  // entirely for same-hub clusters)
-  const byHub = {};
-  feederRoutes.forEach(r=>{ (byHub[r.hubKey] = byHub[r.hubKey] || []).push(r); });
-
-  const placedCurves = []; // for cross-hub crossing minimization
-  const baseBow = 0.0035; // ~350-400m bow in degree-space, tuned for typical Hyderabad-area feeder spacing
-
-  Object.keys(byHub).forEach(hubKey=>{
-    const cluster = byHub[hubKey];
-    const hub = cluster[0].startPt;
-    // order this hub's spokes by destination angle for clean fan-out
-    const withAngle = cluster.map(r=>({r, angle: Math.atan2(r.endPt[0]-hub[0], r.endPt[1]-hub[1])}));
-    withAngle.sort((a,b)=>a.angle-b.angle);
-    const n = withAngle.length;
-
-    withAngle.forEach((item, orderIdx)=>{
-      const r = item.r;
-      const importantPts = _tgPickImportantPoints(r.pts, 3);
-      // replace the route's own first/last with the matched hub/dest
-      // coordinates so the diagram anchors to the real substation, not
-      // just wherever the recorded route happens to start/end.
-      const wayPoints = [r.startPt, ...importantPts.slice(1,-1), r.endPt];
-
-      const centerOffset = orderIdx - (n-1)/2;
-      const hubBow = n>1 ? centerOffset * (baseBow/Math.max(1,n-1)*2.2) : 0;
-
-      let curve = _tgMultiSegmentBezier(wayPoints, hubBow, 10);
-
-      // light cross-hub crossing check against already-placed curves from
-      // OTHER hubs — best-effort, see header comment on real limits.
-      let crossesOther = false;
-      for(const placed of placedCurves){
-        if(_tgCountCrossings(curve, placed) > 0){ crossesOther = true; break; }
-      }
-      if(crossesOther){
-        const altBows = [hubBow*1.6, -hubBow*1.6, hubBow*2.4, -hubBow*2.4];
-        for(const altBow of altBows){
-          const altCurve = _tgMultiSegmentBezier(wayPoints, altBow, 10);
-          let stillCrosses=false;
-          for(const placed of placedCurves){ if(_tgCountCrossings(altCurve, placed)>0){ stillCrosses=true; break; } }
-          if(!stillCrosses){ curve = altCurve; break; }
-        }
-      }
-      placedCurves.push(curve);
-
-      const latlngs = curve.map(p=>[p[0],p[1]]);
-      const isLive = (typeof feederStatus!=='undefined' && feederStatus[r.fn]==='breakdown') ? '#ff1744' : '#00c8ff';
-      L.polyline(latlngs,{color:isLive,weight:1.6,opacity:.85,smoothFactor:1}).bindTooltip(r.fn,{sticky:true}).addTo(group);
-    });
-
-    // hub marker
-    L.circleMarker([hub[0],hub[1]],{radius:6,color:'#fff',weight:2,fillColor:'#f97316',fillOpacity:1})
-      .bindTooltip(cluster[0].hubName||'EHT Source',{permanent:false}).addTo(group);
-  });
-
-  // destination markers (33/11KV substations actually reached)
-  const destSeen = new Set();
-  feederRoutes.forEach(r=>{
-    if(!r.destName || destSeen.has(r.destName)) return;
-    destSeen.add(r.destName);
-    L.circleMarker([r.endPt[0],r.endPt[1]],{radius:4,color:'#fff',weight:1.5,fillColor:'#1d4ed8',fillOpacity:1})
-      .bindTooltip(r.destName,{permanent:false}).addTo(group);
-  });
-
-  group.addTo(map);
-  if(typeof toast==='function') toast('⌁ Smart Grid View — '+feederRoutes.length+' feeder(s), '+Object.keys(byHub).length+' source(s)',3500);
-}
-
-function _tgOrientation(p,q,r){
-  const val=(q[1]-p[1])*(r[0]-q[0])-(q[0]-p[0])*(r[1]-q[1]);
-  if(Math.abs(val)<1e-12) return 0;
-  return val>0?1:2;
-}
-function _tgOnSegment(p,q,r){
-  return q[0]<=Math.max(p[0],r[0]) && q[0]>=Math.min(p[0],r[0]) && q[1]<=Math.max(p[1],r[1]) && q[1]>=Math.min(p[1],r[1]);
-}
-function _tgSegmentsIntersect(p1,q1,p2,q2){
-  const o1=_tgOrientation(p1,q1,p2), o2=_tgOrientation(p1,q1,q2);
-  const o3=_tgOrientation(p2,q2,p1), o4=_tgOrientation(p2,q2,q1);
-  if(o1!==o2 && o3!==o4) return true;
-  if(o1===0 && _tgOnSegment(p1,p2,q1)) return true;
-  if(o2===0 && _tgOnSegment(p1,q2,q1)) return true;
-  if(o3===0 && _tgOnSegment(p2,p1,q2)) return true;
-  if(o4===0 && _tgOnSegment(p2,q1,q2)) return true;
-  return false;
-}
-function _tgCurvesShareEndpoint(curveA, curveB){
-  const aStart=curveA[0], aEnd=curveA[curveA.length-1], bStart=curveB[0], bEnd=curveB[curveB.length-1];
-  const eq=(p,q)=>Math.abs(p[0]-q[0])<1e-9 && Math.abs(p[1]-q[1])<1e-9;
-  return { sharedStart:eq(aStart,bStart), sharedEnd:eq(aEnd,bEnd), startEndCross:eq(aStart,bEnd), endStartCross:eq(aEnd,bStart) };
-}
-function _tgCountCrossings(curveA, curveB){
-  const shared=_tgCurvesShareEndpoint(curveA,curveB);
-  const aStartTrim=(shared.sharedStart||shared.startEndCross)?1:0;
-  const aEndTrim=(shared.sharedEnd||shared.endStartCross)?curveA.length-1:curveA.length;
-  const bStartTrim=(shared.sharedStart||shared.endStartCross)?1:0;
-  const bEndTrim=(shared.sharedEnd||shared.startEndCross)?curveB.length-1:curveB.length;
-  let count=0;
-  for(let i=aStartTrim;i<aEndTrim-1;i++){
-    for(let j=bStartTrim;j<bEndTrim-1;j++){
-      if(_tgSegmentsIntersect(curveA[i],curveA[i+1],curveB[j],curveB[j+1])) count++;
-    }
-  }
-  return count;
-}
-
 async function _buildTGRegionalGridLayer(){
   if(_tgRegionalGridLayerGroup){ if(window.tgGridShowDistricts) _tgRegionalGridLayerGroup.addTo(map); return; }
   _tgRegionalGridLayerGroup = L.layerGroup();
@@ -2621,13 +2377,42 @@ async function _buildTGRegionalGridLayer(){
     const gj2 = await res2.json();
     const feats2 = gj2.features||[];
     const mandalLayer = L.geoJSON(feats2,{style:{color:'#999',weight:.5,opacity:.65,fillOpacity:0,dashArray:'2 2'}});
+    // Per Naresh 01-Jul-2026: "mandal/important [names] inside the region" —
+    // mandal names were only reachable on hover (bindTooltip) before, so
+    // they never actually showed on a printed/screenshotted view. This
+    // builds permanent visible labels straight from the same real
+    // shapefile-derived GeoJSON, reusing the existing important-area-label
+    // visual style. Zoom-gated with the "local" class (same mechanism the
+    // important-area labels already use) so 621 mandal names across the
+    // whole state don't clutter the zoomed-out view — they only appear
+    // once you're zoomed into a specific region/section, same as the
+    // screenshot.
+    const mandalLabelLayer = L.layerGroup();
     mandalLayer.eachLayer(layer=>{
       const props=(layer.feature&&layer.feature.properties)||{};
       const mandalName = props.MANDAL||props.Mandal||props.mandal;
       if(mandalName) layer.bindTooltip(String(mandalName),{sticky:true,className:'tg-ward-tooltip'});
+      if(mandalName && layer.getBounds){
+        try{
+          const b=layer.getBounds();
+          if(b && b.isValid && b.isValid()){
+            L.marker(b.getCenter(),{
+              interactive:false,
+              pane:'markerPane',
+              icon:L.divIcon({
+                className:'tg-important-area-label local mandal',
+                html:_tgAreaLabelHtml(String(mandalName)),
+                iconSize:null
+              })
+            }).addTo(mandalLabelLayer);
+          }
+        }catch(e){}
+      }
     });
     if(window.tgGridShowMandals!==false) mandalLayer.addTo(group);
+    if(window.tgGridShowMandalNames!==false) mandalLabelLayer.addTo(group);
     _tgMandalLayer = mandalLayer;
+    _tgMandalLabelLayer = mandalLabelLayer;
   }catch(err){
     console.warn('Mandal GeoJSON failed; inside-district boundary detail unavailable:', err);
   }
@@ -2711,6 +2496,12 @@ window.tgSetGridShowAreaNames = function(on){
   _tgWardLabelMarkers.forEach(m=>{ if(on) m.addTo(map); else if(map.hasLayer(m)) map.removeLayer(m); });
   _tgDistrictLabelMarkers.forEach(m=>{ if(on) m.addTo(map); else if(map.hasLayer(m)) map.removeLayer(m); });
 };
+window.tgSetGridShowMandalNames = function(on){
+  window.tgGridShowMandalNames = !!on;
+  if(!_tgMandalLabelLayer || !_tgRegionalGridLayerGroup) return;
+  if(on) _tgRegionalGridLayerGroup.addLayer(_tgMandalLabelLayer);
+  else _tgRegionalGridLayerGroup.removeLayer(_tgMandalLabelLayer);
+};
 window.tgSetGridShowMajorRoads = function(on){
   if(!_tgMajorRoadLayer || !_tgRegionalGridLayerGroup) return;
   if(on) _tgRegionalGridLayerGroup.addLayer(_tgMajorRoadLayer);
@@ -2776,13 +2567,6 @@ function getBM(n){
       attribution:'District/Mandal boundaries: Telangana State Remote Sensing Applications Centre (TRAC)'
     });
     _buildTGRegionalGridLayer();
-  }else if(n==='smart_grid'){
-    BM[n]=L.tileLayer(_gridBlankTileUrl(),{
-      maxZoom:22, maxNativeZoom:22, tileSize:256,
-      keepBuffer:1, updateWhenIdle:true, updateWhenZooming:false,
-      attribution:''
-    });
-    _buildSmartGridView();
   }else if(_bmDefs[n]){
     BM[n]=L.tileLayer(_bmDefs[n][0],_bmDefs[n][1]);
   }
@@ -2792,25 +2576,13 @@ let curBM='grid_view'; getBM('grid_view').addTo(map);
 setTimeout(()=>{getBM('google');getBM('satellite');},2000);
 
 function setBM(name){
-  if(name!=='grid'&&name!=='grid_view'&&name!=='smart_grid'&&!_bmDefs[name])return;
+  if(name!=='grid'&&name!=='grid_view'&&!_bmDefs[name])return;
   map.removeLayer(getBM(curBM));
   _ensureGridBackground(name==='grid');
   getBM(name).addTo(map);
   if(name!=='grid'&&getBM(name).bringToBack)getBM(name).bringToBack();
 
-  // Smart Grid View replaces the real feeder lines/substations with its
-  // own schematic — toggle that here, and clean up the schematic layer
-  // when leaving so it doesn't linger visible under a different basemap.
-  const wasSmartGrid = (curBM === 'smart_grid');
-  const isSmartGrid = (name === 'smart_grid');
-  if(wasSmartGrid && !isSmartGrid && _tgSmartGridLayerGroup && map.hasLayer(_tgSmartGridLayerGroup)){
-    map.removeLayer(_tgSmartGridLayerGroup);
-  }
-  window.tgSmartGridViewActive = isSmartGrid;
   if(typeof updateVisibility==='function') updateVisibility();
-  if(isSmartGrid && _tgSmartGridLayerGroup && !map.hasLayer(_tgSmartGridLayerGroup)){
-    _tgSmartGridLayerGroup.addTo(map);
-  }
 
   curBM=name;
   document.querySelectorAll('.bmbtn,.bm-tab').forEach(b=>b.classList.remove('active'));
@@ -3273,17 +3045,6 @@ function requestVisibilityUpdate(){
   _visRAF=requestAnimationFrame(()=>{_visRAF=null;updateVisibility();});
 }
 
-// Per Naresh 30-Jun-2026: the real bug behind "Smart Grid View just
-// replicates Grid Map View" — the basemap tab system (getBM/setBM) only
-// ever controlled the BACKGROUND tile layer. It was never built to hide
-// the actual feeder route polylines/substation markers, which are a
-// completely separate always-on rendering system (renderScope/allLayers).
-// So clicking Smart Grid View correctly drew the new curved schematic —
-// but on TOP of the still-fully-visible real feeder lines underneath,
-// which (since real lat/lng positions are intentionally preserved) made
-// the two visually blend into what looked like just the regular map.
-window.tgSmartGridViewActive = false;
-
 function updateVisibility(){
   let vis=0;
   allLayers.forEach(item=>{
@@ -3293,15 +3054,6 @@ function updateVisibility(){
     if(t.startsWith('eht'))t='ehts';
     if(t.startsWith('fseg'))t='fsegs';
     if(t==='fpoles')t='points';
-    // Smart Grid View hides every real feeder line and substation marker
-    // unconditionally — the schematic view replaces them, it doesn't
-    // overlay them.
-    if(window.tgSmartGridViewActive){
-      if(map.hasLayer(item.layer))map.removeLayer(item.layer);
-      if(item.layer.flowLayer&&map.hasLayer(item.layer.flowLayer))map.removeLayer(item.layer.flowLayer);
-      if(item.layer.hitLayer&&map.hasLayer(item.layer.hitLayer))map.removeLayer(item.layer.hitLayer);
-      return;
-    }
     const typeIsOn=LGstate[t]!==false;
     const isSS=(t==='ss33'||t==='ehts');
     const fState=feederState[item.feederName];
@@ -4050,6 +3802,21 @@ function setTGEHTIconScale(v){
   v=Math.max(0.55,Math.min(1.8,Number(v)||1));
   document.documentElement.style.setProperty('--tg-eht-icon-scale',v.toFixed(2));
   const el=document.getElementById('gspEHTVal'); if(el)el.textContent=v.toFixed(2);
+}
+function setTGABIconScale(v){
+  v=Math.max(0.5,Math.min(2.5,Number(v)||1));
+  document.documentElement.style.setProperty('--tg-ab-icon-scale',v.toFixed(2));
+  const el=document.getElementById('gspABVal'); if(el)el.textContent=v.toFixed(2);
+}
+function setTGCutIconScale(v){
+  v=Math.max(0.5,Math.min(2.5,Number(v)||1));
+  document.documentElement.style.setProperty('--tg-cut-icon-scale',v.toFixed(2));
+  const el=document.getElementById('gspCutVal'); if(el)el.textContent=v.toFixed(2);
+}
+function setTGDPIconScale(v){
+  v=Math.max(0.5,Math.min(2.5,Number(v)||1));
+  document.documentElement.style.setProperty('--tg-dp-icon-scale',v.toFixed(2));
+  const el=document.getElementById('gspDPVal'); if(el)el.textContent=v.toFixed(2);
 }
 function setTGGridLabelSize(v){
   v=Math.max(7,Math.min(18,Number(v)||11));
@@ -6630,28 +6397,28 @@ function renderUploadedRows(rows,sourceFileName){
         // AB Switch — orange diamond with central bar. Per Naresh 31-May-2026:
         // reduced from 18→12 px so it's proportional to DP/cut markers.
         layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',
-          html:`<svg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 16 16'>
+          html:`<div class='ab-wrap'><svg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 16 16'>
             <rect x='3' y='3' width='10' height='10' rx='1.3' transform='rotate(45 8 8)' fill='#ff9800' stroke='#fff' stroke-width='1.1' style='filter:drop-shadow(0 0 1px #ff9800)'/>
             <line x1='5' y1='8' x2='11' y2='8' stroke='#fff' stroke-width='1.5' stroke-linecap='round'/>
-          </svg>`,
+          </svg></div>`,
           iconSize:[10,10],iconAnchor:[5,5]}),pane:'pointsPane'});
       }else if(isDP){
         regType='dp';
         // DP Structure — purple double-pole symbol
         layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',
-          html:`<svg xmlns='http://www.w3.org/2000/svg' width='14' height='16' viewBox='0 0 14 16'>
+          html:`<div class='dp-wrap'><svg xmlns='http://www.w3.org/2000/svg' width='14' height='16' viewBox='0 0 14 16'>
             <line x1='3' y1='1' x2='3' y2='15' stroke='#9c27b0' stroke-width='2.4' stroke-linecap='round'/>
             <line x1='11' y1='1' x2='11' y2='15' stroke='#9c27b0' stroke-width='2.4' stroke-linecap='round'/>
             <line x1='3' y1='6' x2='11' y2='6' stroke='#9c27b0' stroke-width='1.8'/>
             <circle cx='3' cy='3' r='1.6' fill='#9c27b0' stroke='#fff' stroke-width='.6'/>
             <circle cx='11' cy='3' r='1.6' fill='#9c27b0' stroke='#fff' stroke-width='.6'/>
-          </svg>`,
+          </svg></div>`,
           iconSize:[14,16],iconAnchor:[7,8]}),pane:'pointsPane'});
       }else if(isCut){
         regType='cut';
         // Cut Point — small yellow "X" the same visual size as a pole dot
         // (Pole circle markers render at ~7 px diameter; the X here is 7×7 too.)
-        layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'cut-pt-icon',html:`<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 5 5'><line x1='0.8' y1='0.8' x2='4.2' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/><line x1='4.2' y1='0.8' x2='0.8' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/></svg>`,iconSize:[4,4],iconAnchor:[2,2]}),pane:'pointsPane'});
+        layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'cut-pt-icon',html:`<div class='cut-wrap'><svg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 5 5'><line x1='0.8' y1='0.8' x2='4.2' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/><line x1='4.2' y1='0.8' x2='0.8' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/></svg></div>`,iconSize:[4,4],iconAnchor:[2,2]}),pane:'pointsPane'});
       }else if(p.pn.spurKey){
         layer=L.circleMarker([p.lat,p.lng],{radius:2,fillColor:'#ffe082',fillOpacity:1,color:'#ff9800',weight:1.5,pane:'pointsPane',renderer:_CR});
       }else{
@@ -10358,8 +10125,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       // own w/h ratio and picks whichever orientation lets the route use
       // more of the available page area.
       var ar = opt._routeAspect; // width/height of the route's own bounds, longitude-corrected
+      // Per PDF correction brief §3: only go landscape once the route is
+      // genuinely wider than tall (>1.15), not right at 1.0 — a near-square
+      // route (ratio ~1.0–1.15) reads better in portrait since the header/
+      // footer bands eat vertical space, not horizontal.
       if(ar != null && isFinite(ar) && ar > 0){
-        orient = ar >= 1 ? 'landscape' : 'portrait';
+        orient = ar > 1.15 ? 'landscape' : 'portrait';
       } else {
         orient = 'landscape'; // safe fallback if aspect couldn't be computed
       }
@@ -10367,6 +10138,19 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     if(orient === 'landscape' && h > w){ var t=w; w=h; h=t; }
     if(orient === 'portrait' && w > h){ var t2=w; w=h; h=t2; }
     return {w:w,h:h};
+  }
+
+  // Per PDF correction brief §5: pole/cable points 0.52–0.82mm, cut-point
+  // and AB-switch symbols 1.0–1.2mm. Scaled within those bounds by paper
+  // size — A6 uses the low end, A0 the high end — instead of one fixed
+  // size that's invisible on a big sheet or blocks the route on a small one.
+  function symbolSizesForPage(page){
+    var span = Math.max(page.w, page.h);
+    var t = Math.max(0, Math.min(1, (span - 148) / (1189 - 148))); // A6 span .. A0 span
+    return {
+      pole: +(0.52 + t * (0.82 - 0.52)).toFixed(2),
+      cutAb: +(1.0 + t * (1.2 - 1.0)).toFixed(2)
+    };
   }
 
   // ---------- nearby substations (33/11KV + EHT) ----------
@@ -10395,7 +10179,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   }
 
   // ---------- projection (route bounds expanded to include nearby SS) ----------
-  function projectFactory(segments, nearSS, page){
+  function projectFactory(segments, nearSS, page, opt){
     var pts = [];
     segments.forEach(function(s){ pts = pts.concat(s.pts); });
     if(!pts.length) return null;
@@ -10412,8 +10196,17 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     });
     b = expandBounds(b, 0.08);
 
-    var pad = Math.max(page.w,page.h) * 0.07;
-    var titleH = 22, statH = 36;
+    // Per PDF correction brief §1/§2/§4: margin must be small and fixed,
+    // not a % of page size — 7% of an A0 sheet (841mm) was ~59mm of pure
+    // white border, which is exactly the "map does not fill the page"
+    // complaint. Header/footer reserve now matches what buildFeederSvg
+    // actually draws there (title block = 22mm when shown, legend/stats/
+    // north block = 46mm when any of those are on) instead of one guessed
+    // constant that could either overlap the legend or waste space.
+    opt = opt || {};
+    var pad = 10;
+    var titleH = opt.title ? 22 : 0;
+    var statH = (opt.legend || opt.stats || opt.north) ? 46 : 0;
     var x0 = pad, y0 = pad + titleH;
     var dw = page.w - pad*2;
     var dh = page.h - pad*2 - titleH - statH;
@@ -10528,13 +10321,46 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   }
 
   // ---------- symbols ----------
-  function symbolSvg(x,y,type){
+  // sz = {pole, cutAb} from symbolSizesForPage() — SS/DP/EHT icons are
+  // unchanged (brief only specifies pole/cable and cut/AB-switch sizes).
+  function symbolSvg(x,y,type,sz){
+    sz = sz || {pole:0.52, cutAb:1.0};
     if(type === 'SS')  return '<rect x="'+(x-2.2)+'" y="'+(y-2.2)+'" width="4.4" height="4.4" fill="#ef4444" stroke="#7f1d1d" stroke-width=".45"/>';
-    if(type === 'AB')  return '<rect x="'+(x-0.6)+'" y="'+(y-0.6)+'" width="1.2" height="1.2" rx=".18" transform="rotate(45 '+x+' '+y+')" fill="#ff9800" stroke="#7c2d12" stroke-width=".18"/>';
+    if(type === 'AB')  return '<rect x="'+(x-sz.cutAb/2)+'" y="'+(y-sz.cutAb/2)+'" width="'+sz.cutAb+'" height="'+sz.cutAb+'" rx=".18" transform="rotate(45 '+x+' '+y+')" fill="#ff9800" stroke="#7c2d12" stroke-width=".18"/>';
     if(type === 'DP')  return '<rect x="'+(x-1.1)+'" y="'+(y-1.1)+'" width="2.2" height="2.2" fill="#d946ef" stroke="#701a75" stroke-width=".24"/>';
-    if(type === 'CUT') return '<path d="M'+(x-0.85)+' '+(y-0.85)+' L'+(x+0.85)+' '+(y+0.85)+' M'+(x+0.85)+' '+(y-0.85)+' L'+(x-0.85)+' '+(y+0.85)+'" stroke="#ef4444" stroke-width=".42" stroke-linecap="round"/>';
-    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r="0.42" fill="#111827"/>';
+    if(type === 'CUT') return '<path d="M'+(x-sz.cutAb)+' '+(y-sz.cutAb)+' L'+(x+sz.cutAb)+' '+(y+sz.cutAb)+' M'+(x+sz.cutAb)+' '+(y-sz.cutAb)+' L'+(x-sz.cutAb)+' '+(y+sz.cutAb)+'" stroke="#ef4444" stroke-width=".42" stroke-linecap="round"/>';
+    if(type === 'POLE') return '<circle cx="'+x+'" cy="'+y+'" r="'+sz.pole+'" fill="#111827"/>';
     return '';
+  }
+
+  // ---------- label placement / collision avoidance (PDF brief §9) ----------
+  // Tries 8 positions around the point (right, left, top, bottom, then the
+  // 4 diagonals); picks the first that doesn't overlap an already-placed
+  // label or a previously-reserved box. Falls back to bottom-right offset
+  // if all 8 are occupied (dense pole clusters), matching the brief's
+  // placeLabel() fallback behaviour.
+  var LABEL_OFFSETS = [[1.8,-1.8],[-1.8,-1.8],[0,-2.6],[0,2.9],[2.6,-2.6],[-2.6,-2.6],[2.6,2.9],[-2.6,2.9]];
+  function labelTextBox(x,y,text,fontSize){
+    var w = String(text).length * fontSize * 0.62;
+    var h = fontSize * 1.15;
+    return {x1:x, y1:y-h, x2:x+w, y2:y+0.3*h};
+  }
+  function boxesOverlap(a,b){
+    return !(a.x2 < b.x1 || a.x1 > b.x2 || a.y2 < b.y1 || a.y1 > b.y2);
+  }
+  function placeLabel(x,y,text,fontSize,occupiedBoxes){
+    for(var i=0;i<LABEL_OFFSETS.length;i++){
+      var dx=LABEL_OFFSETS[i][0], dy=LABEL_OFFSETS[i][1];
+      var box = labelTextBox(x+dx,y+dy,text,fontSize);
+      var collides = false;
+      for(var j=0;j<occupiedBoxes.length;j++){
+        if(boxesOverlap(box,occupiedBoxes[j])){ collides = true; break; }
+      }
+      if(!collides){ occupiedBoxes.push(box); return {x:x+dx,y:y+dy}; }
+    }
+    var fb = labelTextBox(x+3,y+3,text,fontSize);
+    occupiedBoxes.push(fb);
+    return {x:x+3,y:y+3};
   }
   function substationSvg(x,y,type,name){
     if(type === 'eht'){
@@ -10569,7 +10395,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     opt._routeAspect = (latSpan > 0) ? (lngSpanCorrected / latSpan) : 1;
     var page = paperSize(opt);
     var nearSS = nearbySubstations(routeBounds);
-    var ctx = projectFactory(segs, nearSS, page);
+    var ctx = projectFactory(segs, nearSS, page, opt);
     if(!ctx) return '';
     var project = ctx.project;
     var stats = getStats(fn);
@@ -10600,18 +10426,23 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     });
 
     if(opt.symbols || opt.poleLabels){
+      var symSizes = symbolSizesForPage(page);
       var labelStep = opt.paper === 'A0' || opt.paper === 'A1' ? 1 : opt.paper === 'A2' || opt.paper === 'A3' ? 3 : 6;
       var c = 0;
+      var occupiedLabelBoxes = [];
       getFeederItems(fn).forEach(function(item){
         var pts = latLngsOfLayer(item.layer);
         if(!pts.length) return;
         var p = pts[0], q = project(p);
         var props = getLayerProps(item);
         var reg = getReg(item);
-        if(opt.symbols) svg.push(symbolSvg(q.x,q.y,reg));
+        if(opt.symbols) svg.push(symbolSvg(q.x,q.y,reg,symSizes));
         if(opt.poleLabels && c % labelStep === 0){
           var label = props.pole_number || props['Pole Number'] || props.pole || props['Cable Point'] || props.cable_point || '';
-          if(label) svg.push('<text x="'+(q.x+1.8).toFixed(2)+'" y="'+(q.y-1.8).toFixed(2)+'" font-size="2.2" fill="#111827">'+esc(label)+'</text>');
+          if(label){
+            var pos = placeLabel(q.x,q.y,label,2.2,occupiedLabelBoxes);
+            svg.push('<text x="'+pos.x.toFixed(2)+'" y="'+pos.y.toFixed(2)+'" font-size="2.2" fill="#111827">'+esc(label)+'</text>');
+          }
         }
         c++;
       });
@@ -10667,7 +10498,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     return svg.join('\n');
   }
 
-  function openPrintWindow(html,title,autoPrint){
+  function openPrintWindow(html,title,autoPrint,pageSize){
     var printScript =
       '<script>'+
       'function __readyPrint(){'+
@@ -10678,8 +10509,15 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
       'window.onload=function(){setTimeout(__readyPrint,250)};'+
       '<\\/script>';
 
+    // @page size:auto leaves the physical page size up to the browser's
+    // print-dialog default (often A4/Letter) rather than the drawing's
+    // own resolved paper size — if the feeder drawing is bigger (A2/A3/A0),
+    // its content overflows that default page and spills onto a second,
+    // near-empty page. Pinning @page to the exact resolved mm size removes
+    // that mismatch entirely.
+    var pageCss = pageSize ? (pageSize.w+'mm '+pageSize.h+'mm') : 'auto';
     var doc = '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'+
-      '<style>html,body{margin:0;background:#eee;min-height:100%;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{background:white;box-shadow:0 8px 30px rgba(0,0,0,.25)}svg{max-width:100vw;max-height:100vh}@page{size:auto;margin:6mm}@media print{html,body{background:#fff;display:block;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.sheet{box-shadow:none}}</style>'+
+      '<style>html,body{margin:0;background:#eee;min-height:100%;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{background:white;box-shadow:0 8px 30px rgba(0,0,0,.25)}svg{max-width:100vw;max-height:100vh;display:block}@page{size:'+pageCss+';margin:6mm}@media print{html,body{background:#fff;display:block;height:auto;min-height:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.sheet{box-shadow:none;page-break-after:avoid;page-break-inside:avoid}svg{page-break-after:avoid;page-break-inside:avoid}}</style>'+
       '</head><body><div class="sheet">'+html+'</div>'+printScript+'</body></html>';
 
     var url = URL.createObjectURL(new Blob([doc], {type:'text/html'}));
@@ -10728,7 +10566,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     if(!fn){ alert('Please click/focus a feeder first, then press PRINT.'); return ''; }
     var svg = buildFeederSvg(fn,opt);
     if(!svg){ alert('No printable geometry found for selected feeder.'); return ''; }
-    return {svg:svg, fn:fn};
+    return {svg:svg, fn:fn, page:paperSize(opt)};
   }
 
 
@@ -10761,7 +10599,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
           maxLng: Math.max.apply(null, routePts.map(function(p){return p.lng;}))
         };
         var nearSS = nearbySubstations(routeBounds);
-        var ctx = projectFactory(segs, nearSS, page);
+        var ctx = projectFactory(segs, nearSS, page, opt);
         if(ctx){
           opt._embeddedBgSvg = await googleBackgroundSvgEmbedded(ctx,opt);
         }
@@ -10774,7 +10612,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
 
     var svg = buildFeederSvg(fn,opt);
     if(!svg){ alert('No printable geometry found for selected feeder.'); return ''; }
-    return {svg:svg, fn:fn};
+    return {svg:svg, fn:fn, page:paperSize(opt)};
   }
 
   window.tgPrintComposerPreview = async function(){
@@ -10786,7 +10624,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     }
     var out = await selectedSvgAsync();
     if(!out) return;
-    openPrintWindow(out.svg, 'Feeder Drawing - '+out.fn);
+    openPrintWindow(out.svg, 'Feeder Drawing - '+out.fn, false, out.page);
   };
 
   window.tgPrintComposerPrint = async function(){
@@ -10799,7 +10637,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
     try{ if(window.toast) toast('Preparing printable map background… please wait',2500); }catch(e){}
     var out = await selectedSvgAsync();
     if(!out) return;
-    openPrintWindow(out.svg, 'Print Feeder - '+out.fn, true);
+    openPrintWindow(out.svg, 'Print Feeder - '+out.fn, true, out.page);
   };
 
   window.tgPrintComposerDownloadSVG = function(){
