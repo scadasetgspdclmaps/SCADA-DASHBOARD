@@ -83,6 +83,28 @@ body.tg-grid-zoom-out .tg-district-label{font-size:9px!important;opacity:.72}
 body.tg-grid-zoom-mid .tg-boundary-label{font-size:8px!important;max-width:72px!important;opacity:.86}
 body.tg-grid-zoom-in .tg-boundary-label{font-size:10px!important;max-width:100px!important;opacity:.96}
 
+
+/* === FEEDER ROUTE STYLE GRID MAP VIEW PATCH === */
+#bmc{display:none!important}
+#bm-tabs{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:1200;display:flex;gap:6px;background:rgba(8,18,30,.92);border:1px solid rgba(0,200,255,.18);border-radius:28px;padding:6px 10px;box-shadow:0 8px 26px rgba(0,0,0,.45);backdrop-filter:blur(14px)}
+.bm-tab{border:none;outline:none;border-radius:20px;padding:8px 15px;background:transparent;color:rgba(210,225,240,.65);font:800 10px/1 monospace;letter-spacing:1.8px;cursor:pointer;transition:.18s;text-transform:uppercase}
+.bm-tab:hover{background:rgba(0,200,255,.12);color:#67e8f9}
+.bm-tab.active{background:rgba(0,200,255,.18);color:#67e8f9;box-shadow:inset 0 0 0 1px rgba(0,200,255,.25),0 0 18px rgba(0,200,255,.2)}
+.bm-tab.grid-active{background:rgba(6,182,212,.28);color:#e0fbff;box-shadow:inset 0 0 0 1px rgba(103,232,249,.45),0 0 20px rgba(6,182,212,.28)}
+#gridLayerBox{position:fixed;right:14px;top:76px;z-index:1190;width:235px;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.12);border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.18);padding:12px 14px;display:none;color:#0f172a;font-family:system-ui,Arial,sans-serif}
+#gridLayerBox.show{display:block}
+.grid-layer-title{font:900 11px/1.1 monospace;letter-spacing:2px;color:#12324f;margin-bottom:10px}
+.grid-layer-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(15,23,42,.08);font-size:12px;font-weight:700}
+.grid-layer-row:first-of-type{border-top:none}.grid-layer-row input{accent-color:#0284c7}
+.grid-line{width:24px;height:3px;border-radius:3px;display:inline-block;flex-shrink:0}.grid-dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex-shrink:0}
+.tg-boundary-label{background:rgba(255,255,255,.82);color:#0f172a;border:1px solid rgba(30,64,175,.25);border-radius:4px;padding:2px 5px;font:800 10px/1.05 system-ui,Arial,sans-serif;text-align:center;white-space:normal;max-width:96px;box-shadow:0 1px 5px rgba(0,0,0,.08);pointer-events:none;text-shadow:0 1px 0 rgba(255,255,255,.9)}
+.tg-district-label{background:rgba(12,24,38,.68);color:#dff4ff;border:1px solid rgba(56,189,248,.35);border-radius:12px;padding:2px 8px;font:900 11px/1 system-ui,Arial,sans-serif;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap;pointer-events:none}
+.tg-road-label{background:rgba(255,247,237,.86);color:#7c2d12;border:1px solid rgba(249,115,22,.45);border-radius:12px;padding:2px 7px;font:900 10px/1 system-ui,Arial,sans-serif;white-space:nowrap;pointer-events:none}
+body.tg-grid-zoom-out .tg-boundary-label{display:none!important}
+body.tg-grid-zoom-out .tg-district-label{font-size:9px!important;opacity:.72}
+body.tg-grid-zoom-mid .tg-boundary-label{font-size:8px!important;max-width:72px!important;opacity:.86}
+body.tg-grid-zoom-in .tg-boundary-label{font-size:10px!important;max-width:100px!important;opacity:.96}
+
 </style>
 </head>
 <body>
@@ -157,6 +179,23 @@ body.tg-grid-zoom-in .tg-boundary-label{font-size:10px!important;max-width:100px
   </div>
 </div>
 <div id="toast"></div>
+
+<div id="bm-tabs">
+  <button class="bm-tab active" onclick="swB('dark',this)">◉ DARK</button>
+  <button class="bm-tab" onclick="swB('osm',this)">⚡ GRID</button>
+  <button class="bm-tab" onclick="swB('satellite',this)">✈ SATELLITE</button>
+  <button class="bm-tab" onclick="swB('roads',this)">☞ STREET</button>
+  <button class="bm-tab" onclick="swB('osm',this)">📍 GOOGLE</button>
+  <button class="bm-tab" id="gridMapTab" onclick="toggleGridMapView(this)">▧ GRID MAP VIEW</button>
+</div>
+<div id="gridLayerBox">
+  <div class="grid-layer-title">// GRID MAP VIEW</div>
+  <label class="grid-layer-row"><input type="checkbox" id="tgDistToggle" checked onchange="setGridLayerVisibility()"><span class="grid-line" style="background:#38bdf8"></span> Telangana Districts</label>
+  <label class="grid-layer-row"><input type="checkbox" id="tgMandalToggle" checked onchange="setGridLayerVisibility()"><span class="grid-line" style="background:#94a3b8"></span> Mandal / Block Borders</label>
+  <label class="grid-layer-row"><input type="checkbox" id="tgAreaToggle" checked onchange="setGridLayerVisibility()"><span class="grid-dot" style="background:#a78bfa"></span> Area Names</label>
+  <label class="grid-layer-row"><input type="checkbox" id="tgRoadToggle" checked onchange="setGridLayerVisibility()"><span class="grid-line" style="background:#f97316"></span> ORR / RRR Roads</label>
+</div>
+
 <script>
 const FIREBASE_URL = "https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app";
 const FIREBASE_SMARTGRID_PATH = "smartgrid";
@@ -175,8 +214,8 @@ function swB(n,el){
   if(tiles[cur]) map.removeLayer(tiles[cur]);
   cur=n;
   tiles[cur].addTo(map);
-  document.querySelectorAll('.bm').forEach(b=>b.classList.remove('on'));
-  if(el) el.classList.add('on');
+  document.querySelectorAll('.bm,.bm-tab').forEach(b=>b.classList.remove('on','active'));
+  if(el){ el.classList.add(el.classList.contains('bm-tab')?'active':'on'); }
 }
 
 /* ─────────────────────────────────────────────
@@ -341,12 +380,12 @@ function removeGridMapView(){
 }
 async function toggleGridMapView(btn){
   tgGridViewOn=!tgGridViewOn;
-  if(btn) btn.classList.toggle("on",tgGridViewOn);
+  if(btn) btn.classList.toggle("grid-active",tgGridViewOn); document.getElementById("gridLayerBox")?.classList.toggle("show",tgGridViewOn);
   if(tgGridViewOn){
     await loadGridMapViewLayers();
     setGridLayerVisibility();
     updateGridZoomClass();
-    toast("Grid Map View ON — Telangana boundaries + ORR/RRR");
+    try{map.fitBounds([[16.95,77.95],[17.85,79.05]],{padding:[18,18]});}catch(e){} toast("Grid Map View ON — Telangana boundaries + ORR/RRR");
   }else{
     removeGridMapView();
     toast("Grid Map View OFF");
