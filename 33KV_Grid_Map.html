@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>TGSPDCL — 33KV Smart Grid Map</title>
+<title>TGSPDCL — 33KV Smart Grid Map · Grid View</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -142,13 +142,7 @@ body.tg-grid-zoom-in .tg-boundary-label{font-size:10px!important;max-width:100px
       <div class="li"><span class="legend-dot" style="background:#ffd700"></span><span class="llb">AB / DP Nodes</span><span class="lcn" id="cntDev">0</span><label class="tog"><input id="tDev" type="checkbox" checked onchange="render()"><span class="sl"></span></label></div>
       <div class="li"><span class="legend-dot" style="background:#fff"></span><span class="llb">Feeder Code Labels</span><span class="lcn"></span><label class="tog"><input id="tLbl" type="checkbox" checked onchange="render()"><span class="sl"></span></label></div>
     </div>
-    <div class="fs">
-      <div class="ft">Grid Map View Layers</div>
-      <div class="li"><span class="legend-dot" style="background:#38bdf8"></span><span class="llb">Telangana District Borders</span><span class="lcn"></span><label class="tog"><input id="tgDistToggle" type="checkbox" checked onchange="setGridLayerVisibility()"><span class="sl"></span></label></div>
-      <div class="li"><span class="legend-dot" style="background:#fbbf24"></span><span class="llb">Mandal / Block Borders</span><span class="lcn"></span><label class="tog"><input id="tgMandalToggle" type="checkbox" checked onchange="setGridLayerVisibility()"><span class="sl"></span></label></div>
-      <div class="li"><span class="legend-dot" style="background:#a78bfa"></span><span class="llb">Hyderabad Area Names</span><span class="lcn"></span><label class="tog"><input id="tgAreaToggle" type="checkbox" checked onchange="setGridLayerVisibility()"><span class="sl"></span></label></div>
-      <div class="li"><span class="legend-dot" style="background:#fb923c"></span><span class="llb">ORR / RRR / Major Roads</span><span class="lcn"></span><label class="tog"><input id="tgRoadToggle" type="checkbox" checked onchange="setGridLayerVisibility()"><span class="sl"></span></label></div>
-    </div>
+
     <div class="fs">
       <div class="ft">Stats</div>
       <div class="kv"><span>Rows</span><b id="stRows">0</b></div>
@@ -175,7 +169,6 @@ body.tg-grid-zoom-in .tg-boundary-label{font-size:10px!important;max-width:100px
     <button class="bm" onclick="swB('osm',this)">OSM</button>
     <button class="bm" onclick="swB('roads',this)">Roads</button>
     <button class="bm" onclick="swB('satellite',this)">Satellite</button>
-    <button class="bm" onclick="toggleGridMapView(this)">▧ Grid Map View</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -223,8 +216,28 @@ function swB(n,el){
    Uses public GeoJSON boundary sources and keeps them NON-interactive so
    feeder/smart-grid selection is never blocked.
 ───────────────────────────────────────────── */
-const TG_DISTRICTS_URL = "https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json";
-const TG_BLOCKS_URL    = "https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json";
+const TG_DISTRICTS_URLS = [
+  "./telangana_33_districts.geojson",
+  "telangana_33_districts.geojson",
+  "https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json"
+];
+const TG_BLOCKS_URLS = [
+  "./telangana_621_mandals.geojson",
+  "telangana_621_mandals.geojson",
+  "https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json"
+];
+
+async function fetchFirstGeoJson(urls){
+  let lastErr=null;
+  for(const u of urls){
+    try{
+      const r=await fetch(u,{cache:"force-cache"});
+      if(!r.ok) throw new Error(r.status+" "+u);
+      return await r.json();
+    }catch(e){ lastErr=e; }
+  }
+  throw lastErr || new Error("No GeoJSON source loaded");
+}
 
 let tgGridViewOn=false;
 let tgGridLoaded=false;
@@ -317,11 +330,17 @@ async function loadGridMapViewLayers(){
   tgBuildRoadLayer();
 
   try{
-    const districtGeo=await (await fetch(TG_DISTRICTS_URL,{cache:"force-cache"})).json();
-    const districtFeatures=(districtGeo.features||[]).filter(f=>isHyderabadRegionName(tgFeatureName(f)));
+    const districtGeo=await fetchFirstGeoJson(TG_DISTRICTS_URLS);
+    const districtFeatures=(districtGeo.features||[]);
     L.geoJSON({type:"FeatureCollection",features:districtFeatures},{
       interactive:false,
-      style:f=>({color:"#38bdf8",weight:1.2,opacity:.85,fillColor:"#0ea5e9",fillOpacity:.045})
+      style:f=>({
+        color:"#111827",
+        weight:1.25,
+        opacity:.72,
+        fillColor:["#e0f2fe","#dcfce7","#fef3c7","#fce7f3","#ede9fe","#fee2e2"][Math.abs(tgFeatureName(f).length)%6],
+        fillOpacity:.18
+      })
     }).addTo(tgDistrictLayer);
     districtFeatures.forEach(f=>tgAddLabel(tgDistrictLayer,tgCenterOfFeature(f),tgFeatureName(f),"tg-district-label"));
   }catch(e){
@@ -330,12 +349,8 @@ async function loadGridMapViewLayers(){
   }
 
   try{
-    const blockGeo=await (await fetch(TG_BLOCKS_URL,{cache:"force-cache"})).json();
-    const blockFeatures=(blockGeo.features||[]).filter(f=>{
-      const n=tgFeatureName(f);
-      const d=String(tgProp(f.properties,["DISTRICT","DIST_NAME","district","district_name","dtname"])||"");
-      return isHyderabadRegionName(d) || isImportantAreaName(n);
-    });
+    const blockGeo=await fetchFirstGeoJson(TG_BLOCKS_URLS);
+    const blockFeatures=(blockGeo.features||[]);
     L.geoJSON({type:"FeatureCollection",features:blockFeatures},{
       interactive:false,
       style:f=>({
@@ -361,10 +376,11 @@ async function loadGridMapViewLayers(){
 }
 function setGridLayerVisibility(){
   if(!tgGridViewOn) return;
-  const dist=document.getElementById("tgDistToggle")?.checked!==false;
-  const mand=document.getElementById("tgMandalToggle")?.checked!==false;
-  const area=document.getElementById("tgAreaToggle")?.checked!==false;
-  const road=document.getElementById("tgRoadToggle")?.checked!==false;
+  const box=document.getElementById("gridLayerBox") || document;
+  const dist=box.querySelector("#tgDistToggle")?.checked!==false;
+  const mand=box.querySelector("#tgMandalToggle")?.checked!==false;
+  const area=box.querySelector("#tgAreaToggle")?.checked!==false;
+  const road=box.querySelector("#tgRoadToggle")?.checked!==false;
 
   [[tgDistrictLayer,dist],[tgMandalLayer,mand],[tgAreaLabelLayer,area],[tgRoadLayer,road]].forEach(([layer,on])=>{
     try{
@@ -385,7 +401,7 @@ async function toggleGridMapView(btn){
     await loadGridMapViewLayers();
     setGridLayerVisibility();
     updateGridZoomClass();
-    try{map.fitBounds([[16.95,77.95],[17.85,79.05]],{padding:[18,18]});}catch(e){} toast("Grid Map View ON — Telangana boundaries + ORR/RRR");
+    try{map.fitBounds([[15.75,77.05],[19.95,81.95]],{padding:[18,18]});}catch(e){} toast("Grid Map View ON — Telangana boundaries + ORR/RRR");
   }else{
     removeGridMapView();
     toast("Grid Map View OFF");
