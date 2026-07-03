@@ -6879,6 +6879,59 @@ function applyScopeSelection(){
   renderScope({division:div, subDivision:sub, section:sec, feederName:fn});
 }
 
+// ── Deep-link entry point (Smart Grid → route map) ──
+// The Smart Grid map double-click opens this page with
+//   ?feeder=<feeder code or name>
+// This resolves that value against feederIndex (tolerant: exact code,
+// exact name, or normalized-name contains), scopes the map to that
+// feeder's Division/Sub-Division/Section, renders it, and focuses it so
+// the operator lands directly on the right feeder. Guarded so it only
+// runs once and only when a param is actually present.
+let _tgDeepLinkDone = false;
+function _tgApplyFeederDeepLink(){
+  if(_tgDeepLinkDone) return;
+  const params = new URLSearchParams(window.location.search);
+  const want = (params.get('feeder') || params.get('feederCode') || params.get('code') || '').trim();
+  if(!want) return;
+  const wantNorm = want.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  // Resolve against the index: try feeder code, exact name, then contains.
+  let match = null;
+  const entries = Object.values(feederIndex||{});
+  // 1) exact feeder-code match (codes are stored various ways, check a few)
+  match = entries.find(m=>{
+    const codes = [m.feederCode, m.feeder_code, m.code].filter(Boolean).map(c=>String(c).toUpperCase().replace(/[^A-Z0-9]/g,''));
+    return codes.includes(wantNorm);
+  });
+  // 2) exact normalized-name match
+  if(!match) match = entries.find(m=>String(m.feederName||'').toUpperCase().replace(/[^A-Z0-9]/g,'')===wantNorm);
+  // 3) name contains (last resort, only if unambiguous)
+  if(!match){
+    const cands = entries.filter(m=>String(m.feederName||'').toUpperCase().replace(/[^A-Z0-9]/g,'').includes(wantNorm));
+    if(cands.length===1) match = cands[0];
+  }
+  _tgDeepLinkDone = true;
+  if(!match){
+    if(typeof toast==='function') toast(`⚠ Feeder "${want}" from link not found in this map`, 5000);
+    return;
+  }
+  // Set scope dropdowns to the matched feeder's hierarchy, then render+focus.
+  const setSel=(id,val)=>{ const el=document.getElementById(id); if(el){ el.value=val; } };
+  try{
+    setSel('scopeDiv', match.division||'ALL');
+    if(typeof buildScopeSelectors==='function') buildScopeSelectors();
+    setSel('scopeSub', match.subDivision||'ALL');
+    if(typeof buildScopeSelectors==='function') buildScopeSelectors();
+    setSel('scopeSec', match.section||'ALL');
+    if(typeof buildScopeSelectors==='function') buildScopeSelectors();
+    setSel('scopeFeeder', match.feederName);
+  }catch(e){}
+  userHasInteractedWithScope = true;
+  renderScope({division:match.division, subDivision:match.subDivision, section:match.section, feederName:match.feederName});
+  // Focus after geometry has a moment to build.
+  setTimeout(()=>{ try{ if(typeof focusFeeder==='function') focusFeeder(match.feederName); }catch(e){} }, 900);
+  if(typeof toast==='function') toast(`📍 Opened feeder: ${match.feederName}`, 4000);
+}
+
 async function deleteUploadedFeeder(){
   const sel=document.getElementById('dfFileSelect');
   const key=sel.value;
@@ -7472,6 +7525,10 @@ async function fbLoadHierarchical(){
     if (skippedDup) msg += ` | ${skippedDup} duplicate skipped`;
     toast(msg, 4500);
     showFbStatus('saved');
+    // Deep-link support: if the page was opened with ?feeder=<name|code>
+    // (e.g. from a Smart Grid double-click), auto-scope to that feeder and
+    // focus it. Runs once, only after the index is actually populated.
+    try{ _tgApplyFeederDeepLink(); }catch(e){ console.warn('deep-link failed', e); }
   } else if (skippedDeleted > 0){
     toast(`☁️ All ${skippedDeleted} cloud records are tombstoned — nothing to restore`, 3500);
     showFbStatus('none');
