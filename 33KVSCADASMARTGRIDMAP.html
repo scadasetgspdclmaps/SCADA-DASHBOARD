@@ -4,463 +4,2445 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>TGSPDCL — 33KV Smart Grid Map · SCADA</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --navy:#0d1b2a;--live:#00c8ff;--ug:#2196f3;--oh:#ff9800;
-  --ab:#ff9800;--dp:#9c27b0;--ht:#00a88a;--link:#9c27b0;
+  --navy:#0d1b2a;--panel:#0f2236ee;--live:#00c8ff;--ug:#2196f3;--oh:#ff9800;
+  --ab:#ff9800;--dp:#9c27b0;--cut:#78909c;--fault:#ff1744;--trip:#ffab00;
   --ok:#00e676;--border:rgba(0,200,255,0.18);--text:#b0cce0;
-  --mono:'Share Tech Mono','Consolas',monospace;--sans:'Arial',sans-serif;
-  --ease:cubic-bezier(.4,0,.2,1)}
-html,body{height:100%;overflow:hidden;background:#0b1520;color:var(--text);font-family:var(--sans)}
-body{display:flex}
+  --mono:'Share Tech Mono',monospace;--sans:'Arial',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --tg-ss-icon-scale:1;--tg-eht-icon-scale:1;--tg-grid-label-size:11px;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
 
-/* ===== TOPBAR (route-map style) ===== */
+/* MAP — GPU composited */
+#map{position:fixed;inset:52px 0 90px 0;z-index:1;
+  will-change:transform;transform:translateZ(0);
+  cursor:grab;touch-action:pan-x pan-y}
+#map:active{cursor:grabbing}
+#map:active{cursor:grabbing}
+.leaflet-map-pane{will-change:transform;transform:translateZ(0)}
+.leaflet-overlay-pane,.leaflet-marker-pane,.leaflet-shadow-pane,.leaflet-tile-pane{will-change:transform;transform:translateZ(0);backface-visibility:hidden}
+.leaflet-tile{transition:opacity .15s linear!important;-webkit-backface-visibility:hidden;backface-visibility:hidden}
+
+.leaflet-zoom-anim .leaflet-zoom-animated{transition:transform 0.22s cubic-bezier(0.25,0.46,0.45,0.94)!important}
+.leaflet-control-zoom{border:none!important;border-radius:10px!important;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.5)!important}
+.leaflet-control-zoom a{background:var(--panel)!important;color:var(--live)!important;border:none!important;
+  width:36px!important;height:36px!important;line-height:36px!important;font-size:18px!important;transition:background .15s!important}
+.leaflet-control-zoom a:hover{background:rgba(0,200,255,.25)!important}
+.leaflet-control-attribution{display:none}
+.leaflet-control-scale-line{background:rgba(13,27,42,.9)!important;border-color:rgba(0,200,255,.4)!important;color:var(--live)!important;font-family:var(--mono)!important;font-size:10px!important;padding:2px 7px!important;border-radius:4px!important}
+
+/* TOP BAR */
 #topbar{position:fixed;top:0;left:0;right:0;z-index:1000;height:52px;
   background:linear-gradient(135deg,#0a1520f0,#0f2236f0);
   backdrop-filter:blur(18px);border-bottom:1px solid var(--border);
   display:flex;align-items:center;padding:0 14px;gap:12px;box-shadow:0 2px 20px rgba(0,0,0,.4)}
 .tb-logo{font-family:var(--mono);font-size:13px;color:var(--live);letter-spacing:2px;white-space:nowrap}
-.tb-logo span{font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle}
 .tb-sep{width:1px;height:28px;background:var(--border);flex-shrink:0}
 .tb-title{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--text);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
-.tb-btn{color:var(--text);font-size:11px;font-family:var(--mono);letter-spacing:1px;cursor:pointer;padding:7px 12px;border-radius:20px;border:1px solid var(--border);background:rgba(255,255,255,.03);transition:.2s;white-space:nowrap;display:flex;align-items:center;gap:6px}
-.tb-btn:hover{color:var(--live);background:rgba(0,200,255,.1);border-color:var(--live)}
 #srchWrap{position:relative;flex-shrink:0}
-#q{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:20px;padding:6px 14px 6px 34px;color:var(--text);font-family:var(--sans);font-size:13px;width:200px;outline:none;transition:.3s}
-#q:focus{width:260px;background:rgba(0,200,255,.08);border-color:var(--live)}
-#q::placeholder{color:rgba(176,204,224,.35)}
-.srch-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(176,204,224,.35);font-size:14px;pointer-events:none}
-.chip{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;padding:5px 13px;border-radius:20px;border:1px solid;white-space:nowrap;flex-shrink:0}
+#srchInput{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:20px;padding:6px 14px 6px 34px;color:var(--text);font-family:var(--sans);font-size:13px;width:190px;outline:none;transition:all .3s}
+#srchInput:focus{width:250px;background:rgba(0,200,255,.08);border-color:var(--live)}
+#srchInput::placeholder{color:rgba(176,204,224,.35)}
+.srch-ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:rgba(176,204,224,.35);font-size:14px;pointer-events:none}
+.fs-btn{color:var(--text);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:5px;transition:0.2s;display:flex;align-items:center;justify-content:center}
+.fs-btn:hover{color:var(--live);background:rgba(0,200,255,0.1);transform:scale(1.05)}
+.chip{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;padding:4px 12px;border-radius:20px;border:1px solid;white-space:nowrap;flex-shrink:0;transition:all .3s}
 .chip-live{color:var(--ok);border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.08)}
 
-/* ===== LEFT PANEL ===== */
-#sb{position:fixed;top:52px;left:0;bottom:38px;z-index:900;width:330px;min-width:330px;
-  background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;
-  box-shadow:4px 0 24px rgba(0,0,0,.12);overflow-y:auto;overflow-x:hidden;transition:transform .35s var(--ease)}
-#sb.off{transform:translateX(-100%)}
-#sb::-webkit-scrollbar{width:5px}#sb::-webkit-scrollbar-thumb{background:#93c5fd;border-radius:4px}#sb::-webkit-scrollbar-track{background:#f0f7ff}
-.psec{padding:13px 16px 12px;border-bottom:1px solid #e2edf8}
-.psec-t{font-family:var(--mono);font-size:10px;color:#1e3a5f;letter-spacing:2px;margin-bottom:10px;font-weight:700;display:flex;align-items:center;gap:6px}
+/* LEFT PANEL */
+#panel{position:fixed;top:52px;left:0;bottom:38px;z-index:900;width:320px;
+  background:#ffffff;
+  border-right:1px solid #e2e8f0;
+  display:flex;flex-direction:column;transform:translateX(0);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(0,0,0,.12);
+  overflow-y:auto;overflow-x:hidden;min-width:220px;max-width:800px}
+#panel-resize{position:absolute;top:0;right:0;bottom:0;width:14px;cursor:col-resize;z-index:920;background:transparent;border-right:1px dashed transparent;transition:all .2s}
+#panel-resize:hover,#panel-resize.dragging{background:rgba(0,200,255,.05);border-right:1px dashed rgba(0,200,255,.4)}
+#panel.off{transform:translateX(-100%)}
+#panel::-webkit-scrollbar{width:5px}
+#panel::-webkit-scrollbar-thumb{background:#93c5fd;border-radius:4px}
+#panel::-webkit-scrollbar-track{background:#f0f7ff}
+#panel{scroll-behavior:smooth}
+.psec{padding:14px 16px 12px;border-bottom:1px solid #e2edf8}
+.psec-t{font-family:var(--mono);font-size:10px;color:#1e3a5f;letter-spacing:2px;margin-bottom:10px;font-weight:700}
+.lrow{display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:7px;cursor:pointer;transition:background .2s,transform .15s;margin-bottom:2px;user-select:none}
+.lrow:hover{background:rgba(0,0,0,.05);transform:translateX(2px)}
+.lswatch{width:26px;height:5px;border-radius:3px;flex-shrink:0}
+.lswatch.dot{width:11px;height:11px;border-radius:50%;border:2px solid}
+.lrow.off .lswatch{opacity:.25;filter:grayscale(1)}
+.lname{font-family:var(--sans);font-size:12px;font-weight:500;color:#1a2a3a;flex:1}
+.lrow.off .lname{color:rgba(26,42,58,.3)}
+.lcnt{font-family:var(--mono);font-size:9px;color:#1a6fa5;background:rgba(33,150,243,.1);padding:2px 6px;border-radius:9px}
+.lrow.off .lcnt{background:rgba(0,0,0,.05);color:rgba(26,42,58,.25)}
+.tog{width:30px;height:17px;border-radius:9px;background:rgba(0,0,0,.15);border:1px solid rgba(0,0,0,.2);position:relative;flex-shrink:0;transition:background .25s}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.7);transition:transform .25s var(--ease),background .25s}
+.lrow:not(.off) .tog{background:#2196f3;border-color:#1976d2}
+.lrow:not(.off) .tog::after{transform:translateX(13px);background:#fff}
+.ftog-row{display:flex;align-items:center;gap:7px;padding:4px 6px;border-radius:6px;cursor:pointer;transition:background .2s}
+.ftog-row:hover{background:rgba(0,200,255,.07)}
+.ftog-row .tog.off{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.12)}
+.ftog-row .tog.off::after{transform:translateX(0);background:rgba(255,255,255,.35)}
+.ftog-row .tog{background:rgba(0,200,255,.28);border-color:var(--live)}
+.ftog-row .tog::after{transform:translateX(13px);background:var(--live)}
+.focus-txt{transition:color .18s,padding .18s}
+.focus-txt:hover{color:#1d4ed8!important;font-weight:700;padding-left:2px}
+.pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.pill{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:4px 9px;border-radius:13px;cursor:pointer;border:1px solid;transition:all .2s;user-select:none}
+.pill:hover{transform:scale(1.06)}
+.pill.active{font-weight:700}
+.strow{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.stlbl{font-family:var(--sans);font-size:11px;color:#5a7a9a}
+.stval{font-family:var(--mono);font-size:11px;color:#1a6fa5;font-weight:600}
 
-/* Clean upload box */
-.upload-card{border:2px dashed #c3d4e8;border-radius:12px;padding:20px 14px;text-align:center;cursor:pointer;transition:.2s;background:linear-gradient(180deg,#f8fbff,#eef5fd)}
-.upload-card:hover{border-color:#2196f3;background:linear-gradient(180deg,#eef7ff,#e3f0fd);transform:translateY(-1px)}
-.upload-card.drag{border-color:#00a88a;background:#e6fff9}
-.upload-ic{font-size:26px;margin-bottom:6px}
-.upload-main{font-size:13px;font-weight:700;color:#1a3a5c;margin-bottom:3px}
-.upload-sub{font-size:10px;color:#7a92aa;line-height:1.4}
-.upload-card input{display:none}
-.file-status{font-size:11px;color:#5a7a9a;margin-top:9px;padding:7px 9px;background:#f1f7fd;border-radius:7px;border-left:3px solid #2196f3;display:none}
-.file-status.show{display:block}
-.file-status.ok{border-left-color:#00a88a;color:#0a6b56;background:#eefdf9}
+/* PANEL TAB */
+#ptab{position:fixed;top:62px;left:320px;z-index:910;width:20px;height:44px;
+  background:#fff;border:1px solid #e2e8f0;border-left:none;
+  border-radius:0 8px 8px 0;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:#3b82f6;font-size:11px;
+  transition:left .35s cubic-bezier(.4,0,.2,1),background .2s;box-shadow:3px 0 8px rgba(0,0,0,.1)}
+#ptab:hover{background:#eff6ff}
+#ptab.off{left:0!important}
 
-.act-btn{width:100%;border:none;border-radius:8px;padding:9px 10px;margin-top:7px;font-family:var(--sans);font-weight:700;font-size:11.5px;letter-spacing:.3px;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
-.act-btn:hover{transform:translateY(-1px);filter:brightness(1.05)}
-.act-btn.save{background:linear-gradient(135deg,#00897b,#00a88a);color:#fff}
-.act-btn.load{background:#eef2f7;color:#37475a;border:1px solid #d5dfea}
-.act-btn.dl{background:linear-gradient(135deg,#c2410c,#ea580c);color:#fff}
+/* RADAR PING */
+.radar-ping{width:40px;height:40px;background:rgba(255,23,68,.6);border-radius:50%;
+  animation:ping-anim 1.5s ease-out infinite;pointer-events:none;margin-left:-20px;margin-top:-20px}
+@keyframes ping-anim{0%{transform:scale(0);opacity:1}100%{transform:scale(2.5);opacity:0}}
 
-.cs{width:100%;background:#f6f9fc;border:1px solid #d5dfea;color:#1a2a3a;padding:8px 10px;border-radius:8px;font-size:12px;outline:none;margin-bottom:7px;transition:.15s;cursor:pointer}
-.cs:focus{border-color:#2196f3;background:#fff}
-.reset-btn{width:100%;background:#f6f9fc;border:1px solid #d5dfea;color:#5a7a9a;padding:8px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:.15s}
-.reset-btn:hover{background:#eef2f7;color:#37475a}
+/* POPUP */
+.leaflet-popup-content-wrapper{background:#ffffff!important;color:#333333!important;border-radius:8px!important;box-shadow:0 3px 14px rgba(0,0,0,.4)!important;padding:0!important}
+.leaflet-popup-tip-container{display:none}
+.leaflet-popup-content{margin:14px 16px!important;min-width:250px}
+.leaflet-popup-close-button{color:#888!important;font-size:18px!important;top:8px!important;right:8px!important}
+.leaflet-popup-close-button:hover{color:#000!important}
+.pc-header-id{font-family:Arial,sans-serif;font-size:13px;color:#555;margin-bottom:10px}
+.popup-table{width:100%;border-collapse:collapse}
+.popup-table th,.popup-table td{padding:2px 0;vertical-align:top;font-family:Arial,sans-serif;font-size:11px;color:#222;line-height:1.4}
+.popup-table th{font-weight:700;width:50%;padding-right:10px;text-align:left}
+.popup-table td{text-align:left;word-break:break-word}
+.pc-sv-btn-row{margin-top:8px;border-top:1px solid #eee;padding-top:8px}
+.pc-sv-btn{width:100%;padding:6px 10px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:.3px;cursor:pointer;transition:.15s}
+.pc-sv-btn:hover{background:#1558b3}
+.pc-streetview{display:none;margin-top:2px}
+.pc-sv-back{padding:4px 9px;margin-bottom:6px;background:#f1f5f9;color:#334155;border:1px solid #dde3ea;border-radius:5px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}
+.pc-sv-back:hover{background:#e2e8f0}
+.pc-sv-frame{display:block;width:280px;height:210px;border:1px solid #dde3ea;border-radius:5px}
 
-.li{display:flex;align-items:center;gap:9px;padding:6px 7px;border-radius:7px;transition:background .2s;cursor:pointer}
-.li:hover{background:rgba(0,0,0,.04)}
-.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
-.legend-line{width:22px;height:4px;border-radius:3px;flex-shrink:0}
-.llb{flex:1;font-size:12px;font-weight:500;color:#1a2a3a}
-.lcn{font-family:var(--mono);font-size:9px;color:#1a6fa5;background:rgba(33,150,243,.1);padding:2px 7px;border-radius:9px}
-.tog{position:relative;width:34px;height:18px;flex-shrink:0}.tog input{display:none}
-.sl{position:absolute;cursor:pointer;inset:0;background:rgba(0,0,0,.15);border:1px solid rgba(0,0,0,.18);border-radius:18px;transition:.2s}
-.sl:before{content:"";position:absolute;width:12px;height:12px;left:2px;top:2px;background:rgba(255,255,255,.85);border-radius:50%;transition:.2s}
-input:checked+.sl{background:#2196f3;border-color:#1976d2}input:checked+.sl:before{transform:translateX(16px);background:#fff}
+/* POLE LABELS */
+.pole-label{background:transparent!important;border:none!important;box-shadow:none!important;
+  color:#ffffff!important;font-size:11px!important;font-family:'Arial',sans-serif!important;
+  font-weight:bold!important;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000!important;
+  padding:0!important;pointer-events:none!important}
 
-.kv{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
-.kv span{font-size:11px;color:#5a7a9a}.kv b{font-family:var(--mono);font-size:12px;color:#1a6fa5;font-weight:700}
-.small{font-size:10px;color:#8298ad;line-height:1.5}
-.hint{font-size:10px;color:#8ab4f8;background:#f0f7ff;border-radius:7px;padding:8px 10px;line-height:1.5;border-left:3px solid #8ab4f8}
+/* BOTTOM BAR */
+#botbar{position:fixed;bottom:0;left:0;right:0;z-index:900;height:38px;/* basemap tabs sit at 46px-82px */
+  background:rgba(9,22,37,.9);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);display:flex;align-items:center;
+  padding:0 14px;gap:18px;font-family:var(--mono);font-size:10px;color:rgba(176,204,224,.35);letter-spacing:.5px}
+#coords{color:var(--live)}
 
-/* ===== PANEL TAB ===== */
-#ptab{position:fixed;top:62px;left:330px;z-index:910;width:20px;height:44px;background:#fff;border:1px solid #e2e8f0;border-left:none;border-radius:0 8px 8px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:2px 0 8px rgba(0,0,0,.08);transition:left .35s var(--ease),background .2s;color:#5a7a9a;font-size:13px}
-#ptab:hover{background:#eef7ff;color:#1976d2}
-#sb.off ~ #ptab{left:0}
+/* LEGEND */
+#legend{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);z-index:951;left:268px;z-index:800;
+  background:rgba(255,255,255,.9);backdrop-filter:blur(12px);border:1px solid #ccc;border-radius:10px;
+  padding:9px 13px;display:flex;gap:12px;flex-wrap:wrap;
+  font-family:var(--sans);font-size:11px;font-weight:bold;letter-spacing:.5px;
+  transition:left .32s var(--ease);box-shadow:0 2px 10px rgba(0,0,0,.1)}
+#legend.shift{left:10px!important}
+.leg{display:flex;align-items:center;gap:5px;color:#333}
+.leg-l{width:20px;height:3px;border-radius:2px}
+.leg-d{width:8px;height:8px;border-radius:50%}
 
-#map{position:fixed;top:52px;left:330px;right:0;bottom:38px;transition:left .35s var(--ease)}
-#sb.off ~ #map{left:0}
-.leaflet-control-attribution{display:none}
-.leaflet-popup-content-wrapper{background:#0f2236!important;color:#dff4ff!important;border:1px solid var(--border);border-radius:10px}
-.leaflet-popup-tip{background:#0f2236!important}
-.leaflet-control-scale-line{background:rgba(15,34,54,.92)!important;color:#8ab4f8!important;border-color:var(--border)!important;font-family:var(--mono)!important}
+/* LOADER */
+#loader{position:fixed;inset:0;z-index:2000;background:var(--navy);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transition:opacity .5s var(--ease)}
+#loader.gone{opacity:0;pointer-events:none}
+.ld-logo{font-family:var(--mono);font-size:22px;color:var(--live);letter-spacing:4px}
+.ld-sub{font-family:var(--sans);font-size:12px;color:rgba(176,204,224,.35);letter-spacing:2px}
+.ld-bar{width:200px;height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.ld-fill{height:100%;width:0;background:linear-gradient(90deg,var(--live),#0077ff);border-radius:2px;transition:width .4s var(--ease);box-shadow:0 0 8px var(--live)}
 
-/* ===== BOTTOM BAR ===== */
-#botbar{position:fixed;left:0;right:0;bottom:0;height:38px;z-index:1000;background:linear-gradient(135deg,#0a1520f0,#0f2236f0);backdrop-filter:blur(18px);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:16px;font-family:var(--mono);font-size:10px;color:rgba(176,204,224,.7)}
-#botbar b{color:var(--live)}
-
-/* ===== BASEMAP TABS ===== */
-#bm-tabs{position:fixed;left:calc(50% + 165px);bottom:50px;transform:translateX(-50%);z-index:1200;display:flex;gap:6px;background:rgba(8,18,30,.92);border:1px solid rgba(0,200,255,.18);border-radius:28px;padding:6px 10px;box-shadow:0 8px 26px rgba(0,0,0,.45);backdrop-filter:blur(14px)}
-.bm-tab{border:none;outline:none;border-radius:20px;padding:8px 15px;background:transparent;color:rgba(210,225,240,.65);font:800 10px/1 var(--mono);letter-spacing:1.8px;cursor:pointer;transition:.18s;text-transform:uppercase}
-.bm-tab:hover{background:rgba(0,200,255,.12);color:#67e8f9}
-.bm-tab.active{background:rgba(0,200,255,.18);color:#67e8f9;box-shadow:inset 0 0 0 1px rgba(0,200,255,.25),0 0 18px rgba(0,200,255,.2)}
-.bm-tab.grid-active{background:rgba(6,182,212,.28);color:#e0fbff;box-shadow:inset 0 0 0 1px rgba(103,232,249,.45),0 0 20px rgba(6,182,212,.28)}
-
-/* ===== TOAST / STATUS ===== */
-#toast{position:fixed;top:64px;left:calc(50% + 165px);transform:translateX(-50%) translateY(-14px);z-index:2000;background:rgba(12,24,38,.95);border:1px solid rgba(0,166,255,.3);color:#dff4ff;border-radius:12px;padding:10px 18px;font-size:12px;box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:.25s}
+/* TOAST */
+#toast{position:fixed;top:62px;left:50%;z-index:1500;
+  transform:translateX(-50%) translateY(-14px);
+  background:rgba(13,27,42,.95);border:1px solid var(--border);
+  border-radius:10px;padding:9px 17px;font-family:var(--sans);
+  font-size:12px;font-weight:500;color:var(--text);
+  backdrop-filter:blur(16px);opacity:0;pointer-events:none;
+  transition:all .28s var(--ease);white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-#status{position:fixed;left:346px;top:62px;z-index:850;background:rgba(15,34,54,.84);border:1px solid var(--border);border-radius:10px;padding:8px 13px;color:#d1d5db;font-family:var(--mono);font-size:10px;line-height:1.55;pointer-events:none}
-#empty{position:fixed;left:calc(50% + 165px);top:50%;z-index:800;transform:translate(-50%,-50%);background:rgba(15,34,54,.9);border:1px solid var(--border);border-radius:14px;padding:26px 30px;text-align:center;color:#d1d5db;max-width:460px;box-shadow:0 14px 40px rgba(0,0,0,.4)}
-#empty h2{font-size:18px;margin-bottom:10px;color:#fff}#empty p{font-size:12px;color:#9aa0a6;line-height:1.6}
 
-/* node/line labels + icons (unchanged look) */
-.node-label{background:rgba(10,10,15,.88);color:#fff;font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:4px;white-space:nowrap;letter-spacing:.35px;font-family:system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.35)}
-.ss33-wrap{position:relative;width:36px;height:36px}.ss33-ring{position:absolute;inset:0;border-radius:50%;border:2.5px dashed #e74c3c;animation:spinRing 4s linear infinite}.ss33-core{position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#e74c3c,#922b21);border:1.5px solid #e74c3c;display:flex;align-items:center;justify-content:center;box-shadow:0 0 9px #e74c3c}.bolt{font-size:11px;color:#fff;font-weight:900}
-.eht-wrap{position:relative;width:44px;height:44px}.eht-ring{position:absolute;inset:0;border-radius:50%;border:3px dashed #f97316;animation:spinRing 3s linear infinite}.eht-core{position:absolute;inset:9px;border-radius:50%;background:#f97316;border:2px solid #fed7aa;display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px #f97316}
-.ab-icon{width:12px;height:12px;border-radius:50%;background:#ffd700;border:2px solid #4b5563;box-shadow:0 0 7px rgba(250,204,21,.8)}.dp-icon{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:14px solid #d1d5db;filter:drop-shadow(0 0 4px #111)}.ht-icon{width:16px;height:16px;border-radius:4px;background:#00a88a;border:2px solid #b2f5ea;box-shadow:0 0 8px #00a88a}
-@keyframes spinRing{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+/* SS ANIMATIONS */
+@keyframes ss33-ring-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes ss33-core-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.85}}
+@keyframes eht-ring-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,100,0,.7),0 0 8px rgba(255,100,0,.5)}60%{box-shadow:0 0 0 8px rgba(255,100,0,0),0 0 20px rgba(255,100,0,.8)}}
+.ss33-wrap{position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transform:scale(var(--tg-ss-icon-scale,1));transform-origin:center center}
+.ss33-ring{position:absolute;inset:0;border-radius:50%;border:2px dashed rgba(0,180,255,.9);animation:ss33-ring-spin 4s linear infinite;box-shadow:0 0 8px rgba(0,180,255,.5),inset 0 0 8px rgba(0,180,255,.15);pointer-events:none}
+.ss33-core{width:19px;height:19px;border-radius:50%;background:radial-gradient(circle,#1e88e5 0%,#0d47a1 100%);border:2px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(33,150,243,.8);animation:ss33-core-pulse 2s ease-in-out infinite;z-index:1;pointer-events:none}
+.ss33-bolt{font-size:11px;line-height:1;color:#fff;text-shadow:0 0 4px #fff;margin-top:-1px;pointer-events:none}
+.eht-wrap{position:relative;width:40px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;transform:scale(var(--tg-eht-icon-scale,1));transform-origin:center center}
+.eht-rect{position:absolute;inset:0;border:2px solid rgba(255,120,0,.95);border-radius:4px;animation:eht-ring-pulse 1.8s ease-in-out infinite;background:rgba(30,10,0,.75);pointer-events:none}
+.eht-core{z-index:1;display:flex;align-items:center;justify-content:center;gap:3px;pointer-events:none}
+.ab-wrap{display:flex;align-items:center;justify-content:center;transform:scale(var(--tg-ab-icon-scale,1));transform-origin:center center}
+.dp-wrap{display:flex;align-items:center;justify-content:center;transform:scale(var(--tg-dp-icon-scale,1));transform-origin:center center}
+.cut-wrap{display:flex;align-items:center;justify-content:center;transform:scale(var(--tg-cut-icon-scale,1));transform-origin:center center}
+.eht-power{font-size:16px;line-height:1;filter:drop-shadow(0 0 4px #ff6600);pointer-events:none}
+.eht-kv{font-family:var(--mono);font-size:7px;color:rgba(255,160,60,.9);line-height:1;letter-spacing:.5px;pointer-events:none}
 
-/* GRID MAP VIEW boundary labels */
-.tg-boundary-label{background:rgba(255,255,255,.82);color:#0f172a;border:1px solid rgba(30,64,175,.25);border-radius:4px;padding:2px 5px;font:800 10px/1.05 system-ui,Arial,sans-serif;text-align:center;white-space:normal;max-width:96px;box-shadow:0 1px 5px rgba(0,0,0,.08);pointer-events:none;text-shadow:0 1px 0 rgba(255,255,255,.9)}
-.tg-district-label{background:rgba(12,24,38,.68);color:#dff4ff;border:1px solid rgba(56,189,248,.35);border-radius:12px;padding:2px 8px;font:900 11px/1 system-ui,Arial,sans-serif;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap;pointer-events:none}
-.tg-road-label{background:rgba(255,247,237,.86);color:#7c2d12;border:1px solid rgba(249,115,22,.45);border-radius:12px;padding:2px 7px;font:900 10px/1 system-ui,Arial,sans-serif;white-space:nowrap;pointer-events:none}
-body.tg-grid-zoom-out .tg-boundary-label{display:none!important}
-body.tg-grid-zoom-out .tg-district-label{font-size:9px!important;opacity:.72}
-body.tg-grid-zoom-mid .tg-boundary-label{font-size:8px!important;max-width:72px!important;opacity:.86}
-body.tg-grid-zoom-in .tg-boundary-label{font-size:10px!important;max-width:100px!important;opacity:.96}
-#gridLayerBox{position:fixed;right:14px;top:66px;z-index:1190;width:235px;background:rgba(255,255,255,.94);border:1px solid rgba(0,0,0,.12);border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.18);padding:12px 14px;display:none;color:#0f172a;font-family:system-ui,Arial,sans-serif}
-#gridLayerBox.show{display:block}
-.grid-layer-title{font:900 11px/1.1 var(--mono);letter-spacing:2px;color:#12324f;margin-bottom:10px}
-.grid-layer-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(15,23,42,.08);font-size:12px;font-weight:700;cursor:pointer}
-.grid-layer-row:first-of-type{border-top:none}.grid-layer-row input{accent-color:#0284c7}
-.grid-line{width:24px;height:3px;border-radius:3px;display:inline-block;flex-shrink:0}.grid-dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex-shrink:0}
+/* FLOW ANIMATION */
+@keyframes energy-flow-overlay{to{stroke-dashoffset:-24}}
+.feeder-flow-overlay{stroke-dasharray:4 20!important;stroke-linecap:round!important;
+  animation:energy-flow-overlay .8s linear infinite!important;pointer-events:none!important;
+  will-change:stroke-dashoffset}
+path.feeder-flow-overlay{stroke-dasharray:4 20!important;stroke-linecap:round!important;
+  animation:energy-flow-overlay .8s linear infinite!important;pointer-events:none!important}
+@keyframes sos-blink{
+  0%,100%{opacity:1;filter:drop-shadow(0 0 14px #ff1744) drop-shadow(0 0 6px #ff1744)}
+  50%{opacity:.15;filter:drop-shadow(0 0 4px #ff1744)}
+}
+.feeder-breakdown{animation:sos-blink .65s ease-in-out infinite!important;will-change:opacity,filter}
+.hidden-flow{opacity:0!important;pointer-events:none!important}
+
+/* FEEDER STATUS */
+.fs-status-bar{display:flex;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid #eee}
+.fs-status-btn{flex:1;padding:5px 3px;border-radius:5px;border:1px solid #ccc;font-size:10px;font-weight:700;cursor:pointer;text-align:center;font-family:Arial,sans-serif;transition:all .2s}
+.fs-status-btn.active-live{background:#00c853;color:#fff;border-color:#00c853}
+.fs-status-btn.active-breakdown{background:#ff1744;color:#fff;border-color:#ff1744}
+.fs-status-btn.active-idle{background:#9e9e9e;color:#fff;border-color:#9e9e9e}
+.fs-status-btn:not([class*=active]):hover{background:#f0f0f0}
+.f-badge{font-size:8px;font-weight:700;padding:1px 5px;border-radius:8px;font-family:var(--mono);letter-spacing:.5px;flex-shrink:0}
+.f-badge-live{background:rgba(0,200,83,.2);color:#00c853;border:1px solid #00c853}
+.f-badge-breakdown{background:rgba(255,23,68,.2);color:#ff1744;border:1px solid #ff1744;animation:sos-blink .8s infinite}
+.f-badge-idle{background:rgba(158,158,158,.2);color:#9e9e9e;border:1px solid #9e9e9e}
+
+/* STATUS LEGEND */
+.status-legend{position:fixed;bottom:46px;right:58px;z-index:800;
+  background:#fff;backdrop-filter:blur(10px);
+  border:1px solid rgba(0,0,0,.12);border-radius:10px;
+  padding:8px 12px;font-family:var(--mono);font-size:9px;
+  display:flex;flex-direction:column;gap:5px;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+.sl-row{display:flex;align-items:center;gap:6px;color:#2a4a6a}
+.sl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* BASEMAP TABS */
+#bm-tabs{position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:950;display:flex;flex-direction:row;gap:4px;padding:5px 8px;background:rgba(8,18,30,.88);border:1px solid rgba(0,200,255,.15);border-radius:30px;backdrop-filter:blur(16px);box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.bm-tab{writing-mode:horizontal-tb;text-orientation:mixed;transform:none;background:transparent;border:none;border-radius:20px;padding:5px 14px;font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:rgba(176,204,224,.55);cursor:pointer;transition:all .2s;white-space:nowrap;user-select:none}
+.bm-tab:hover{background:rgba(0,200,255,.12);color:var(--live)}
+.bm-tab.active{background:rgba(0,200,255,.2);color:var(--live);font-weight:700;box-shadow:0 0 12px rgba(0,200,255,.2)}
+
+/* RIGHT PANEL */
+#rpanel{position:fixed;top:52px;right:50px;bottom:38px;z-index:890;width:230px;
+  display:flex;flex-direction:column;gap:6px;pointer-events:none;
+  overflow-y:auto;overflow-x:hidden;padding:8px 4px}
+#rpanel::-webkit-scrollbar{width:3px}
+#rpanel::-webkit-scrollbar-thumb{background:rgba(0,200,255,.2);border-radius:3px}
+.rcard{pointer-events:all;background:#ffffff;backdrop-filter:blur(18px);border:1px solid rgba(0,0,0,.12);border-radius:10px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.15);transition:box-shadow .2s}
+.rcard:hover{box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.rcard-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;user-select:none;border-bottom:1px solid transparent;transition:border-color .2s;background:#f0f4f8}
+.rcard-hd:hover{border-bottom-color:rgba(0,0,0,.1);background:#e8edf2}
+.rcard-title{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:#1a3a5c;font-weight:700}
+.rcard-arrow{font-size:10px;color:#4a6fa5;transition:transform .25s var(--ease)}
+.rcard.collapsed .rcard-arrow{transform:rotate(-90deg)}
+.rcard-body{padding:8px 10px 10px;border-top:1px solid rgba(0,0,0,.06)}
+.rcard.collapsed .rcard-body{display:none}
+.fi-btn{flex:1;padding:2px 4px;border-radius:4px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:rgba(176,204,224,.6);font-family:var(--mono);font-size:8px;letter-spacing:.5px;cursor:pointer;transition:all .18s;white-space:nowrap}
+.fi-btn:hover{filter:brightness(1.4)}
+.fi-live.fi-active{background:rgba(0,200,83,.25);color:#00c853;border-color:#00c853}
+.fi-breakdown.fi-active{background:rgba(255,23,68,.25);color:#ff1744;border-color:#ff1744;animation:sos-blink .8s infinite}
+.fi-idle.fi-active{background:rgba(158,158,158,.25);color:#aaa;border-color:#aaa}
+.ss-label{background:rgba(9,22,37,.88)!important;border:1px solid rgba(0,200,255,.35)!important;border-radius:4px!important;color:#00c8ff!important;font-family:'Share Tech Mono',monospace!important;font-weight:normal;font-size:9px!important;letter-spacing:.3px!important;padding:2px 5px!important;white-space:nowrap!important;box-shadow:0 2px 6px rgba(0,0,0,.4)!important;opacity:.9!important;max-width:120px!important;overflow:hidden!important;text-overflow:ellipsis!important;pointer-events:none!important}
+.leaflet-tooltip.ss-label{font-size:var(--tg-grid-label-size,9px)!important}
+.tg-district-label{font-family:var(--sans),Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:.8px;
+  color:#3a4a5a;text-shadow:0 1px 0 rgba(255,255,255,.9),0 0 6px rgba(255,255,255,.8),0 0 2px rgba(255,255,255,.9);
+  white-space:nowrap;pointer-events:none;text-transform:uppercase;transform:translate(-50%,-50%)}
+.tg-ward-tooltip{font-family:var(--sans),Arial,sans-serif!important;font-size:10px!important;font-weight:600!important;
+  color:#445566!important;background:rgba(255,255,255,.92)!important;border:1px solid rgba(122,138,154,.4)!important;
+  padding:1px 5px!important}
+.ss-label.leaflet-tooltip-top::before{border-top-color:rgba(0,200,255,.35)!important}
+
+/* ══ FEEDER SEARCH ══ */
+.fsearch-wrap{padding:8px 12px 6px;position:relative;flex-shrink:0}
+.fsearch-input{width:100%;background:#f0f7ff;border:1.5px solid #93c5fd;
+  border-radius:20px;padding:8px 12px 8px 32px;color:#1e3a5f;font-family:var(--sans);
+  font-size:12px;outline:none;transition:all .25s;box-shadow:0 1px 4px rgba(37,99,235,.08)}
+.fsearch-input:focus{border-color:#2563eb;background:#eff6ff;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.fsearch-input::placeholder{color:#94a3b8}
+.fsearch-ic{position:absolute;left:20px;top:50%;transform:translateY(-50%);
+  color:#93c5fd;font-size:13px;pointer-events:none}
+
+/* ══ FEEDER GROUPS ══ */
+.fgrp{margin-bottom:2px}
+.fgrp-hd{display:flex;align-items:center;gap:7px;padding:8px 10px 6px;cursor:pointer;
+  border-radius:8px;transition:background .2s;user-select:none;margin:2px 4px}
+.fgrp-hd:hover{background:rgba(0,200,255,.07)}
+.fgrp-arrow{font-size:14px;color:#4a6fa5;transition:transform .2s;width:16px;text-align:center}
+.fgrp-hd.collapsed .fgrp-arrow{font-size:14px;color:#4a6fa5;transition:transform .2s;width:16px;text-align:center}
+.fgrp-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0;transform:rotate(45deg)}
+.fgrp-label{font-family:var(--sans);font-size:13px;font-weight:700;color:#1e3a5f;letter-spacing:.3px;flex:1}
+.fgrp-cnt{font-family:var(--mono);font-size:10px;color:#4a6fa5;background:rgba(25,118,210,.1);padding:2px 7px;border-radius:10px;font-weight:600}
+.fgrp-body{overflow:hidden;transition:max-height .28s cubic-bezier(.4,0,.2,1)}
+.fgrp-body.collapsed{max-height:0!important;overflow:hidden}
+
+/* ══ EDIT PANEL (right side) ══ */
+#editPanel{position:fixed;top:52px;right:0;bottom:38px;z-index:960;width:300px;
+  background:linear-gradient(180deg,#081422fa,#0c1e30fa);
+  backdrop-filter:blur(22px);border-left:1px solid rgba(0,200,255,.22);
+  transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;box-shadow:-4px 0 30px rgba(0,0,0,.5)}
+#editPanel.open{transform:translateX(0)}
+.ep-hd{padding:13px 15px;border-bottom:1px solid rgba(0,200,255,.12);
+  display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ep-title{font-family:var(--mono);font-size:11px;color:var(--live);letter-spacing:1.5px;flex:1}
+.ep-pole-id{font-family:var(--mono);font-size:9px;color:rgba(0,200,255,.45);
+  background:rgba(0,200,255,.08);padding:2px 8px;border-radius:10px}
+.ep-close{cursor:pointer;color:rgba(176,204,224,.4);font-size:16px;
+  width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:.2s}
+.ep-close:hover{color:#fff;background:rgba(255,255,255,.1)}
+.ep-body{flex:1;overflow-y:auto;padding:12px 14px}
+.ep-body::-webkit-scrollbar{width:3px}
+.ep-body::-webkit-scrollbar-thumb{background:rgba(0,200,255,.2);border-radius:3px}
+.ep-field{margin-bottom:11px}
+.ep-label{font-family:var(--mono);font-size:8px;color:rgba(0,200,255,.5);
+  letter-spacing:1.5px;margin-bottom:4px;display:block}
+
+/* read-only display */
+.ep-readonly{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  border-radius:6px;padding:7px 10px;color:rgba(176,204,224,.45);font-family:var(--sans);
+  font-size:12px;min-height:32px;font-style:italic;letter-spacing:.2px}
+
+/* shared input base */
+.ep-input,.ep-select{width:100%;background:rgba(255,255,255,.05);
+  border:1px solid rgba(0,200,255,.15);border-radius:6px;padding:7px 10px;
+  color:var(--text);font-family:var(--sans);font-size:12px;outline:none;
+  transition:border-color .2s,background .2s;box-sizing:border-box}
+.ep-input:focus,.ep-select:focus{border-color:var(--live);background:rgba(0,200,255,.07);color:#fff}
+
+/* dropdown arrow */
+.ep-select{appearance:none;cursor:pointer;padding-right:28px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300c8ff'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  background-color:rgba(255,255,255,.05)}
+.ep-select option{background:#0d1b2a;color:#b0cce0}
+
+/* lat/lng geo row */
+.ep-geo-wrap{display:flex;align-items:center;gap:6px}
+.ep-geo-input{flex:1}
+
+/* Pick-on-map button */
+.ep-pick-btn{padding:6px 12px;border-radius:6px;border:1px solid rgba(0,200,255,.3);
+  background:rgba(0,200,255,.1);color:var(--live);font-family:var(--mono);font-size:9px;
+  letter-spacing:.8px;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;display:block;
+  width:100%;margin-top:6px;margin-bottom:2px;text-align:center}
+.ep-pick-btn:hover{background:rgba(0,200,255,.22);color:#fff}
+.ep-pick-btn.picking{background:rgba(255,171,0,.18);border-color:rgba(255,171,0,.55);
+  color:#ffab00;animation:pickPulse 1s ease-in-out infinite}
+@keyframes pickPulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* Pick mode map banner */
+#pickBanner{position:fixed;top:62px;left:50%;transform:translateX(-50%);z-index:1100;
+  background:rgba(255,171,0,.95);color:#000;font-family:var(--mono);font-size:11px;
+  letter-spacing:1px;padding:8px 22px;border-radius:20px;pointer-events:none;
+  display:none;box-shadow:0 4px 20px rgba(0,0,0,.45)}
+#pickBanner.active{display:block}
+.ep-foot{padding:12px 14px;border-top:1px solid rgba(0,200,255,.1);
+  display:flex;gap:8px;flex-shrink:0}
+.ep-btn{flex:1;padding:9px 6px;border:none;border-radius:7px;cursor:pointer;
+  font-family:var(--mono);font-size:10px;letter-spacing:1px;font-weight:600;transition:all .2s}
+.ep-save{background:rgba(0,200,255,.15);color:var(--live);border:1px solid rgba(0,200,255,.3)}
+.ep-save:hover{background:rgba(0,200,255,.3);color:#fff}
+.ep-del{background:rgba(255,23,68,.1);color:#ff4466;border:1px solid rgba(255,23,68,.25)}
+.ep-del:hover{background:rgba(255,23,68,.25);color:#fff}
+
+/* ══ EDIT TOOLBAR (floating) ══ */
+#editToolbar{position:fixed;bottom:50px;left:50%;transform:translateX(-50%);z-index:955;
+  background:rgba(8,18,30,.96);border:1px solid rgba(0,200,255,.25);border-radius:30px;
+  padding:8px 18px;display:none;align-items:center;gap:10px;
+  backdrop-filter:blur(20px);box-shadow:0 4px 28px rgba(0,0,0,.55),0 0 0 1px rgba(0,200,255,.05)}
+#editToolbar.visible{display:flex}
+.et-label{font-family:var(--mono);font-size:9px;color:rgba(0,200,255,.55);
+  letter-spacing:1.5px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.et-sep{width:1px;height:20px;background:rgba(0,200,255,.15);flex-shrink:0}
+.et-btn{padding:6px 13px;border:none;border-radius:20px;cursor:pointer;
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;font-weight:600;
+  transition:all .2s;white-space:nowrap}
+.et-edit{background:rgba(0,200,255,.15);color:var(--live);border:1px solid rgba(0,200,255,.3)}
+.et-edit:hover{background:rgba(0,200,255,.28)}
+.et-edit.active{background:rgba(0,200,255,.3);color:#fff;box-shadow:0 0 10px rgba(0,200,255,.3)}
+.et-download{background:rgba(0,230,118,.1);color:#00e676;border:1px solid rgba(0,230,118,.25)}
+.et-download:hover{background:rgba(0,230,118,.22)}
+.et-exit{background:rgba(255,255,255,.05);color:rgba(176,204,224,.45);border:1px solid rgba(255,255,255,.1)}
+.et-exit:hover{color:#fff;background:rgba(255,255,255,.1)}
+
+
+/* ══ FEEDER STATS CARD (appears below floating toolbar when feeder focused) ══ */
+#feederStatsCard{
+  position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:954;
+  background:rgba(8,18,30,.97);border:1px solid rgba(0,200,255,.25);border-radius:16px;
+  padding:12px 18px;display:none;flex-direction:column;gap:8px;
+  backdrop-filter:blur(22px);box-shadow:0 4px 28px rgba(0,0,0,.6);
+  min-width:420px;max-width:600px}
+#feederStatsCard.visible{display:flex}
+.fsc-title{font-family:var(--mono);font-size:9px;color:rgba(0,200,255,.55);
+  letter-spacing:2px;margin-bottom:2px}
+.fsc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.fsc-item{background:rgba(0,200,255,.05);border:1px solid rgba(0,200,255,.1);
+  border-radius:8px;padding:7px 10px;display:flex;flex-direction:column;gap:3px}
+.fsc-lbl{font-family:var(--mono);font-size:7px;color:rgba(0,200,255,.45);letter-spacing:1px}
+.fsc-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--live)}
+.fsc-val.ug{color:#2196f3}.fsc-val.oh{color:#ff9800}.fsc-val.tr{color:#9c27b0}
+.fsc-val.pole{color:#ff9800}.fsc-val.ab{color:#ffeb3b}.fsc-val.cut{color:#78909c}
+
+
+/* ══ STATS DOWNLOAD BTN ══ */
+.stats-dl-btn{width:100%;margin-top:8px;padding:7px;border:none;border-radius:8px;cursor:pointer;
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;font-weight:600;
+  background:#1976d2;color:#fff;border:1px solid #1565c0;transition:.2s}
+.stats-dl-btn:hover{background:#1565c0;color:#fff;transform:translateY(-1px);box-shadow:0 3px 10px rgba(25,118,210,.3)}
+.fsc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.fsc-close{cursor:pointer;color:rgba(176,204,224,.4);font-size:14px;padding:0 4px;
+  border-radius:4px;transition:.2s}
+.fsc-close:hover{color:#fff;background:rgba(255,255,255,.1)}
+
+/* ══ SEGMENT DISTANCE TOOLTIP ══ */
+.seg-dist-popup .leaflet-popup-content-wrapper{
+  background:rgba(8,18,30,.96)!important;color:var(--text)!important;
+  border:1px solid rgba(0,200,255,.3)!important;border-radius:10px!important;
+  box-shadow:0 4px 20px rgba(0,0,0,.6)!important}
+.seg-dist-popup .leaflet-popup-content{margin:10px 14px!important;min-width:200px}
+.seg-dist-popup .leaflet-popup-close-button{color:rgba(176,204,224,.4)!important}
+.sdp-title{font-family:var(--mono);font-size:9px;color:rgba(0,200,255,.5);
+  letter-spacing:1.5px;margin-bottom:8px}
+.sdp-row{display:flex;justify-content:space-between;align-items:center;
+  padding:4px 0;border-bottom:1px solid rgba(0,200,255,.06)}
+.sdp-row:last-child{border:none}
+.sdp-lbl{font-family:var(--sans);font-size:11px;color:rgba(176,204,224,.5)}
+.sdp-val{font-family:var(--mono);font-size:12px;color:var(--live);font-weight:600}
+.sdp-val.oh{color:#ff9800}.sdp-val.ug{color:#2196f3}.sdp-val.tr{color:#9c27b0}
+
+/* ══ EDIT MODE marker highlight ══ */
+.edit-mode-point{filter:drop-shadow(0 0 7px rgba(0,200,255,.9))!important;cursor:crosshair!important;transition:filter .2s}
+
+
+/* ══ V6 NEON SCADA LINE GLOW ══
+   Performance note (09 May 2026): the drop-shadow filter is expensive
+   when applied to hundreds of polylines simultaneously — it forces the
+   browser to repaint each filtered element on every frame. We now scope
+   the glow to medium-zoom and above via the .map-zoomed-far class on
+   the map container.
+*/
+.fv6-ug{filter:drop-shadow(0 0 3px #2196f3) drop-shadow(0 0 8px rgba(33,150,243,.5))!important;will-change:filter}
+.fv6-oh{filter:drop-shadow(0 0 3px #ff9800) drop-shadow(0 0 8px rgba(255,152,0,.5))!important;will-change:filter}
+.fv6-tr{filter:drop-shadow(0 0 3px #9c27b0) drop-shadow(0 0 8px rgba(156,39,176,.5))!important;will-change:filter}
+
+/* During interactive pan/zoom, freeze GPU-heavy animations to keep frame rate up */
+#map.is-interacting .feeder-flow-overlay{animation-play-state:paused!important}
+#map.is-interacting .ss33-ring{animation-play-state:paused!important}
+#map.is-interacting .ss33-core{animation-play-state:paused!important}
+#map.is-interacting .eht-rect{animation-play-state:paused!important}
+#map.is-interacting .feeder-breakdown{animation-play-state:paused!important}
+
+/* ── Pan-glitch hardening (01-Jun-2026 per Naresh's ChatGPT analysis) ── */
+/* During drag/zoom, hide the moving overlay entirely. The static base line */
+/* underneath stays anchored to LatLng so geometry never "floats". The      */
+/* overlay returns instantly on moveend.                                     */
+#map.is-interacting .feeder-flow-overlay,
+#map.is-interacting .feeder-flow-anim-static{visibility:hidden!important}
+
+/* Master kill switch — when user toggles Flow Animation off in Layer Types */
+body.no-anim .feeder-flow-overlay,
+body.no-anim .feeder-flow-anim-static{display:none!important}
+body.no-anim .ss33-ring{animation:none!important;opacity:.5}
+body.no-anim .ss33-core{animation:none!important}
+body.no-anim .eht-rect{animation:none!important}
+body.no-anim .feeder-breakdown{animation:none!important}
+body.no-anim .status-dot{animation:none!important}
+
+
+
+@keyframes energy-flow-v6{to{stroke-dashoffset:-28}}
+.feeder-flow-overlay{stroke-dasharray:6 16!important;stroke-linecap:round!important;
+  animation:energy-flow-v6 1.4s linear infinite!important;pointer-events:none!important;
+  will-change:stroke-dashoffset;stroke-opacity:.85!important}
+
+/* ══ FEEDER PANEL REDESIGN ══ */
+.fr-row{display:flex;flex-direction:column;padding:8px 10px 6px;border-radius:10px;
+  margin:2px 4px;border:1px solid #e9f0fa;transition:all .2s;cursor:default;
+  background:#f8faff}
+.fr-row:hover{background:#eff6ff;border-color:#93c5fd;box-shadow:0 2px 8px rgba(37,99,235,.1)}
+.fr-row.fr-dragging{opacity:.4;border:1px dashed rgba(0,200,255,.4)}
+.fr-row.fr-drag-over{border-top:2px solid #00c8ff}
+.fr-top{display:flex;align-items:center;gap:5px;width:100%}
+.fr-drag{cursor:grab;color:#cbd5e1;font-size:14px;padding:0 2px;flex-shrink:0;
+  user-select:none;line-height:1}
+.fr-drag:hover{color:#2563eb}
+.fr-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;transform:rotate(45deg)}
+.fr-name{font-family:var(--sans);font-size:13px;color:#1e3a5f;flex:1;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;cursor:pointer;min-width:0;transition:.15s;font-weight:500}
+.fr-name:hover{color:#1d4ed8}
+.fr-eht{font-family:var(--mono);font-size:8px;color:rgba(0,200,255,.35);
+  white-space:nowrap;letter-spacing:.3px;flex-shrink:0}
+.fr-badge{font-family:var(--mono);font-size:8px;font-weight:700;padding:2px 5px;
+  border-radius:6px;letter-spacing:.5px;flex-shrink:0;border:1px solid}
+.fr-badge-live{background:rgba(0,200,83,.15);color:#00c853;border-color:rgba(0,200,83,.3)}
+.fr-badge-breakdown{background:rgba(255,23,68,.15);color:#ff1744;border-color:rgba(255,23,68,.3);animation:sos-blink .8s infinite}
+.fr-badge-idle{background:rgba(158,158,158,.15);color:#9e9e9e;border-color:rgba(158,158,158,.3)}
+.fr-actions{display:flex;gap:3px;flex-shrink:0}
+.fr-act{font-size:11px;cursor:pointer;padding:2px 5px;border-radius:5px;
+  border:1px solid #e2e8f0;background:#fff;
+  transition:.15s;color:#64748b}
+.fr-act:hover{background:#eff6ff;color:#2563eb;border-color:#93c5fd}
+.fr-act.del:hover{background:#fff5f5;color:#dc2626;border-color:#fca5a5}
+.fr-act.stats:hover{background:#f0fdf4;color:#16a34a;border-color:#86efac}
+.fr-bottom{display:flex;align-items:center;gap:4px;margin-top:4px;padding-left:20px}
+.fr-stat-mini{font-family:var(--mono);font-size:8px;color:#94a3b8;
+  flex:1;letter-spacing:.3px}
+.fr-status-btns{display:flex;gap:3px}
+.fr-sb{padding:3px 7px;border-radius:5px;border:1px solid #e2e8f0;
+  background:#fff;color:#64748b;font-family:var(--mono);
+  font-size:9px;cursor:pointer;transition:.15s;letter-spacing:.3px}
+.fr-sb:hover{filter:brightness(.95)}
+.fr-sb.fr-live-act{background:rgba(0,200,83,.2);color:#00c853;border-color:#00c853}
+.fr-sb.fr-dn-act{background:rgba(255,23,68,.2);color:#ff1744;border-color:#ff1744}
+.fr-sb.fr-id-act{background:rgba(158,158,158,.2);color:#9e9e9e;border-color:#9e9e9e}
+.tog-mini{width:30px;height:17px;border-radius:9px;background:#e2e8f0;
+  border:1px solid #cbd5e1;position:relative;flex-shrink:0;
+  cursor:pointer;transition:background .25s}
+.tog-mini::after{content:'';position:absolute;top:2px;left:2px;width:11px;height:11px;
+  border-radius:50%;background:#94a3b8;transition:transform .25s}
+.tog-mini.on{background:#2563eb;border-color:#1d4ed8}
+.tog-mini.on::after{transform:translateX(13px);background:#fff}
+
+/* ══ FEEDER SEARCH DROPDOWN ══ */
+#fsDropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:1200;
+  background:rgba(8,18,30,.98);border:1px solid rgba(0,200,255,.2);border-radius:10px;
+  max-height:260px;overflow-y:auto;display:none;box-shadow:0 8px 32px rgba(0,0,0,.6)}
+#fsDropdown::-webkit-scrollbar{width:3px}
+#fsDropdown::-webkit-scrollbar-thumb{background:rgba(0,200,255,.2);border-radius:3px}
+#fsDropdown.open{display:block}
+.fsd-item{padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(0,200,255,.05);
+  display:flex;align-items:center;gap:8px}
+.fsd-item:hover{background:rgba(0,200,255,.08)}
+.fsd-item:last-child{border:none}
+.fsd-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.fsd-name{font-family:var(--sans);font-size:12px;color:var(--text);flex:1}
+.fsd-src{font-family:var(--mono);font-size:9px;color:rgba(0,200,255,.4)}
+.fsd-badge{font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:5px}
+
+/* ══ STATS HIERARCHY FILTER ══ */
+.hier-filters{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;
+  padding-bottom:8px;border-bottom:1px solid rgba(0,200,255,.07)}
+.hier-sel{width:100%;background:#fff;border:1px solid rgba(0,0,0,.15);
+  border-radius:6px;padding:5px 8px;color:#1a3a5c;font-family:var(--mono);
+  font-size:9px;outline:none;cursor:pointer;letter-spacing:.5px}
+.hier-sel option{background:#fff;color:#1a3a5c}
+.hier-lbl{font-family:var(--mono);font-size:7px;color:#4a6fa5;
+  letter-spacing:1.5px;margin-bottom:2px;font-weight:600}
+
+
+/* ══ COORD PICKER ══ */
+#coordPickBtn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:16px;
+  border:1px solid rgba(0,200,255,.3);background:rgba(0,200,255,.07);color:var(--live);
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .2s;flex-shrink:0}
+#coordPickBtn:hover{background:rgba(0,200,255,.18);color:#fff}
+#coordPickBtn.picking{background:rgba(255,171,0,.18);border-color:rgba(255,171,0,.5);color:#ffab00}
+
+/* ── UI POLISH PASS (26 May 2026 per Naresh) — additive only ── */
+/* ── Substation popup polish (29 May 2026) ── */
+.leaflet-popup.ss-popup .leaflet-popup-content-wrapper{
+  border-radius:14px;
+  box-shadow:0 8px 28px -4px rgba(15,23,42,.32),0 2px 8px rgba(15,23,42,.08);
+  border:1px solid rgba(226,232,240,.9);
+  padding:2px;
+}
+.leaflet-popup.ss-popup .leaflet-popup-content{
+  margin:14px 16px;
+  font-family:var(--sans);
+}
+.leaflet-popup.ss-popup .leaflet-popup-tip{
+  box-shadow:0 8px 28px -4px rgba(15,23,42,.18);
+}
+/* Scrollbar inside feeder list */
+.leaflet-popup.ss-popup .leaflet-popup-content > div > div[style*="overflow-y"]::-webkit-scrollbar{width:5px}
+.leaflet-popup.ss-popup .leaflet-popup-content > div > div[style*="overflow-y"]::-webkit-scrollbar-thumb{
+  background:#cbd5e1;border-radius:3px;
+}
+.leaflet-popup.ss-popup .leaflet-popup-content > div > div[style*="overflow-y"]::-webkit-scrollbar-thumb:hover{
+  background:#94a3b8;
+}
+
+/* ── Smoother map feel (Google-Maps-style) ── */
+.leaflet-zoom-animated{
+  transition:transform .22s cubic-bezier(.4,0,.2,1) !important;
+}
+.leaflet-tile-loaded{
+  transition:opacity .25s ease-in !important;
+}
+.leaflet-fade-anim .leaflet-tile{transition:opacity .25s ease-in !important}
+.leaflet-pane{will-change:transform}
+/* Snappier popups */
+.leaflet-popup{transition:opacity .2s ease !important}
+
+
+/* Smoother panel entry, refined shadow language, focus rings for accessibility. */
+.lpanel,.fsp,#substationPanel,#dataFilesPanel{
+  transition:transform .35s cubic-bezier(.16,.84,.44,1),opacity .35s ease,box-shadow .35s ease;
+}
+.lpanel,#substationPanel,#dataFilesPanel{
+  box-shadow:0 10px 40px -8px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.08);
+}
+/* Crisper buttons across the app */
+button,.btn,.tb-btn,.bm-tab,.tab-btn{
+  transition:background .15s ease,color .15s ease,box-shadow .15s ease,
+             transform .12s cubic-bezier(.4,0,.2,1),border-color .15s ease;
+}
+button:active,.btn:active,.tb-btn:active{ transform:translateY(1px) }
+button:focus-visible,.btn:focus-visible,.tb-btn:focus-visible,
+input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid rgba(0,200,255,.55); outline-offset:1px;
+}
+/* Hierarchy tree — clearer separation + smoother expand */
+.hier-div,.hier-sub,.hier-sec{
+  transition:background .2s ease;
+}
+.hier-div-body,.hier-sub-body,.hier-sec-body{
+  transition:max-height .28s cubic-bezier(.4,0,.2,1),opacity .22s ease;
+}
+.hier-div-hd,.hier-sub-hd,.hier-sec-hd{
+  position:relative;
+}
+.hier-div-hd::after{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,#3b82f6,#1d4ed8);
+  border-radius:3px 0 0 3px;opacity:0;transition:opacity .2s ease;
+}
+.hier-div-hd:not(.collapsed)::after{ opacity:1 }
+/* Status dot — gentle pulse on breakdown */
+@keyframes statusPulse{
+  0%,100%{ box-shadow:0 0 0 0 rgba(255,23,68,.55) }
+  50%    { box-shadow:0 0 0 5px rgba(255,23,68,0) }
+}
+.feeder-row[data-status="breakdown"] .status-dot,
+.fsd-item .status-dot-breakdown{ animation:statusPulse 1.6s ease-in-out infinite }
+/* Toast pop — slightly more lively */
+#toast{
+  transition:opacity .25s ease,transform .35s cubic-bezier(.16,.84,.44,1) !important;
+}
+#toast.show{
+  transform:translateX(-50%) translateY(0) scale(1) !important;
+}
+/* Empty-state styling for SS panel when nothing matches */
+.ss-empty{
+  padding:14px 12px;text-align:center;color:#94a3b8;
+  font-family:var(--mono);font-size:10px;letter-spacing:.8px;
+  background:rgba(148,163,184,.06);border-radius:8px;margin:8px;
+}
+/* Slight refinement to basemap tabs row — keeps the 3D yellow group cohesive */
+#bm-tabs{
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  background:linear-gradient(180deg,rgba(13,18,30,.86),rgba(13,18,30,.72));
+}
+.bm-tab{
+  letter-spacing:.6px;
+  transition:background .18s ease,color .18s ease,border-color .18s ease,transform .12s ease;
+}
+.bm-tab:hover{ transform:translateY(-1px) }
+.bm-tab.active{ font-weight:700 }
+/* Action buttons in Data Files panel — soft elevation */
+#dataFilesPanel button{
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+#dataFilesPanel button:hover{
+  box-shadow:0 4px 12px rgba(0,0,0,.10);
+  transform:translateY(-1px);
+}
+
+#rulerBtn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:16px;
+  border:1px solid rgba(255,200,0,.35);background:rgba(255,200,0,.07);color:#ffcc40;
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .2s;flex-shrink:0}
+#rulerBtn:hover{background:rgba(255,200,0,.18);color:#fff}
+#rulerBtn.measuring{background:#ffab00;border-color:#ffab00;color:#000;font-weight:700;
+  box-shadow:0 0 12px rgba(255,171,0,.5)}
+
+#gridStyleBtn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:16px;
+  border:1px solid rgba(15,118,110,.4);background:rgba(15,118,110,.12);color:#5eead4;
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .2s;flex-shrink:0}
+#gridStyleBtn:hover{background:rgba(15,118,110,.28);color:#fff}
+#gridStylePanel{position:fixed;top:60px;right:300px;z-index:9500;width:300px;
+  max-height:calc(100vh - 90px);overflow-y:auto;
+  background:#fff;border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.35);
+  padding:14px 16px;display:none;font-family:var(--sans)}
+#gridStylePanel.open{display:block}
+.gsp-title{font-size:11px;font-weight:900;color:#0f766e;letter-spacing:1.4px;margin-bottom:10px}
+.gsp-row{margin-bottom:9px}
+.gsp-row label{display:flex;justify-content:space-between;gap:10px;font-size:9px;font-weight:800;letter-spacing:.6px;margin-bottom:3px;color:#334155}
+.gsp-row input[type=range]{width:100%}
+
+#ruler-readout{
+  position:fixed;bottom:56px;left:50%;transform:translateX(-50%);z-index:1450;
+  background:rgba(8,18,30,.96);border:1.5px solid #ffab00;border-radius:10px;
+  padding:10px 18px;font-family:var(--mono);color:#fff;
+  display:none;align-items:center;gap:14px;
+  box-shadow:0 4px 22px rgba(0,0,0,.5),0 0 24px rgba(255,171,0,.18);
+}
+#ruler-readout.show{display:flex}
+.ruler-r-lbl{font-size:9px;color:rgba(255,171,0,.7);letter-spacing:1.5px;font-weight:700}
+.ruler-r-val{font-size:18px;font-weight:800;color:#ffab00;letter-spacing:.5px}
+.ruler-r-sub{font-size:10px;color:rgba(255,255,255,.6);font-family:var(--sans)}
+.ruler-r-btn{margin-left:8px;padding:5px 11px;border-radius:7px;border:1px solid rgba(255,171,0,.4);
+  background:rgba(255,171,0,.12);color:#ffcc40;cursor:pointer;font-family:var(--mono);
+  font-size:9px;letter-spacing:1px;font-weight:700;transition:.15s}
+.ruler-r-btn:hover{background:rgba(255,171,0,.28);color:#fff}
+.ruler-marker{
+  width:12px;height:12px;background:#ffab00;border:2px solid #fff;border-radius:50%;
+  box-shadow:0 0 8px #ffab00, 0 1px 3px rgba(0,0,0,.5);transform:translate(-6px,-6px);
+}
+.ruler-label{
+  background:#ffab00;color:#000;font-family:var(--mono);font-weight:800;
+  font-size:11px;padding:2px 7px;border-radius:5px;white-space:nowrap;
+  box-shadow:0 2px 6px rgba(0,0,0,.4);transform:translate(-50%, -150%);
+  pointer-events:none;
+}
+.coord-popup .leaflet-popup-content-wrapper{
+  background:rgba(8,18,30,.97)!important;color:var(--text)!important;
+  border:1px solid rgba(0,200,255,.3)!important;border-radius:10px!important;
+  box-shadow:0 4px 20px rgba(0,0,0,.6)!important}
+.coord-popup .leaflet-popup-content{margin:12px 16px!important;min-width:210px}
+.coord-popup .leaflet-popup-close-button{color:rgba(176,204,224,.4)!important}
+.cp-title{font-family:var(--mono);font-size:9px;color:rgba(0,200,255,.5);letter-spacing:1.5px;margin-bottom:8px}
+.cp-coord{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--live);margin:4px 0}
+.cp-copy{width:100%;margin-top:8px;padding:6px;border:1px solid rgba(0,200,255,.3);
+  background:rgba(0,200,255,.1);color:var(--live);font-family:var(--mono);font-size:9px;
+  letter-spacing:1px;border-radius:6px;cursor:pointer;transition:.2s}
+.cp-copy:hover{background:rgba(0,200,255,.25);color:#fff}
+
+/* ══ FEEDER ROWS LARGER ══ */
+.fr-row{padding:9px 10px 8px!important;margin:3px 4px!important;border-radius:10px!important}
+.fr-name{font-size:13px!important;font-weight:600!important}
+.fr-eht{font-size:9px!important}
+.fr-badge{font-size:9px!important;padding:3px 7px!important;border-radius:7px!important}
+.fr-act{font-size:12px!important;padding:3px 6px!important}
+.fr-sb{padding:4px 8px!important;font-size:9px!important;border-radius:5px!important}
+.fr-stat-mini{font-size:9px!important}
+.tog-mini{width:30px!important;height:17px!important}
+.tog-mini::after{width:11px!important;height:11px!important}
+
+
+/* ══ HIERARCHY LEVELS ══ */
+.fgrp[data-level="subdiv"] .fgrp-hd{padding-left:20px;background:rgba(25,118,210,.04)}
+.fgrp[data-level="subdiv"] .fgrp-label{font-size:12px;font-weight:600;color:#2a4a6a}
+.fgrp[data-level="section"] .fgrp-hd{padding-left:34px;background:rgba(25,118,210,.02)}
+.fgrp[data-level="section"] .fgrp-label{font-size:11px;font-weight:600;color:#3d5e8a}
+/* Feeder row — compact but readable */
+.fr-row{padding:7px 10px 6px!important;margin:2px 4px!important}
+.fr-name{font-size:11px!important;font-weight:500!important;color:#1e3a5f!important}
+.fr-top{gap:5px!important}
+.fr-drag{font-size:13px!important}
+.fr-sb{padding:3px 7px!important;font-size:8.5px!important}
+
+
+/* ══ FEEDER STATS PANEL ══ */
+#feederStatsPanel{position:fixed;right:-420px;top:52px;bottom:38px;width:400px;z-index:1050;background:#fff;border-left:1px solid #e2e8f0;box-shadow:-4px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column;transition:right .3s ease;overflow:hidden}
+#feederStatsPanel.open{right:0}
+.fsp-head{padding:14px 16px 12px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#fff}
+.fsp-title{font-size:14px;font-weight:700;color:#0f172a;flex:1}
+.fsp-fn{font-size:10px;font-family:monospace;color:#64748b;margin-top:2px}
+.fsp-close{cursor:pointer;color:#94a3b8;font-size:18px;padding:4px 8px;border-radius:6px;border:none;background:none;transition:.15s}
+.fsp-close:hover{background:#f1f5f9;color:#334155}
+.fsp-body{flex:1;overflow-y:auto;padding:14px 16px}
+.fsp-section{margin-bottom:16px}
+.fsp-sec-title{font-size:9px;font-weight:700;color:#94a3b8;letter-spacing:2px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #f1f5f9}
+.fsp-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px}
+.fsp-stat{background:#f8fafc;border-radius:8px;padding:9px 11px;border:1px solid #f1f5f9}
+.fsp-stat-lbl{font-size:9px;color:#94a3b8;font-family:monospace;letter-spacing:.5px;margin-bottom:3px}
+.fsp-stat-val{font-size:15px;font-weight:700;color:#1e293b;font-family:monospace}
+.fsp-stat-val.ug{color:#2196f3}.fsp-stat-val.oh{color:#ff9800}
+.fsp-field{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border:1px solid #f1f5f9;border-radius:7px;margin-bottom:5px;background:#fafafa}
+.fsp-field-lbl{font-size:11px;color:#475569;flex:1}
+.fsp-field-val{font-size:11px;font-weight:600;color:#1e293b;font-family:monospace}
+.fsp-input{border:1px solid #e2e8f0;border-radius:5px;padding:3px 7px;font-size:11px;color:#334155;font-family:monospace;width:110px;text-align:right;outline:none}
+.fsp-input:focus{border-color:#2196f3;box-shadow:0 0 0 2px rgba(33,150,243,.1)}
+.fsp-pole-row{display:flex;justify-content:space-between;padding:5px 8px;border-bottom:1px solid #f8fafc;font-size:11px;color:#334155}
+.fsp-save-btn{width:100%;padding:9px;margin-top:8px;border:none;border-radius:8px;background:#2196f3;color:#fff;font-weight:600;font-size:12px;cursor:pointer;transition:.2s}
+.fsp-save-btn:hover{background:#1565c0}
+/* Tree panel white overrides */
+#panel{background:#fff!important;border-right:1px solid #e2e8f0!important}
+.psec,.psec-t{background:#fff!important}
+#feederChecks{background:#fff;padding:0!important}
+
+/* ══ UPLOAD BUTTON ══ */
+.tb-upload-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:16px;
+  border:1px solid rgba(0,200,255,.3);background:rgba(0,200,255,.08);color:var(--live);
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;cursor:pointer;white-space:nowrap;
+  transition:all .2s;flex-shrink:0}
+.tb-upload-btn:hover{background:rgba(0,200,255,.18);color:#fff}
+
+/* ══ DATA FILES FLOATING PANEL ══ */
+#dfFloatPanel{position:fixed;top:58px;right:130px;z-index:1050;width:280px;
+  background:#fff;border:1px solid #e2e8f0;border-radius:14px;
+  box-shadow:0 8px 32px rgba(0,0,0,.18);
+  transform:translateY(-8px) scale(.97);opacity:0;pointer-events:none;
+  transition:transform .22s cubic-bezier(.4,0,.2,1),opacity .22s ease}
+#dfFloatPanel.open{transform:translateY(0) scale(1);opacity:1;pointer-events:all}
+.df-fp-hd{display:flex;align-items:center;gap:8px;padding:12px 14px 10px;
+  border-bottom:1px solid #e9f0f7}
+.df-fp-title{font-family:var(--mono);font-size:10px;color:#1e3a5f;letter-spacing:2px;font-weight:700;flex:1}
+.df-fp-sub{font-family:var(--mono);font-size:9px;color:#64748b;background:#f1f5f9;
+  padding:2px 8px;border-radius:10px}
+.df-fp-close{cursor:pointer;color:#94a3b8;font-size:14px;padding:2px 4px;border-radius:4px;
+  transition:color .15s,background .15s}
+.df-fp-close:hover{color:#1e3a5f;background:#f1f5f9}
+.df-fp-body{padding:14px}
+.df-upload-big{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  padding:11px 14px;border-radius:10px;border:2px dashed #93c5fd;background:#eff6ff;
+  color:#2563eb;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .2s}
+.df-upload-big:hover{background:#dbeafe;border-color:#3b82f6}
+.df-row{display:flex;align-items:center;gap:6px;margin-bottom:0px}
+.df-select{flex:1;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;
+  padding:8px 10px;color:#1e3a5f;font-family:var(--sans);font-size:12px;outline:none;cursor:pointer;min-width:0;
+  transition:border-color .2s}
+.df-select:focus{border-color:#3b82f6}
+.df-select option{background:#fff;color:#1e3a5f}
+.df-btn{flex:1;padding:9px 14px;border-radius:8px;border:none;cursor:pointer;font-family:var(--mono);
+  font-size:10px;letter-spacing:.8px;font-weight:700;transition:all .2s;white-space:nowrap}
+.df-run{background:#2563eb;color:#fff}
+.df-run:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.35)}
+.df-del-f{background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5}
+.df-del-f:hover{background:#fecaca;transform:translateY(-1px)}
+.df-hint{font-family:var(--sans);font-size:10px;color:#94a3b8;line-height:1.5;margin-top:10px;
+  padding:8px 10px;background:#f8fafc;border-radius:7px;border:1px solid #f1f5f9}
+#dfFileInput{display:none}
+
+/* ══ FEEDER STATS ══ */
+.fstat-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin-top:4px}
+.fstat-item{display:flex;flex-direction:column;gap:2px;padding:6px 8px;
+  background:#f0f4f8;border-radius:6px;border:1px solid rgba(0,0,0,.07)}
+.fstat-lbl{font-family:var(--mono);font-size:7px;color:#4a6fa5;letter-spacing:1px;font-weight:600}
+.fstat-val{font-family:var(--mono);font-size:12px;color:#1a3a5c;font-weight:700}
+.fstat-val.oh{color:#e65100}.fstat-val.ug{color:#1565c0}.fstat-val.pole{color:#e65100}
+
+/* Feeder delete btn */
+.fn-del-btn{font-size:9px;cursor:pointer;padding:1px 5px;border-radius:4px;
+  border:1px solid rgba(255,23,68,.25);color:rgba(255,68,102,.6);
+  background:rgba(255,23,68,.06);font-family:var(--mono);transition:.2s;flex-shrink:0}
+.fn-del-btn:hover{background:rgba(255,23,68,.2);color:#ff4466}
+
+/* ══ HIERARCHY PANEL ══ */
+.hier-div,.hier-sub,.hier-sec{margin-bottom:1px}
+.hier-div-hd,.hier-sub-hd,.hier-sec-hd{display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:7px;cursor:default;user-select:none;transition:background .18s}
+.hier-div-hd{background:#dbeafe;border:1px solid #93c5fd;margin-bottom:2px;padding:7px 8px}
+.hier-div-hd:hover{background:#bfdbfe}
+.hier-sub-hd{background:#f0f9ff;border:1px solid #bae6fd;margin:2px 0 2px 8px;padding:5px 7px}
+.hier-sub-hd:hover{background:#e0f2fe}
+.hier-sec-hd{background:#f8fafc;border:1px solid #e2e8f0;margin:1px 0 1px 16px;padding:3px 5px}
+.hier-sec-hd:hover{background:#f1f5f9}
+.hier-div-body{padding-left:4px;background:#fcfdff}
+.hier-sub-body{padding-left:4px;background:#f8faff}
+.hier-sec-body{padding-left:8px;background:#f5f8ff}
+.hier-div-body.collapsed,.hier-sub-body.collapsed,.hier-sec-body.collapsed{display:none}
+.hier-arrow{font-size:11px;color:#2563eb;width:12px;flex-shrink:0;cursor:pointer;transition:transform .2s}
+.hier-div-hd.collapsed .hier-arrow,.hier-sub-hd.collapsed .hier-arrow,.hier-sec-hd.collapsed .hier-arrow{transform:rotate(-90deg)}
+.hier-color-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.hier-div-label{font-family:var(--mono);font-size:10px;color:#1e3a5f;letter-spacing:.8px;flex:1;font-weight:700}
+.hier-sub-label{font-family:var(--mono);font-size:9px;color:#1e40af;letter-spacing:.5px;flex:1;font-weight:600}
+.hier-sec-label{font-family:var(--mono);font-size:8.5px;color:#374151;letter-spacing:.4px;flex:1}
+.hier-cnt{font-family:var(--mono);font-size:9px;color:#1d4ed8;background:#dbeafe;padding:2px 6px;border-radius:8px;flex-shrink:0}
+/* Hierarchy checkbox */
+.hier-cb{width:13px;height:13px;border-radius:3px;border:1.5px solid #93c5fd;flex-shrink:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;background:#fff}
+.hier-cb:hover{border-color:#2563eb;background:#eff6ff}
+.hier-cb.checked{background:#2563eb;border-color:#1d4ed8}
+.hier-cb.checked::after{content:'✓';font-size:9px;color:#fff;line-height:1}
+.hier-cb.partial{background:#bfdbfe;border-color:#60a5fa}
+.hier-cb.partial::after{content:'–';font-size:10px;color:#1d4ed8;line-height:1}
+/* Feeder rows inside hierarchy */
+.hier-sec-body .fr-row{margin:1px 0;padding:6px 8px 5px;background:#fff;border:1px solid #e2edf8}
+.hier-sec-body .fr-row:hover{background:#eff6ff;border-color:#93c5fd}
+.hier-sec-body .fr-bottom{padding-left:12px}
+
+/* ═════════════════════════════════════════════════════════════
+   "GRID" BASEMAP — tile-less cyberpunk background (09 May 2026)
+   Painted on the map container itself; no network tile loading.
+   ═════════════════════════════════════════════════════════════ */
+#map.grid-bm-on{
+  background:
+    /* dim grid lines */
+    linear-gradient(to right, rgba(64,128,255,.07) 1px, transparent 1px) 0 0/40px 40px,
+    linear-gradient(to bottom, rgba(64,128,255,.07) 1px, transparent 1px) 0 0/40px 40px,
+    /* atmospheric glows */
+    radial-gradient(circle at 18% 22%, rgba(64,80,255,.22), transparent 38%),
+    radial-gradient(circle at 82% 78%, rgba(192,72,255,.20), transparent 42%),
+    radial-gradient(circle at 50% 50%, rgba(0,200,255,.10), transparent 60%),
+    /* base */
+    linear-gradient(135deg, #050818 0%, #0c1024 45%, #1a0a2e 100%) !important;
+  background-attachment:fixed,fixed,fixed,fixed,fixed,fixed!important;
+}
+#map.grid-bm-on .leaflet-tile-pane{opacity:.0!important}
+#map.grid-bm-on::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:
+    radial-gradient(circle 1px at 23% 31%, rgba(0,255,200,.6), transparent 100%),
+    radial-gradient(circle 1px at 67% 14%, rgba(168,108,255,.55), transparent 100%),
+    radial-gradient(circle 1px at 41% 78%, rgba(64,200,255,.6), transparent 100%),
+    radial-gradient(circle 1px at 88% 56%, rgba(255,80,200,.55), transparent 100%),
+    radial-gradient(circle 1px at 12% 88%, rgba(0,255,255,.45), transparent 100%);
+}
+
+
+/* ── SS FOCUS BANNER (added 21 May 2026) ── */
+#ssFocusBanner{
+  position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-20px);
+  z-index:1450;
+  background:linear-gradient(135deg,rgba(8,18,30,.97),rgba(15,30,55,.97));
+  border:1.5px solid rgba(0,200,255,.45);border-radius:24px;
+  padding:9px 14px 9px 16px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 6px 22px rgba(0,0,0,.5),0 0 24px rgba(0,200,255,.18);
+  opacity:0;pointer-events:none;transition:all .25s ease;
+  max-width:80vw;
+}
+#ssFocusBanner.show{opacity:1;pointer-events:all;transform:translateX(-50%) translateY(0)}
+.ssf-icon{font-size:14px;flex-shrink:0;filter:drop-shadow(0 0 4px #00c8ff)}
+.ssf-text{font-family:var(--sans);font-size:12px;color:#fff;letter-spacing:.2px;line-height:1.3}
+.ssf-text b{color:#00c8ff;font-weight:700}
+.ssf-clear{
+  padding:5px 12px;border:1px solid rgba(255,100,100,.5);
+  background:rgba(255,80,80,.15);color:#ff8888;
+  font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;
+  border-radius:14px;cursor:pointer;transition:.15s;flex-shrink:0;
+}
+.ssf-clear:hover{background:rgba(255,80,80,.3);color:#fff;border-color:#ff5555}
+
+#fbStatus{position:fixed;bottom:46px;left:50%;transform:translateX(-50%);z-index:1600;
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:5px 14px;
+  border-radius:12px;opacity:0;pointer-events:none;transition:all .3s;white-space:nowrap}
+#fbStatus.show{opacity:1}
+#fbStatus.saving{background:rgba(255,171,0,.18);border:1px solid rgba(255,171,0,.4);color:#ffab00}
+#fbStatus.saved{background:rgba(0,230,118,.12);border:1px solid rgba(0,230,118,.3);color:#00e676}
+#fbStatus.loading{background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.25);color:var(--live)}
+#fbStatus.error{background:rgba(255,23,68,.12);border:1px solid rgba(255,23,68,.3);color:#ff4466}
+
+/* ══════════════════════════════════════════════════════════════
+   FEEDER STATS PANEL — REDESIGNED HERO UI (09 May 2026)
+   Updated: bold black labels, stronger contrast (per Naresh feedback)
+   ══════════════════════════════════════════════════════════════ */
+#feederStatsPanel{width:430px!important}
+.fsp-head{padding:12px 14px 10px!important;gap:6px!important;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)!important}
+.fsp-title{font-size:11px!important;font-family:var(--mono)!important;color:#1d4ed8!important;letter-spacing:2px!important;margin-bottom:2px!important;font-weight:700!important}
+.fsp-fn{font-size:11px!important;color:#0f172a!important;font-weight:700!important;font-family:var(--sans)!important;line-height:1.3;word-break:break-word;white-space:normal!important}
+.fsp-dl-btn{padding:5px 9px;border:1px solid #93c5fd;background:#eff6ff;color:#1d4ed8;
+  font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;
+  border-radius:6px;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0}
+.fsp-dl-btn:hover{background:#dbeafe;border-color:#3b82f6;transform:translateY(-1px);box-shadow:0 2px 8px rgba(59,130,246,.25)}
+.fsp-dl-xlsx{border-color:#86efac;background:#f0fdf4;color:#15803d}
+.fsp-dl-xlsx:hover{background:#dcfce7;border-color:#22c55e;box-shadow:0 2px 8px rgba(34,197,94,.25)}
+
+/* SECTION HEADERS — bold black for readability */
+.fsp-sec-title{
+  font-size:11px!important;
+  font-weight:800!important;
+  color:#000!important;
+  letter-spacing:1.5px!important;
+  margin-bottom:10px!important;
+  padding-bottom:6px!important;
+  border-bottom:2px solid #1d4ed8!important;
+  text-transform:uppercase;
+}
+
+/* STAT CARDS */
+.fsp-stat{
+  background:#fff!important;
+  border:1.5px solid #e2e8f0!important;
+  border-radius:10px!important;
+  padding:11px 13px!important;
+  transition:.2s;
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+.fsp-stat:hover{border-color:#93c5fd;box-shadow:0 2px 8px rgba(37,99,235,.1)}
+.fsp-stat-lbl{
+  font-size:10px!important;
+  color:#000!important;
+  font-family:var(--sans)!important;
+  font-weight:700!important;
+  letter-spacing:.8px!important;
+  margin-bottom:5px!important;
+  text-transform:uppercase;
+}
+.fsp-stat-val{
+  font-size:18px!important;
+  font-weight:800!important;
+  color:#000!important;
+  font-family:var(--mono)!important;
+  line-height:1;
+}
+.fsp-stat-val.ug{color:#1565c0!important}
+.fsp-stat-val.oh{color:#e65100!important}
+
+/* FIELD ROWS (Source / Division / Section) */
+.fsp-field{
+  display:flex!important;
+  justify-content:space-between!important;
+  align-items:center!important;
+  padding:9px 12px!important;
+  border:1px solid #e2e8f0!important;
+  border-radius:8px!important;
+  margin-bottom:6px!important;
+  background:#f8fafc!important;
+}
+.fsp-field-lbl{
+  font-size:11px!important;
+  color:#000!important;
+  font-weight:600!important;
+  flex:1!important;
+  font-family:var(--sans)!important;
+}
+.fsp-field-val{
+  font-size:11px!important;
+  color:#000!important;
+  font-weight:700!important;
+  font-family:var(--mono)!important;
+  text-align:right;
+  letter-spacing:.3px;
+}
+.fsp-input{
+  border:1.5px solid #cbd5e1!important;
+  border-radius:6px!important;
+  padding:5px 9px!important;
+  font-size:11px!important;
+  color:#000!important;
+  font-weight:700!important;
+  font-family:var(--mono)!important;
+  width:120px!important;
+  text-align:right!important;
+  outline:none;
+  background:#fff;
+  transition:.15s;
+}
+.fsp-input:focus{border-color:#2563eb!important;box-shadow:0 0 0 3px rgba(37,99,235,.12)!important}
+
+/* Hero block */
+.fsp-hero{margin:-14px -16px 16px;padding:18px 18px 14px;
+  background:linear-gradient(135deg,#1e3a8a 0%,#3b82f6 50%,#0891b2 100%);
+  color:#fff;position:relative;overflow:hidden}
+.fsp-hero::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 80% 20%,rgba(255,255,255,.18),transparent 50%),
+             radial-gradient(circle at 20% 80%,rgba(0,200,255,.15),transparent 50%);
+  pointer-events:none}
+.fsp-hero-title{font-family:var(--sans);font-size:17px;font-weight:800;color:#fff;
+  letter-spacing:.3px;margin-bottom:3px;line-height:1.2;position:relative;z-index:1;
+  text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.fsp-hero-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.85);
+  letter-spacing:.5px;margin-bottom:14px;position:relative;z-index:1;font-weight:600}
+.fsp-hero-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;position:relative;z-index:1}
+.fsp-kpi{background:rgba(255,255,255,.16);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.22);border-radius:9px;
+  padding:9px 6px 8px;text-align:center;transition:.18s}
+.fsp-kpi:hover{background:rgba(255,255,255,.24);transform:translateY(-1px)}
+.fsp-kpi-val{font-family:var(--mono);font-size:18px;font-weight:800;color:#fff;line-height:1;margin-bottom:3px;
+  text-shadow:0 1px 3px rgba(0,0,0,.4)}
+.fsp-kpi-lbl{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.85);
+  letter-spacing:1.2px;font-weight:700}
+.fsp-bar-wrap{display:flex;height:7px;border-radius:4px;overflow:hidden;
+  background:rgba(255,255,255,.15);margin-top:14px;position:relative;z-index:1}
+.fsp-bar-ug{background:linear-gradient(90deg,#60a5fa,#2196f3);transition:width .4s}
+.fsp-bar-oh{background:linear-gradient(90deg,#fbbf24,#ff9800);transition:width .4s}
+.fsp-bar-lbl{display:flex;gap:14px;font-family:var(--mono);font-size:9px;
+  color:#fff;margin-top:6px;letter-spacing:.5px;position:relative;z-index:1;align-items:center;font-weight:700}
+.fsp-bar-d{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+/* Stats with category accents */
+.fsp-stat-ab{border-left:4px solid #ff9800!important}
+.fsp-stat-dp{border-left:4px solid #9c27b0!important}
+
+/* Pole list */
+.fsp-pole-list{background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;
+  padding:0;max-height:280px;overflow-y:auto}
+.fsp-pole-list::-webkit-scrollbar{width:5px}
+.fsp-pole-list::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+.fsp-pole-row{display:flex;justify-content:space-between;align-items:center;
+  padding:9px 13px!important;border-bottom:1px solid #f1f5f9;font-size:12px;color:#000!important;
+  transition:background .15s;font-weight:600!important}
+.fsp-pole-row:last-child{border:none}
+.fsp-pole-row:hover{background:#eff6ff}
+.fsp-pole-row span:last-child{color:#000!important;font-weight:800!important}
+
+/* Wide input for alt source */
+.fsp-input-wide{width:170px!important;text-align:left!important;font-family:var(--sans)!important;font-size:11px!important;font-weight:600!important}
+
+.fsp-save-btn{
+  width:100%;padding:11px;margin-top:12px;border:none;border-radius:9px;
+  background:linear-gradient(135deg,#1d4ed8,#2563eb);
+  color:#fff;font-weight:800;font-size:13px;letter-spacing:.5px;
+  cursor:pointer;transition:.2s;
+  box-shadow:0 2px 8px rgba(37,99,235,.3);
+}
+.fsp-save-btn:hover{
+  background:linear-gradient(135deg,#1e3a8a,#1d4ed8);
+  transform:translateY(-1px);
+  box-shadow:0 4px 14px rgba(37,99,235,.4);
+}
+
+/* ── PANEL — make feeder list fill all available space ── */
+#panel{display:flex!important;flex-direction:column!important;overflow:hidden!important}
+
+/* TAB STRIP at the top of the left panel */
+.lpanel-tabs{
+  display:flex;flex-shrink:0;background:#f1f5f9;border-bottom:1px solid #e2e8f0;
+}
+.lpanel-tab{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:11px 8px;border:none;background:transparent;cursor:pointer;
+  font-family:var(--sans);font-size:11px;font-weight:700;color:#64748b;
+  letter-spacing:1px;border-bottom:3px solid transparent;
+  transition:all .18s;position:relative;
+}
+.lpanel-tab:hover{background:#e2e8f0;color:#1e3a5f}
+.lpanel-tab.active{background:#fff;color:#1d4ed8;border-bottom-color:#1d4ed8;
+  box-shadow:0 -2px 0 #1d4ed8 inset, 0 0 0 transparent}
+.ltab-ic{font-size:13px;color:#3b82f6}
+.lpanel-tab.active .ltab-ic{color:#1d4ed8}
+.ltab-cnt{font-family:var(--mono);font-size:9px;background:#cbd5e1;color:#475569;
+  padding:2px 7px;border-radius:10px;font-weight:700;letter-spacing:.5px}
+.lpanel-tab.active .ltab-cnt{background:#dbeafe;color:#1d4ed8}
+
+/* TAB PANES — flex children that fill remaining space */
+.lpanel-pane{
+  flex:1!important;
+  display:none;
+  flex-direction:column;
+  min-height:0;
+  overflow:hidden;
+}
+.lpanel-pane.active{display:flex!important}
+.lpanel-pane > #feederChecks,
+.lpanel-pane > #ssList{
+  flex:1!important;
+  overflow-y:auto!important;
+  min-height:0!important;
+}
+#feederChecks::-webkit-scrollbar,#ssList::-webkit-scrollbar{width:6px}
+#feederChecks::-webkit-scrollbar-thumb,#ssList::-webkit-scrollbar-thumb{background:#bfdbfe;border-radius:3px}
+#feederChecks::-webkit-scrollbar-track,#ssList::-webkit-scrollbar-track{background:#f1f5f9}
+
+/* SUBSTATION TYPE BAR */
+.ss-typebar{display:flex;gap:4px;padding:0 12px 8px;flex-shrink:0;border-bottom:1px solid #f1f5f9;margin-bottom:4px}
+.ss-typebtn{
+  flex:1;padding:5px 8px;border:1.5px solid #e2e8f0;background:#fff;
+  font-family:var(--mono);font-size:9px;letter-spacing:.8px;font-weight:700;
+  color:#64748b;border-radius:6px;cursor:pointer;transition:.15s;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.ss-typebtn:hover{border-color:#93c5fd;color:#1d4ed8}
+.ss-typebtn.active{background:#1d4ed8;color:#fff;border-color:#1d4ed8;
+  box-shadow:0 2px 6px rgba(29,78,216,.25)}
+.ss-typecnt{
+  display:inline-block;font-size:8px;font-weight:800;
+  background:#e2e8f0;color:#475569;padding:1px 6px;border-radius:7px;
+  min-width:18px;text-align:center;letter-spacing:.4px;line-height:1.4;
+  transition:.15s;
+}
+.ss-typebtn:hover .ss-typecnt{background:#dbeafe;color:#1d4ed8}
+.ss-typebtn.active .ss-typecnt{background:rgba(255,255,255,.22);color:#fff}
+
+/* SUBSTATION LIST */
+.ss-list{padding:4px 6px 12px}
+
+/* 3-level hierarchy headers (Division → Sub-Division → Section) */
+.ss-div-hd{
+  font-family:var(--mono);font-size:10px;color:#fff;letter-spacing:1.8px;
+  font-weight:800;padding:9px 12px;
+  background:linear-gradient(90deg,#1d4ed8,#3b82f6);
+  margin:8px 4px 2px;border-radius:7px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 6px rgba(29,78,216,.2);
+}
+.ss-div-cnt{font-family:var(--mono);font-size:9px;background:rgba(255,255,255,.22);
+  color:#fff;padding:2px 9px;border-radius:9px;font-weight:700}
+
+.ss-sub-hd{
+  font-family:var(--mono);font-size:9px;color:#1d4ed8;letter-spacing:1.3px;
+  font-weight:700;padding:6px 10px 5px 16px;
+  background:#dbeafe;
+  margin:4px 6px 1px;border-radius:5px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-left:3px solid #3b82f6;
+}
+.ss-sub-cnt{font-family:var(--mono);font-size:8.5px;background:#fff;
+  color:#1d4ed8;padding:1px 7px;border-radius:7px;font-weight:700;border:1px solid #93c5fd}
+
+.ss-sec-hd{
+  font-family:var(--mono);font-size:8.5px;color:#475569;letter-spacing:1px;
+  font-weight:700;padding:4px 8px 4px 22px;
+  background:#f8fafc;
+  margin:2px 8px 1px;border-radius:4px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-left:2px solid #cbd5e1;
+}
+.ss-sec-cnt{font-family:var(--mono);font-size:8px;background:#e2e8f0;
+  color:#475569;padding:1px 6px;border-radius:6px;font-weight:700}
+
+.ss-row{
+  display:flex;align-items:center;gap:9px;padding:8px 11px;margin:2px 10px 2px 24px;
+  background:#fff;border:1px solid #e2e8f0;border-radius:8px;
+  cursor:pointer;transition:all .18s;
+}
+.ss-row:hover{background:#eff6ff;border-color:#93c5fd;transform:translateX(2px);
+  box-shadow:0 2px 8px rgba(37,99,235,.1)}
+.ss-row.ss-eht{background:linear-gradient(90deg,#fff7ed 0%,#ffedd5 100%);border-color:#fdba74}
+.ss-row.ss-eht:hover{background:#fed7aa;border-color:#f97316}
+.ss-row-ic{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle,#1e88e5 0%,#0d47a1 100%);
+  color:#fff;font-size:11px;font-weight:700;
+  box-shadow:0 0 6px rgba(33,150,243,.5);
+}
+.ss-row.ss-eht .ss-row-ic{
+  border-radius:5px;width:26px;height:20px;
+  background:rgba(30,10,0,.85);color:#ff9800;border:1.5px solid #ff9800;
+  box-shadow:0 0 6px rgba(255,120,0,.4);font-size:8px;
+}
+.ss-row-body{flex:1;min-width:0}
+.ss-row-name{font-family:var(--sans);font-size:12px;font-weight:700;color:#0f172a;
+  line-height:1.25;word-break:break-word;letter-spacing:.2px}
+.ss-row.ss-eht .ss-row-name{color:#7c2d12}
+.ss-row-meta{font-family:var(--mono);font-size:9px;color:#64748b;letter-spacing:.4px;
+  margin-top:2px}
+.ss-empty{padding:24px;text-align:center;color:#94a3b8;font-size:11px;font-style:italic}
+
+/* ── FEEDER NAME — show the full name (no clipping) ── */
+.fr-name{
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  word-break:break-word!important;
+  line-height:1.35!important;
+  font-size:11.5px!important;
+}
+.fr-top{align-items:flex-start!important}
+.fr-row{padding:8px 9px 7px!important}
+.fr-actions{flex-shrink:0;margin-top:1px}
+.fr-act{padding:2px 5px!important;font-size:11px!important}
+
+/* ── LAYER-TYPE LEGEND ICONS — match the actual map symbology ── */
+.lswatch.legend-icon{width:auto;height:auto;display:flex;align-items:center;justify-content:center;
+  background:transparent!important;border:none!important;box-shadow:none!important;flex-shrink:0;width:18px;height:18px}
+.lswatch.legend-icon svg{display:block}
+.lrow.off .lswatch.legend-icon{opacity:.3}
+
+/* ── OFFLINE / SLOWNESS HINT ── */
+#fbStatus.none{background:rgba(148,163,184,.15);border:1px solid rgba(148,163,184,.3);color:#64748b}
+
+/* ── CUT-POINT marker should NOT scale weirdly with zoom ── */
+.cut-pt-icon svg{display:block}
+
+
+/* ══════════════════════════════════════════════════════════
+   AI ASSISTANT PANEL  (HuggingFace Mistral-7B backend)
+   Added: June 2026
+   ══════════════════════════════════════════════════════════ */
+
+/* Topbar AI button */
+.tb-ai-btn{
+  display:inline-flex;align-items:center;gap:7px;padding:6px 14px;
+  background:linear-gradient(135deg,rgba(99,102,241,.22),rgba(139,92,246,.15));
+  border:1px solid rgba(139,92,246,.5);border-radius:18px;cursor:pointer;
+  color:#c4b5fd;font-family:var(--mono);font-size:10px;font-weight:700;
+  letter-spacing:.8px;transition:.18s;user-select:none;text-transform:uppercase;
+  margin-left:6px;flex-shrink:0;
+}
+.tb-ai-btn:hover{
+  background:linear-gradient(135deg,rgba(99,102,241,.38),rgba(139,92,246,.28));
+  border-color:rgba(139,92,246,.8);color:#ede9fe;transform:translateY(-1px);
+  box-shadow:0 4px 16px rgba(99,102,241,.25);
+}
+.tb-ai-btn.open{
+  background:linear-gradient(135deg,rgba(99,102,241,.4),rgba(139,92,246,.32));
+  color:#fff;border-color:#818cf8;box-shadow:0 0 20px rgba(99,102,241,.3);
+}
+.tb-ai-ic{font-size:14px;line-height:1}
+
+/* Main AI panel */
+#aiPanel{
+  position:fixed;bottom:96px;right:16px;z-index:1200;
+  width:420px;max-height:calc(100vh - 160px);
+  background:linear-gradient(180deg,#0f1729fc,#0a1220fc);
+  border:1px solid rgba(139,92,246,.35);border-radius:18px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px rgba(99,102,241,.12);
+  backdrop-filter:blur(24px);
+  display:flex;flex-direction:column;overflow:hidden;
+  transform:translateY(20px) scale(.97);opacity:0;pointer-events:none;
+  transition:transform .28s cubic-bezier(.16,.84,.44,1),opacity .25s ease;
+}
+#aiPanel.open{
+  transform:translateY(0) scale(1);opacity:1;pointer-events:all;
+}
+
+/* Panel header */
+.ai-hd{
+  padding:14px 16px 12px;
+  background:linear-gradient(90deg,rgba(99,102,241,.18),rgba(139,92,246,.1));
+  border-bottom:1px solid rgba(139,92,246,.18);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.ai-hd-icon{font-size:18px;line-height:1;filter:drop-shadow(0 0 6px #818cf8)}
+.ai-hd-info{flex:1;min-width:0}
+.ai-hd-title{font-family:var(--mono);font-size:11px;color:#c4b5fd;
+  letter-spacing:2px;font-weight:700;margin-bottom:1px}
+.ai-hd-sub{font-family:var(--mono);font-size:8px;color:rgba(196,181,253,.45);
+  letter-spacing:1px}
+.ai-hd-status{display:flex;align-items:center;gap:5px}
+.ai-status-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;
+  box-shadow:0 0 6px #4ade80;flex-shrink:0}
+.ai-status-dot.thinking{background:#fbbf24;box-shadow:0 0 6px #fbbf24;
+  animation:aiDotPulse .7s infinite}
+.ai-status-dot.error{background:#f87171;box-shadow:0 0 6px #f87171}
+@keyframes aiDotPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.ai-status-txt{font-family:var(--mono);font-size:8px;color:rgba(196,181,253,.55);
+  letter-spacing:.8px}
+.ai-hd-close{cursor:pointer;color:rgba(196,181,253,.35);font-size:16px;
+  width:24px;height:24px;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;transition:.15s;flex-shrink:0}
+.ai-hd-close:hover{color:#c4b5fd;background:rgba(139,92,246,.18)}
+
+/* Token input row */
+.ai-token-row{
+  padding:8px 12px;background:rgba(99,102,241,.06);
+  border-bottom:1px solid rgba(139,92,246,.1);
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+}
+.ai-token-input{
+  flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(139,92,246,.25);
+  border-radius:8px;padding:5px 10px;color:rgba(196,181,253,.8);
+  font-family:var(--mono);font-size:9px;outline:none;transition:.2s;letter-spacing:.5px;
+}
+.ai-token-input:focus{border-color:rgba(139,92,246,.6);background:rgba(99,102,241,.1);color:#c4b5fd}
+.ai-token-input::placeholder{color:rgba(196,181,253,.2)}
+.ai-token-save{padding:5px 10px;border-radius:7px;border:1px solid rgba(139,92,246,.3);
+  background:rgba(99,102,241,.15);color:#c4b5fd;font-family:var(--mono);font-size:8px;
+  letter-spacing:.8px;cursor:pointer;transition:.15s;white-space:nowrap;flex-shrink:0}
+.ai-token-save:hover{background:rgba(99,102,241,.3);color:#fff}
+.ai-token-link{font-family:var(--mono);font-size:8px;color:rgba(99,102,241,.6);
+  text-decoration:none;white-space:nowrap;transition:.15s}
+.ai-token-link:hover{color:#818cf8}
+
+/* Quick action chips */
+.ai-chips{
+  padding:8px 12px 6px;display:flex;gap:5px;flex-wrap:wrap;
+  border-bottom:1px solid rgba(139,92,246,.08);flex-shrink:0;
+}
+.ai-chip{
+  padding:4px 10px;border-radius:12px;border:1px solid rgba(139,92,246,.25);
+  background:rgba(99,102,241,.08);color:rgba(196,181,253,.7);
+  font-family:var(--mono);font-size:8px;letter-spacing:.5px;cursor:pointer;
+  transition:.15s;white-space:nowrap;user-select:none;
+}
+.ai-chip:hover{background:rgba(99,102,241,.22);color:#c4b5fd;border-color:rgba(139,92,246,.5)}
+
+/* Messages area */
+.ai-msgs{
+  flex:1;overflow-y:auto;padding:10px 12px;display:flex;
+  flex-direction:column;gap:10px;min-height:0;
+}
+.ai-msgs::-webkit-scrollbar{width:4px}
+.ai-msgs::-webkit-scrollbar-thumb{background:rgba(139,92,246,.3);border-radius:3px}
+
+/* Individual message bubbles */
+.ai-msg{display:flex;gap:8px;align-items:flex-start;animation:msgIn .22s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ai-msg.user{flex-direction:row-reverse}
+.ai-msg-avatar{
+  width:26px;height:26px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+}
+.ai-msg.ai .ai-msg-avatar{background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  box-shadow:0 0 10px rgba(99,102,241,.3)}
+.ai-msg.user .ai-msg-avatar{background:rgba(0,200,255,.15);border:1px solid rgba(0,200,255,.25)}
+.ai-msg-body{max-width:85%;display:flex;flex-direction:column;gap:4px}
+.ai-msg.user .ai-msg-body{align-items:flex-end}
+.ai-bubble{
+  padding:9px 13px;border-radius:12px;font-family:var(--sans);font-size:12px;
+  line-height:1.55;word-break:break-word;
+}
+.ai-msg.ai .ai-bubble{
+  background:rgba(99,102,241,.12);border:1px solid rgba(139,92,246,.2);
+  color:rgba(226,220,255,.9);border-radius:4px 12px 12px 12px;
+}
+.ai-msg.user .ai-bubble{
+  background:rgba(0,200,255,.12);border:1px solid rgba(0,200,255,.2);
+  color:rgba(176,220,240,.9);border-radius:12px 4px 12px 12px;
+}
+.ai-bubble strong{color:#c4b5fd;font-weight:700}
+.ai-bubble em{color:#7dd3fc;font-style:normal;font-weight:600}
+.ai-bubble ul{margin:6px 0 4px 14px;padding:0}
+.ai-bubble li{margin-bottom:3px}
+.ai-bubble code{background:rgba(139,92,246,.2);padding:1px 5px;border-radius:3px;
+  font-family:var(--mono);font-size:10px;color:#a5b4fc}
+.ai-bubble pre{background:rgba(0,0,0,.3);padding:8px 10px;border-radius:8px;
+  font-family:var(--mono);font-size:10px;color:#e2e8f0;margin:6px 0;
+  overflow-x:auto;border:1px solid rgba(139,92,246,.15);white-space:pre-wrap}
+.ai-msg-time{font-family:var(--mono);font-size:7px;color:rgba(196,181,253,.25);letter-spacing:.5px}
+
+/* Typing indicator */
+.ai-typing{display:flex;gap:4px;align-items:center;padding:8px 12px}
+.ai-typing span{width:6px;height:6px;border-radius:50%;background:#8b5cf6;
+  animation:typingBounce 1.2s infinite ease}
+.ai-typing span:nth-child(2){animation-delay:.2s}
+.ai-typing span:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* Chart output area inside messages */
+.ai-chart-wrap{
+  background:rgba(0,0,0,.25);border:1px solid rgba(139,92,246,.2);
+  border-radius:10px;padding:10px;margin-top:6px;
+}
+.ai-chart-title{font-family:var(--mono);font-size:9px;color:rgba(196,181,253,.6);
+  letter-spacing:1px;margin-bottom:8px;font-weight:700}
+
+/* Report card in chat */
+.ai-report-card{
+  background:rgba(255,255,255,.97);border-radius:10px;
+  padding:14px 16px;margin-top:6px;color:#1e3a5f;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:100%;
+}
+.ai-report-title{font-size:13px;font-weight:800;color:#0d47a1;margin-bottom:8px;
+  border-bottom:2px solid #e3f2fd;padding-bottom:6px}
+.ai-report-row{display:flex;justify-content:space-between;padding:4px 0;
+  border-bottom:1px solid #f1f5f9;font-size:11px}
+.ai-report-lbl{color:#64748b}
+.ai-report-val{font-weight:700;color:#0d47a1;font-family:monospace}
+
+/* Download buttons in chat */
+.ai-dl-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.ai-dl-btn{padding:5px 12px;border-radius:7px;border:none;cursor:pointer;
+  font-family:var(--mono);font-size:9px;letter-spacing:.8px;font-weight:700;
+  transition:.15s;display:flex;align-items:center;gap:5px}
+.ai-dl-btn.xlsx{background:#16a34a;color:#fff}
+.ai-dl-btn.xlsx:hover{background:#15803d}
+.ai-dl-btn.html{background:#0891b2;color:#fff}
+.ai-dl-btn.html:hover{background:#0e7490}
+
+/* Input area */
+.ai-input-area{
+  padding:10px 12px;border-top:1px solid rgba(139,92,246,.15);
+  background:rgba(0,0,0,.2);flex-shrink:0;
+}
+.ai-input-row{display:flex;gap:8px;align-items:flex-end}
+.ai-textarea{
+  flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(139,92,246,.25);
+  border-radius:12px;padding:9px 13px;color:rgba(226,220,255,.9);
+  font-family:var(--sans);font-size:12px;outline:none;resize:none;
+  min-height:38px;max-height:120px;line-height:1.4;transition:.2s;
+}
+.ai-textarea:focus{border-color:rgba(139,92,246,.55);background:rgba(99,102,241,.08)}
+.ai-textarea::placeholder{color:rgba(196,181,253,.2)}
+.ai-send{
+  width:38px;height:38px;border-radius:10px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:15px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:.15s;box-shadow:0 3px 10px rgba(99,102,241,.3);
+}
+.ai-send:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(99,102,241,.45)}
+.ai-send:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.ai-hint{font-family:var(--mono);font-size:8px;color:rgba(196,181,253,.2);
+  letter-spacing:.5px;margin-top:5px;text-align:center}
+
+/* Chart.js canvas in messages */
+.ai-canvas-wrap{position:relative;height:180px;margin-top:6px}
+
+
+/* SCADA / GRID print mode: hide UI and print only map area */
+@media print{
+  #topbar,#panel,#ptab,#rpanel,#botbar,#bm-tabs,#editToolbar,#feederStatsCard,#feederStatsPanel,#dfFloatPanel,#legend,.status-legend,#toast,#loader,#gridStylePanel{display:none!important}
+
+  html,body{
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+    background:#fff!important;
+    width:100%!important;
+    height:100%!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+
+  #map{
+    position:absolute!important;
+    inset:0!important;
+    top:0!important;
+    left:0!important;
+    right:auto!important;
+    bottom:auto!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:100%!important;
+    z-index:1!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+
+  #map.grid-bm-on,
+  #map.grid-view-layer-on{
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+
+  #map.grid-bm-on .leaflet-tile-pane,
+  #map.grid-view-layer-on .leaflet-tile-pane{
+    opacity:1!important;
+  }
+
+  .leaflet-control-container{display:none!important}
+  .ss33-wrap,.eht-wrap{transform:scale(.62)!important;transform-origin:center center!important}
+  .ss-label{font-size:7px!important;max-width:90px!important}
+  .pole-label{display:none!important}
+}
+
+
+
+/* ── Permanent important area labels inside GRID MAP VIEW (Naresh request) ── */
+.tg-important-area-label{
+  background:rgba(255,255,255,.76)!important;
+  border:1px solid rgba(30,64,175,.28)!important;
+  border-radius:4px!important;
+  color:#111827!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  font-size:var(--tg-grid-label-size,10px)!important;
+  font-weight:800!important;
+  padding:1px 4px!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+  white-space:normal!important;line-height:1.05!important;text-align:center!important;max-width:92px!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.85)!important;
+}
+.tg-important-area-label.core{
+  background:rgba(185,28,28,.88)!important;
+  border-color:rgba(255,255,255,.7)!important;
+  color:#fff!important;
+  text-shadow:none!important;
+}
+.tg-important-area-label.corridor{
+  background:rgba(254,249,195,.82)!important;
+  border-color:rgba(180,83,9,.45)!important;
+  color:#7c2d12!important;
+}
+
+/* hide ward area labels per Naresh */
+.tg-ward-area-label{display:none!important}
+
+body.gridzoom-out .tg-important-area-label.corridor,body.gridzoom-out .tg-important-area-label.local{display:none!important}
+body.gridzoom-out .tg-important-area-label.core{font-size:7px!important;max-width:50px!important;opacity:.88!important;padding:1px 2px!important}
+body.gridzoom-mid .tg-important-area-label.corridor{font-size:7.4px!important;max-width:58px!important;opacity:.88!important;padding:1px 2px!important}
+body.gridzoom-mid .tg-important-area-label.local{display:none!important}
+body.gridzoom-mid .tg-important-area-label.core{font-size:8.2px!important;max-width:64px!important;opacity:.94!important;padding:1px 3px!important}
+body.gridzoom-in .tg-important-area-label{font-size:var(--tg-grid-label-size,9px)!important;max-width:84px!important;opacity:1!important}
+body.gridzoom-in .tg-important-area-label.local{font-size:calc(var(--tg-grid-label-size,9px) - 1px)!important;max-width:74px!important}
+/* Per Naresh 01-Jul-2026: mandal names should stay visible at every zoom
+   level and just grow/shrink with it — unlike .local (which fully hides
+   at gridzoom-out/mid), .mandal only shrinks and fades slightly so 621
+   names never disappear, just get out of the way when zoomed out. */
+body.gridzoom-out .tg-important-area-label.mandal{font-size:6px!important;max-width:44px!important;opacity:.55!important;padding:0 2px!important}
+body.gridzoom-mid .tg-important-area-label.mandal{font-size:7.5px!important;max-width:60px!important;opacity:.78!important;padding:1px 2px!important}
+body.gridzoom-in .tg-important-area-label.mandal{font-size:var(--tg-grid-label-size,9px)!important;max-width:84px!important;opacity:1!important}
+body.gridzoom-out .tg-district-label{font-size:9px!important;opacity:.62!important}
+body.gridzoom-mid .tg-district-label{font-size:10px!important;opacity:.76!important}
+body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!important}
+
+/* ── Smart-grid replica: node/link icons (match route map SS/EHT look) ── */
+.sg-ab-icon{width:12px;height:12px;border-radius:50%;background:#ffd700;border:2px solid #4b5563;box-shadow:0 0 7px rgba(250,204,21,.8)}
+.sg-dp-icon{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:14px solid #d1d5db;filter:drop-shadow(0 0 4px #111)}
+.sg-ht-icon{width:16px;height:16px;border-radius:4px;background:#00a88a;border:2px solid #b2f5ea;box-shadow:0 0 8px #00a88a}
+.sg-node-label{background:rgba(10,10,15,.88);color:#fff;font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:4px;white-space:nowrap;letter-spacing:.35px;font-family:system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+/* Clean upload card for the DATA FILES rcard */
+.sg-upload{border:2px dashed #c3d4e8;border-radius:10px;padding:16px 12px;text-align:center;cursor:pointer;transition:.2s;background:linear-gradient(180deg,#f8fbff,#eef5fd);display:block}
+.sg-upload:hover{border-color:#2196f3;background:linear-gradient(180deg,#eef7ff,#e3f0fd)}
+.sg-upload.drag{border-color:#00a88a;background:#e6fff9}
+.sg-upload input{display:none}
+.sg-upload-ic{font-size:22px;margin-bottom:5px}
+.sg-upload-main{font-size:12px;font-weight:700;color:#1a3a5c}
+.sg-upload-sub{font-size:9.5px;color:#7a92aa;margin-top:2px}
+.sg-file-status{font-size:10px;color:#5a7a9a;margin-top:8px;padding:6px 8px;background:#f1f7fd;border-radius:6px;border-left:3px solid #2196f3;display:none}
+.sg-file-status.show{display:block}.sg-file-status.ok{border-left-color:#00a88a;color:#0a6b56;background:#eefdf9}
+.sg-act{width:100%;border:none;border-radius:7px;padding:8px;margin-top:6px;font-family:var(--sans);font-weight:700;font-size:10.5px;letter-spacing:.3px;cursor:pointer;transition:.15s}
+.sg-act:hover{filter:brightness(1.05)}
+.sg-act.save{background:linear-gradient(135deg,#00897b,#00a88a);color:#fff}
+.sg-act.load{background:#eef2f7;color:#37475a;border:1px solid #d5dfea}
+.sg-act.dl{background:linear-gradient(135deg,#c2410c,#ea580c);color:#fff}
 </style>
 </head>
-<body>
+<body class="no-anim">
+
+<style>
+:root{--sg-ss-scale:1;--sg-eht-scale:1;--sg-label-size:9px}
+.ss33-wrap{transform:scale(var(--sg-ss-scale,1));transform-origin:center}
+.eht-wrap{transform:scale(var(--sg-eht-scale,1));transform-origin:center}
+.node-label,.sg-node-label{font-size:var(--sg-label-size,9px)!important}
+</style>
+
+<div id="loader"><div class="ld-inner"><div class="ld-logo">TGSPDCL SMART GRID</div><div class="ld-bar"><div class="ld-fill" id="ldfill"></div></div><div class="ld-txt" id="ldtxt">Loading…</div></div></div>
 
 <div id="topbar">
-  <div class="tb-logo">TGSPDCL <span>smartgrid / r2</span></div>
+  <div class="tb-logo">TGSPDCL <span style="font-size:7px;color:rgba(0,200,255,.5);letter-spacing:1px;font-weight:400;margin-left:4px;vertical-align:middle">smartgrid / r3 (replica)</span></div>
   <div class="tb-sep"></div>
   <div class="tb-title">SCADA 33KV SMART GRID MAP</div>
-  <div class="tb-btn" onclick="loadFirebase()" title="Reload latest from Firebase">↻ RELOAD</div>
-  <div class="tb-btn" onclick="downloadTopologyCsv()" title="Download topology CSV">⬇ CSV</div>
-  <div id="srchWrap">
-    <input id="q" placeholder="Search feeder / SS / EHT…" autocomplete="off" oninput="render()"/>
+  <div id="gridStyleBtn" onclick="toggleGridStylePanel()" title="Adjust substation / EHT symbol size and label size">⚙ SYMBOL ADJUSTER</div>
+  <div id="srchWrap" style="position:relative">
+    <input id="srchInput" placeholder="Search feeder / SS / EHT…" autocomplete="off" oninput="onSearch(this.value)"/>
+    <div id="fsDropdown"></div>
     <span class="srch-ic">⌕</span>
   </div>
+  <input type="file" id="dfFileInput" accept=".csv,.xlsx,.xls" onchange="handleFile(this.files[0])" style="display:none"/>
+  <div class="fs-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</div>
   <div class="chip chip-live">● LIVE</div>
 </div>
 
-<div id="sb">
+<div id="ptab" onclick="togglePanel()">◀</div>
+
+<div id="panel">
+  <div id="panel-resize"></div>
+  <div style="padding:12px 12px 4px">
+    <div style="font-family:var(--mono);font-size:11px;color:#1565c0;letter-spacing:1px;font-weight:700;margin-bottom:8px">⚡ SMART GRID TOPOLOGY</div>
+  </div>
+
+  <!-- DATA FILES (clean upload) -->
   <div class="psec">
-    <div class="psec-t">⚡ DATA FILES</div>
-    <label class="upload-card" id="uploadCard">
-      <div class="upload-ic">☁️</div>
-      <div class="upload-main">Upload Smart Grid Excel / CSV</div>
-      <div class="upload-sub">Drop file here or click to browse</div>
-      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" onchange="handleFile(this.files[0])">
+    <div style="font-family:var(--mono);font-size:10px;color:#1e3a5f;letter-spacing:2px;margin-bottom:9px;font-weight:700">DATA FILES</div>
+    <label class="sg-upload" id="sgUpload">
+      <div class="sg-upload-ic">☁️</div>
+      <div class="sg-upload-main">Upload Smart Grid Excel / CSV</div>
+      <div class="sg-upload-sub">Drop file or click to browse</div>
+      <input type="file" accept=".xlsx,.xls,.csv" onchange="handleFile(this.files[0])">
     </label>
-    <div class="file-status" id="fileInfo">No file loaded yet.</div>
-    <button class="act-btn save" onclick="saveFirebase()">☁ Save / Update Firebase</button>
-    <button class="act-btn load" onclick="loadFirebase()">↻ Load Latest From Firebase</button>
-    <button class="act-btn dl" onclick="downloadTopologyCsv()">⬇ Download Topology CSV</button>
+    <div class="sg-file-status" id="fileInfo">No file loaded yet.</div>
+    <button class="sg-act save" onclick="saveFirebase()">☁ Save / Update Firebase</button>
+    <button class="sg-act load" onclick="loadFirebase()">↻ Load Latest From Firebase</button>
+    <button class="sg-act dl" onclick="downloadTopologyCsv()">⬇ Download Topology CSV</button>
+  </div>
+
+  <!-- DRILL-DOWN FILTER (route-map style) -->
+  <div class="psec">
+    <div style="font-family:var(--mono);font-size:10px;color:#1e3a5f;letter-spacing:2px;margin-bottom:9px;font-weight:700">DRILL-DOWN FILTER</div>
+    <div style="margin-bottom:6px"><div style="font-size:9px;color:#5a7a9a;letter-spacing:1px;margin-bottom:3px">DIVISION</div>
+      <select class="hier-sel" id="fDiv" onchange="onFilterChange()" style="width:100%"><option value="">ALL DIVISIONS</option></select></div>
+    <div style="margin-bottom:6px"><div style="font-size:9px;color:#5a7a9a;letter-spacing:1px;margin-bottom:3px">SUB DIVISION</div>
+      <select class="hier-sel" id="fSub" onchange="onFilterChange()" style="width:100%"><option value="">ALL SUB-DIVISIONS</option></select></div>
+    <div style="margin-bottom:6px"><div style="font-size:9px;color:#5a7a9a;letter-spacing:1px;margin-bottom:3px">SECTION</div>
+      <select class="hier-sel" id="fSec" onchange="onFilterChange()" style="width:100%"><option value="">ALL SECTIONS</option></select></div>
+    <div style="margin-bottom:8px"><div style="font-size:9px;color:#5a7a9a;letter-spacing:1px;margin-bottom:3px">FEEDER</div>
+      <select class="hier-sel" id="fFeeder" onchange="render()" style="width:100%"><option value="">ALL FEEDERS</option></select></div>
+    <button class="reset-btn" onclick="resetFilters()" style="width:100%;background:#f6f9fc;border:1px solid #d5dfea;color:#5a7a9a;padding:8px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.5px;cursor:pointer">RESET FILTERS</button>
   </div>
 
   <div class="psec">
-    <div class="psec-t">▣ DRILL-DOWN FILTER</div>
-    <select class="cs" id="fDiv" onchange="onFilterChange()"><option value="">All Divisions</option></select>
-    <select class="cs" id="fSub" onchange="onFilterChange()"><option value="">All Sub-Divisions</option></select>
-    <select class="cs" id="fSec" onchange="onFilterChange()"><option value="">All Sections</option></select>
-    <select class="cs" id="fFeeder" onchange="render()"><option value="">All Feeders</option></select>
-    <button class="reset-btn" onclick="resetFilters()">RESET FILTERS</button>
-  </div>
-
-  <div class="psec">
-    <div class="psec-t">◰ LAYERS</div>
-    <div class="li"><span class="legend-line" style="background:#00a6ff"></span><span class="llb">33KV Feeder Links</span><span class="lcn" id="cnt33">0</span><label class="tog"><input id="t33" type="checkbox" checked onchange="render()"><span class="sl"></span></label></div>
-    <div class="li"><span class="legend-line" style="background:#9c27b0"></span><span class="llb">Link Lines</span><span class="lcn" id="cntLink">0</span><label class="tog"><input id="tLink" type="checkbox" checked onchange="render()"><span class="sl"></span></label></div>
-    <div class="li"><span class="legend-line" style="background:#00a88a"></span><span class="llb">HT Services</span><span class="lcn" id="cntHt">0</span><label class="tog"><input id="tHT" type="checkbox" checked onchange="render()"><span class="sl"></span></label></div>
-    <div class="li"><span class="legend-dot" style="background:#ffd700"></span><span class="llb">AB / DP Nodes</span><span class="lcn" id="cntDev">0</span><label class="tog"><input id="tDev" type="checkbox" checked onchange="render()"><span class="sl"></span></label></div>
-    <div class="li"><span class="legend-dot" style="background:#fff;border:1px solid #ccc"></span><span class="llb">Feeder Code Labels</span><span class="lcn"></span><label class="tog"><input id="tLbl" type="checkbox" checked onchange="render()"><span class="sl"></span></label></div>
-  </div>
-
-  <div class="psec">
-    <div class="psec-t">◈ STATS</div>
-    <div class="kv"><span>Rows</span><b id="stRows">0</b></div>
-    <div class="kv"><span>Feeders</span><b id="stFeeders">0</b></div>
-    <div class="kv"><span>Nodes</span><b id="stNodes">0</b></div>
-    <div class="kv"><span>Connections</span><b id="stConns">0</b></div>
-  </div>
-
-  <div class="psec">
-    <div class="hint">💡 <b>Double-click any feeder line</b> to open that feeder in the full Route Map (new tab). Cut points are skipped automatically — smart grid shows only important nodes.</div>
-  </div>
-
-  <div class="psec">
-    <div class="psec-t">◉ LEGEND</div>
-    <div class="small"><span style="color:#f97316">⚡</span> EHT source node &nbsp; <span style="color:#e74c3c">⚡</span> 33/11KV SS</div>
-    <div class="small"><span style="color:#00a6ff">━━</span> 33KV feeder &nbsp; <span style="color:#9c27b0">┈┈</span> Link line &nbsp; <span style="color:#00a88a">━━</span> HT service</div>
+    <div class="hint" style="font-size:10px;color:#8ab4f8;background:#f0f7ff;border-radius:7px;padding:9px 11px;line-height:1.5;border-left:3px solid #8ab4f8">💡 <b>Double-click any feeder line</b> to open that feeder in the full Route Map (new tab). Cut points are skipped — smart grid shows only important nodes.</div>
   </div>
 </div>
-<div id="ptab" onclick="document.getElementById('sb').classList.toggle('off')">‹</div>
+
+<!-- SYMBOL ADJUSTER — smart-grid relevant only -->
+<div id="gridStylePanel">
+  <div class="gsp-title">SYMBOL / GRID STYLE SETTINGS</div>
+  <div class="gsp-row">
+    <label>33/11KV SS SIZE <span id="gspSSVal">1.00</span></label>
+    <input type="range" min="0.5" max="2.5" step="0.05" value="1" oninput="setSGSSSize(this.value)">
+  </div>
+  <div class="gsp-row">
+    <label>EHT SS SIZE <span id="gspEHTVal">1.00</span></label>
+    <input type="range" min="0.5" max="2.5" step="0.05" value="1" oninput="setSGEHTSize(this.value)">
+  </div>
+  <div class="gsp-row">
+    <label>LABEL SIZE <span id="gspLblVal">9</span></label>
+    <input type="range" min="6" max="16" step="1" value="9" oninput="setSGLabelSize(this.value)">
+  </div>
+  <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
+    <label style="margin-bottom:0"><span>AREA BORDERS ONLY</span>
+      <input type="checkbox" checked onchange="window.tgSetGridShowWards&&window.tgSetGridShowWards(this.checked)" style="transform:translateY(2px)"></label>
+  </div>
+  <div class="gsp-row">
+    <label style="margin-bottom:0"><span>IMPORTANT AREA NAMES</span>
+      <input type="checkbox" checked onchange="window.tgSetGridShowAreaNames&&window.tgSetGridShowAreaNames(this.checked)" style="transform:translateY(2px)"></label>
+  </div>
+  <div class="gsp-row">
+    <label style="margin-bottom:0"><span>MANDAL NAMES</span>
+      <input type="checkbox" checked onchange="window.tgSetGridShowMandalNames&&window.tgSetGridShowMandalNames(this.checked)" style="transform:translateY(2px)"></label>
+  </div>
+  <div class="gsp-row">
+    <label style="margin-bottom:0"><span>ORR / RRR ROADS</span>
+      <input type="checkbox" checked onchange="window.tgSetGridShowMajorRoads&&window.tgSetGridShowMajorRoads(this.checked)" style="transform:translateY(2px)"></label>
+  </div>
+</div>
 
 <div id="map"></div>
-<div id="status">SMARTGRID: waiting for upload / Firebase load</div>
-<div id="empty"><h2>Upload Smart Grid Excel</h2><p>Saves to Firebase under <b>/smartgrid</b>. Use the gist sheet with EHT source row + feeding-end rows. Cut points are skipped automatically.</p></div>
 <div id="toast"></div>
-
-<div id="bm-tabs">
-  <button class="bm-tab active" onclick="swB('dark',this)">◉ DARK</button>
-  <button class="bm-tab" onclick="swB('osm',this)">⚡ GRID</button>
-  <button class="bm-tab" onclick="swB('satellite',this)">✈ SATELLITE</button>
-  <button class="bm-tab" onclick="swB('roads',this)">☞ STREET</button>
-  <button class="bm-tab" onclick="swB('roads',this)">📍 GOOGLE</button>
-  <button class="bm-tab" id="gridMapTab" onclick="toggleGridMapView(this)">▧ GRID MAP VIEW</button>
-</div>
-<div id="gridLayerBox">
-  <div class="grid-layer-title">// GRID MAP VIEW</div>
-  <label class="grid-layer-row"><input type="checkbox" id="tgDistToggle" checked onchange="setGridLayerVisibility()"><span class="grid-line" style="background:#38bdf8"></span> Telangana Districts</label>
-  <label class="grid-layer-row"><input type="checkbox" id="tgMandalToggle" checked onchange="setGridLayerVisibility()"><span class="grid-line" style="background:#94a3b8"></span> Mandal / Block Borders</label>
-  <label class="grid-layer-row"><input type="checkbox" id="tgAreaToggle" checked onchange="setGridLayerVisibility()"><span class="grid-dot" style="background:#a78bfa"></span> Area Names</label>
-  <label class="grid-layer-row"><input type="checkbox" id="tgRoadToggle" checked onchange="setGridLayerVisibility()"><span class="grid-line" style="background:#f97316"></span> ORR / RRR Roads</label>
-</div>
+<div id="fbStatus"></div>
 
 <div id="botbar">
-  <span>SCADA · 33KV · <b>SMART GRID MAP</b></span>
-  <span id="botStat"></span>
+  <span>LAT/LNG: <span id="coords">17.4400, 78.3900</span></span>
+  <span>ZOOM: <span id="zoomLvl">11</span></span>
+  <span style="margin-left:auto;opacity:.7">SCADA · 33KV · SMART GRID MAP</span>
 </div>
 
+<div id="bm-tabs">
+  <div class="bm-tab"        id="bm-dark"      onclick="setBM('dark')">🌑 DARK</div>
+  <div class="bm-tab"        id="bm-grid"      onclick="setBM('grid')">⚡ GRID</div>
+  <div class="bm-tab"        id="bm-satellite" onclick="setBM('satellite')">🛰 SATELLITE</div>
+  <div class="bm-tab"        id="bm-street"    onclick="setBM('street')">🗺 STREET</div>
+  <div class="bm-tab"        id="bm-google"    onclick="setBM('google')">📍 GOOGLE</div>
+  <div class="bm-tab active" id="bm-grid_view" onclick="setBM('grid_view')" title="Pastel Hyderabad-region district boundary view">▧ GRID MAP VIEW</div>
+</div>
+
+<div id="rpanel">
+  <div class="rcard" id="rc-layers">
+    <div class="rcard-hd" onclick="toggleRcard('rc-layers')"><span class="rcard-title">// LAYER TYPES</span><span class="rcard-arrow">▾</span></div>
+    <div class="rcard-body">
+      <div class="lrow" id="lyr-feeder" onclick="toggleSGLayer('feeder')"><div class="lswatch" style="background:#00a6ff"></div><div class="lname">33KV Feeder Links</div><div class="lcnt" id="cnt33">—</div><div class="tog"></div></div>
+      <div class="lrow" id="lyr-link" onclick="toggleSGLayer('link')"><div class="lswatch" style="background:#9c27b0"></div><div class="lname">Link Lines</div><div class="lcnt" id="cntLink">—</div><div class="tog"></div></div>
+      <div class="lrow" id="lyr-ht" onclick="toggleSGLayer('ht')"><div class="lswatch" style="background:#00a88a"></div><div class="lname">HT Services</div><div class="lcnt" id="cntHt">—</div><div class="tog"></div></div>
+      <div class="lrow" id="lyr-dev" onclick="toggleSGLayer('dev')"><div class="lswatch dot" style="background:#ffd700;border-color:#4b5563"></div><div class="lname">AB / DP Nodes</div><div class="lcnt" id="cntDev">—</div><div class="tog"></div></div>
+      <div class="lrow" id="lyr-lbl" onclick="toggleSGLayer('lbl')"><div class="lswatch dot" style="background:#fff;border-color:#ccc"></div><div class="lname">Feeder Code Labels</div><div class="lcnt"></div><div class="tog"></div></div>
+    </div>
+  </div>
+  <div class="rcard" id="rc-stats">
+    <div class="rcard-hd" onclick="toggleRcard('rc-stats')"><span class="rcard-title">// STATS</span><span class="rcard-arrow">▾</span></div>
+    <div class="rcard-body">
+      <div class="strow"><span class="stlbl">Rows</span><span class="stval" id="stRows">—</span></div>
+      <div class="strow"><span class="stlbl">Feeders</span><span class="stval" id="stFeeders">—</span></div>
+      <div class="strow"><span class="stlbl">Nodes</span><span class="stval" id="stNodes">—</span></div>
+      <div class="strow"><span class="stlbl">Connections</span><span class="stval" id="stConns">—</span></div>
+    </div>
+  </div>
+  <div class="rcard" id="rc-legend">
+    <div class="rcard-hd" onclick="toggleRcard('rc-legend')"><span class="rcard-title">// LEGEND</span><span class="rcard-arrow">▾</span></div>
+    <div class="rcard-body">
+      <div class="strow"><span class="stlbl"><span style="color:#f97316">⚡</span> EHT source</span><span class="stlbl"><span style="color:#e74c3c">⚡</span> 33/11KV SS</span></div>
+      <div class="strow"><span class="stlbl"><span style="color:#00a6ff">━</span> 33KV</span><span class="stlbl"><span style="color:#9c27b0">┈</span> Link</span><span class="stlbl"><span style="color:#00a88a">━</span> HT</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="empty" style="position:fixed;left:calc(50% + 165px);top:50%;z-index:800;transform:translate(-50%,-50%);background:rgba(15,34,54,.9);border:1px solid var(--border);border-radius:14px;padding:24px 28px;text-align:center;color:#d1d5db;max-width:440px;box-shadow:0 14px 40px rgba(0,0,0,.4)">
+  <h2 style="font-size:17px;margin-bottom:9px;color:#fff">Upload Smart Grid Excel</h2>
+  <p style="font-size:12px;color:#9aa0a6;line-height:1.6">Saves to Firebase under <b>/smartgrid</b>. Use the gist sheet with EHT source row + feeding-end rows. Cut points are skipped automatically.</p>
+</div>
 <script>
+// ══ MAP + BASEMAP + GRID MAP VIEW ENGINE (verbatim from route map) ══
+// STATIC_SS33: route map embedded a substation list here used only as a
+// convex-hull fallback if the boundary GeoJSON fails to load. Smart grid
+// gets its substations from uploaded data, so this is an empty no-op — the
+// real telangana_*.geojson files are the primary (and normal) source.
+const STATIC_SS33 = [];
+const map = L.map('map',{
+  center:[17.4400,78.3900], zoom:14, zoomControl:false,
+  preferCanvas:false,
+  // ── Google-Maps-style smoothness tuning (29 May 2026 per Naresh) ──
+  // Softer inertia deceleration → glides further like Google Maps.
+  // Smaller zoomDelta + zoomSnap=0 → continuous-feel zoom on wheel.
+  // Tighter wheelDebounceTime → faster response without skipping.
+  zoomAnimation:true, zoomAnimationThreshold:4,
+  fadeAnimation:true, markerZoomAnimation:true,
+  inertia:true, inertiaDeceleration:2200, inertiaMaxSpeed:1800,
+  scrollWheelZoom:'center', wheelDebounceTime:14, wheelPxPerZoomLevel:90,
+  zoomSnap:0, zoomDelta:0.5,
+  bounceAtZoomLimits:false,
+  doubleClickZoom:true, keyboard:true, keyboardPanDelta:80,
+});
+
+map.createPane('linePane');
+map.getPane('linePane').style.zIndex = 410;
+map.createPane('flowPane');
+map.getPane('flowPane').style.pointerEvents = 'none';
+map.getPane('flowPane').style.zIndex = 430;
+map.createPane('pointsPane');
+map.getPane('pointsPane').style.zIndex = 650;
+
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.control.scale({position:'bottomright',imperial:false}).addTo(map);
+window.addEventListener('resize',()=>map.invalidateSize());
+
+// ── BASEMAPS ──
+const _tileOpts = {
+  maxZoom:22, maxNativeZoom:19,
+  updateWhenIdle:true, updateWhenZooming:false,
+  keepBuffer:6, tileSize:256, crossOrigin:true,
+};
+const _bmDefs = {
+  dark:      ['https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{..._tileOpts,subdomains:'abcd'}],
+  satellite: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{..._tileOpts}],
+  street:    ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{..._tileOpts,subdomains:'abc'}],
+  hybrid:    ['https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{..._tileOpts}],
+  google:    ['https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{..._tileOpts}],
+};
+const BM={};
+
+// ─────────────────────────────────────────────────────────────
+// "GRID" — a tile-less basemap (added 09 May 2026 per Naresh)
+// Pure CSS gradient + radial halos painted on the map container.
+// Zero network IO, zero tile rendering → instant pan/zoom.
+// Uses a "blank" tile layer for Leaflet's plumbing while the real
+// background is painted on the map container itself.
+// ─────────────────────────────────────────────────────────────
+const _GRID_BG_CSS = `
+  radial-gradient(circle at 18% 22%, rgba(64,80,255,.18), transparent 38%),
+  radial-gradient(circle at 82% 78%, rgba(192,72,255,.18), transparent 42%),
+  radial-gradient(circle at 50% 50%, rgba(0,200,255,.08), transparent 58%),
+  linear-gradient(135deg, #050818 0%, #0c1024 45%, #1a0a2e 100%)
+`;
+function _gridBlankTileUrl(){
+  // 1x1 transparent PNG so Leaflet's tile plumbing has something to "load"
+  return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=';
+}
+function _ensureGridBackground(on){
+  const c=map.getContainer();
+  if(on){
+    c.classList.add('grid-bm-on');
+  }else{
+    c.classList.remove('grid-bm-on');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// GRID MAP VIEW — district/region boundaries (re-built 28-Jun-2026
+// per Naresh, item 3 & 5 of handwritten notes). Pulls REAL district
+// and mandal/block boundary GeoJSON sourced from the Telangana Tank
+// Information System (via the public gggodhwani/telangana_boundaries
+// GitHub repo) — not an approximation. Filtered to the districts
+// actually surrounding Hyderabad's Outer Ring Road (Hyderabad,
+// Medchal-Malkajgiri, Rangareddy, Sangareddy), matching the
+// peri-urban growth-corridor framing Naresh described. Falls back to
+// a convex hull around the embedded STATIC_SS33 points if the real
+// boundary fetch fails (offline, CDN blocked, etc.) so the view is
+// never blank.
+// ─────────────────────────────────────────────────────────────
+// Per Naresh 30-Jun-2026: the previous TG_DISTRICTS_GEOJSON_URL source
+// (gggodhwani/telangana_boundaries) turned out to be STALE — verified
+// against the real shapefile Naresh supplied (TS_District_Boundary_33_
+// FINAL.shp, sourced from the Telangana government's own GIS data,
+// confirmed to contain exactly 33 districts including Mulugu, Narayanpet,
+// and Hanumakonda — the three newest, added 2019 and after the Warangal
+// Urban/Rural split). The old source was missing these and was showing
+// outdated ~19-district boundaries. Converted from the real shapefile
+// (UTM Zone 44N) to WGS84 GeoJSON with verified-correct reprojection
+// (Hyderabad district centroid checked against its known real coordinates
+// before shipping), then simplified for web performance (6MB→560KB for
+// districts, 27MB→2.3MB for the 621-mandal inside-boundary layer).
+// These ship alongside this HTML file — host them at the same path/
+// folder level as this page (e.g. same GitHub Pages repo) since they're
+// fetched via a relative path, not hardcoded to an external server.
+const TG_DISTRICTS_GEOJSON_URL = 'telangana_33_districts.geojson';
+const TG_MANDALS_GEOJSON_URL = 'telangana_621_mandals.geojson';
+// GHMC ward-level boundaries — verified real file from the DataMeet
+// community's Municipal_Spatial_Data repo (146 stars, 180 forks, actively
+// maintained; this specific file confirmed to exist at 573KB/28,649 lines
+// of real ward polygon data digitized from official GHMC ward maps).
+const TG_GHMC_WARDS_GEOJSON_URL = 'https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/Hyderabad/ghmc-wards.geojson';
+window.tgGridShowDistricts = window.tgGridShowDistricts ?? true;
+let _tgRegionalGridLayerGroup = null;
+let _tgGhmcWardLayer = null;
+let _tgMandalLayer = null;
+let _tgMandalLabelLayer = null;
+let _tgImportantAreaLabelLayer = null;
+let _tgMajorRoadLayer = null;
+let _tgAreaNamesOn = true;
+
+function _tgConvexHull(points){
+  if(points.length<3) return points.slice();
+  const pts = points.slice().sort((a,b)=>a.x-b.x||a.y-b.y);
+  const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+  const lower=[];
+  for(const p of pts){ while(lower.length>=2 && cross(lower[lower.length-2],lower[lower.length-1],p)<=0) lower.pop(); lower.push(p); }
+  const upper=[];
+  for(let i=pts.length-1;i>=0;i--){ const p=pts[i]; while(upper.length>=2 && cross(upper[upper.length-2],upper[upper.length-1],p)<=0) upper.pop(); upper.push(p); }
+  lower.pop(); upper.pop();
+  return lower.concat(upper);
+}
+
+function _tgAddFallbackHullLayer(group){
+  const pts=(STATIC_SS33||[]).filter(s=>s.lat&&s.lon).map(s=>({x:s.lon,y:s.lat}));
+  if(!pts.length)return;
+  const hull=_tgConvexHull(pts);
+  if(hull.length<3)return;
+  const latlngs=hull.map(p=>[p.y,p.x]);
+  L.polygon(latlngs,{color:'#888',weight:1,opacity:.5,fillColor:'#7fb3d5',fillOpacity:.12,dashArray:'4 3'})
+    .bindTooltip('Hyderabad SCADA coverage area (approximate — real district boundaries unavailable)',{sticky:true})
+    .addTo(group);
+}
+
+// Per Naresh 28-Jun-2026: addLabelsFromGeoJSON was previously called via
+// optional chaining (addLabelsFromGeoJSON?.(feats)) but never actually
+// implemented — district boundaries rendered with NO name labels at all.
+// This computes a sensible label point per district (centroid of its
+// largest ring, robust to MultiPolygon districts with several disjoint
+// parts) and places a permanent text label there.
+function _tgPolygonRingArea(ring){
+  // Shoelace formula — works fine for relative-size comparison between
+  // rings even in lon/lat degrees (we don't need true km² here).
+  let area=0;
+  for(let i=0;i<ring.length;i++){
+    const [x1,y1]=ring[i];
+    const [x2,y2]=ring[(i+1)%ring.length];
+    area += x1*y2 - x2*y1;
+  }
+  return Math.abs(area/2);
+}
+function _tgRingCentroid(ring){
+  // GeoJSON rings repeat the first point as the last (closing the ring) —
+  // exclude that duplicate or it double-weights one vertex and skews the
+  // average toward wherever the ring happens to start.
+  let pts=ring;
+  if(pts.length>1){
+    const [fx,fy]=pts[0], [lx,ly]=pts[pts.length-1];
+    if(fx===lx && fy===ly) pts=pts.slice(0,-1);
+  }
+  let cx=0, cy=0;
+  for(const [x,y] of pts){ cx+=x; cy+=y; }
+  return { lng: cx/pts.length, lat: cy/pts.length };
+}
+function _tgFeatureLabelPoint(feature){
+  const geom=feature.geometry;
+  if(!geom) return null;
+  let rings=[];
+  if(geom.type==='Polygon'){
+    rings=[geom.coordinates[0]]; // outer ring only
+  }else if(geom.type==='MultiPolygon'){
+    rings=geom.coordinates.map(poly=>poly[0]);
+  }else{
+    return null;
+  }
+  let best=null, bestArea=-1;
+  rings.forEach(ring=>{
+    const a=_tgPolygonRingArea(ring);
+    if(a>bestArea){ bestArea=a; best=ring; }
+  });
+  if(!best) return null;
+  return _tgRingCentroid(best);
+}
+let _tgDistrictLabelMarkers=[];
+let _tgWardLabelMarkers=[];
+let _tgDistrictFeatures=[];
+function addLabelsFromGeoJSON(feats){
+  _tgDistrictLabelMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
+  _tgDistrictLabelMarkers=[];
+  (feats||[]).forEach(f=>{
+    const pt=_tgFeatureLabelPoint(f);
+    if(!pt) return;
+    const props=f.properties||{};
+    const name=String(props.DISTRICT||props.DIST_NAME||props.district||props.name||'').trim();
+    if(!name) return;
+    const marker=L.marker([pt.lat,pt.lng],{
+      icon:L.divIcon({className:'',html:`<div class="tg-district-label">${name}</div>`,iconSize:[0,0],iconAnchor:[0,0]}),
+      interactive:false, keyboard:false
+    });
+    // Respect the existing "IMPORTANT AREA NAMES" toggle — district name
+    // labels are area names too, so they should turn off together with
+    // ward/area names rather than always showing regardless of the
+    // checkbox state.
+    if(window.tgGridShowAreaNames!==false) marker.addTo(map);
+    _tgDistrictLabelMarkers.push(marker);
+  });
+}
+function addWardLabelsFromGeoJSON(feats){
+  _tgWardLabelMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
+  _tgWardLabelMarkers=[];
+  (feats||[]).forEach(f=>{
+    const pt=_tgFeatureLabelPoint(f);
+    if(!pt) return;
+    const props=f.properties||{};
+    let name=(props.WARD_NAME||props.Ward_Name||props.ward_name||props.WardName||props.NAME||props.Name||props.name||props.LOCALITY||props.Locality||props.AREA_NAME||props.area_name||'');
+    name=String(name||'').replace(/Ward\s*\d*\s*/ig,'').replace(/^[-,:\s]+|[-,:\s]+$/g,'').trim();
+    if(!name || /^\d+$/.test(name) || name.length<3) return;
+    const marker=L.marker([pt.lat,pt.lng],{
+      icon:L.divIcon({className:'',html:`<div class="tg-ward-area-label">${String(name)}</div>`,iconSize:[0,0],iconAnchor:[0,0]}),
+      interactive:false, keyboard:false
+    });
+    if(window.tgGridShowAreaNames !== false) marker.addTo(map);
+    _tgWardLabelMarkers.push(marker);
+  });
+}
+
+
+function _tgImportantAreaPoints(){
+  // Permanent area names based on GHMC / planning-map style references.
+  // class: core = major inner load zones, corridor = outer growth/support zones,
+  // local = finer neighbourhood labels only intended to appear at higher zoom.
+  return [
+    // Core Hyderabad / central load pocket
+    ['CORE HYDERABAD',17.402,78.475,'core'],['Khairatabad',17.409,78.462,'core'],['Ameerpet',17.438,78.448,'core'],
+    ['Secunderabad',17.439,78.498,'core'],['Begumpet',17.444,78.466,'core'],['Jubilee Hills',17.432,78.407,'core'],
+    ['Madhapur',17.448,78.391,'core'],['Banjara Hills',17.414,78.438,'core'],['Charminar',17.361,78.474,'core'],
+    ['Kukatpally',17.493,78.399,'core'],['Miyapur',17.494,78.357,'core'],['Somajiguda',17.423,78.459,'core'],
+    ['Uppal',17.405,78.560,'core'],['LB Nagar',17.347,78.557,'core'],
+
+    // West / North-West growth support
+    ['Patancheru',17.530,78.265,'corridor'],['BHEL',17.494,78.318,'corridor'],['Ameenpur',17.520,78.340,'corridor'],
+    ['Serilingampally',17.479,78.319,'corridor'],['Narsingi',17.386,78.354,'corridor'],['Kokapet',17.393,78.335,'corridor'],
+    ['Financial District',17.410,78.345,'corridor'],['Gachibowli',17.440,78.348,'corridor'],['Quthbullapur',17.501,78.445,'corridor'],
+    ['Kondapur',17.466,78.367,'corridor'],['HITEC City',17.449,78.383,'corridor'],
+
+    // North support
+    ['Medchal',17.629,78.481,'corridor'],['Dundigal',17.603,78.420,'corridor'],['Kompally',17.540,78.489,'corridor'],
+    ['Shamirpet',17.594,78.574,'corridor'],['Alwal',17.504,78.503,'corridor'],['Jeedimetla',17.516,78.456,'corridor'],
+    ['Suchitra',17.518,78.484,'corridor'],
+
+    // East / North-East support
+    ['Malkajgiri',17.450,78.533,'corridor'],['Kapra',17.489,78.565,'corridor'],['Keesara',17.528,78.662,'corridor'],
+    ['Cherlapally',17.470,78.600,'corridor'],['Ghatkesar',17.448,78.685,'corridor'],['Boduppal',17.413,78.585,'corridor'],
+    ['Pocharam',17.431,78.648,'corridor'],['Nagole',17.371,78.565,'corridor'],['Hayathnagar',17.327,78.605,'corridor'],
+
+    // South / South-West / Airport support
+    ['Rajendra Nagar',17.322,78.403,'corridor'],['Attapur',17.368,78.429,'corridor'],['Shamshabad',17.251,78.437,'corridor'],
+    ['RGIA / Airport',17.240,78.429,'corridor'],['Jalpally',17.312,78.470,'corridor'],['Badangpet',17.305,78.525,'corridor'],
+    ['Maheshwaram',17.131,78.430,'corridor'],['Adibatla',17.235,78.545,'corridor'],['Ibrahimpatnam',17.193,78.646,'corridor'],
+
+    // Finer local names (visible mostly at zoom-in)
+    ['Borabanda',17.452,78.410,'local'],['Yousufguda',17.436,78.430,'local'],['Tarnaka',17.428,78.538,'local'],
+    ['Golconda',17.383,78.401,'local'],['Musheerabad',17.422,78.503,'local'],['Masab Tank',17.399,78.452,'local'],
+    ['Dilsukhnagar',17.368,78.524,'local'],['Moosapet',17.468,78.428,'local'],['Chintal',17.512,78.449,'local'],
+    ['Bowenpally',17.469,78.480,'local'],['Manikonda',17.409,78.369,'local'],['Kavadiguda',17.419,78.492,'local']
+  ];
+}
+
+function _tgAreaLabelHtml(name){
+  var explicit={
+    'CORE HYDERABAD':'CORE<br>HYDERABAD',
+    'Banjara Hills':'Banjara<br>Hills',
+    'Jubilee Hills':'Jubilee<br>Hills',
+    'Financial District':'Financial<br>District',
+    'Rajendra Nagar':'Rajendra<br>Nagar',
+    'RGIA / Airport':'RGIA /<br>Airport',
+    'LB Nagar':'LB<br>Nagar',
+    'Somajiguda':'Somaji-<br>guda',
+    'Quthbullapur':'Quthbulla-<br>pur',
+    'Financial District':'Financial<br>District',
+    'Rajendra Nagar':'Rajendra<br>Nagar',
+    'Banjara Hills':'Banjara<br>Hills',
+    'Jubilee Hills':'Jubilee<br>Hills',
+    'CORE HYDERABAD':'CORE<br>HYDERABAD',
+    'RGIA / Airport':'RGIA /<br>Airport',
+    'Malkajgiri':'Malkaj-<br>giri',
+    'HITEC City':'HITEC<br>City',
+    'Yousufguda':'Yousuf-<br>guda',
+    'Dilsukhnagar':'Dilsukh-<br>nagar',
+    'Kavadiguda':'Kavadi-<br>guda',
+    'Boduppal':'Boduppal'
+  };
+  if(explicit[name]) return explicit[name];
+  var words=String(name||'').trim().split(/\s+/);
+  if(words.length===2 && (words[0].length+words[1].length)>12) return words[0]+'<br>'+words[1];
+  if(words.length===3 && String(name).length>15) return words.slice(0,2).join(' ')+'<br>'+words[2];
+  return name;
+}
+
+function _tgNormAreaName(s){
+  return String(s||'').toUpperCase().replace(/\bWARD\b/g,'').replace(/\bCIRCLE\b/g,'').replace(/\bDIVISION\b/g,'').replace(/[^A-Z0-9]+/g,'').trim();
+}
+function _tgFeatureName(props){
+  if(!props) return '';
+  return props.WARD_NAME||props.Ward_Name||props.ward_name||props.WardName||props.NAME||props.Name||props.name||props.LOCALITY||props.Locality||props.AREA_NAME||props.DISTRICT||props.DIST_NAME||props.district||'';
+}
+function _tgFindAreaAnchor(name, lat, lng){
+  var target = _tgNormAreaName(name), best=null;
+  function matchLayer(layer){
+    try{
+      var props=(layer.feature&&layer.feature.properties)||{};
+      var raw=_tgFeatureName(props), norm=_tgNormAreaName(raw);
+      if(!norm) return;
+      if(norm===target || norm.indexOf(target)>=0 || target.indexOf(norm)>=0){
+        var b=layer.getBounds?layer.getBounds():null;
+        if(b && b.isValid && b.isValid()) best=b.getCenter();
+      }
+    }catch(e){}
+  }
+  if(_tgGhmcWardLayer && _tgGhmcWardLayer.eachLayer){ _tgGhmcWardLayer.eachLayer(function(layer){ if(!best) matchLayer(layer); }); }
+  if(!best && Array.isArray(_tgDistrictFeatures)){
+    _tgDistrictFeatures.forEach(function(f){
+      if(best) return;
+      var props=f.properties||{}, raw=_tgFeatureName(props), norm=_tgNormAreaName(raw);
+      if(norm && (norm===target || norm.indexOf(target)>=0 || target.indexOf(norm)>=0)){
+        try{ var gj=L.geoJSON(f); var ls=gj.getLayers(); if(ls && ls[0] && ls[0].getBounds){ var b=ls[0].getBounds(); if(b.isValid()) best=b.getCenter(); } }catch(e){}
+      }
+    });
+  }
+  return best || L.latLng(lat,lng);
+}
+
+function _tgBuildImportantAreaLabels(){
+  const g=L.layerGroup();
+  const seen={};
+  _tgImportantAreaPoints().forEach(function(a){
+    const name=a[0], lat=a[1], lng=a[2], cls=a[3]||'';
+    const key=_tgNormAreaName(name);
+    if(seen[key]) return;
+    seen[key]=1;
+    const anchor=_tgFindAreaAnchor(name, lat, lng);
+    L.marker(anchor,{
+      interactive:false,
+      pane:'markerPane',
+      icon:L.divIcon({
+        className:'tg-important-area-label '+cls,
+        html:_tgAreaLabelHtml(name),
+        iconSize:null
+      })
+    }).addTo(g);
+  });
+  return g;
+}
+
+async function _buildTGRegionalGridLayer(){
+  if(_tgRegionalGridLayerGroup){ if(window.tgGridShowDistricts) _tgRegionalGridLayerGroup.addTo(map); return; }
+  _tgRegionalGridLayerGroup = L.layerGroup();
+  const group = _tgRegionalGridLayerGroup;
+  // 33 distinct pastel tones so neighbouring districts are visually
+  // distinguishable across the whole state, not just a 5-color repeat.
+  const palette=['#fde2c8','#cfe8ff','#d9f7d4','#f6d9f9','#fff3b0','#ffe0e0','#e0f7e9','#e0e8ff',
+    '#fff0d9','#d9f0ff','#f0d9ff','#d9ffe9','#ffd9e8','#e8ffd9','#d9e8ff','#ffe8d9','#e8d9ff',
+    '#d9ffd0','#ffd0d9','#d0e8ff','#e8d0ff','#d0ffe8','#ffe8c0','#c0e8ff','#e8c0ff','#c0ffe8',
+    '#ffc0d0','#d0c0ff','#c0ffd0','#ffd0c0','#d0ffc0','#c0d0ff','#ffc0e8'];
+
+  try{
+    const res = await fetch(TG_DISTRICTS_GEOJSON_URL);
+    if(!res.ok) throw new Error('district boundary HTTP '+res.status);
+    const gj = await res.json();
+    const feats = gj.features||[];
+    if(!feats.length) throw new Error('no districts in boundary file');
+    _tgDistrictFeatures = feats;
+    feats.forEach((f,i)=>{
+      const layer=L.geoJSON(f,{style:{color:'#555',weight:1.2,fillColor:palette[i%palette.length],fillOpacity:.3}});
+      const props=f.properties||{};
+      const name=props.DISTRICT||props.DIST_NAME||props.district||props.name||'District';
+      layer.bindTooltip(String(name),{sticky:true});
+      layer.addTo(group);
+    });
+    if(window.tgGridShowDistricts){ group.addTo(map); addLabelsFromGeoJSON(feats); }
+  }catch(err){
+    console.warn('District GeoJSON failed, using SS-derived fallback hulls:', err);
+    if(window.tgGridShowDistricts) _tgAddFallbackHullLayer(group);
+    if(window.tgGridShowDistricts) group.addTo(map);
+  }
+
+  // ── Mandal boundaries (inside-district detail, per Naresh's "I need
+  //    inside boundaries too") — all 621 real mandals across all 33
+  //    districts, thin grey lines with no fill so they read as internal
+  //    subdivision detail rather than competing with the district colors. ──
+  try{
+    const res2 = await fetch(TG_MANDALS_GEOJSON_URL);
+    if(!res2.ok) throw new Error('mandal boundary HTTP '+res2.status);
+    const gj2 = await res2.json();
+    const feats2 = gj2.features||[];
+    const mandalLayer = L.geoJSON(feats2,{style:{color:'#999',weight:.5,opacity:.65,fillOpacity:0,dashArray:'2 2'}});
+    // Per Naresh 01-Jul-2026: "mandal/important [names] inside the region" —
+    // mandal names were only reachable on hover (bindTooltip) before, so
+    // they never actually showed on a printed/screenshotted view. This
+    // builds permanent visible labels straight from the same real
+    // shapefile-derived GeoJSON, reusing the existing important-area-label
+    // visual style. Zoom-gated with the "local" class (same mechanism the
+    // important-area labels already use) so 621 mandal names across the
+    // whole state don't clutter the zoomed-out view — they only appear
+    // once you're zoomed into a specific region/section, same as the
+    // screenshot.
+    const mandalLabelLayer = L.layerGroup();
+    // Per Naresh 01-Jul-2026: "names of the region are repeating" — the
+    // hardcoded important-area labels (Secunderabad, Ameerpet, Charminar
+    // etc.) and the mandal GeoJSON labels produce the same names at
+    // slightly different positions, creating visible duplicates. Build a
+    // case-insensitive set of names already covered by the important-area
+    // system so we can skip them here. Also collapses common spelling
+    // variants (AMBERPETA→AMBERPET, SECUNDEARABAD→SECUNDERABAD, etc.)
+    const _iaSet = new Set();
+    _tgImportantAreaPoints().forEach(function(a){
+      var n = String(a[0]).toUpperCase().replace(/[^A-Z]/g,'');
+      _iaSet.add(n);
+    });
+    function _mandalMatchesIA(name){
+      var n = String(name).toUpperCase().replace(/[^A-Z]/g,'');
+      if(_iaSet.has(n)) return true;
+      // Check substring both ways (AMBERPETA contains AMBERPET, etc.)
+      for(var existing of _iaSet){
+        if(n.length>=5 && existing.length>=5 && (n.includes(existing) || existing.includes(n))) return true;
+      }
+      return false;
+    }
+    const _seenMandals = new Set();
+    mandalLayer.eachLayer(layer=>{
+      const props=(layer.feature&&layer.feature.properties)||{};
+      const mandalName = props.MANDAL||props.Mandal||props.mandal;
+      if(mandalName) layer.bindTooltip(String(mandalName),{sticky:true,className:'tg-ward-tooltip'});
+      if(mandalName && layer.getBounds){
+        const normName = String(mandalName).toUpperCase().replace(/[^A-Z]/g,'');
+        // Skip if this mandal name duplicates a hardcoded important-area
+        // label, or if we've already placed this same mandal name from an
+        // earlier polygon (mandal boundaries can have multiple polygons).
+        if(_mandalMatchesIA(mandalName)) return;
+        if(_seenMandals.has(normName)) return;
+        _seenMandals.add(normName);
+        try{
+          const b=layer.getBounds();
+          if(b && b.isValid && b.isValid()){
+            L.marker(b.getCenter(),{
+              interactive:false,
+              pane:'markerPane',
+              icon:L.divIcon({
+                className:'tg-important-area-label mandal',
+                html:_tgAreaLabelHtml(String(mandalName)),
+                iconSize:null
+              })
+            }).addTo(mandalLabelLayer);
+          }
+        }catch(e){}
+      }
+    });
+    if(window.tgGridShowMandals!==false) mandalLayer.addTo(group);
+    if(window.tgGridShowMandalNames!==false) mandalLabelLayer.addTo(group);
+    _tgMandalLayer = mandalLayer;
+    _tgMandalLabelLayer = mandalLabelLayer;
+  }catch(err){
+    console.warn('Mandal GeoJSON failed; inside-district boundary detail unavailable:', err);
+  }
+
+  // ── GHMC ward-level boundaries (added 28-Jun-2026 per Naresh) ──
+  // Finer-grained than district boundaries — matches the GHMC circle/
+  // colony-level granularity Naresh referenced (Madhapur, Jubilee Hills,
+  // Kukatpally, Begumpet, etc. — see his GHMC rainfall-map reference
+  // images). Source: DataMeet community's Municipal_Spatial_Data repo —
+  // a real, verified, actively-maintained (146 stars, 180 forks) open
+  // dataset digitized from official GHMC ward maps. Field name for the
+  // ward/area name varies across DataMeet's per-city files (confirmed
+  // inconsistent even between their OWN Chennai/Jaipur examples — one
+  // uses Zone_Name, the other ZONE_NAME), so this tries every common
+  // variant defensively rather than assuming one.
+  window.tgGridShowWards = window.tgGridShowWards ?? true;
+  try{
+    const res3 = await fetch(TG_GHMC_WARDS_GEOJSON_URL);
+    if(!res3.ok) throw new Error('GHMC ward boundary HTTP '+res3.status);
+    const gj3 = await res3.json();
+    const feats3 = gj3.features||[];
+    if(!feats3.length) throw new Error('no features in GHMC ward file');
+    const wardLayer = L.geoJSON(feats3,{
+      style:{color:'#7a8a9a',weight:.6,opacity:.7,fillOpacity:0,dashArray:'1 2'}
+    });
+    wardLayer.eachLayer(layer=>{
+      const props=(layer.feature&&layer.feature.properties)||{};
+      const wardName = props.WARD_NAME||props.Ward_Name||props.ward_name||
+                        props.WardName||props.NAME||props.Name||props.name||
+                        props.LOCALITY||props.Locality||props.AREA_NAME||
+                        (props.WARD_NO!=null?'':null)||
+                        (props.Ward_No!=null?'':null);
+      if(wardName){ wardName=String(wardName).replace(/\bWard\b\s*\d*\s*/ig,'').trim(); if(wardName && !/^\d+$/.test(wardName)) layer.bindTooltip(wardName,{sticky:true,className:'tg-ward-tooltip'}); }
+    });
+    if(window.tgGridShowWards) wardLayer.addTo(group);
+    // Ward labels intentionally disabled: they clutter the map. Important area names remain separate.
+    _tgGhmcWardLayer = wardLayer;
+  }catch(err){
+    console.warn('GHMC ward boundary GeoJSON failed; falling back to district-level granularity only:', err);
+  }
+
+  // Permanent important area names like the GHMC rainfall / planning map references.
+  window.tgGridShowImportantAreas = window.tgGridShowImportantAreas ?? true;
+  _tgImportantAreaLabelLayer = _tgBuildImportantAreaLabels();
+  if(window.tgGridShowImportantAreas) _tgImportantAreaLabelLayer.addTo(group);
+
+  // ORR / RRR / major radial roads for growth-corridor planning context.
+  window.tgGridShowMajorRoads = window.tgGridShowMajorRoads ?? true;
+  _tgMajorRoadLayer = _tgBuildMajorRoadsLayer();
+  if(window.tgGridShowMajorRoads) _tgMajorRoadLayer.addTo(group);
+}
+
+window.tgSetGridShowWards = function(on){
+  window.tgGridShowWards=!!on;
+  if(!_tgGhmcWardLayer || !_tgRegionalGridLayerGroup) return;
+  if(on) _tgRegionalGridLayerGroup.addLayer(_tgGhmcWardLayer);
+  else _tgRegionalGridLayerGroup.removeLayer(_tgGhmcWardLayer);
+};
+
+window.tgSetGridShowDistricts = function(on){
+  window.tgGridShowDistricts=!!on;
+  if(!_tgRegionalGridLayerGroup)return;
+  if(on) _tgRegionalGridLayerGroup.addTo(map);
+  else map.removeLayer(_tgRegionalGridLayerGroup);
+  if(on) _tgDistrictLabelMarkers.forEach(m=>m.addTo(map));
+  else _tgDistrictLabelMarkers.forEach(m=>{ if(map.hasLayer(m)) map.removeLayer(m); });
+};
+window.tgSetGridShowImportantAreas = function(on){
+  window.tgGridShowImportantAreas=!!on;
+  if(!_tgImportantAreaLabelLayer || !_tgRegionalGridLayerGroup) return;
+  if(on) _tgRegionalGridLayerGroup.addLayer(_tgImportantAreaLabelLayer);
+  else _tgRegionalGridLayerGroup.removeLayer(_tgImportantAreaLabelLayer);
+};
+window.tgSetGridShowAreaNames = function(on){
+  window.tgGridShowAreaNames = !!on;
+  _tgAreaNamesOn = !!on;
+  if(_tgImportantAreaLabelLayer && _tgRegionalGridLayerGroup){
+    if(on) _tgRegionalGridLayerGroup.addLayer(_tgImportantAreaLabelLayer);
+    else _tgRegionalGridLayerGroup.removeLayer(_tgImportantAreaLabelLayer);
+  }
+  _tgWardLabelMarkers.forEach(m=>{ if(on) m.addTo(map); else if(map.hasLayer(m)) map.removeLayer(m); });
+  _tgDistrictLabelMarkers.forEach(m=>{ if(on) m.addTo(map); else if(map.hasLayer(m)) map.removeLayer(m); });
+};
+window.tgSetGridShowMandalNames = function(on){
+  window.tgGridShowMandalNames = !!on;
+  if(!_tgMandalLabelLayer || !_tgRegionalGridLayerGroup) return;
+  if(on) _tgRegionalGridLayerGroup.addLayer(_tgMandalLabelLayer);
+  else _tgRegionalGridLayerGroup.removeLayer(_tgMandalLabelLayer);
+};
+window.tgSetGridShowMajorRoads = function(on){
+  if(!_tgMajorRoadLayer || !_tgRegionalGridLayerGroup) return;
+  if(on) _tgRegionalGridLayerGroup.addLayer(_tgMajorRoadLayer);
+  else _tgRegionalGridLayerGroup.removeLayer(_tgMajorRoadLayer);
+};
+function _tgBuildMajorRoadsLayer(){
+  const g=L.layerGroup();
+  function roadLine(latlngs, color, weight, dash, name, labelAt){
+    L.polyline(latlngs,{color:color,weight:weight,opacity:.92,dashArray:dash||null,interactive:false,pane:'overlayPane'}).addTo(g);
+    if(name && labelAt){
+      L.marker(labelAt,{interactive:false,pane:'markerPane',icon:L.divIcon({className:'',html:'<div class="tg-major-road-label">'+name+'</div>',iconSize:[0,0],iconAnchor:[0,0]})}).addTo(g);
+    }
+  }
+  // ORR (approximate alignment around Hyderabad for planning-context view)
+  roadLine([
+    [17.555,78.355],[17.595,78.405],[17.635,78.500],[17.610,78.590],[17.545,78.660],[17.455,78.705],
+    [17.355,78.695],[17.275,78.640],[17.215,78.575],[17.182,78.475],[17.205,78.390],[17.255,78.320],
+    [17.340,78.275],[17.430,78.270],[17.505,78.300],[17.555,78.355]
+  ], '#c2410c', 3.2, '8 6', 'ORR', [17.61,78.56]);
+  // RRR north/east concept corridor
+  roadLine([
+    [17.760,78.150],[17.780,78.330],[17.785,78.520],[17.730,78.710],[17.610,78.860]
+  ], '#7c3aed', 2.6, '6 5', 'RRR (N/E)', [17.78,78.47]);
+  // RRR south/west concept corridor
+  roadLine([
+    [17.070,78.220],[17.060,78.430],[17.085,78.610],[17.155,78.790]
+  ], '#7c3aed', 2.6, '6 5', 'RRR (S)', [17.07,78.49]);
+  // Major radials / highways
+  roadLine([[17.72,78.47],[17.59,78.47],[17.46,78.47],[17.31,78.46],[17.16,78.45]], '#b45309', 1.8, null, 'NH 44', [17.55,78.475]);
+  roadLine([[17.46,78.20],[17.44,78.33],[17.41,78.45],[17.38,78.56],[17.36,78.72]], '#b45309', 1.8, null, 'NH 65', [17.39,78.57]);
+  roadLine([[17.43,78.45],[17.43,78.57],[17.43,78.71]], '#b45309', 1.6, null, 'NH 163', [17.43,78.65]);
+  return g;
+}
+var _origTgSetGridShowWards = window.tgSetGridShowWards;
+window.tgSetGridShowWards = function(on){
+  _origTgSetGridShowWards(on);
+};
+function tgUpdateGridZoomClasses(){
+  try{
+    if(!window.map || !map.getZoom) return;
+    document.body.classList.remove('gridzoom-out','gridzoom-mid','gridzoom-in');
+    var z = map.getZoom();
+    if(z <= 12.3) document.body.classList.add('gridzoom-out');
+    else if(z <= 14.2) document.body.classList.add('gridzoom-mid');
+    else document.body.classList.add('gridzoom-in');
+  }catch(e){}
+}
+setTimeout(function(){ try{ tgUpdateGridZoomClasses(); map.on('zoomend', tgUpdateGridZoomClasses); }catch(e){} }, 800);
+
+function getBM(n){
+  if(BM[n])return BM[n];
+  if(n==='grid'){
+    // Blank tile layer that loads instantly; visuals come from CSS
+    BM[n]=L.tileLayer(_gridBlankTileUrl(),{
+      maxZoom:22, maxNativeZoom:22, tileSize:256,
+      keepBuffer:1, updateWhenIdle:true, updateWhenZooming:false,
+      attribution:''
+    });
+  }else if(n==='grid_view'){
+    BM[n]=L.tileLayer(_gridBlankTileUrl(),{
+      maxZoom:22, maxNativeZoom:22, tileSize:256,
+      keepBuffer:1, updateWhenIdle:true, updateWhenZooming:false,
+      attribution:'District/Mandal boundaries: Telangana State Remote Sensing Applications Centre (TRAC)'
+    });
+    _buildTGRegionalGridLayer();
+  }else if(_bmDefs[n]){
+    BM[n]=L.tileLayer(_bmDefs[n][0],_bmDefs[n][1]);
+  }
+  return BM[n];
+}
+let curBM='grid_view'; getBM('grid_view').addTo(map);
+setTimeout(()=>{getBM('google');getBM('satellite');},2000);
+
+function setBM(name){
+  if(name!=='grid'&&name!=='grid_view'&&!_bmDefs[name])return;
+  map.removeLayer(getBM(curBM));
+  _ensureGridBackground(name==='grid');
+  getBM(name).addTo(map);
+  if(name!=='grid'&&getBM(name).bringToBack)getBM(name).bringToBack();
+
+  if(typeof updateVisibility==='function') updateVisibility();
+
+  curBM=name;
+  document.querySelectorAll('.bmbtn,.bm-tab').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('bm-'+name);if(el)el.classList.add('active');
+  toast(name.charAt(0).toUpperCase()+name.slice(1)+' basemap');
+}
+
+function safelyManageClass(layer,className,add){
+  if(!layer)return;
+  const el=layer.getElement?layer.getElement():layer._path;
+  if(el){if(add)el.classList.add(className);else el.classList.remove(className);}
+}
+function toggleRcard(id){const c=document.getElementById(id);if(c)c.classList.toggle('collapsed');}
+function toggleFullscreen(){
+  if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(e=>toast('Fullscreen: '+e.message));
+  else if(document.exitFullscreen)document.exitFullscreen();
+}
+
+// ══ toast (verbatim) ══
+function toast(msg,dur=2200){
+  // Self-healing (fixed 21 May 2026): the #toast div had been accidentally
+  // removed from the HTML during an earlier refactor. When that happened,
+  // every toast() call threw "Cannot set properties of null" which silently
+  // killed the Firebase restore loop (50+ feeders failed to render in
+  // sequence). Now we recreate the element on demand if it's missing —
+  // toast() can NEVER throw again, no matter what surgery happens to the DOM.
+  let t=document.getElementById('toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='toast';
+    document.body.appendChild(t);
+  }
+  try{
+    t.textContent=msg;
+    t.classList.add('show');
+    clearTimeout(_tt);
+    _tt=setTimeout(()=>t.classList.remove('show'),dur);
+  }catch(e){
+    // Last-ditch — never let a UI helper crash the caller
+    console.warn('toast() failed:',e&&e.message,'msg:',msg);
+  }
+}
+
+// ══ Route-map parity stubs + smart-grid adjusters ══
+
+function updateVisibility(){ try{ if(typeof rows!=='undefined' && rows.length && typeof render==='function') render(); }catch(e){} }
+function togglePanel(){ const p=document.getElementById('panel'); if(p) p.classList.toggle('off'); const t=document.getElementById('ptab'); if(t) t.textContent=p.classList.contains('off')?'▶':'◀'; setTimeout(()=>{try{map.invalidateSize()}catch(e){}},360); }
+function toggleGridStylePanel(){ const g=document.getElementById('gridStylePanel'); if(g) g.style.display=(g.style.display==='block'?'none':'block'); }
+function setSGSSSize(v){ v=Math.max(.5,Math.min(2.5,+v||1)); document.documentElement.style.setProperty('--sg-ss-scale',v.toFixed(2)); const e=document.getElementById('gspSSVal'); if(e)e.textContent=v.toFixed(2); }
+function setSGEHTSize(v){ v=Math.max(.5,Math.min(2.5,+v||1)); document.documentElement.style.setProperty('--sg-eht-scale',v.toFixed(2)); const e=document.getElementById('gspEHTVal'); if(e)e.textContent=v.toFixed(2); }
+function setSGLabelSize(v){ v=Math.max(6,Math.min(16,+v||9)); document.documentElement.style.setProperty('--sg-label-size',v+'px'); const e=document.getElementById('gspLblVal'); if(e)e.textContent=v; }
+['t33','tLink','tHT','tDev','tLbl'].forEach(id=>{ if(!document.getElementById(id)){ const c=document.createElement('input'); c.type='checkbox'; c.id=id; c.checked=true; c.style.display='none'; document.body.appendChild(c);} });
+function toggleSGLayer(which){ const m={feeder:'t33',link:'tLink',ht:'tHT',dev:'tDev',lbl:'tLbl'}; const row=document.getElementById('lyr-'+which); if(row) row.classList.toggle('off'); const on=row?!row.classList.contains('off'):true; const el=document.getElementById(m[which]); if(el) el.checked=on; render(); }
+function onSearch(v){ let q=document.getElementById('q'); if(!q){q=document.createElement('input');q.id='q';q.style.display='none';document.body.appendChild(q);} q.value=v; render(); }
+(function(){ if(!document.getElementById('q')){ const i=document.createElement('input'); i.id='q'; i.style.display='none'; document.body.appendChild(i);} })();
+
+
+// ══ SMART GRID DATA ENGINE ══
 const FIREBASE_URL = "https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app";
 const FIREBASE_SMARTGRID_PATH = "smartgrid";
 const ROUTE_MAP_URL = "https://scadasetgspdclmaps.github.io/SCADA-DASHBOARD/33KVFEEDERSROUTEMAP.html";
 let rows=[], topology=[], nodesByKey={}, meta={};
-const map=L.map('map',{preferCanvas:true,doubleClickZoom:false}).setView([17.385,78.487],12);
-const tiles={
-  dark:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd'}),
-  osm:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20}),
-  roads:L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{maxZoom:22}),
-  satellite:L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{maxZoom:22})
-};
-let cur='dark';tiles[cur].addTo(map);L.control.scale({position:'bottomright',imperial:false}).addTo(map);
+
+
+
 let gLines=L.layerGroup().addTo(map), gNodes=L.layerGroup().addTo(map), gLabels=L.layerGroup().addTo(map);
 
-function swB(n,el){
-  if(tiles[cur]) map.removeLayer(tiles[cur]);
-  cur=n;
-  tiles[cur].addTo(map);
-  document.querySelectorAll('.bm,.bm-tab').forEach(b=>b.classList.remove('on','active'));
-  if(el){ el.classList.add(el.classList.contains('bm-tab')?'active':'on'); }
-}
+function swB(){}
 
 /* ─────────────────────────────────────────────
    Grid Map View — Telangana Shapefile/GeoJSON Context
    Uses public GeoJSON boundary sources and keeps them NON-interactive so
    feeder/smart-grid selection is never blocked.
 ───────────────────────────────────────────── */
-const TG_DISTRICTS_URLS = [
-  "./telangana_33_districts.geojson",
-  "telangana_33_districts.geojson",
-  "https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json"
-];
-const TG_BLOCKS_URLS = [
-  "./telangana_621_mandals.geojson",
-  "telangana_621_mandals.geojson",
-  "https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json"
-];
 
-async function fetchFirstGeoJson(urls){
-  let lastErr=null;
-  for(const u of urls){
-    try{
-      const r=await fetch(u,{cache:"force-cache"});
-      if(!r.ok) throw new Error(r.status+" "+u);
-      return await r.json();
-    }catch(e){ lastErr=e; }
-  }
-  throw lastErr || new Error("No GeoJSON source loaded");
-}
-
-let tgGridViewOn=false;
-let tgGridLoaded=false;
-let tgDistrictLayer=L.layerGroup();
-let tgMandalLayer=L.layerGroup();
-let tgAreaLabelLayer=L.layerGroup();
-let tgRoadLayer=L.layerGroup();
-
-function tgProp(props,names){
-  props=props||{};
-  const keys=Object.keys(props);
-  for(const nm of names){
-    const k=keys.find(x=>String(x).toLowerCase().replace(/[^a-z0-9]/g,'')===String(nm).toLowerCase().replace(/[^a-z0-9]/g,''));
-    if(k && props[k]!=null && String(props[k]).trim()!=="") return props[k];
-  }
-  return "";
-}
-function tgFeatureName(f){
-  return String(tgProp(f.properties,[
-    "DISTRICT","DIST_NAME","district","district_name","dtname",
-    "BLOCK_NAME","block_name","MANDAL","MANDAL_NAME","mandal_name",
-    "NAME","Name","name","WARD_NAME","ward_name"
-  ])||"").trim();
-}
-function tgCenterOfFeature(f){
-  try{
-    const gj=L.geoJSON(f);
-    const ls=gj.getLayers();
-    if(ls && ls[0] && ls[0].getBounds){
-      const b=ls[0].getBounds();
-      if(b.isValid()) return b.getCenter();
-    }
-  }catch(e){}
-  return null;
-}
-function tgAddLabel(layerGroup,latlng,name,cls){
-  if(!latlng || !name) return;
-  L.marker(latlng,{
-    interactive:false,
-    keyboard:false,
-    icon:L.divIcon({className:"",html:`<div class="${cls}">${String(name)}</div>`,iconSize:[0,0],iconAnchor:[0,0]})
-  }).addTo(layerGroup);
-}
-function tgNorm(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]+/g," ").trim();}
-function isHyderabadRegionName(name){
-  const n=tgNorm(name);
-  return [
-    "HYDERABAD","MEDCHAL","MEDCHAL MALKAJGIRI","RANGA REDDY","RANGAREDDY",
-    "SANGAREDDY","VIKARABAD","YADADRI BHUVANAGIRI","MEDAK","SIDDIPET","NALGONDA",
-    "MAHABUBNAGAR","NAGARKURNOOL","WANAPARTHY"
-  ].some(x=>n.includes(x));
-}
-function isImportantAreaName(name){
-  const n=tgNorm(name);
-  return [
-    "KHAIRATABAD","AMEERPET","SECUNDERABAD","BEGUMPET","JUBILEE HILLS","BANJARA HILLS",
-    "MADHAPUR","KUKATPALLY","MIYAPUR","SERILINGAMPALLY","KONDAPUR","GACHIBOWLI",
-    "KOKAPET","NARSINGI","FINANCIAL","RAJENDRA NAGAR","ATTAPUR","SHAMSHABAD",
-    "MAHESHWARAM","ADIBATLA","IBRAHIMPATNAM","UPPAL","BODUPPAL","GHATKESAR",
-    "CHERLAPALLY","KAPRA","MALKAJGIRI","KOMPALLY","MEDCHAL","SHAMIRPET",
-    "PATANCHERU","BHEL","AMEENPUR","ALWAL","JEEDIMETLA","LB NAGAR","NAGOLE",
-    "HAYATHNAGAR","CHARMINAR","GOLCONDA","SOMAJIGUDA"
-  ].some(x=>n.includes(x));
-}
-function tgBuildRoadLayer(){
-  tgRoadLayer.clearLayers();
-  function road(latlngs,color,weight,dash,label,labelAt){
-    L.polyline(latlngs,{color,weight,opacity:.9,dashArray:dash||null,interactive:false,lineCap:"round",lineJoin:"round"}).addTo(tgRoadLayer);
-    if(label) tgAddLabel(tgRoadLayer,labelAt||latlngs[Math.floor(latlngs.length/2)],label,"tg-road-label");
-  }
-  road([
-    [17.555,78.355],[17.595,78.405],[17.635,78.500],[17.610,78.590],[17.545,78.660],[17.455,78.705],
-    [17.355,78.695],[17.275,78.640],[17.215,78.575],[17.182,78.475],[17.205,78.390],[17.255,78.320],
-    [17.340,78.275],[17.430,78.270],[17.505,78.300],[17.555,78.355]
-  ],"#f97316",3,"8 6","ORR",[17.61,78.56]);
-
-  road([[17.760,78.150],[17.780,78.330],[17.785,78.520],[17.730,78.710],[17.610,78.860]],"#7c3aed",2.5,"6 5","RRR (N/E)",[17.78,78.47]);
-  road([[17.070,78.220],[17.060,78.430],[17.085,78.610],[17.155,78.790]],"#7c3aed",2.5,"6 5","RRR (S)",[17.07,78.49]);
-  road([[17.72,78.47],[17.59,78.47],[17.46,78.47],[17.31,78.46],[17.16,78.45]],"#b45309",1.8,null,"NH 44",[17.55,78.475]);
-  road([[17.46,78.20],[17.44,78.33],[17.41,78.45],[17.38,78.56],[17.36,78.72]],"#b45309",1.8,null,"NH 65",[17.39,78.57]);
-  road([[17.43,78.45],[17.43,78.57],[17.43,78.71]],"#b45309",1.6,null,"NH 163",[17.43,78.65]);
-}
-async function loadGridMapViewLayers(){
-  if(tgGridLoaded) return;
-  toast("Loading Telangana boundary shapefiles…");
-
-  tgDistrictLayer.clearLayers();
-  tgMandalLayer.clearLayers();
-  tgAreaLabelLayer.clearLayers();
-  tgBuildRoadLayer();
-
-  try{
-    const districtGeo=await fetchFirstGeoJson(TG_DISTRICTS_URLS);
-    const districtFeatures=(districtGeo.features||[]);
-    L.geoJSON({type:"FeatureCollection",features:districtFeatures},{
-      interactive:false,
-      style:f=>({
-        color:"#111827",
-        weight:1.25,
-        opacity:.72,
-        fillColor:["#e0f2fe","#dcfce7","#fef3c7","#fce7f3","#ede9fe","#fee2e2"][Math.abs(tgFeatureName(f).length)%6],
-        fillOpacity:.18
-      })
-    }).addTo(tgDistrictLayer);
-    districtFeatures.forEach(f=>tgAddLabel(tgDistrictLayer,tgCenterOfFeature(f),tgFeatureName(f),"tg-district-label"));
-  }catch(e){
-    console.warn("District boundary load failed",e);
-    toast("District boundary load failed");
-  }
-
-  try{
-    const blockGeo=await fetchFirstGeoJson(TG_BLOCKS_URLS);
-    const blockFeatures=(blockGeo.features||[]);
-    L.geoJSON({type:"FeatureCollection",features:blockFeatures},{
-      interactive:false,
-      style:f=>({
-        color:isImportantAreaName(tgFeatureName(f))?"#fbbf24":"#94a3b8",
-        weight:isImportantAreaName(tgFeatureName(f))?.85:.45,
-        opacity:isImportantAreaName(tgFeatureName(f))?.82:.45,
-        fillColor:isImportantAreaName(tgFeatureName(f))?"#fde68a":"#ffffff",
-        fillOpacity:isImportantAreaName(tgFeatureName(f))?.08:.015
-      })
-    }).addTo(tgMandalLayer);
-    blockFeatures.forEach(f=>{
-      const n=tgFeatureName(f);
-      if(isImportantAreaName(n)) tgAddLabel(tgAreaLabelLayer,tgCenterOfFeature(f),n,"tg-boundary-label");
-    });
-  }catch(e){
-    console.warn("Mandal/block boundary load failed",e);
-    toast("Mandal/block boundary load failed");
-  }
-
-  tgGridLoaded=true;
-  setGridLayerVisibility();
-  toast("Grid Map View boundaries loaded");
-}
-function setGridLayerVisibility(){
-  if(!tgGridViewOn) return;
-  const box=document.getElementById("gridLayerBox") || document;
-  const dist=box.querySelector("#tgDistToggle")?.checked!==false;
-  const mand=box.querySelector("#tgMandalToggle")?.checked!==false;
-  const area=box.querySelector("#tgAreaToggle")?.checked!==false;
-  const road=box.querySelector("#tgRoadToggle")?.checked!==false;
-
-  [[tgDistrictLayer,dist],[tgMandalLayer,mand],[tgAreaLabelLayer,area],[tgRoadLayer,road]].forEach(([layer,on])=>{
-    try{
-      if(on && !map.hasLayer(layer)) layer.addTo(map);
-      if(!on && map.hasLayer(layer)) map.removeLayer(layer);
-    }catch(e){}
-  });
-}
-function removeGridMapView(){
-  tgGridViewOn=false;
-  [tgDistrictLayer,tgMandalLayer,tgAreaLabelLayer,tgRoadLayer].forEach(l=>{try{if(map.hasLayer(l))map.removeLayer(l)}catch(e){}});
-  document.body.classList.remove("tg-grid-zoom-out","tg-grid-zoom-mid","tg-grid-zoom-in");
-}
-async function toggleGridMapView(btn){
-  tgGridViewOn=!tgGridViewOn;
-  if(btn) btn.classList.toggle("grid-active",tgGridViewOn); document.getElementById("gridLayerBox")?.classList.toggle("show",tgGridViewOn);
-  if(tgGridViewOn){
-    await loadGridMapViewLayers();
-    setGridLayerVisibility();
-    updateGridZoomClass();
-    try{map.fitBounds([[15.75,77.05],[19.95,81.95]],{padding:[18,18]});}catch(e){} toast("Grid Map View ON — Telangana boundaries + ORR/RRR");
-  }else{
-    removeGridMapView();
-    toast("Grid Map View OFF");
-  }
-}
-function updateGridZoomClass(){
-  document.body.classList.remove("tg-grid-zoom-out","tg-grid-zoom-mid","tg-grid-zoom-in");
-  const z=map.getZoom();
-  if(z<=10.5) document.body.classList.add("tg-grid-zoom-out");
-  else if(z<=13) document.body.classList.add("tg-grid-zoom-mid");
-  else document.body.classList.add("tg-grid-zoom-in");
-}
-map.on("zoomend",()=>{if(tgGridViewOn)updateGridZoomClass();});
-
-function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),3200)}
 function status(m){document.getElementById('status').innerHTML=m}
 function nkey(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
 function get(obj,aliases){for(const a of aliases){const k=nkey(a);if(obj[k]!=null && String(obj[k]).trim()!=='')return obj[k]}return ''}
@@ -538,29 +2520,25 @@ async function handleFile(file){if(!file)return;const buf=await file.arrayBuffer
 async function saveFirebase(){if(!rows.length){toast('Upload Excel first');return}buildTopology();const payload={meta:{...meta,updatedAt:new Date().toISOString(),connections:topology.length,feeders:new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size},rows};const url=`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json`;const res=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok){toast('Firebase save failed');return}await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/history.json`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});toast('Saved to Firebase /smartgrid/latest')}
 async function loadFirebase(){try{const res=await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json?ts=${Date.now()}`);const data=await res.json();if(!data||!data.rows){toast('No /smartgrid/latest data found');return}rows=data.rows;meta=data.meta||{};populateFilters();render();fileInfo.textContent=`Loaded Firebase latest · ${rows.length} rows · ${meta.updatedAt||''}`;toast('Loaded Firebase /smartgrid/latest')}catch(e){console.error(e);toast('Firebase load failed')}}
 function downloadTopologyCsv(){buildTopology();const header=['feeder_code','feeder_name','feeder_type','from_type','from_name','from_lat','from_lng','to_type','to_name','to_lat','to_lng','division','sub_division','section'];const lines=[header.join(',')];topology.forEach(c=>{const row=[c.feeder_code,c.feeder_name,c.feeder_type,c.from.kind,c.from.name,c.from.lat,c.from.lng,c.to.kind,c.to.name,c.to.lat,c.to.lng,c.division,c.sub_division,c.section].map(v=>'"'+String(v??'').replace(/"/g,'""')+'"');lines.push(row.join(','))});const blob=new Blob([lines.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='smartgrid_topology.csv';a.click();URL.revokeObjectURL(a.href)}
+// ── Loader dismiss (was missing — caused the permanent "Loading…" screen) ──
+// The route map dismisses its #loader after the feeder restore finishes.
+// The smart grid has no such restore gate, so dismiss as soon as the map
+// is up. Fill animation + safety timeout + click-to-dismiss, all guarded
+// so a missing element can never re-hang startup.
+(function(){
+  const fill=document.getElementById('ldfill'); let pct=0;
+  const iv=setInterval(()=>{ pct+=Math.random()*18+10; if(pct>=100){pct=100;clearInterval(iv);} if(fill)fill.style.width=pct+'%'; },70);
+  function dismissLoader(){ const ov=document.getElementById('loader'); if(ov){ ov.classList.add('gone'); setTimeout(()=>{try{ov.remove()}catch(e){}},500); } try{map.invalidateSize()}catch(e){} }
+  window.dismissLoader=dismissLoader;
+  const ldr=document.getElementById('loader'); if(ldr) ldr.addEventListener('click',dismissLoader);
+  // Dismiss shortly after load; Firebase data streams in behind the scenes.
+  setTimeout(dismissLoader, 600);
+  setTimeout(dismissLoader, 4000); // safety net
+})();
+
 loadFirebase();
 
-
-/* Clean upload: drag-drop + status feedback on the new card */
-(function(){
-  const card=document.getElementById('uploadCard');
-  if(!card) return;
-  ['dragenter','dragover'].forEach(ev=>card.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();card.classList.add('drag');}));
-  ['dragleave','drop'].forEach(ev=>card.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();card.classList.remove('drag');}));
-  card.addEventListener('drop',e=>{const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)handleFile(f);});
-})();
-
-/* Make fileInfo show as a status pill */
-(function(){
-  const fi=document.getElementById('fileInfo');
-  if(!fi) return;
-  const obs=new MutationObserver(()=>{
-    const t=fi.textContent||'';
-    fi.classList.toggle('show', t && !/No file loaded/i.test(t));
-    fi.classList.toggle('ok', /Loaded/i.test(t));
-  });
-  obs.observe(fi,{childList:true,characterData:true,subtree:true});
-})();
 </script>
+
 </body>
 </html>
