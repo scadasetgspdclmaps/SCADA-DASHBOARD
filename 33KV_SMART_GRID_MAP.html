@@ -1,0 +1,135 @@
+from pathlib import Path
+import re, subprocess
+
+src = Path('/mnt/data/a71958fa-ab0d-4c7f-a417-186d651de70a.html')
+text = src.read_text(encoding='utf-8', errors='ignore')
+
+# 1) Remove duplicate Grid Map View Layers block from left sidebar.
+# Keep the right-side gridLayerBox controls only, because duplicate checkbox IDs make the right-side controls unreliable.
+text = re.sub(
+    r'\n\s*<div class="fs">\s*<div class="ft">Grid Map View Layers</div>.*?</div>\s*(?=\n\s*<div class="fs">\s*<div class="ft">Stats</div>)',
+    '\n',
+    text,
+    flags=re.S
+)
+
+# 2) Remove old hidden Grid Map View button inside #bmc. The feeder-route-style bottom tab is the correct UI.
+text = text.replace('    <button class="bm" onclick="toggleGridMapView(this)">▧ Grid Map View</button>\n', '')
+
+# 3) Use local repo shapefiles first, then fallback to public raw GitHub.
+text = text.replace(
+'''const TG_DISTRICTS_URL = "https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json";
+const TG_BLOCKS_URL    = "https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json";''',
+'''const TG_DISTRICTS_URLS = [
+  "./telangana_33_districts.geojson",
+  "telangana_33_districts.geojson",
+  "https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/districts.json"
+];
+const TG_BLOCKS_URLS = [
+  "./telangana_621_mandals.geojson",
+  "telangana_621_mandals.geojson",
+  "https://raw.githubusercontent.com/gggodhwani/telangana_boundaries/master/blocks.json"
+];
+
+async function fetchFirstGeoJson(urls){
+  let lastErr=null;
+  for(const u of urls){
+    try{
+      const r=await fetch(u,{cache:"force-cache"});
+      if(!r.ok) throw new Error(r.status+" "+u);
+      return await r.json();
+    }catch(e){ lastErr=e; }
+  }
+  throw lastErr || new Error("No GeoJSON source loaded");
+}'''
+)
+
+# 4) Replace fetch usages.
+text = text.replace(
+    'const districtGeo=await (await fetch(TG_DISTRICTS_URL,{cache:"force-cache"})).json();',
+    'const districtGeo=await fetchFirstGeoJson(TG_DISTRICTS_URLS);'
+)
+text = text.replace(
+    'const blockGeo=await (await fetch(TG_BLOCKS_URL,{cache:"force-cache"})).json();',
+    'const blockGeo=await fetchFirstGeoJson(TG_BLOCKS_URLS);'
+)
+
+# 5) Show all Telangana districts, not only Hyderabad region, to match Grid Map View.
+text = text.replace(
+'''    const districtFeatures=(districtGeo.features||[]).filter(f=>isHyderabadRegionName(tgFeatureName(f)));
+    L.geoJSON({type:"FeatureCollection",features:districtFeatures},{
+      interactive:false,
+      style:f=>({color:"#38bdf8",weight:1.2,opacity:.85,fillColor:"#0ea5e9",fillOpacity:.045})
+    }).addTo(tgDistrictLayer);
+    districtFeatures.forEach(f=>tgAddLabel(tgDistrictLayer,tgCenterOfFeature(f),tgFeatureName(f),"tg-district-label"));''',
+'''    const districtFeatures=(districtGeo.features||[]);
+    L.geoJSON({type:"FeatureCollection",features:districtFeatures},{
+      interactive:false,
+      style:f=>({
+        color:"#111827",
+        weight:1.25,
+        opacity:.72,
+        fillColor:["#e0f2fe","#dcfce7","#fef3c7","#fce7f3","#ede9fe","#fee2e2"][Math.abs(tgFeatureName(f).length)%6],
+        fillOpacity:.18
+      })
+    }).addTo(tgDistrictLayer);
+    districtFeatures.forEach(f=>tgAddLabel(tgDistrictLayer,tgCenterOfFeature(f),tgFeatureName(f),"tg-district-label"));'''
+)
+
+# 6) Use all mandal/block boundaries, labels only for important Hyderabad areas.
+text = text.replace(
+'''    const blockFeatures=(blockGeo.features||[]).filter(f=>{
+      const n=tgFeatureName(f);
+      const d=String(tgProp(f.properties,["DISTRICT","DIST_NAME","district","district_name","dtname"])||"");
+      return isHyderabadRegionName(d) || isImportantAreaName(n);
+    });
+    L.geoJSON({type:"FeatureCollection",features:blockFeatures},{''',
+'''    const blockFeatures=(blockGeo.features||[]);
+    L.geoJSON({type:"FeatureCollection",features:blockFeatures},{'''
+)
+
+# 7) Avoid duplicate IDs if any remain in future: ensure right-side panel controls are unique source of truth.
+# Make setGridLayerVisibility read from right-side gridLayerBox only if possible.
+text = text.replace(
+'''  const dist=document.getElementById("tgDistToggle")?.checked!==false;
+  const mand=document.getElementById("tgMandalToggle")?.checked!==false;
+  const area=document.getElementById("tgAreaToggle")?.checked!==false;
+  const road=document.getElementById("tgRoadToggle")?.checked!==false;''',
+'''  const box=document.getElementById("gridLayerBox") || document;
+  const dist=box.querySelector("#tgDistToggle")?.checked!==false;
+  const mand=box.querySelector("#tgMandalToggle")?.checked!==false;
+  const area=box.querySelector("#tgAreaToggle")?.checked!==false;
+  const road=box.querySelector("#tgRoadToggle")?.checked!==false;'''
+)
+
+# 8) Improve Grid Map View default extent to show Telangana / Hyderabad context.
+text = text.replace(
+    'try{map.fitBounds([[16.95,77.95],[17.85,79.05]],{padding:[18,18]});}catch(e){} toast("Grid Map View ON — Telangana boundaries + ORR/RRR");',
+    'try{map.fitBounds([[15.75,77.05],[19.95,81.95]],{padding:[18,18]});}catch(e){} toast("Grid Map View ON — Telangana boundaries + ORR/RRR");'
+)
+
+# 9) Add cache-busting note in title only (not required, but helps identify version).
+text = text.replace(
+    '<title>TGSPDCL — 33KV Smart Grid Map</title>',
+    '<title>TGSPDCL — 33KV Smart Grid Map · Grid View</title>'
+)
+
+# JS syntax check
+scripts = re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>', text, flags=re.S|re.I)
+bad = []
+for i, s in enumerate(scripts):
+    if s.strip():
+        fp = Path(f'/tmp/33kv_grid_check_{i}.js')
+        fp.write_text(s, encoding='utf-8')
+        r = subprocess.run(['node', '--check', str(fp)], capture_output=True, text=True, timeout=45)
+        if r.returncode != 0:
+            bad.append((i, r.stderr[:1500]))
+
+out = Path('/mnt/data/33KV_Grid_Map.html')
+out.write_text(text, encoding='utf-8')
+
+print("Created:", out)
+print("Size:", out.stat().st_size)
+print("JS syntax errors:", bad[:2])
+print("Duplicate tgDistToggle count:", text.count('id="tgDistToggle"'))
+print("Grid Map View tab count:", text.count('GRID MAP VIEW'))
