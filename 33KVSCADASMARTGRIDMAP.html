@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -1583,6 +1582,14 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
 .ss33-wrap{transform:scale(var(--sg-ss-scale,1));transform-origin:center}
 .eht-wrap{transform:scale(var(--sg-eht-scale,1));transform-origin:center}
 .node-label,.sg-node-label{font-size:var(--sg-label-size,9px)!important}
+/* Label-size slider also scales mandal / area / district labels */
+body .tg-boundary-label{font-size:var(--sg-label-size,10px)!important}
+body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
+.fs-group{padding:7px 12px 4px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:#67e8f9;border-top:1px solid rgba(0,200,255,.12);background:rgba(0,200,255,.04)}
+.fs-group:first-child{border-top:none}
+.fs-item{padding:6px 14px;font-size:11.5px;color:#dff4ff;cursor:pointer;transition:.12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fs-item:hover{background:rgba(0,200,255,.14);color:#fff}
+
 /* Energy-flow animation: moving dashes along 33KV feeders (EHT→SS) */
 .sg-flow{animation:sgFlowMove 1s linear infinite}
 @keyframes sgFlowMove{from{stroke-dashoffset:0}to{stroke-dashoffset:-16}}
@@ -1720,7 +1727,7 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
   <div class="rcard" id="rc-layers">
     <div class="rcard-hd" onclick="toggleRcard('rc-layers')"><span class="rcard-title">// LAYER TYPES</span><span class="rcard-arrow">▾</span></div>
     <div class="rcard-body">
-      <div class="lrow" id="lyr-feeder" onclick="toggleSGLayer('feeder')"><div class="lswatch" style="background:#00a6ff"></div><div class="lname">33KV Feeder Links</div><div class="lcnt" id="cnt33">—</div><div class="tog"></div></div>
+      <div class="lrow" id="lyr-feeder" onclick="toggleSGLayer('feeder')"><div class="lswatch" style="background:linear-gradient(90deg,#f97316 50%,#2196f3 50%)"></div><div class="lname">33KV Feeder Links</div><div class="lcnt" id="cnt33">—</div><div class="tog"></div></div>
       <div class="lrow" id="lyr-link" onclick="toggleSGLayer('link')"><div class="lswatch" style="background:#9c27b0"></div><div class="lname">Link Lines</div><div class="lcnt" id="cntLink">—</div><div class="tog"></div></div>
       <div class="lrow" id="lyr-ht" onclick="toggleSGLayer('ht')"><div class="lswatch" style="background:#00a88a"></div><div class="lname">HT Services</div><div class="lcnt" id="cntHt">—</div><div class="tog"></div></div>
       <div class="lrow" id="lyr-dev" onclick="toggleSGLayer('dev')"><div class="lswatch dot" style="background:#ffd700;border-color:#4b5563"></div><div class="lname">AB / DP Nodes</div><div class="lcnt" id="cntDev">—</div><div class="tog"></div></div>
@@ -1740,7 +1747,8 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
     <div class="rcard-hd" onclick="toggleRcard('rc-legend')"><span class="rcard-title">// LEGEND</span><span class="rcard-arrow">▾</span></div>
     <div class="rcard-body">
       <div class="strow"><span class="stlbl"><span style="color:#f97316">⚡</span> EHT source</span><span class="stlbl"><span style="color:#e74c3c">⚡</span> 33/11KV SS</span></div>
-      <div class="strow"><span class="stlbl"><span style="color:#00a6ff">━</span> 33KV</span><span class="stlbl"><span style="color:#9c27b0">┈</span> Link</span><span class="stlbl"><span style="color:#00a88a">━</span> HT</span></div>
+      <div class="strow"><span class="stlbl"><span style="color:#f97316">━</span> 33KV OH</span><span class="stlbl"><span style="color:#2196f3">━</span> 33KV UG</span></div>
+      <div class="strow"><span class="stlbl"><span style="color:#9c27b0">┈</span> Link</span><span class="stlbl"><span style="color:#00a88a">━</span> HT</span></div>
     </div>
   </div>
 </div>
@@ -2112,6 +2120,19 @@ function _tgBuildImportantAreaLabels(){
   return g;
 }
 
+
+// Per Naresh 03-Jul-2026: a black rectangle with a hover name kept
+// appearing over core Hyderabad — a degenerate bounding-box feature
+// inside one of the boundary GeoJSONs. Real boundaries have hundreds of
+// ring points; a bbox placeholder has ~5. Skip those tiny rings.
+function _tgIsDegenerateBox(f){
+  try{
+    const g=f&&f.geometry; if(!g)return false;
+    const rings = g.type==='Polygon' ? g.coordinates : (g.type==='MultiPolygon' ? g.coordinates.flat() : null);
+    if(!rings || !rings.length) return false;
+    return rings.every(r=>Array.isArray(r)&&r.length<=6);
+  }catch(e){ return false; }
+}
 async function _buildTGRegionalGridLayer(){
   if(_tgRegionalGridLayerGroup){ if(window.tgGridShowDistricts) _tgRegionalGridLayerGroup.addTo(map); return; }
   _tgRegionalGridLayerGroup = L.layerGroup();
@@ -2131,6 +2152,7 @@ async function _buildTGRegionalGridLayer(){
     if(!feats.length) throw new Error('no districts in boundary file');
     _tgDistrictFeatures = feats;
     feats.forEach((f,i)=>{
+      if(_tgIsDegenerateBox(f)) return; // skip bbox placeholder
       const layer=L.geoJSON(f,{style:{color:'#555',weight:1.2,fillColor:palette[i%palette.length],fillOpacity:.3}});
       const props=f.properties||{};
       const name=props.DISTRICT||props.DIST_NAME||props.district||props.name||'District';
@@ -2153,7 +2175,7 @@ async function _buildTGRegionalGridLayer(){
     if(!res2.ok) throw new Error('mandal boundary HTTP '+res2.status);
     const gj2 = await res2.json();
     const feats2 = gj2.features||[];
-    const mandalLayer = L.geoJSON(feats2,{style:{color:'#999',weight:.5,opacity:.65,fillOpacity:0,dashArray:'2 2'}});
+    const mandalLayer = L.geoJSON(feats2,{filter:f=>!_tgIsDegenerateBox(f),style:{color:'#999',weight:.5,opacity:.65,fillOpacity:0,dashArray:'2 2'}});
     // Per Naresh 01-Jul-2026: "mandal/important [names] inside the region" —
     // mandal names were only reachable on hover (bindTooltip) before, so
     // they never actually showed on a printed/screenshotted view. This
@@ -2242,6 +2264,7 @@ async function _buildTGRegionalGridLayer(){
     const feats3 = gj3.features||[];
     if(!feats3.length) throw new Error('no features in GHMC ward file');
     const wardLayer = L.geoJSON(feats3,{
+      filter:f=>!_tgIsDegenerateBox(f),
       style:{color:'#7a8a9a',weight:.6,opacity:.7,fillOpacity:0,dashArray:'1 2'}
     });
     wardLayer.eachLayer(layer=>{
@@ -2447,7 +2470,49 @@ function setSGFeederLabels(on){ const t=document.getElementById('tLbl'); if(t)t.
 // Layer-panel "Feeder Code Labels" row starts OFF to match tLbl default.
 setTimeout(()=>{ const row=document.getElementById('lyr-lbl'); if(row)row.classList.add('off'); },0);
 function toggleSGLayer(which){ const m={feeder:'t33',link:'tLink',ht:'tHT',dev:'tDev',lbl:'tLbl'}; const row=document.getElementById('lyr-'+which); if(row) row.classList.toggle('off'); const on=row?!row.classList.contains('off'):true; const el=document.getElementById(m[which]); if(el) el.checked=on; if(which==='lbl'){ const s=document.getElementById('sgLblToggle'); if(s)s.checked=on; } render(); }
-function onSearch(v){ let q=document.getElementById('q'); if(!q){q=document.createElement('input');q.id='q';q.style.display='none';document.body.appendChild(q);} q.value=v; render(); }
+// ── Grouped search dropdown: EHT sources with their feeders nested inside,
+// plus Link Lines and HT Services groups. Click an EHT → filter to it;
+// click a feeder → filter + zoom to that feeder. (Per Naresh 03-Jul-2026)
+function onSearch(v){
+  let q=document.getElementById('q'); if(!q){q=document.createElement('input');q.id='q';q.style.display='none';document.body.appendChild(q);}
+  q.value=v; render(); buildSearchDropdown(v);
+}
+function buildSearchDropdown(qtext){
+  const dd=document.getElementById('fsDropdown'); if(!dd)return;
+  const qq=String(qtext||'').trim().toLowerCase();
+  if(!qq){ dd.classList.remove('open'); dd.innerHTML=''; return; }
+  buildTopology();
+  // Group: EHT name → set of feeders under it; plus link + ht lists.
+  const ehts={}, links=new Set(), hts=new Set();
+  topology.forEach(c=>{
+    if(c.type==='feeder'){
+      const src=(c.from.kind==='eht')?clean(c.from.name):null;
+      const key=src||'(no EHT source)';
+      (ehts[key]=ehts[key]||new Set()).add(clean(c.feeder_name)||c.feeder_code);
+    } else if(c.type==='link'){ links.add(clean(c.feeder_name)||c.feeder_code); }
+    else if(c.type==='ht'){ hts.add(clean(c.feeder_name)||c.feeder_code); }
+  });
+  const match=s=>String(s||'').toLowerCase().includes(qq);
+  let out='';
+  Object.keys(ehts).sort().forEach(eht=>{
+    const fs=[...ehts[eht]].filter(f=>match(f)||match(eht));
+    if(!fs.length)return;
+    out+=`<div class="fs-group">⚡ ${eht}</div>`;
+    fs.sort().forEach(f=>{ out+=`<div class="fs-item" onclick="pickSearchFeeder('${String(f).replace(/'/g,"\\'")}')">${f}</div>`; });
+  });
+  const lk=[...links].filter(match); if(lk.length){ out+='<div class="fs-group">┈ LINK LINES</div>'; lk.sort().forEach(f=>{out+=`<div class="fs-item" onclick="pickSearchFeeder('${String(f).replace(/'/g,"\\'")}')">${f}</div>`;}); }
+  const ht=[...hts].filter(match); if(ht.length){ out+='<div class="fs-group">━ HT SERVICES</div>'; ht.sort().forEach(f=>{out+=`<div class="fs-item" onclick="pickSearchFeeder('${String(f).replace(/'/g,"\\'")}')">${f}</div>`;}); }
+  dd.innerHTML = out || '<div class="fs-item" style="opacity:.6">No matches</div>';
+  dd.classList.add('open');
+}
+function pickSearchFeeder(name){
+  const dd=document.getElementById('fsDropdown'); if(dd){dd.classList.remove('open');}
+  const si=document.getElementById('srchInput'); if(si)si.value=name;
+  let q=document.getElementById('q'); if(q)q.value=name;
+  window._sgFitDone=false; // allow zoom-to-result
+  render();
+}
+document.addEventListener('click',e=>{ const w=document.getElementById('srchWrap'); if(w && !w.contains(e.target)){ const dd=document.getElementById('fsDropdown'); if(dd)dd.classList.remove('open'); } });
 (function(){ if(!document.getElementById('q')){ const i=document.createElement('input'); i.id='q'; i.style.display='none'; document.body.appendChild(i);} })();
 
 
@@ -2479,8 +2544,14 @@ function normType(s){s=String(s||'').toUpperCase();if(s.includes('LINK'))return 
 function isCutOrBad(s){return /CUT\s*POINT|CUTPOINT/i.test(String(s||''))}
 function isDevice(s){return /AB\s*SWITCH|LINE\s*AB|DP\s*STRUCTURE|DP\b|RMU|ISOLATOR/i.test(String(s||''))}
 function nodeType(feedTo,name,type){const t=String(feedTo+' '+name+' '+type).toUpperCase();if(t.includes('AB SWITCH')||t.includes('LINE AB'))return 'ab';if(t.includes('DP'))return 'dp';if(t.includes('HT SERVICE')||t.includes('HT'))return 'ht';if(t.includes('EHT')||t.includes('132')||t.includes('220'))return 'eht';return 'ss33'}
-function colorFor(t){if(t==='link')return '#9c27b0';if(t==='ht')return '#00a88a';return '#00a6ff'}
-function iconFor(type){if(type==='eht')return L.divIcon({className:'',html:'<div class="eht-wrap"><div class="eht-ring"></div><div class="eht-core"><span class="bolt">⚡</span></div></div>',iconSize:[44,44],iconAnchor:[22,22]});if(type==='ab')return L.divIcon({className:'',html:'<div class="ab-icon"></div>',iconSize:[12,12],iconAnchor:[6,6]});if(type==='dp')return L.divIcon({className:'',html:'<div class="dp-icon"></div>',iconSize:[14,14],iconAnchor:[7,7]});if(type==='ht')return L.divIcon({className:'',html:'<div class="ht-icon"></div>',iconSize:[16,16],iconAnchor:[8,8]});return L.divIcon({className:'',html:'<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="bolt">⚡</span></div></div>',iconSize:[36,36],iconAnchor:[18,18]})}
+function colorFor(t,ftype){if(t==='link')return '#9c27b0';if(t==='ht')return '#00a88a';
+  // 33KV feeders colored by cable type like the route map / TRANSCO grid:
+  // OH = orange, UG = blue. Mixed/unknown falls back to blue.
+  const f=String(ftype||'').toUpperCase();
+  if(f.includes('OH'))return '#f97316';
+  if(f.includes('UG'))return '#2196f3';
+  return '#2196f3'}
+function iconFor(type,name){if(type==='eht'){const kvm=String(name||'').match(/(\d{3})\s*K?V/i);const kv=kvm?kvm[1]+'KV':'EHT';return L.divIcon({className:'',html:'<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">'+kv+'</span></div></div>',iconSize:[40,28],iconAnchor:[20,14]});}if(type==='ab')return L.divIcon({className:'',html:'<div class="ab-icon"></div>',iconSize:[12,12],iconAnchor:[6,6]});if(type==='dp')return L.divIcon({className:'',html:'<div class="dp-icon"></div>',iconSize:[14,14],iconAnchor:[7,7]});if(type==='ht')return L.divIcon({className:'',html:'<div class="ht-icon"></div>',iconSize:[16,16],iconAnchor:[8,8]});return L.divIcon({className:'',html:'<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="bolt">⚡</span></div></div>',iconSize:[36,36],iconAnchor:[18,18]})}
 function normalizeInputRows(raw){
   const out=[], carry={};
   raw.forEach((r,idx)=>{
@@ -2525,7 +2596,13 @@ function buildTopology(){
     seq.forEach(n=>{nodesByKey[n.kind+'|'+compact(n.name)+'|'+String(n.code||'')]=n});
   });
 }
-function curve(a,b,i,total){const A=L.latLng(a.lat,a.lng),B=L.latLng(b.lat,b.lng);const dx=B.lng-A.lng,dy=B.lat-A.lat,len=Math.sqrt(dx*dx+dy*dy)||1e-9,nx=-dy/len,ny=dx/len,spread=(i-(total-1)/2)*0.0028;const pts=[];for(let t=0;t<=1.0001;t+=.12){const bow=Math.sin(Math.PI*t)*spread;pts.push(L.latLng(A.lat+(B.lat-A.lat)*t+ny*bow,A.lng+(B.lng-A.lng)*t+nx*bow))}pts.push(B);return pts}
+function curve(a,b,i,total){const A=L.latLng(a.lat,a.lng),B=L.latLng(b.lat,b.lng);
+  // TRANSCO-style: single connections are dead straight; only parallel
+  // duplicates bow slightly (just enough to not overlap) — was 0.0028
+  // which made every multi-feeder corridor look like spaghetti.
+  if(total<=1)return [A,B];
+  const dx=B.lng-A.lng,dy=B.lat-A.lat,len=Math.sqrt(dx*dx+dy*dy)||1e-9,nx=-dy/len,ny=dx/len,spread=(i-(total-1)/2)*0.0010;
+  const pts=[];for(let t=0;t<=1.0001;t+=.12){const bow=Math.sin(Math.PI*t)*spread;pts.push(L.latLng(A.lat+(B.lat-A.lat)*t+ny*bow,A.lng+(B.lng-A.lng)*t+nx*bow))}pts.push(B);return pts}
 function matchesFilters(c){const div=fDiv.value,sub=fSub.value,sec=fSec.value,fdr=fFeeder.value,q=document.getElementById('q').value.trim().toLowerCase();if(div&&c.division!==div)return false;if(sub&&c.sub_division!==sub)return false;if(sec&&c.section!==sec)return false;if(fdr&&c.feeder_code!==fdr&&c.feeder_name!==fdr)return false;if(q){const hay=[c.feeder_code,c.feeder_name,c.from.name,c.to.name,c.division,c.section].join(' ').toLowerCase();if(!hay.includes(q))return false}if(c.type==='feeder'&&!t33.checked)return false;if(c.type==='link'&&!tLink.checked)return false;if(c.type==='ht'&&!tHT.checked)return false;return true}
 // ── Interactive render (rewritten per Naresh 03-Jul-2026) ──
 // Fixes: (1) node labels no longer permanent — OFF by default, shown on
@@ -2549,7 +2626,7 @@ function render(){
   shown.forEach(c=>{
     const k=compact(c.from.name)+'>'+compact(c.to.name), idx=pairIdx[k]||0; pairIdx[k]=idx+1;
     cnt[c.type]++;
-    const col=colorFor(c.type);
+    const col=colorFor(c.type,c.feeder_type);
     const pts=curve(c.from,c.to,idx,pairCount[k]);
     const w = c.type==='link' ? Math.max(1.5,sgLineWeight*0.8) : sgLineWeight;
     const line=L.polyline(pts,{color:col,weight:w,opacity:.9,dashArray:c.type==='link'?'7 5':null,lineCap:'round',lineJoin:'round'});
@@ -2574,7 +2651,7 @@ function render(){
     // Optional persistent feeder-code label at the line midpoint (toggle).
     if(showFeederLabels){
       const mid=pts[Math.floor(pts.length/2)];
-      L.marker(mid,{interactive:false,icon:L.divIcon({className:'',html:`<div class="node-label" style="border:1px solid ${col};font-size:7.5px">${c.feeder_code||clean(c.feeder_name).slice(0,18)}</div>`,iconSize:[1,1]})}).addTo(gLabels);
+      L.marker(mid,{interactive:false,icon:L.divIcon({className:'',html:`<div class="node-label" style="border:1px solid ${col};font-size:7.5px">${clean(c.feeder_name).slice(0,26)||c.feeder_code}</div>`,iconSize:[1,1]})}).addTo(gLabels);
     }
   });
 
@@ -2585,7 +2662,7 @@ function render(){
     if((n.kind==='ab'||n.kind==='dp') && !(document.getElementById('tDev')||{}).checked) return;
     const key=n.kind+'|'+compact(n.name)+'|'+String(n.code||'');
     if(used[key])return; used[key]=true;
-    const m=L.marker([n.lat,n.lng],{icon:iconFor(n.kind),riseOnHover:true})
+    const m=L.marker([n.lat,n.lng],{icon:iconFor(n.kind,n.name),riseOnHover:true})
       .bindTooltip(clean(n.name),{direction:'right',offset:[16,0],className:'sg-node-label',opacity:.96});
     m.addTo(gNodes);
     if(n.kind==='ab'||n.kind==='dp')cnt.dev++;
