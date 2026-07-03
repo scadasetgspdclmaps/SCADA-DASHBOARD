@@ -1582,6 +1582,14 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
 .ss33-wrap{transform:scale(var(--sg-ss-scale,1));transform-origin:center}
 .eht-wrap{transform:scale(var(--sg-eht-scale,1));transform-origin:center}
 .node-label,.sg-node-label{font-size:var(--sg-label-size,9px)!important}
+/* Energy-flow animation: moving dashes along 33KV feeders (EHT→SS) */
+.sg-flow{animation:sgFlowMove 1s linear infinite}
+@keyframes sgFlowMove{from{stroke-dashoffset:0}to{stroke-dashoffset:-16}}
+/* Line hover tooltip — feeder name on click/hover, no popup box */
+.sg-line-tip{background:rgba(12,24,38,.95)!important;color:#eaffff!important;border:1px solid rgba(0,200,255,.4)!important;border-radius:6px!important;font-family:var(--mono,monospace)!important;font-size:11px!important;font-weight:700!important;padding:4px 9px!important;box-shadow:0 4px 16px rgba(0,0,0,.4)!important}
+.sg-line-tip:before{border-top-color:rgba(12,24,38,.95)!important}
+.sg-node-label{background:rgba(10,10,15,.9)!important;color:#fff!important;border:none!important;border-radius:4px!important}
+.sg-node-label:before{display:none!important}
 </style>
 
 <div id="loader"><div class="ld-inner"><div class="ld-logo">TGSPDCL SMART GRID</div><div class="ld-bar"><div class="ld-fill" id="ldfill"></div></div><div class="ld-txt" id="ldtxt">Loading…</div></div></div>
@@ -1657,6 +1665,18 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
   <div class="gsp-row">
     <label>LABEL SIZE <span id="gspLblVal">9</span></label>
     <input type="range" min="6" max="16" step="1" value="9" oninput="setSGLabelSize(this.value)">
+  </div>
+  <div class="gsp-row">
+    <label>LINE THICKNESS <span id="gspLineVal">3.0</span></label>
+    <input type="range" min="1" max="8" step="0.5" value="3" oninput="setSGLineWeight(this.value)">
+  </div>
+  <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
+    <label style="margin-bottom:0"><span>ENERGY FLOW ANIMATION</span>
+      <input type="checkbox" id="sgFlowToggle" checked onchange="setSGFlow(this.checked)" style="transform:translateY(2px)"></label>
+  </div>
+  <div class="gsp-row">
+    <label style="margin-bottom:0"><span>FEEDER CODE LABELS</span>
+      <input type="checkbox" id="sgLblToggle" onchange="setSGFeederLabels(this.checked)" style="transform:translateY(2px)"></label>
   </div>
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
     <label style="margin-bottom:0"><span>AREA BORDERS ONLY</span>
@@ -2419,8 +2439,13 @@ function toggleGridStylePanel(){ const g=document.getElementById('gridStylePanel
 function setSGSSSize(v){ v=Math.max(.5,Math.min(2.5,+v||1)); document.documentElement.style.setProperty('--sg-ss-scale',v.toFixed(2)); const e=document.getElementById('gspSSVal'); if(e)e.textContent=v.toFixed(2); }
 function setSGEHTSize(v){ v=Math.max(.5,Math.min(2.5,+v||1)); document.documentElement.style.setProperty('--sg-eht-scale',v.toFixed(2)); const e=document.getElementById('gspEHTVal'); if(e)e.textContent=v.toFixed(2); }
 function setSGLabelSize(v){ v=Math.max(6,Math.min(16,+v||9)); document.documentElement.style.setProperty('--sg-label-size',v+'px'); const e=document.getElementById('gspLblVal'); if(e)e.textContent=v; }
-['t33','tLink','tHT','tDev','tLbl'].forEach(id=>{ if(!document.getElementById(id)){ const c=document.createElement('input'); c.type='checkbox'; c.id=id; c.checked=true; c.style.display='none'; document.body.appendChild(c);} });
-function toggleSGLayer(which){ const m={feeder:'t33',link:'tLink',ht:'tHT',dev:'tDev',lbl:'tLbl'}; const row=document.getElementById('lyr-'+which); if(row) row.classList.toggle('off'); const on=row?!row.classList.contains('off'):true; const el=document.getElementById(m[which]); if(el) el.checked=on; render(); }
+function setSGLineWeight(v){ v=Math.max(1,Math.min(8,+v||3)); window.sgLineWeight=v; sgLineWeight=v; const e=document.getElementById('gspLineVal'); if(e)e.textContent=(+v).toFixed(1); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
+function setSGFlow(on){ window.sgFlowOn=!!on; sgFlowOn=!!on; const e=document.getElementById('sgFlowToggle'); if(e)e.checked=!!on; if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
+function setSGFeederLabels(on){ const t=document.getElementById('tLbl'); if(t)t.checked=!!on; const s=document.getElementById('sgLblToggle'); if(s)s.checked=!!on; const row=document.getElementById('lyr-lbl'); if(row)row.classList.toggle('off',!on); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
+['t33','tLink','tHT','tDev','tLbl'].forEach(id=>{ if(!document.getElementById(id)){ const c=document.createElement('input'); c.type='checkbox'; c.id=id; c.checked=(id!=='tLbl'); c.style.display='none'; document.body.appendChild(c);} });
+// Layer-panel "Feeder Code Labels" row starts OFF to match tLbl default.
+setTimeout(()=>{ const row=document.getElementById('lyr-lbl'); if(row)row.classList.add('off'); },0);
+function toggleSGLayer(which){ const m={feeder:'t33',link:'tLink',ht:'tHT',dev:'tDev',lbl:'tLbl'}; const row=document.getElementById('lyr-'+which); if(row) row.classList.toggle('off'); const on=row?!row.classList.contains('off'):true; const el=document.getElementById(m[which]); if(el) el.checked=on; if(which==='lbl'){ const s=document.getElementById('sgLblToggle'); if(s)s.checked=on; } render(); }
 function onSearch(v){ let q=document.getElementById('q'); if(!q){q=document.createElement('input');q.id='q';q.style.display='none';document.body.appendChild(q);} q.value=v; render(); }
 (function(){ if(!document.getElementById('q')){ const i=document.createElement('input'); i.id='q'; i.style.display='none'; document.body.appendChild(i);} })();
 
@@ -2501,12 +2526,80 @@ function buildTopology(){
 }
 function curve(a,b,i,total){const A=L.latLng(a.lat,a.lng),B=L.latLng(b.lat,b.lng);const dx=B.lng-A.lng,dy=B.lat-A.lat,len=Math.sqrt(dx*dx+dy*dy)||1e-9,nx=-dy/len,ny=dx/len,spread=(i-(total-1)/2)*0.0028;const pts=[];for(let t=0;t<=1.0001;t+=.12){const bow=Math.sin(Math.PI*t)*spread;pts.push(L.latLng(A.lat+(B.lat-A.lat)*t+ny*bow,A.lng+(B.lng-A.lng)*t+nx*bow))}pts.push(B);return pts}
 function matchesFilters(c){const div=fDiv.value,sub=fSub.value,sec=fSec.value,fdr=fFeeder.value,q=document.getElementById('q').value.trim().toLowerCase();if(div&&c.division!==div)return false;if(sub&&c.sub_division!==sub)return false;if(sec&&c.section!==sec)return false;if(fdr&&c.feeder_code!==fdr&&c.feeder_name!==fdr)return false;if(q){const hay=[c.feeder_code,c.feeder_name,c.from.name,c.to.name,c.division,c.section].join(' ').toLowerCase();if(!hay.includes(q))return false}if(c.type==='feeder'&&!t33.checked)return false;if(c.type==='link'&&!tLink.checked)return false;if(c.type==='ht'&&!tHT.checked)return false;return true}
-function render(){buildTopology();gLines.clearLayers();gNodes.clearLayers();gLabels.clearLayers();const shown=topology.filter(matchesFilters);const pairCount={},pairIdx={};shown.forEach(c=>{const k=compact(c.from.name)+'>'+compact(c.to.name);pairCount[k]=(pairCount[k]||0)+1});const bounds=L.latLngBounds([]);let cnt={feeder:0,link:0,ht:0,dev:0};
-  shown.forEach(c=>{const k=compact(c.from.name)+'>'+compact(c.to.name),idx=pairIdx[k]||0;pairIdx[k]=idx+1;cnt[c.type]++;const col=colorFor(c.type);const line=L.polyline(curve(c.from,c.to,idx,pairCount[k]),{color:col,weight:c.type==='link'?2.4:2,opacity:.9,dashArray:c.type==='link'?'7 5':null,lineCap:'round',lineJoin:'round'}).bindPopup(`<b>${c.feeder_name}</b><br>Code: ${c.feeder_code||'-'}<br>From: ${clean(c.from.name)}<br>To: ${clean(c.to.name)}<br>Type: ${c.feeder_type||'-'}<br><span style='color:#8ab4f8;font-size:10px'>Double-click line → open Feeder Route Map</span>`);line.on('dblclick',ev=>{L.DomEvent.stop(ev);openFeederInRouteMap(c.feeder_code,c.feeder_name);});line.addTo(gLines);bounds.extend([c.from.lat,c.from.lng]);bounds.extend([c.to.lat,c.to.lng]);if(tLbl.checked){const mid=curve(c.from,c.to,idx,pairCount[k])[Math.floor(curve(c.from,c.to,idx,pairCount[k]).length/2)];L.marker(mid,{interactive:false,icon:L.divIcon({className:'',html:`<div class="node-label" style="border:1px solid ${col};font-size:7.5px">${c.feeder_code||clean(c.feeder_name).slice(0,18)}</div>`,iconSize:[1,1]})}).addTo(gLabels)}});
-  const used={};shown.forEach(c=>[c.from,c.to].forEach(n=>{if((n.kind==='ab'||n.kind==='dp')&&!tDev.checked)return;const key=n.kind+'|'+compact(n.name)+'|'+String(n.code||'');if(used[key])return;used[key]=true;L.marker([n.lat,n.lng],{icon:iconFor(n.kind),riseOnHover:true}).bindTooltip(clean(n.name),{permanent:true,direction:'right',offset:[18,0],className:'node-label'}).bindPopup(`<b>${clean(n.name)}</b><br>${n.kind.toUpperCase()}<br>Code: ${n.code||'-'}<br>Lat: ${Number(n.lat).toFixed(6)}<br>Lng: ${Number(n.lng).toFixed(6)}`).addTo(gNodes);if(n.kind==='ab'||n.kind==='dp')cnt.dev++}));
-  stRows.textContent=rows.length;stFeeders.textContent=new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size;stNodes.textContent=Object.keys(used).length;stConns.textContent=shown.length;cnt33.textContent=cnt.feeder;cntLink.textContent=cnt.link;cntHt.textContent=cnt.ht;cntDev.textContent=cnt.dev;
-  document.getElementById('empty').style.display=rows.length?'none':'block';status(`SMARTGRID: <b>${shown.length}</b> connection(s) · <b>${Object.keys(used).length}</b> node(s)`);if(bounds.isValid())map.fitBounds(bounds.pad(.18),{maxZoom:14})
+// ── Interactive render (rewritten per Naresh 03-Jul-2026) ──
+// Fixes: (1) node labels no longer permanent — OFF by default, shown on
+// hover or via the Feeder Code Labels toggle; (2) NO popup box on click —
+// clicking a feeder line shows its name in a lightweight tooltip that
+// follows the line, and double-click still opens the route map; (3) line
+// thickness honors the adjuster (window.sgLineWeight); (4) energy-flow
+// animation (EHT→SS moving dashes) when window.sgFlowOn.
+let sgLineWeight = window.sgLineWeight || 3;
+let sgFlowOn = (window.sgFlowOn !== false);
+function render(){
+  buildTopology();
+  gLines.clearLayers(); gNodes.clearLayers(); gLabels.clearLayers();
+  const shown=topology.filter(matchesFilters);
+  const pairCount={},pairIdx={};
+  shown.forEach(c=>{const k=compact(c.from.name)+'>'+compact(c.to.name);pairCount[k]=(pairCount[k]||0)+1});
+  const bounds=L.latLngBounds([]);
+  let cnt={feeder:0,link:0,ht:0,dev:0};
+  const showFeederLabels = (document.getElementById('tLbl')||{}).checked;
+
+  shown.forEach(c=>{
+    const k=compact(c.from.name)+'>'+compact(c.to.name), idx=pairIdx[k]||0; pairIdx[k]=idx+1;
+    cnt[c.type]++;
+    const col=colorFor(c.type);
+    const pts=curve(c.from,c.to,idx,pairCount[k]);
+    const w = c.type==='link' ? Math.max(1.5,sgLineWeight*0.8) : sgLineWeight;
+    const line=L.polyline(pts,{color:col,weight:w,opacity:.9,dashArray:c.type==='link'?'7 5':null,lineCap:'round',lineJoin:'round'});
+    // Name shown as a hover tooltip that follows the cursor — NO popup box.
+    line.bindTooltip(
+      `${c.feeder_name}${c.feeder_code?' · '+c.feeder_code:''}`,
+      {sticky:true,direction:'top',opacity:.95,className:'sg-line-tip'}
+    );
+    // Double-click → open the full feeder route map for this feeder.
+    line.on('dblclick',ev=>{L.DomEvent.stop(ev);openFeederInRouteMap(c.feeder_code,c.feeder_name);});
+    line.addTo(gLines);
+
+    // Energy-flow animation: a second, animated dashed line on top (EHT→SS).
+    // Only on 33KV feeders (not link/ht) and only when flow is ON.
+    if(sgFlowOn && c.type==='feeder'){
+      const flow=L.polyline(pts,{color:'#eaffff',weight:Math.max(1,w*0.5),opacity:.9,dashArray:'2 14',lineCap:'round',className:'sg-flow'});
+      flow.addTo(gLines);
+    }
+
+    bounds.extend([c.from.lat,c.from.lng]); bounds.extend([c.to.lat,c.to.lng]);
+
+    // Optional persistent feeder-code label at the line midpoint (toggle).
+    if(showFeederLabels){
+      const mid=pts[Math.floor(pts.length/2)];
+      L.marker(mid,{interactive:false,icon:L.divIcon({className:'',html:`<div class="node-label" style="border:1px solid ${col};font-size:7.5px">${c.feeder_code||clean(c.feeder_name).slice(0,18)}</div>`,iconSize:[1,1]})}).addTo(gLabels);
+    }
+  });
+
+  // Nodes: icons stay, but tooltips are HOVER-only now (not permanent).
+  // No popup box on click. Node name appears on hover.
+  const used={};
+  shown.forEach(c=>[c.from,c.to].forEach(n=>{
+    if((n.kind==='ab'||n.kind==='dp') && !(document.getElementById('tDev')||{}).checked) return;
+    const key=n.kind+'|'+compact(n.name)+'|'+String(n.code||'');
+    if(used[key])return; used[key]=true;
+    const m=L.marker([n.lat,n.lng],{icon:iconFor(n.kind),riseOnHover:true})
+      .bindTooltip(clean(n.name),{direction:'right',offset:[16,0],className:'sg-node-label',opacity:.96});
+    m.addTo(gNodes);
+    if(n.kind==='ab'||n.kind==='dp')cnt.dev++;
+  }));
+
+  stRows.textContent=rows.length;
+  stFeeders.textContent=new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size;
+  stNodes.textContent=Object.keys(used).length;
+  stConns.textContent=shown.length;
+  cnt33.textContent=cnt.feeder; cntLink.textContent=cnt.link; cntHt.textContent=cnt.ht; cntDev.textContent=cnt.dev;
+  document.getElementById('empty').style.display=rows.length?'none':'block';
+  status(`SMARTGRID: <b>${shown.length}</b> connection(s) · <b>${Object.keys(used).length}</b> node(s)`);
+  if(bounds.isValid() && !window._sgFitDone){ map.fitBounds(bounds.pad(.18),{maxZoom:14}); window._sgFitDone=true; }
 }
+
 function openFeederInRouteMap(code,name){
   const key=(code&&String(code).trim())?String(code).trim():String(name||'').trim();
   if(!key){toast('No feeder code/name on this line');return;}
