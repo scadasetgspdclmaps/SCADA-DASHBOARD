@@ -1635,6 +1635,31 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
 .fs-group:first-child{border-top:none}
 .fs-item{padding:6px 14px;font-size:11.5px;color:#dff4ff;cursor:pointer;transition:.12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fs-item:hover{background:rgba(0,200,255,.14);color:#fff}
+/* Feeder / SS tab dropdown panels (per Naresh drawing 04-Jul-2026) */
+.sg-tab-panel{display:none;position:fixed;top:56px;right:210px;z-index:1300;width:340px;max-height:calc(100vh - 140px);
+  background:rgba(10,21,32,.98);border:1px solid rgba(0,200,255,.25);border-radius:12px;
+  box-shadow:0 14px 44px rgba(0,0,0,.5);overflow:hidden;display:none;flex-direction:column}
+.sg-tab-panel.open{display:flex}
+.sg-tab-search{margin:10px;padding:8px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(0,200,255,.2);
+  border-radius:8px;color:#dff4ff;font-size:12px;outline:none}
+.sg-tab-search:focus{border-color:var(--live)}
+.sg-tab-list{overflow-y:auto;padding-bottom:8px}
+.sg-tab-list::-webkit-scrollbar{width:4px}.sg-tab-list::-webkit-scrollbar-thumb{background:rgba(0,200,255,.25);border-radius:3px}
+.sg-eht-hd{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-family:var(--mono);
+  font-size:10.5px;letter-spacing:1px;color:#ffb066;border-top:1px solid rgba(0,200,255,.1);transition:.12s}
+.sg-eht-hd:hover{background:rgba(255,150,50,.08)}
+.sg-eht-hd .cnt{margin-left:auto;font-size:9px;color:#67e8f9;background:rgba(0,200,255,.1);padding:2px 8px;border-radius:9px}
+.sg-eht-hd .arr{color:#67e8f9;font-size:9px;transition:transform .15s}
+.sg-eht-hd.exp .arr{transform:rotate(90deg)}
+.sg-eht-feeders{display:none}
+.sg-eht-hd.exp + .sg-eht-feeders{display:block}
+.sg-feeder-it{padding:6px 14px 6px 30px;font-size:11.5px;color:#dff4ff;cursor:pointer;transition:.12s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-feeder-it:hover{background:rgba(0,200,255,.14);color:#fff}
+.sg-ss-it{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:11.5px;color:#dff4ff;cursor:pointer;transition:.12s;border-top:1px solid rgba(0,200,255,.07)}
+.sg-ss-it:hover{background:rgba(0,200,255,.14);color:#fff}
+.sg-ss-it .cnt{margin-left:auto;font-size:9px;color:#67e8f9;background:rgba(0,200,255,.1);padding:2px 8px;border-radius:9px}
+
 
 /* Energy-flow animation: moving dashes along 33KV feeders (EHT→SS) */
 .sg-flow{animation:sgFlowMove 1s linear infinite}
@@ -1653,10 +1678,22 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
   <div class="tb-sep"></div>
   <div class="tb-title">SCADA 33KV SMART GRID MAP</div>
   <div id="gridStyleBtn" onclick="toggleGridStylePanel()" title="Adjust substation / EHT symbol size and label size">⚙ SYMBOL ADJUSTER</div>
+  <div class="tb-btn" id="feederTabBtn" onclick="toggleSGTab('feeder')">⚡ FEEDERS ▾</div>
+  <div class="tb-btn" id="ssTabBtn" onclick="toggleSGTab('ss')">◉ SUBSTATIONS ▾</div>
   <div id="srchWrap" style="position:relative">
     <input id="srchInput" placeholder="Search feeder / SS / EHT…" autocomplete="off" oninput="onSearch(this.value)"/>
     <div id="fsDropdown"></div>
     <span class="srch-ic">⌕</span>
+  </div>
+  <!-- FEEDER TAB: EHT SS groups → nested feeder lists (+ Link Lines) -->
+  <div class="sg-tab-panel" id="feederTabPanel">
+    <input class="sg-tab-search" placeholder="Search EHT / feeder…" oninput="buildFeederTab(this.value)"/>
+    <div class="sg-tab-list" id="feederTabList"></div>
+  </div>
+  <!-- SS TAB: 33/11KV SS names with searchable list -->
+  <div class="sg-tab-panel" id="ssTabPanel">
+    <input class="sg-tab-search" placeholder="Search 33/11KV SS…" oninput="buildSSTab(this.value)"/>
+    <div class="sg-tab-list" id="ssTabList"></div>
   </div>
   <input type="file" id="dfFileInput" accept=".csv,.xlsx,.xls" onchange="handleFile(this.files[0])" style="display:none"/>
   <div class="fs-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</div>
@@ -1942,9 +1979,8 @@ function _tgAddFallbackHullLayer(group){
   const hull=_tgConvexHull(pts);
   if(hull.length<3)return;
   const latlngs=hull.map(p=>[p.y,p.x]);
-  L.polygon(latlngs,{color:'#888',weight:1,opacity:.5,fillColor:'#7fb3d5',fillOpacity:.12,dashArray:'4 3'})
-    .bindTooltip('Hyderabad SCADA coverage area (approximate — real district boundaries unavailable)',{sticky:true})
-    .addTo(group);
+  // Fallback hull intentionally NOT drawn — per Naresh 04-Jul-2026 no
+  // approximate coverage rectangle should ever appear on the map.
 }
 
 // Per Naresh 28-Jun-2026: addLabelsFromGeoJSON was previously called via
@@ -2173,11 +2209,29 @@ function _tgBuildImportantAreaLabels(){
 // inside one of the boundary GeoJSONs. Real boundaries have hundreds of
 // ring points; a bbox placeholder has ~5. Skip those tiny rings.
 function _tgIsDegenerateBox(f){
+  // v2 (04-Jul-2026): the ≤6-point test missed the black rectangle because
+  // its edges are densified (many collinear points along straight sides).
+  // Now ALSO flag any ring whose shoelace area fills ≥97% of its own
+  // bounding box (a real mandal/district never does; a rectangle always
+  // does) — with a point cap so huge real polygons aren't even tested.
   try{
     const g=f&&f.geometry; if(!g)return false;
     const rings = g.type==='Polygon' ? g.coordinates : (g.type==='MultiPolygon' ? g.coordinates.flat() : null);
     if(!rings || !rings.length) return false;
-    return rings.every(r=>Array.isArray(r)&&r.length<=6);
+    const ringIsBoxy=(r)=>{
+      if(!Array.isArray(r)||r.length<4)return false;
+      if(r.length<=6)return true;
+      if(r.length>80)return false;
+      let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9,area=0;
+      for(let i=0;i<r.length;i++){
+        const [x,y]=r[i]; if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+        const [x2,y2]=r[(i+1)%r.length]; area+=x*y2-x2*y;
+      }
+      area=Math.abs(area)/2;
+      const bbox=(maxX-minX)*(maxY-minY);
+      return bbox>0 && (area/bbox)>=0.97;
+    };
+    return rings.every(ringIsBoxy);
   }catch(e){ return false; }
 }
 async function _buildTGRegionalGridLayer(){
@@ -2200,10 +2254,10 @@ async function _buildTGRegionalGridLayer(){
     _tgDistrictFeatures = feats;
     feats.forEach((f,i)=>{
       if(_tgIsDegenerateBox(f)) return; // skip bbox placeholder
-      const layer=L.geoJSON(f,{style:{color:'#555',weight:1.2,fillColor:palette[i%palette.length],fillOpacity:.3}});
-      const props=f.properties||{};
-      const name=props.DISTRICT||props.DIST_NAME||props.district||props.name||'District';
-      layer.bindTooltip(String(name),{sticky:true});
+      // Per Naresh 04-Jul-2026: boundaries are background art — no hover/
+      // click name popups, no interaction at all. interactive:false means
+      // clicks pass straight through to feeders/nodes underneath.
+      const layer=L.geoJSON(f,{interactive:false,style:{color:'#555',weight:1.2,fillColor:palette[i%palette.length],fillOpacity:.3}});
       layer.addTo(group);
     });
     if(window.tgGridShowDistricts){ group.addTo(map); addLabelsFromGeoJSON(feats); }
@@ -2222,7 +2276,7 @@ async function _buildTGRegionalGridLayer(){
     if(!res2.ok) throw new Error('mandal boundary HTTP '+res2.status);
     const gj2 = await res2.json();
     const feats2 = gj2.features||[];
-    const mandalLayer = L.geoJSON(feats2,{filter:f=>!_tgIsDegenerateBox(f),style:{color:'#999',weight:.5,opacity:.65,fillOpacity:0,dashArray:'2 2'}});
+    const mandalLayer = L.geoJSON(feats2,{interactive:false,filter:f=>!_tgIsDegenerateBox(f),style:{color:'#999',weight:.5,opacity:.65,fillOpacity:0,dashArray:'2 2'}});
     // Per Naresh 01-Jul-2026: "mandal/important [names] inside the region" —
     // mandal names were only reachable on hover (bindTooltip) before, so
     // they never actually showed on a printed/screenshotted view. This
@@ -2259,7 +2313,6 @@ async function _buildTGRegionalGridLayer(){
     mandalLayer.eachLayer(layer=>{
       const props=(layer.feature&&layer.feature.properties)||{};
       const mandalName = props.MANDAL||props.Mandal||props.mandal;
-      if(mandalName) layer.bindTooltip(String(mandalName),{sticky:true,className:'tg-ward-tooltip'});
       if(mandalName && layer.getBounds){
         const normName = String(mandalName).toUpperCase().replace(/[^A-Z]/g,'');
         // Skip if this mandal name duplicates a hardcoded important-area
@@ -2311,6 +2364,7 @@ async function _buildTGRegionalGridLayer(){
     const feats3 = gj3.features||[];
     if(!feats3.length) throw new Error('no features in GHMC ward file');
     const wardLayer = L.geoJSON(feats3,{
+      interactive:false,
       filter:f=>!_tgIsDegenerateBox(f),
       style:{color:'#7a8a9a',weight:.6,opacity:.7,fillOpacity:0,dashArray:'1 2'}
     });
@@ -2321,7 +2375,6 @@ async function _buildTGRegionalGridLayer(){
                         props.LOCALITY||props.Locality||props.AREA_NAME||
                         (props.WARD_NO!=null?'':null)||
                         (props.Ward_No!=null?'':null);
-      if(wardName){ wardName=String(wardName).replace(/\bWard\b\s*\d*\s*/ig,'').trim(); if(wardName && !/^\d+$/.test(wardName)) layer.bindTooltip(wardName,{sticky:true,className:'tg-ward-tooltip'}); }
     });
     if(window.tgGridShowWards) wardLayer.addTo(group);
     // Ward labels intentionally disabled: they clutter the map. Important area names remain separate.
@@ -2809,6 +2862,83 @@ async function handleFile(file){if(!file)return;const buf=await file.arrayBuffer
 async function saveFirebase(){if(!rows.length){toast('Upload Excel first');return}buildTopology();const payload={meta:{...meta,updatedAt:new Date().toISOString(),connections:topology.length,feeders:new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size},rows};const url=`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json`;const res=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok){toast('Firebase save failed');return}await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/history.json`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});toast('Saved to Firebase /smartgrid/latest')}
 async function loadFirebase(){try{const res=await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json?ts=${Date.now()}`);const data=await res.json();if(!data||!data.rows){toast('No /smartgrid/latest data found');return}rows=data.rows;meta=data.meta||{};populateFilters();render();fileInfo.textContent=`Loaded Firebase latest · ${rows.length} rows · ${meta.updatedAt||''}`;toast('Loaded Firebase /smartgrid/latest')}catch(e){console.error(e);toast('Firebase load failed')}}
 function downloadTopologyCsv(){buildTopology();const header=['feeder_code','feeder_name','feeder_type','from_type','from_name','from_lat','from_lng','to_type','to_name','to_lat','to_lng','division','sub_division','section'];const lines=[header.join(',')];topology.forEach(c=>{const row=[c.feeder_code,c.feeder_name,c.feeder_type,c.from.kind,c.from.name,c.from.lat,c.from.lng,c.to.kind,c.to.name,c.to.lat,c.to.lng,c.division,c.sub_division,c.section].map(v=>'"'+String(v??'').replace(/"/g,'""')+'"');lines.push(row.join(','))});const blob=new Blob([lines.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='smartgrid_topology.csv';a.click();URL.revokeObjectURL(a.href)}
+
+// ═══ FEEDER / SS tab panels (per Naresh drawing 04-Jul-2026) ═══
+function toggleSGTab(which){
+  const f=document.getElementById('feederTabPanel'), s=document.getElementById('ssTabPanel');
+  if(which==='feeder'){ const open=f.classList.contains('open'); f.classList.toggle('open',!open); s.classList.remove('open'); if(!open)buildFeederTab(); }
+  else { const open=s.classList.contains('open'); s.classList.toggle('open',!open); f.classList.remove('open'); if(!open)buildSSTab(); }
+}
+// Group topology by EHT source → feeders (exact node identity: kind+name,
+// so an EHT named like an SS can never cross-match — master-data safe).
+function _sgGroupByEHT(){
+  buildTopology();
+  const ehts={}, links=new Set();
+  topology.forEach(c=>{
+    if(c.type==='feeder'){
+      const src=(c.from.kind==='eht')?clean(c.from.name):'(no EHT source)';
+      (ehts[src]=ehts[src]||new Set()).add(clean(c.feeder_name)||c.feeder_code);
+    } else if(c.type==='link'){ links.add(clean(c.feeder_name)||c.feeder_code); }
+  });
+  return {ehts,links};
+}
+function buildFeederTab(q){
+  const list=document.getElementById('feederTabList'); if(!list)return;
+  const qq=String(q||'').trim().toLowerCase();
+  const {ehts,links}=_sgGroupByEHT();
+  const match=s=>!qq||String(s||'').toLowerCase().includes(qq);
+  let out='';
+  Object.keys(ehts).sort().forEach(eht=>{
+    const fs=[...ehts[eht]].sort().filter(f=>match(f)||match(eht));
+    if(!fs.length)return;
+    const exp=qq?' exp':'';
+    out+=`<div class="sg-eht-hd${exp}" onclick="this.classList.toggle('exp')"><span class="arr">▶</span> ⚡ ${eht}<span class="cnt">${fs.length}</span></div>`;
+    out+=`<div class="sg-eht-feeders">`+fs.map(f=>`<div class="sg-feeder-it" onclick="sgFocusName('${String(f).replace(/'/g,"\\'")}')">${f}</div>`).join('')+`</div>`;
+  });
+  const lk=[...links].sort().filter(match);
+  if(lk.length){
+    out+=`<div class="sg-eht-hd${qq?' exp':''}" onclick="this.classList.toggle('exp')"><span class="arr">▶</span> ┈ LINK LINES<span class="cnt">${lk.length}</span></div>`;
+    out+=`<div class="sg-eht-feeders">`+lk.map(f=>`<div class="sg-feeder-it" onclick="sgFocusName('${String(f).replace(/'/g,"\\'")}')">${f}</div>`).join('')+`</div>`;
+  }
+  list.innerHTML = out || '<div class="sg-feeder-it" style="opacity:.6">No matches</div>';
+}
+function buildSSTab(q){
+  const list=document.getElementById('ssTabList'); if(!list)return;
+  const qq=String(q||'').trim().toLowerCase();
+  buildTopology();
+  // 33/11KV SS → how many feeders feed it (exact ss33-kind nodes only).
+  const sss={};
+  topology.forEach(c=>{
+    [c.from,c.to].forEach(n=>{
+      if(n.kind!=='ss33')return;
+      const nm=clean(n.name); if(!nm)return;
+      (sss[nm]=sss[nm]||new Set()).add(clean(c.feeder_name)||c.feeder_code);
+    });
+  });
+  let out='';
+  Object.keys(sss).sort().forEach(ss=>{
+    if(qq && !ss.toLowerCase().includes(qq))return;
+    out+=`<div class="sg-ss-it" onclick="sgFocusName('${String(ss).replace(/'/g,"\\'")}')">⚡ ${ss}<span class="cnt">${sss[ss].size}</span></div>`;
+  });
+  list.innerHTML = out || '<div class="sg-ss-it" style="opacity:.6">No matches</div>';
+}
+// Focus by name: uses the existing q filter (matchesFilters already checks
+// feeder_name AND from/to node names), zooms to result, closes panels.
+function sgFocusName(name){
+  ['feederTabPanel','ssTabPanel'].forEach(id=>{const p=document.getElementById(id);if(p)p.classList.remove('open');});
+  const si=document.getElementById('srchInput'); if(si)si.value=name;
+  let q=document.getElementById('q'); if(q)q.value=name;
+  window._sgFitDone=false;
+  render();
+}
+document.addEventListener('click',e=>{
+  ['feederTabPanel','ssTabPanel'].forEach(id=>{
+    const p=document.getElementById(id); if(!p||!p.classList.contains('open'))return;
+    const btn=document.getElementById(id==='feederTabPanel'?'feederTabBtn':'ssTabBtn');
+    if(!p.contains(e.target) && (!btn||!btn.contains(e.target))) p.classList.remove('open');
+  });
+});
+
 // ── Loader dismiss (was missing — caused the permanent "Loading…" screen) ──
 // The route map dismisses its #loader after the feeder restore finishes.
 // The smart grid has no such restore gate, so dismiss as soon as the map
