@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>TGSPDCL — 33KV Smart Grid Map · SCADA</title>
+<title>TGSPDCL — 33KV Smart Grid Map · SCADA Updated</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1573,6 +1573,51 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
 .sg-act.save{background:linear-gradient(135deg,#00897b,#00a88a);color:#fff}
 .sg-act.load{background:#eef2f7;color:#37475a;border:1px solid #d5dfea}
 .sg-act.dl{background:linear-gradient(135deg,#c2410c,#ea580c);color:#fff}
+
+/* Smart Grid EHT feeder-list label and connected-feeder popup */
+.sg-eht-feeder-box{
+  min-width:150px;max-width:235px;
+  background:rgba(8,18,30,.90);
+  border:1px solid rgba(249,115,22,.48);
+  border-radius:9px;
+  padding:6px 8px;
+  color:#fff;
+  box-shadow:0 4px 16px rgba(0,0,0,.42),0 0 12px rgba(249,115,22,.18);
+  font-family:var(--sans),Arial,sans-serif;
+  pointer-events:none;
+}
+.sg-eht-feeder-title{
+  font-family:var(--mono),monospace;
+  font-size:8.5px;
+  letter-spacing:.8px;
+  color:#fed7aa;
+  margin-bottom:3px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.sg-eht-feeder-name{
+  font-size:8.3px;
+  line-height:1.18;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:#e5f6ff;
+  margin-top:1px;
+}
+.sg-eht-feeder-more{font-size:8px;color:#fbbf24;margin-top:2px;font-weight:800}
+.sgconn-wrap{font-family:var(--sans),Arial,sans-serif;min-width:260px;max-width:360px;color:#172033}
+.sgconn-title{font-weight:900;font-size:13px;color:#0f172a;margin-bottom:2px}
+.sgconn-sub{font-size:10px;color:#64748b;margin-bottom:8px}
+.sgconn-count{display:inline-block;background:#e0f2fe;color:#0369a1;border-radius:11px;padding:2px 8px;font-size:10px;font-weight:900;margin-bottom:8px}
+.sgconn-list{max-height:230px;overflow:auto;border-top:1px solid #e2e8f0}
+.sgconn-row{padding:7px 2px;border-bottom:1px solid #eef2f7;display:flex;gap:7px;align-items:flex-start;cursor:pointer}
+.sgconn-row:hover{background:#f8fafc}
+.sgconn-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.sgconn-name{font-size:11px;font-weight:800;color:#1e293b;line-height:1.25}
+.sgconn-meta{font-size:9px;color:#64748b;margin-top:1px}
+.sgconn-open{margin-top:8px;width:100%;border:1px solid #93c5fd;background:#eff6ff;color:#1d4ed8;border-radius:7px;padding:6px 8px;font-size:10px;font-weight:900;cursor:pointer}
+.sgconn-open:hover{background:#dbeafe}
+
 </style>
 </head>
 <body class="no-anim">
@@ -1700,7 +1745,7 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
   </div>
   <div class="gsp-row">
     <label style="margin-bottom:0"><span>ORR / RRR ROADS</span>
-      <input type="checkbox" checked onchange="window.tgSetGridShowMajorRoads&&window.tgSetGridShowMajorRoads(this.checked)" style="transform:translateY(2px)"></label>
+      <input type="checkbox" onchange="window.tgSetGridShowMajorRoads&&window.tgSetGridShowMajorRoads(this.checked)" style="transform:translateY(2px)"></label>
   </div>
 </div>
 
@@ -1727,11 +1772,12 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
   <div class="rcard" id="rc-layers">
     <div class="rcard-hd" onclick="toggleRcard('rc-layers')"><span class="rcard-title">// LAYER TYPES</span><span class="rcard-arrow">▾</span></div>
     <div class="rcard-body">
-      <div class="lrow" id="lyr-feeder" onclick="toggleSGLayer('feeder')"><div class="lswatch" style="background:linear-gradient(90deg,#f97316 50%,#2196f3 50%)"></div><div class="lname">33KV Feeder Links</div><div class="lcnt" id="cnt33">—</div><div class="tog"></div></div>
+      <div class="lrow" id="lyr-ug" onclick="toggleSGLayer('ug')"><div class="lswatch" style="background:#2196f3"></div><div class="lname">UG Lines</div><div class="lcnt" id="cntUG">—</div><div class="tog"></div></div>
+      <div class="lrow" id="lyr-oh" onclick="toggleSGLayer('oh')"><div class="lswatch" style="background:#ff9800"></div><div class="lname">OH Lines</div><div class="lcnt" id="cntOH">—</div><div class="tog"></div></div>
       <div class="lrow" id="lyr-link" onclick="toggleSGLayer('link')"><div class="lswatch" style="background:#9c27b0"></div><div class="lname">Link Lines</div><div class="lcnt" id="cntLink">—</div><div class="tog"></div></div>
       <div class="lrow" id="lyr-ht" onclick="toggleSGLayer('ht')"><div class="lswatch" style="background:#00a88a"></div><div class="lname">HT Services</div><div class="lcnt" id="cntHt">—</div><div class="tog"></div></div>
       <div class="lrow" id="lyr-dev" onclick="toggleSGLayer('dev')"><div class="lswatch dot" style="background:#ffd700;border-color:#4b5563"></div><div class="lname">AB / DP Nodes</div><div class="lcnt" id="cntDev">—</div><div class="tog"></div></div>
-      <div class="lrow" id="lyr-lbl" onclick="toggleSGLayer('lbl')"><div class="lswatch dot" style="background:#fff;border-color:#ccc"></div><div class="lname">Feeder Code Labels</div><div class="lcnt"></div><div class="tog"></div></div>
+      <div class="lrow off" id="lyr-lbl" onclick="toggleSGLayer('lbl')"><div class="lswatch dot" style="background:#fff;border-color:#ccc"></div><div class="lname">Feeder Name Labels</div><div class="lcnt"></div><div class="tog"></div></div>
     </div>
   </div>
   <div class="rcard" id="rc-stats">
@@ -1747,7 +1793,7 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <div class="rcard-hd" onclick="toggleRcard('rc-legend')"><span class="rcard-title">// LEGEND</span><span class="rcard-arrow">▾</span></div>
     <div class="rcard-body">
       <div class="strow"><span class="stlbl"><span style="color:#f97316">⚡</span> EHT source</span><span class="stlbl"><span style="color:#e74c3c">⚡</span> 33/11KV SS</span></div>
-      <div class="strow"><span class="stlbl"><span style="color:#f97316">━</span> 33KV OH</span><span class="stlbl"><span style="color:#2196f3">━</span> 33KV UG</span></div>
+      <div class="strow"><span class="stlbl"><span style="color:#2196f3">━</span> UG Lines</span><span class="stlbl"><span style="color:#ff9800">━</span> OH Lines</span></div>
       <div class="strow"><span class="stlbl"><span style="color:#9c27b0">┈</span> Link</span><span class="stlbl"><span style="color:#00a88a">━</span> HT</span></div>
     </div>
   </div>
@@ -2289,7 +2335,7 @@ async function _buildTGRegionalGridLayer(){
   if(window.tgGridShowImportantAreas) _tgImportantAreaLabelLayer.addTo(group);
 
   // ORR / RRR / major radial roads for growth-corridor planning context.
-  window.tgGridShowMajorRoads = window.tgGridShowMajorRoads ?? true;
+  window.tgGridShowMajorRoads = window.tgGridShowMajorRoads ?? false;
   _tgMajorRoadLayer = _tgBuildMajorRoadsLayer();
   if(window.tgGridShowMajorRoads) _tgMajorRoadLayer.addTo(group);
 }
@@ -2332,6 +2378,7 @@ window.tgSetGridShowMandalNames = function(on){
   else _tgRegionalGridLayerGroup.removeLayer(_tgMandalLabelLayer);
 };
 window.tgSetGridShowMajorRoads = function(on){
+  window.tgGridShowMajorRoads=!!on;
   if(!_tgMajorRoadLayer || !_tgRegionalGridLayerGroup) return;
   if(on) _tgRegionalGridLayerGroup.addLayer(_tgMajorRoadLayer);
   else _tgRegionalGridLayerGroup.removeLayer(_tgMajorRoadLayer);
@@ -2466,10 +2513,10 @@ function setSGLabelSize(v){ v=Math.max(6,Math.min(16,+v||9)); document.documentE
 function setSGLineWeight(v){ v=Math.max(1,Math.min(8,+v||3)); window.sgLineWeight=v; sgLineWeight=v; const e=document.getElementById('gspLineVal'); if(e)e.textContent=(+v).toFixed(1); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
 function setSGFlow(on){ window.sgFlowOn=!!on; sgFlowOn=!!on; const e=document.getElementById('sgFlowToggle'); if(e)e.checked=!!on; if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
 function setSGFeederLabels(on){ const t=document.getElementById('tLbl'); if(t)t.checked=!!on; const s=document.getElementById('sgLblToggle'); if(s)s.checked=!!on; const row=document.getElementById('lyr-lbl'); if(row)row.classList.toggle('off',!on); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
-['t33','tLink','tHT','tDev','tLbl'].forEach(id=>{ if(!document.getElementById(id)){ const c=document.createElement('input'); c.type='checkbox'; c.id=id; c.checked=(id!=='tLbl'); c.style.display='none'; document.body.appendChild(c);} });
+['tUG','tOH','t33','tLink','tHT','tDev','tLbl'].forEach(id=>{ if(!document.getElementById(id)){ const c=document.createElement('input'); c.type='checkbox'; c.id=id; c.checked=(id!=='tLbl'); c.style.display='none'; document.body.appendChild(c);} });
 // Layer-panel "Feeder Code Labels" row starts OFF to match tLbl default.
 setTimeout(()=>{ const row=document.getElementById('lyr-lbl'); if(row)row.classList.add('off'); },0);
-function toggleSGLayer(which){ const m={feeder:'t33',link:'tLink',ht:'tHT',dev:'tDev',lbl:'tLbl'}; const row=document.getElementById('lyr-'+which); if(row) row.classList.toggle('off'); const on=row?!row.classList.contains('off'):true; const el=document.getElementById(m[which]); if(el) el.checked=on; if(which==='lbl'){ const s=document.getElementById('sgLblToggle'); if(s)s.checked=on; } render(); }
+function toggleSGLayer(which){ const m={ug:'tUG',oh:'tOH',feeder:'t33',link:'tLink',ht:'tHT',dev:'tDev',lbl:'tLbl'}; const row=document.getElementById('lyr-'+which); if(row) row.classList.toggle('off'); const on=row?!row.classList.contains('off'):true; const el=document.getElementById(m[which]); if(el) el.checked=on; if(which==='lbl'){ const s=document.getElementById('sgLblToggle'); if(s)s.checked=on; } render(); }
 // ── Grouped search dropdown: EHT sources with their feeders nested inside,
 // plus Link Lines and HT Services groups. Click an EHT → filter to it;
 // click a feeder → filter + zoom to that feeder. (Per Naresh 03-Jul-2026)
@@ -2540,17 +2587,72 @@ function get(obj,aliases){for(const a of aliases){const k=nkey(a);if(obj[k]!=nul
 function num(v){if(v==null||v==='')return null;const x=Number(String(v).replace(/,/g,'').trim());return Number.isFinite(x)?x:null}
 function clean(s){return String(s||'').replace(/^33\s*\/\s*11\s*kv\s*/i,'').replace(/^132\s*kv\s*/i,'').replace(/^220\s*kv\s*/i,'').replace(/\s*sub[-\s]*station\s*$/i,'').replace(/\s+SS\s*$/i,' SS').replace(/\s+/g,' ').trim()}
 function compact(s){return clean(s).toUpperCase().replace(/[^A-Z0-9]/g,'')}
+
+function feederCableClass(ftype){
+  const f=String(ftype||'').toUpperCase();
+  if(f.includes('OH')) return 'oh';
+  return 'ug';
+}
+function sgNodeKey(n){
+  if(!n)return '';
+  const c=String(n.code||'').trim();
+  if(c) return n.kind+'|CODE|'+compact(c);
+  return n.kind+'|NAME|'+compact(n.name);
+}
+function sgUniqueFeedersForNode(node, conns){
+  const seen={}, out=[];
+  (conns||[]).forEach(c=>{
+    const nm=clean(c.feeder_name)||String(c.feeder_code||'').trim();
+    if(!nm)return;
+    const key=compact(c.feeder_code||nm);
+    if(seen[key])return;
+    seen[key]=1;
+    out.push({name:nm, code:c.feeder_code||'', type:c.type, cable:feederCableClass(c.feeder_type)});
+  });
+  return out.sort((a,b)=>a.name.localeCompare(b.name));
+}
+function sgPopupHtml(node, conns){
+  const fs=sgUniqueFeedersForNode(node, conns);
+  const title=clean(node.name)||'Smart Grid Node';
+  const type=(node.kind==='eht'?'EHT SS':node.kind==='ss33'?'33/11KV SS':node.kind.toUpperCase());
+  const rows=fs.length?fs.map(f=>{
+    const color=f.type==='link'?'#9c27b0':f.type==='ht'?'#00a88a':(f.cable==='oh'?'#ff9800':'#2196f3');
+    const safeName=String(f.name).replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return `<div class="sgconn-row" onclick="pickSearchFeeder('${safeName}')">
+      <span class="sgconn-dot" style="background:${color}"></span>
+      <div><div class="sgconn-name">${f.name}</div><div class="sgconn-meta">${f.code||'-'} · ${f.type==='feeder'?(f.cable==='oh'?'OH':'UG'):f.type.toUpperCase()}</div></div>
+    </div>`;
+  }).join(''):'<div class="sgconn-row" style="cursor:default;color:#64748b">No connected feeder in current filter.</div>';
+  const first=fs[0];
+  const openBtn=first?`<button class="sgconn-open" onclick="openFeederInRouteMap('${String(first.code||'').replace(/'/g,"\\'")}','${String(first.name||'').replace(/'/g,"\\'")}')">Open first feeder in Route Map</button>`:'';
+  return `<div class="sgconn-wrap">
+    <div class="sgconn-title">${title}</div>
+    <div class="sgconn-sub">${type} ${node.code?('· '+node.code):''}</div>
+    <span class="sgconn-count">${fs.length} connected feeder(s)</span>
+    <div class="sgconn-list">${rows}</div>${openBtn}
+  </div>`;
+}
+function sgEhtFeederLabelHtml(node, conns){
+  const fs=sgUniqueFeedersForNode(node, conns).filter(f=>f.type==='feeder');
+  if(!fs.length)return '';
+  const list=fs.slice(0,7).map(f=>`<div class="sg-eht-feeder-name">• ${f.name}</div>`).join('');
+  const more=fs.length>7?`<div class="sg-eht-feeder-more">+${fs.length-7} more feeders</div>`:'';
+  return `<div class="sg-eht-feeder-box"><div class="sg-eht-feeder-title">⚡ ${fs.length} FEEDER(S)</div>${list}${more}</div>`;
+}
+
 function normType(s){s=String(s||'').toUpperCase();if(s.includes('LINK'))return 'link';if(s.includes('HT'))return 'ht';return 'feeder'}
 function isCutOrBad(s){return /CUT\s*POINT|CUTPOINT/i.test(String(s||''))}
 function isDevice(s){return /AB\s*SWITCH|LINE\s*AB|DP\s*STRUCTURE|DP\b|RMU|ISOLATOR/i.test(String(s||''))}
-function nodeType(feedTo,name,type){const t=String(feedTo+' '+name+' '+type).toUpperCase();if(t.includes('AB SWITCH')||t.includes('LINE AB'))return 'ab';if(t.includes('DP'))return 'dp';if(t.includes('HT SERVICE')||t.includes('HT'))return 'ht';if(t.includes('EHT')||t.includes('132')||t.includes('220'))return 'eht';return 'ss33'}
-function colorFor(t,ftype){if(t==='link')return '#9c27b0';if(t==='ht')return '#00a88a';
-  // 33KV feeders colored by cable type like the route map / TRANSCO grid:
-  // OH = orange, UG = blue. Mixed/unknown falls back to blue.
-  const f=String(ftype||'').toUpperCase();
-  if(f.includes('OH'))return '#f97316';
-  if(f.includes('UG'))return '#2196f3';
-  return '#2196f3'}
+function nodeType(feedTo,name,type){const t=String(feedTo+' '+name+' '+type).toUpperCase();
+  if(t.includes('AB SWITCH')||t.includes('LINE AB'))return 'ab';
+  if(/\bDP\b|DP\s*STRUCTURE/.test(t))return 'dp';
+  if(t.includes('HT SERVICE'))return 'ht';
+  // Master-data-safe classification: 33/11KV SS wins over voltage words in names.
+  if(t.includes('33/11')||t.includes('33 KV SS')||t.includes('33KV SS')||t.includes('11KV SS'))return 'ss33';
+  if(t.includes('EHT')||t.includes('132KV')||t.includes('132 KV')||t.includes('220KV')||t.includes('220 KV')||t.includes('400KV')||t.includes('400 KV'))return 'eht';
+  if(/\bHT\b/.test(t))return 'ht';
+  return 'ss33'}
+function colorFor(t,ftype){if(t==='link')return '#9c27b0';if(t==='ht')return '#00a88a';return feederCableClass(ftype)==='oh'?'#ff9800':'#2196f3'}
 function iconFor(type,name){if(type==='eht'){const kvm=String(name||'').match(/(\d{3})\s*K?V/i);const kv=kvm?kvm[1]+'KV':'EHT';return L.divIcon({className:'',html:'<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">'+kv+'</span></div></div>',iconSize:[40,28],iconAnchor:[20,14]});}if(type==='ab')return L.divIcon({className:'',html:'<div class="ab-icon"></div>',iconSize:[12,12],iconAnchor:[6,6]});if(type==='dp')return L.divIcon({className:'',html:'<div class="dp-icon"></div>',iconSize:[14,14],iconAnchor:[7,7]});if(type==='ht')return L.divIcon({className:'',html:'<div class="ht-icon"></div>',iconSize:[16,16],iconAnchor:[8,8]});return L.divIcon({className:'',html:'<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="bolt">⚡</span></div></div>',iconSize:[36,36],iconAnchor:[18,18]})}
 function normalizeInputRows(raw){
   const out=[], carry={};
@@ -2603,7 +2705,7 @@ function curve(a,b,i,total){const A=L.latLng(a.lat,a.lng),B=L.latLng(b.lat,b.lng
   if(total<=1)return [A,B];
   const dx=B.lng-A.lng,dy=B.lat-A.lat,len=Math.sqrt(dx*dx+dy*dy)||1e-9,nx=-dy/len,ny=dx/len,spread=(i-(total-1)/2)*0.0010;
   const pts=[];for(let t=0;t<=1.0001;t+=.12){const bow=Math.sin(Math.PI*t)*spread;pts.push(L.latLng(A.lat+(B.lat-A.lat)*t+ny*bow,A.lng+(B.lng-A.lng)*t+nx*bow))}pts.push(B);return pts}
-function matchesFilters(c){const div=fDiv.value,sub=fSub.value,sec=fSec.value,fdr=fFeeder.value,q=document.getElementById('q').value.trim().toLowerCase();if(div&&c.division!==div)return false;if(sub&&c.sub_division!==sub)return false;if(sec&&c.section!==sec)return false;if(fdr&&c.feeder_code!==fdr&&c.feeder_name!==fdr)return false;if(q){const hay=[c.feeder_code,c.feeder_name,c.from.name,c.to.name,c.division,c.section].join(' ').toLowerCase();if(!hay.includes(q))return false}if(c.type==='feeder'&&!t33.checked)return false;if(c.type==='link'&&!tLink.checked)return false;if(c.type==='ht'&&!tHT.checked)return false;return true}
+function matchesFilters(c){const div=fDiv.value,sub=fSub.value,sec=fSec.value,fdr=fFeeder.value,q=document.getElementById('q').value.trim().toLowerCase();if(div&&c.division!==div)return false;if(sub&&c.sub_division!==sub)return false;if(sec&&c.section!==sec)return false;if(fdr&&c.feeder_code!==fdr&&c.feeder_name!==fdr)return false;if(q){const hay=[c.feeder_code,c.feeder_name,c.from.name,c.to.name,c.division,c.section].join(' ').toLowerCase();if(!hay.includes(q))return false}if(c.type==='feeder'){const cls=feederCableClass(c.feeder_type);if(cls==='ug'&&!tUG.checked)return false;if(cls==='oh'&&!tOH.checked)return false;}if(c.type==='link'&&!tLink.checked)return false;if(c.type==='ht'&&!tHT.checked)return false;return true}
 // ── Interactive render (rewritten per Naresh 03-Jul-2026) ──
 // Fixes: (1) node labels no longer permanent — OFF by default, shown on
 // hover or via the Feeder Code Labels toggle; (2) NO popup box on click —
@@ -2620,12 +2722,12 @@ function render(){
   const pairCount={},pairIdx={};
   shown.forEach(c=>{const k=compact(c.from.name)+'>'+compact(c.to.name);pairCount[k]=(pairCount[k]||0)+1});
   const bounds=L.latLngBounds([]);
-  let cnt={feeder:0,link:0,ht:0,dev:0};
+  let cnt={ug:0,oh:0,link:0,ht:0,dev:0};
   const showFeederLabels = (document.getElementById('tLbl')||{}).checked;
 
   shown.forEach(c=>{
     const k=compact(c.from.name)+'>'+compact(c.to.name), idx=pairIdx[k]||0; pairIdx[k]=idx+1;
-    cnt[c.type]++;
+    if(c.type==='feeder')cnt[feederCableClass(c.feeder_type)]++;else cnt[c.type]++;
     const col=colorFor(c.type,c.feeder_type);
     const pts=curve(c.from,c.to,idx,pairCount[k]);
     const w = c.type==='link' ? Math.max(1.5,sgLineWeight*0.8) : sgLineWeight;
@@ -2655,6 +2757,14 @@ function render(){
     }
   });
 
+  const nodeConnections={};
+  shown.forEach(c=>{
+    [c.from,c.to].forEach(n=>{
+      const nk=sgNodeKey(n);
+      (nodeConnections[nk]=nodeConnections[nk]||[]).push(c);
+    });
+  });
+
   // Nodes: icons stay, but tooltips are HOVER-only now (not permanent).
   // No popup box on click. Node name appears on hover.
   const used={};
@@ -2664,7 +2774,14 @@ function render(){
     if(used[key])return; used[key]=true;
     const m=L.marker([n.lat,n.lng],{icon:iconFor(n.kind,n.name),riseOnHover:true})
       .bindTooltip(clean(n.name),{direction:'right',offset:[16,0],className:'sg-node-label',opacity:.96});
+    m.on('click',()=>{ L.popup({className:'ss-popup',maxWidth:390}).setLatLng([n.lat,n.lng]).setContent(sgPopupHtml(n,nodeConnections[key]||[])).openOn(map); });
     m.addTo(gNodes);
+    if(n.kind==='eht'){
+      const html=sgEhtFeederLabelHtml(n,nodeConnections[key]||[]);
+      if(html){
+        L.marker([n.lat,n.lng],{interactive:false,icon:L.divIcon({className:'',html:html,iconSize:[1,1],iconAnchor:[-26,-26]})}).addTo(gLabels);
+      }
+    }
     if(n.kind==='ab'||n.kind==='dp')cnt.dev++;
   }));
 
@@ -2672,7 +2789,7 @@ function render(){
   stFeeders.textContent=new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size;
   stNodes.textContent=Object.keys(used).length;
   stConns.textContent=shown.length;
-  cnt33.textContent=cnt.feeder; cntLink.textContent=cnt.link; cntHt.textContent=cnt.ht; cntDev.textContent=cnt.dev;
+  if(document.getElementById('cntUG'))cntUG.textContent=cnt.ug;if(document.getElementById('cntOH'))cntOH.textContent=cnt.oh;if(document.getElementById('cnt33'))cnt33.textContent=(cnt.ug+cnt.oh); cntLink.textContent=cnt.link; cntHt.textContent=cnt.ht; cntDev.textContent=cnt.dev;
   document.getElementById('empty').style.display=rows.length?'none':'block';
   status(`SMARTGRID: <b>${shown.length}</b> connection(s) · <b>${Object.keys(used).length}</b> node(s)`);
   if(bounds.isValid() && !window._sgFitDone){ map.fitBounds(bounds.pad(.18),{maxZoom:14}); window._sgFitDone=true; }
