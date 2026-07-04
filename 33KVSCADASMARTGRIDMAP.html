@@ -1574,6 +1574,9 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
 .sg-act.save{background:linear-gradient(135deg,#00897b,#00a88a);color:#fff}
 .sg-act.load{background:#eef2f7;color:#37475a;border:1px solid #d5dfea}
 .sg-act.dl{background:linear-gradient(135deg,#c2410c,#ea580c);color:#fff}
+.sg-act.edit{background:linear-gradient(135deg,#5e35b1,#7e57c2);color:#fff}
+.sg-act.edit.on{background:linear-gradient(135deg,#ff3d00,#ff6d00);box-shadow:0 0 0 2px #fff inset}
+.sg-act.newf{background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff}
 
 /* Smart Grid EHT feeder-list label and connected-feeder popup */
 .sg-eht-feeder-box{
@@ -1727,6 +1730,8 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <button class="sg-act save" onclick="saveFirebase()">☁ Save / Update Firebase</button>
     <button class="sg-act load" onclick="loadFirebase()">↻ Load Latest From Firebase</button>
     <button class="sg-act dl" onclick="downloadTopologyCsv()">⬇ Download Topology CSV</button>
+    <button class="sg-act edit" id="btnEditGeom" onclick="toggleGeomEditMode()">✏️ Edit Feeder Geometry</button>
+    <button class="sg-act newf" onclick="startNewFeederMode()">➕ New Feeder</button>
   </div>
 
   <!-- DRILL-DOWN FILTER (route-map style) -->
@@ -2838,6 +2843,7 @@ function render(){
     );
     // Double-click → open the full feeder route map for this feeder.
     line.on('dblclick',ev=>{L.DomEvent.stop(ev);openFeederInRouteMap(c.feeder_code,c.feeder_name);});
+    line.on('click',ev=>{ if(window._sgEditModeOn){ L.DomEvent.stop(ev); enterFeederEdit(c.feeder_code||c.feeder_name); } });
     line.addTo(gLines);
 
     // Energy-flow animation: a second, animated dashed line on top (EHT→SS).
@@ -3029,7 +3035,310 @@ document.addEventListener('click',e=>{
 
 loadFirebase();
 
+/* ═══════════════════════════════════════════════════════════════════════
+   FEEDER GEOMETRY EDITOR — AutoCAD-style vertex editing + New Feeder tool
+   Added 04-Jul-2026 per Naresh. Writes straight back into the same `rows`
+   array the rest of the app already uses, so Save/Load Firebase, filters,
+   and every tab keep working with zero changes elsewhere.
+
+   EDIT MODE: turn it on, click any line → its waypoints become grips.
+     ● grip (green)  = draggable waypoint (AB/DP/pole point) — drag freely.
+     ● grip (grey/🔒) = LOCKED endpoint (EHT source / final 33-11KV SS) —
+       fixed in place, exactly like a corner point pinned in AutoCAD.
+     ◆ ghost grip     = sits at a segment midpoint; click it to INSERT a
+       brand-new point there (then drag it into place).
+   Click a green grip to select it, then "Delete Point" removes it.
+   "Save Feeder" rewrites that feeder's rows (renumbering pole_number to
+   match the new order) and immediately pushes to Firebase.
+
+   NEW FEEDER: fill in identity → click the map (source, then route points,
+   then destination) → Finish. Clicks near an existing icon auto-snap to
+   that node's real name/code so new feeders tie into the existing grid.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+let gEditLayer = L.layerGroup().addTo(map);
+let gNewFeederLayer = L.layerGroup().addTo(map);
+window._sgEditModeOn = false;
+let geomEdit = {feederKey:null, verts:[], selected:-1};
+let _sgGuideLine = null;
+
+function toggleGeomEditMode(){
+  window._sgEditModeOn = !window._sgEditModeOn;
+  const btn = document.getElementById('btnEditGeom');
+  if(btn) btn.classList.toggle('on', window._sgEditModeOn);
+  if(!window._sgEditModeOn) exitFeederEdit();
+  toast(window._sgEditModeOn ? 'Edit mode ON — click any feeder line to edit its shape' : 'Edit mode OFF');
+}
+
+function _sgRowsForFeeder(key){
+  return rows.filter(r => (r.feeder_code||r.feeder_name) === key);
+}
+
+function enterFeederEdit(key){
+  if(!window._sgEditModeOn) return;
+  exitFeederEdit();
+  const list = _sgRowsForFeeder(key);
+  if(!list.length){ toast('No rows found for this feeder'); return; }
+  const first = list[0];
+  const verts = [];
+  if(first.eht_lat!=null && first.eht_lng!=null){
+    verts.push({row:null, lat:+first.eht_lat, lng:+first.eht_lng, locked:true, label:first.eht_name||'EHT SOURCE'});
+  }
+  const sorted = [...list].sort((a,b)=>(parseFloat(a.pole_number)||0)-(parseFloat(b.pole_number)||0));
+  sorted.forEach(r=>{
+    if(r.feeding_lat==null||r.feeding_lng==null) return;
+    if(isCutOrBad(r.feeding_to)||isCutOrBad(r.feeding_name)) return;
+    verts.push({row:r, lat:+r.feeding_lat, lng:+r.feeding_lng, locked:false, label:r.feeding_name||r.feeding_to||'Point'});
+  });
+  if(verts.length<2){ toast('This feeder has too few points to edit'); return; }
+  verts[verts.length-1].locked = true; // final destination (33/11KV SS etc.) fixed, AutoCAD-style
+  geomEdit = {feederKey:key, verts, selected:-1};
+  _sgRenderEditHandles();
+  _sgShowEditBar(true, first.feeder_name||key);
+}
+
+function _sgVertIcon(locked, selected){
+  const bg = locked ? '#607d8b' : (selected ? '#ffab00' : '#00c853');
+  const size = locked?14:12;
+  const radius = locked ? '3px' : '50%';
+  return L.divIcon({className:'',html:`<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${bg};border:2px solid #fff;box-shadow:0 0 0 1px #2b3a4a"></div>`,iconSize:[size,size],iconAnchor:[size/2,size/2]});
+}
+function _sgGhostIcon(){
+  return L.divIcon({className:'',html:'<div style="width:10px;height:10px;background:#fff;border:2px solid #ff3d00;transform:rotate(45deg)"></div>',iconSize:[10,10],iconAnchor:[5,5]});
+}
+
+function _sgRenderEditHandles(){
+  gEditLayer.clearLayers();
+  const verts = geomEdit.verts;
+  if(verts.length<2) return;
+  _sgGuideLine = L.polyline(verts.map(v=>[v.lat,v.lng]),{color:'#ff3d00',weight:3,dashArray:'5 5',opacity:.95,interactive:false}).addTo(gEditLayer);
+
+  for(let i=0;i<verts.length-1;i++){
+    const a=verts[i], b=verts[i+1];
+    const mid={lat:(a.lat+b.lat)/2,lng:(a.lng+b.lng)/2};
+    const insertAt=i+1;
+    const ghost=L.marker([mid.lat,mid.lng],{icon:_sgGhostIcon(),zIndexOffset:500})
+      .bindTooltip('+ insert point',{direction:'top',opacity:.9});
+    ghost.on('click',ev=>{
+      L.DomEvent.stop(ev);
+      geomEdit.verts.splice(insertAt,0,{row:null,lat:mid.lat,lng:mid.lng,locked:false,label:'AB Switch',isNew:true});
+      _sgRenderEditHandles();
+      toast('Point inserted — drag it into place, then Save Feeder');
+    });
+    ghost.addTo(gEditLayer);
+  }
+
+  verts.forEach((v,i)=>{
+    const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(v.locked,i===geomEdit.selected),draggable:!v.locked,zIndexOffset:600})
+      .bindTooltip(v.locked?('🔒 '+clean(v.label)):clean(v.label),{direction:'top',opacity:.95});
+    if(!v.locked){
+      marker.on('drag',e=>{
+        const ll=e.target.getLatLng(); v.lat=ll.lat; v.lng=ll.lng;
+        if(_sgGuideLine) _sgGuideLine.setLatLngs(geomEdit.verts.map(x=>[x.lat,x.lng]));
+      });
+      marker.on('dragend',()=>_sgRenderEditHandles());
+      marker.on('click',ev=>{ L.DomEvent.stop(ev); geomEdit.selected=(geomEdit.selected===i?-1:i); _sgRenderEditHandles(); });
+    }
+    marker.addTo(gEditLayer);
+  });
+
+  const delBtn=document.getElementById('sgeDelBtn');
+  if(delBtn) delBtn.disabled = geomEdit.selected<0;
+}
+
+function deleteSelectedVertex(){
+  const i=geomEdit.selected;
+  if(i<0) return;
+  const v=geomEdit.verts[i];
+  if(v.locked){ toast('Endpoints are fixed — cannot delete'); return; }
+  if(geomEdit.verts.length<=2){ toast('A feeder needs at least 2 points'); return; }
+  geomEdit.verts.splice(i,1);
+  geomEdit.selected=-1;
+  _sgRenderEditHandles();
+  toast('Point removed — Save Feeder to commit');
+}
+
+function _sgShowEditBar(show,name){
+  const bar=document.getElementById('sgeBar');
+  if(!bar) return;
+  if(show){ document.getElementById('sgeTitle').textContent='Editing: '+(name||''); bar.style.display='flex'; }
+  else bar.style.display='none';
+}
+
+function exitFeederEdit(){
+  gEditLayer.clearLayers();
+  geomEdit={feederKey:null,verts:[],selected:-1};
+  _sgShowEditBar(false);
+}
+
+function saveFeederEdit(){
+  const key=geomEdit.feederKey;
+  if(!key){ return; }
+  const list=_sgRowsForFeeder(key);
+  if(!list.length){ toast('Feeder rows missing'); exitFeederEdit(); return; }
+  const template=list[0];
+  // Every vertex EXCEPT the synthetic EHT-source pseudo-vertex (row:null at
+  // index 0) maps to a real data row — rebuild them fresh in their new order.
+  const feedVerts = geomEdit.verts.filter((v,i)=> !(i===0 && v.row===null));
+  rows = rows.filter(r => (r.feeder_code||r.feeder_name)!==key);
+  feedVerts.forEach((v,idx)=>{
+    const base = v.row ? {...v.row} : {...template};
+    base.feeding_lat = v.lat; base.feeding_lng = v.lng;
+    base.pole_number = idx+1;
+    if(!base.feeding_name && !base.feeding_to){ base.feeding_name='AB Switch'; base.feeding_to='AB Switch'; }
+    rows.push(base);
+  });
+  buildTopology(); render();
+  toast('Feeder geometry saved — pushing to Firebase…');
+  saveFirebase();
+  exitFeederEdit();
+}
+
+// ── New Feeder: click-to-place tool ──
+let newFeederState = {active:false, points:[], markers:[], meta:{}, _guide:null};
+
+function _sgFindNearestNode(latlng, maxDegDist=0.0006){
+  let best=null,bestD=Infinity;
+  Object.values(nodesByKey||{}).forEach(n=>{
+    const d=Math.hypot(n.lat-latlng.lat, n.lng-latlng.lng);
+    if(d<bestD){bestD=d;best=n;}
+  });
+  return (best && bestD<=maxDegDist) ? best : null;
+}
+
+function startNewFeederMode(){
+  if(window._sgEditModeOn) toggleGeomEditMode();
+  const f=document.getElementById('nfForm'); if(f) f.style.display='block';
+}
+function nfCancelForm(){ const f=document.getElementById('nfForm'); if(f) f.style.display='none'; }
+
+function nfBeginPlacing(){
+  const name=(document.getElementById('nfName').value||'').trim();
+  if(!name){ toast('Enter a feeder name first'); return; }
+  newFeederState = {
+    active:true, points:[], markers:[], _guide:null,
+    meta:{
+      feeder_name:name,
+      feeder_code:(document.getElementById('nfCode').value||'').trim(),
+      feeder_type:document.getElementById('nfType').value,
+      division:(document.getElementById('nfDiv').value||'').trim(),
+      sub_division:(document.getElementById('nfSub').value||'').trim(),
+      section:(document.getElementById('nfSec').value||'').trim()
+    }
+  };
+  document.getElementById('nfForm').style.display='none';
+  document.getElementById('nfBar').style.display='flex';
+  document.getElementById('nfCount').textContent='0';
+  map.on('click', _sgNewFeederMapClick);
+  toast('Click the map: 1st point = SOURCE, then route points, last = DESTINATION');
+}
+
+function _sgNewFeederMapClick(e){
+  if(!newFeederState.active) return;
+  const idx=newFeederState.points.length;
+  const snap=_sgFindNearestNode(e.latlng);
+  const pt={lat:e.latlng.lat,lng:e.latlng.lng,snap};
+  newFeederState.points.push(pt);
+  const icon=L.divIcon({className:'',html:`<div style="width:18px;height:18px;border-radius:50%;background:${idx===0?'#2962ff':'#ff6d00'};color:#fff;font-size:9.5px;display:flex;align-items:center;justify-content:center;font-weight:800;border:2px solid #fff;box-shadow:0 0 0 1px #2b3a4a">${idx+1}</div>`,iconSize:[18,18],iconAnchor:[9,9]});
+  const m=L.marker(e.latlng,{icon}).bindTooltip(snap?('Snapped: '+clean(snap.name)):'New point',{direction:'top'}).addTo(gNewFeederLayer);
+  newFeederState.markers.push(m);
+  if(newFeederState._guide){ gNewFeederLayer.removeLayer(newFeederState._guide); newFeederState._guide=null; }
+  if(newFeederState.points.length>1){
+    newFeederState._guide=L.polyline(newFeederState.points.map(p=>[p.lat,p.lng]),{color:'#2962ff',weight:2,dashArray:'6 4'}).addTo(gNewFeederLayer);
+  }
+  document.getElementById('nfCount').textContent=newFeederState.points.length;
+}
+
+function nfUndo(){
+  if(!newFeederState.points.length) return;
+  newFeederState.points.pop();
+  const m=newFeederState.markers.pop();
+  if(m) gNewFeederLayer.removeLayer(m);
+  if(newFeederState._guide){ gNewFeederLayer.removeLayer(newFeederState._guide); newFeederState._guide=null; }
+  if(newFeederState.points.length>1){
+    newFeederState._guide=L.polyline(newFeederState.points.map(p=>[p.lat,p.lng]),{color:'#2962ff',weight:2,dashArray:'6 4'}).addTo(gNewFeederLayer);
+  }
+  document.getElementById('nfCount').textContent=newFeederState.points.length;
+}
+
+function nfCancel(){
+  gNewFeederLayer.clearLayers();
+  map.off('click', _sgNewFeederMapClick);
+  newFeederState={active:false,points:[],markers:[],meta:{},_guide:null};
+  document.getElementById('nfBar').style.display='none';
+  toast('New feeder cancelled');
+}
+
+function nfFinish(){
+  const pts=newFeederState.points;
+  if(pts.length<2){ toast('Add at least a source point and a destination point'); return; }
+  const meta=newFeederState.meta;
+  const src=pts[0];
+  const srcName = src.snap ? src.snap.name : (prompt('Name for the SOURCE point (EHT/SS):','New Source')||'New Source');
+  const srcCode = src.snap ? (src.snap.code||'') : '';
+  const feedPts = pts.slice(1);
+  const newRows = feedPts.map((p,i)=>{
+    const isLast = i===feedPts.length-1;
+    let label;
+    if(p.snap) label = p.snap.name;
+    else if(isLast) label = prompt('Name for the DESTINATION (33/11KV SS):','New Substation')||'New Substation';
+    else label = 'AB Switch';
+    return {
+      area_code:'', circle:'',
+      division:meta.division, sub_division:meta.sub_division, section:meta.section,
+      eht_code:srcCode, eht_name:srcName, eht_lat:src.lat, eht_lng:src.lng,
+      feeder_type:meta.feeder_type, feeder_name:meta.feeder_name, feeder_code:meta.feeder_code||meta.feeder_name,
+      pole_number:i+1, source_type:'',
+      feeding_code:'', feeding_to:label, feeding_name:label,
+      feeding_lat:p.lat, feeding_lng:p.lng, raw_index:-1
+    };
+  });
+  rows = rows.concat(newRows);
+  gNewFeederLayer.clearLayers();
+  map.off('click', _sgNewFeederMapClick);
+  newFeederState={active:false,points:[],markers:[],meta:{},_guide:null};
+  document.getElementById('nfBar').style.display='none';
+  populateFilters(); render();
+  toast('New feeder "'+meta.feeder_name+'" added — click ☁ Save/Update Firebase to publish');
+}
 </script>
+
+<!-- ═══ Geometry Editor toolbar (AutoCAD-style vertex editing) ═══ -->
+<div id="sgeBar" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6000;background:#12233a;color:#fff;padding:9px 14px;border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.45);font-family:var(--sans);font-size:12px;align-items:center;gap:10px;white-space:nowrap">
+  <div id="sgeTitle" style="font-weight:800;font-size:12.5px"></div>
+  <div style="opacity:.7;font-size:10px;max-width:260px;white-space:normal;line-height:1.3">Drag ● points · click ◆ to insert a new point · 🔒 endpoints are fixed</div>
+  <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled style="background:#c62828;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">✕ Delete Point</button>
+  <button onclick="saveFeederEdit()" style="background:#00a88a;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">💾 Save Feeder</button>
+  <button onclick="exitFeederEdit()" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">Cancel</button>
+</div>
+
+<!-- ═══ New Feeder — identity form ═══ -->
+<div id="nfForm" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6000;background:#12233a;color:#fff;padding:14px 16px;border-radius:12px;box-shadow:0 8px 26px rgba(0,0,0,.45);font-family:var(--sans);font-size:12px;width:290px">
+  <div style="font-weight:800;font-size:13px;margin-bottom:8px">➕ New Feeder — Details</div>
+  <input id="nfName" placeholder="Feeder name *" style="width:100%;margin-bottom:6px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px;box-sizing:border-box">
+  <input id="nfCode" placeholder="Feeder code (optional)" style="width:100%;margin-bottom:6px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px;box-sizing:border-box">
+  <select id="nfType" style="width:100%;margin-bottom:6px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px;box-sizing:border-box">
+    <option value="33KV Feeder">33KV Feeder</option>
+    <option value="Link Line">Link Line</option>
+    <option value="HT Service">HT Service</option>
+  </select>
+  <input id="nfDiv" placeholder="Division" style="width:100%;margin-bottom:6px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px;box-sizing:border-box">
+  <input id="nfSub" placeholder="Sub-Division" style="width:100%;margin-bottom:6px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px;box-sizing:border-box">
+  <input id="nfSec" placeholder="Section" style="width:100%;margin-bottom:10px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px;box-sizing:border-box">
+  <div style="display:flex;gap:8px">
+    <button onclick="nfBeginPlacing()" style="flex:1;background:#00a88a;color:#fff;border:none;border-radius:6px;padding:8px;cursor:pointer;font-weight:700;font-size:11px">Start Placing Points ▶</button>
+    <button onclick="nfCancelForm()" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:8px 10px;cursor:pointer;font-weight:700;font-size:11px">Cancel</button>
+  </div>
+</div>
+
+<!-- ═══ New Feeder — point-placement bar ═══ -->
+<div id="nfBar" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6000;background:#12233a;color:#fff;padding:9px 14px;border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.45);font-family:var(--sans);font-size:12px;align-items:center;gap:10px;white-space:nowrap">
+  <div style="font-weight:800">Placing points: <span id="nfCount">0</span></div>
+  <div style="opacity:.7;font-size:10px;max-width:280px;white-space:normal;line-height:1.3">1st click = SOURCE (EHT/SS you're feeding from) · then route points · last click = DESTINATION substation. Clicking near an existing icon snaps to it.</div>
+  <button onclick="nfUndo()" style="background:#ff8f00;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">↶ Undo Last</button>
+  <button onclick="nfFinish()" style="background:#00a88a;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">✓ Finish Feeder</button>
+  <button onclick="nfCancel()" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">Cancel</button>
+</div>
 
 </body>
 </html>
