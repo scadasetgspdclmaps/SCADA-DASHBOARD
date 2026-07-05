@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -2864,6 +2863,44 @@ function sgMaybeFitShown(bounds, shown){
       window._sgLastFilterSig=sig;
     }
   }catch(e){}
+}
+
+
+function matchesFilters(c){
+  const div = document.getElementById('fDiv')?.value || '';
+  const sub = document.getElementById('fSub')?.value || '';
+  const sec = document.getElementById('fSec')?.value || '';
+  const eht = document.getElementById('fEHT')?.value || '';
+  const fdr = document.getElementById('fFeeder')?.value || '';
+  const q = (document.getElementById('q')?.value || '').trim().toLowerCase();
+
+  // Normalized matching: handles spaces / 132KV vs 132 KV / punctuation differences.
+  if(div && !sgSame(c.division, div)) return false;
+  if(sub && !sgSame(c.sub_division, sub)) return false;
+  if(sec && !sgSame(c.section, sec)) return false;
+  if(!sgEhtMatch(c, eht)) return false;
+  if(!sgFeederMatch(c, fdr)) return false;
+
+  if(q){
+    const hay = [
+      c.feeder_code, c.feeder_name, c.feeder_type,
+      c.eht_name, c.eht_code,
+      c.from && c.from.name, c.from && c.from.code,
+      c.to && c.to.name, c.to && c.to.code,
+      c.division, c.sub_division, c.section
+    ].join(' ').toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+
+  if(c.type === 'feeder'){
+    const cls = feederCableClass(c.feeder_type);
+    if(cls === 'ug' && !(document.getElementById('tUG')||{}).checked) return false;
+    if(cls === 'oh' && !(document.getElementById('tOH')||{}).checked) return false;
+  }
+  if(c.type === 'link' && !(document.getElementById('tLink')||{}).checked) return false;
+  if(c.type === 'ht' && !(document.getElementById('tHT')||{}).checked) return false;
+
+  return true;
 }
 
 function feederCableClass(ftype){
