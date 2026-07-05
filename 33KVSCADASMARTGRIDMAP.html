@@ -1748,6 +1748,36 @@ body.tg-zoom-close .tg-area-label{font-size:13px!important;opacity:.98}
 .sg-editing-feeder .leaflet-popup,
 .sg-editing-feeder .sg-line-tip{display:none!important}
 
+
+/* Hover-only feeder name tooltip + AutoCAD-style edit handles */
+.sg-hover-tip{
+  background:rgba(8,18,30,.94)!important;
+  border:1px solid rgba(0,200,255,.45)!important;
+  color:#e6fbff!important;
+  border-radius:6px!important;
+  padding:3px 8px!important;
+  font:900 10px/1.1 var(--mono),monospace!important;
+  letter-spacing:.4px!important;
+  white-space:nowrap!important;
+  box-shadow:0 3px 12px rgba(0,0,0,.38),0 0 14px rgba(0,200,255,.16)!important;
+}
+path.sg-feeder-line{cursor:pointer}
+.sg-edit-grip{
+  width:13px;height:13px;border-radius:50%;
+  background:#00c853;border:2px solid #fff;
+  box-shadow:0 0 0 1px #0f172a,0 0 10px rgba(0,200,83,.65);
+}
+.sg-edit-grip.selected{
+  background:#ffab00;
+  box-shadow:0 0 0 1px #0f172a,0 0 12px rgba(255,171,0,.85);
+}
+.sg-edit-grip.locked{
+  width:15px;height:15px;border-radius:4px;background:#607d8b;
+  box-shadow:0 0 0 1px #0f172a,0 0 10px rgba(96,125,139,.55);
+}
+
+
+.sg-selected-feeder-label{display:none!important}
 </style>
 </head>
 <body class="no-anim">
@@ -2890,26 +2920,18 @@ function sgEhtFeederLabelHtml(node, conns){
 function normType(s){s=String(s||'').toUpperCase();if(s.includes('LINK'))return 'link';if(s.includes('HT'))return 'ht';return 'feeder'}
 function isCutOrBad(s){return /CUT\s*POINT|CUTPOINT/i.test(String(s||''))}
 function isDevice(s){return /AB\s*SWITCH|LINE\s*AB|DP\s*STRUCTURE|DP\b|RMU|ISOLATOR/i.test(String(s||''))}
-function nodeType(feedTo,name,type){const t=String(feedTo+' '+name+' '+type).toUpperCase();
+function nodeType(feedTo,name,type){
+  const t=String(feedTo+' '+name+' '+type).toUpperCase();
+  // Pure geometry vertices used only to bend / route the smart-grid line.
+  // They should NOT appear as substations or AB switches.
+  if(t.includes('BEND POINT')||t.includes('ROUTE POINT')||t.includes('WAYPOINT')||t.includes('GEOMETRY POINT'))return 'bend';
   if(t.includes('AB SWITCH')||t.includes('LINE AB'))return 'ab';
   if(/\bDP\b|DP\s*STRUCTURE/.test(t))return 'dp';
   if(t.includes('HT SERVICE'))return 'ht';
-  // Master-data-safe classification: 33/11KV SS wins over voltage words in names.
   if(t.includes('33/11')||t.includes('33 KV SS')||t.includes('33KV SS')||t.includes('11KV SS'))return 'ss33';
   if(t.includes('EHT')||t.includes('132KV')||t.includes('132 KV')||t.includes('220KV')||t.includes('220 KV')||t.includes('400KV')||t.includes('400 KV'))return 'eht';
   if(/\bHT\b/.test(t))return 'ht';
-  return 'ss33'}
-function colorFor(t,ftype){if(t==='link')return '#9c27b0';if(t==='ht')return '#00a88a';return feederCableClass(ftype)==='oh'?'#ff9800':'#2196f3'}
-function iconFor(type,name){
-  if(type==='eht'){
-    const kvm=String(name||'').match(/(\d{3})\s*K?V/i);
-    const kv=kvm?kvm[1]+'KV':'EHT';
-    return L.divIcon({className:'',html:'<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">'+kv+'</span></div></div>',iconSize:[40,28],iconAnchor:[20,14]});
-  }
-  if(type==='ab')return L.divIcon({className:'',html:'<div class="ab-icon"></div>',iconSize:[18,18],iconAnchor:[9,9]});
-  if(type==='dp')return L.divIcon({className:'',html:'<div class="dp-icon"></div>',iconSize:[18,18],iconAnchor:[9,9]});
-  if(type==='ht')return L.divIcon({className:'',html:'<div class="ht-icon"></div>',iconSize:[16,16],iconAnchor:[8,8]});
-  return L.divIcon({className:'',html:'<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="bolt">⚡</span></div></div>',iconSize:[36,36],iconAnchor:[18,18]})
+  return 'ss33'
 }
 function normalizeInputRows(raw){
   const out=[], carry={};
@@ -2969,46 +2991,20 @@ function buildTopology(){
   });
 }
 function curve(a,b,i,total,ctype){
-  let A=L.latLng(a.lat,a.lng),B=L.latLng(b.lat,b.lng);
-  const dx0=B.lng-A.lng,dy0=B.lat-A.lat,len0=Math.sqrt(dx0*dx0+dy0*dy0)||1e-9;
-  // End-trim (visual): pull each end 4% inward (capped) so lines stop AT
-  // substation icons instead of piercing through them — per Naresh
-  // 04-Jul-2026 "should not look like it's passing from the substation".
-  const trim=Math.min(0.04,0.0006/len0);
-  A=L.latLng(A.lat+dy0*trim,A.lng+dx0*trim); B=L.latLng(B.lat-dy0*trim,B.lng-dx0*trim);
+  // Exact endpoints: no visual trimming. The line must connect to EHT/SS node centre.
+  const A=L.latLng(a.lat,a.lng), B=L.latLng(b.lat,b.lng);
   const dx=B.lng-A.lng,dy=B.lat-A.lat,len=Math.sqrt(dx*dx+dy*dy)||1e-9,nx=-dy/len,ny=dx/len;
-  // 33KV feeders: STRAIGHT (TRANSCO). Link lines + HT services: always a
-  // gentle arc so they visually separate from the straight feeder grid.
   const isCurvy=(ctype==='link'||ctype==='ht');
   let spread=(i-(total-1)/2)*0.0010;
-  if(isCurvy && total<=1) spread=0.12*len;           // solo arc for link/HT
-  else if(isCurvy) spread=(i-(total-1)/2)*0.0014 + 0.10*len*((i%2)?1:-1)*0; 
+  if(isCurvy && total<=1) spread=0.12*len;
   if(!isCurvy && total<=1) return [A,B];
-  const pts=[];for(let t=0;t<=1.0001;t+=.1){const bow=Math.sin(Math.PI*t)*spread;pts.push(L.latLng(A.lat+(B.lat-A.lat)*t+ny*bow,A.lng+(B.lng-A.lng)*t+nx*bow))}pts.push(B);return pts}
-function matchesFilters(c){
-  const div=fDiv.value, sub=fSub.value, sec=fSec.value;
-  const eht=document.getElementById('fEHT') ? document.getElementById('fEHT').value : '';
-  const fdr=fFeeder.value;
-  const q=document.getElementById('q').value.trim().toLowerCase();
-
-  if(div && !sgSame(c.division,div)) return false;
-  if(sub && !sgSame(c.sub_division,sub)) return false;
-  if(sec && !sgSame(c.section,sec)) return false;
-  if(!sgEhtMatch(c,eht)) return false;
-  if(!sgFeederMatch(c,fdr)) return false;
-
-  if(q){
-    const hay=[c.feeder_code,c.feeder_name,c.eht_name,c.eht_code,c.from&&c.from.name,c.to&&c.to.name,c.division,c.section].join(' ').toLowerCase();
-    if(!hay.includes(q))return false;
+  const pts=[];
+  for(let t=0;t<=1.0001;t+=.1){
+    const bow=Math.sin(Math.PI*t)*spread;
+    pts.push(L.latLng(A.lat+(B.lat-A.lat)*t+ny*bow,A.lng+(B.lng-A.lng)*t+nx*bow));
   }
-  if(c.type==='feeder'){
-    const cls=feederCableClass(c.feeder_type);
-    if(cls==='ug'&&!tUG.checked)return false;
-    if(cls==='oh'&&!tOH.checked)return false;
-  }
-  if(c.type==='link'&&!tLink.checked)return false;
-  if(c.type==='ht'&&!tHT.checked)return false;
-  return true
+  pts.push(B);
+  return pts
 }
 // ── Interactive render (rewritten per Naresh 03-Jul-2026) ──
 // Fixes: (1) node labels no longer permanent — OFF by default, shown on
@@ -3035,14 +3031,15 @@ function render(){
     const col=colorFor(c.type,c.feeder_type);
     const pts=curve(c.from,c.to,idx,pairCount[k],c.type);
     const w = c.type==='link' ? Math.max(1.5,sgLineWeight*0.8) : sgLineWeight;
-    const line=L.polyline(pts,{color:col,weight:w,opacity:.9,dashArray:c.type==='link'?'7 5':null,lineCap:'round',lineJoin:'round'});
-    // Rectangular feeder-name hover box removed completely per field editing requirement.
+    const line=L.polyline(pts,{color:col,weight:w,opacity:.9,dashArray:c.type==='link'?'7 5':null,lineCap:'round',lineJoin:'round',className:'sg-feeder-line'});
+    // Feeder name appears ONLY on hover near the line, not as permanent map text.
+    line.bindTooltip(clean(c.feeder_name)||c.feeder_code||'Feeder',{sticky:true,direction:'top',opacity:.96,className:'sg-hover-tip'});
     // Double-click → open the full feeder route map for this feeder.
     line.on('dblclick',ev=>{L.DomEvent.stop(ev);openFeederInRouteMap(c.feeder_code,c.feeder_name);});
     line.on('click',ev=>{
       L.DomEvent.stop(ev);
       if(window._sgEditModeOn){ enterFeederEdit(c.feeder_code||c.feeder_name); }
-      else { window._sgActiveFeederKey=c.feeder_code||c.feeder_name; render(); toast(clean(c.feeder_name)||c.feeder_code||'Feeder selected'); }
+      else { toast(clean(c.feeder_name)||c.feeder_code||'Feeder selected'); }
     });
     line.addTo(gLines);
 
@@ -3055,11 +3052,12 @@ function render(){
 
     bounds.extend([c.from.lat,c.from.lng]); bounds.extend([c.to.lat,c.to.lng]);
 
-    // Feeder name label: shows when labels toggle is ON, or when this feeder is selected/clicked/filtered.
-    if(showFeederLabels || sgShowNameForConnection(c)){
+    // Permanent feeder-name labels only when the Layer toggle is ON.
+    // Normal behaviour: hover near feeder line to see its name.
+    if(showFeederLabels){
       const mid=pts[Math.floor(pts.length/2)];
       const fname=clean(c.feeder_name)||c.feeder_code||'Feeder';
-      L.marker(mid,{interactive:false,icon:L.divIcon({className:'',html:`<div class="sg-selected-feeder-label" style="border-color:${col}">${fname}</div>`,iconSize:[1,1],iconAnchor:[0,0]})}).addTo(gLabels);
+      L.marker(mid,{interactive:false,icon:L.divIcon({className:'',html:`<div class="node-label" style="border:1px solid ${col};font-size:7.5px">${fname}</div>`,iconSize:[1,1]})}).addTo(gLabels);
     }
   });
 
@@ -3075,6 +3073,7 @@ function render(){
   // No popup box on click. Node name appears on hover.
   const used={};
   shown.forEach(c=>[c.from,c.to].forEach(n=>{
+    if(n.kind==='bend') return;
     if((n.kind==='ab'||n.kind==='dp') && !(document.getElementById('tDev')||{}).checked) return;
     const named=(n.name&&!/^(AB Switch|DP Structure|Feeding Point)$/i.test(n.name))||n.code;
     const key=n.kind+'|'+(named?(compact(n.name)+'|'+String(n.code||'')):((+n.lat).toFixed(6)+','+(+n.lng).toFixed(6)));
@@ -3413,17 +3412,27 @@ function enterFeederEdit(key){
     verts.push({row:r, lat:+r.feeding_lat, lng:+r.feeding_lng, locked:false, label:r.feeding_name||r.feeding_to||'Point'});
   });
   if(verts.length<2){ toast('This feeder has too few points to edit'); return; }
-  verts[verts.length-1].locked = true; // final destination (33/11KV SS etc.) fixed, AutoCAD-style
+  verts[verts.length-1].locked = true; // final destination fixed, AutoCAD-style
+
+  // AutoCAD-style: first and last points are fixed. If the feeder has no
+  // internal geometry points, create two temporary bend grips so the user can
+  // manually shape the line without creating AB switches.
+  const internalEditable = verts.slice(1,-1).filter(v=>!v.locked).length;
+  if(internalEditable===0 && verts.length===2){
+    const a=verts[0], b=verts[1];
+    const p1={row:null,lat:a.lat+(b.lat-a.lat)*0.33,lng:a.lng+(b.lng-a.lng)*0.33,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true};
+    const p2={row:null,lat:a.lat+(b.lat-a.lat)*0.66,lng:a.lng+(b.lng-a.lng)*0.66,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true};
+    verts.splice(1,0,p1,p2);
+  }
   geomEdit = {feederKey:key, verts, selected:-1};
   _sgRenderEditHandles();
   _sgShowEditBar(true, first.feeder_name||key);
 }
 
 function _sgVertIcon(locked, selected){
-  const bg = locked ? '#607d8b' : (selected ? '#ffab00' : '#00c853');
-  const size = locked?14:12;
-  const radius = locked ? '3px' : '50%';
-  return L.divIcon({className:'',html:`<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${bg};border:2px solid #fff;box-shadow:0 0 0 1px #2b3a4a"></div>`,iconSize:[size,size],iconAnchor:[size/2,size/2]});
+  const cls='sg-edit-grip'+(locked?' locked':'')+(selected?' selected':'');
+  const size=locked?15:13;
+  return L.divIcon({className:'',html:`<div class="${cls}"></div>`,iconSize:[size,size],iconAnchor:[size/2,size/2]});
 }
 function _sgGhostIcon(){
   return L.divIcon({className:'',html:'<div style="width:10px;height:10px;background:#fff;border:2px solid #ff3d00;transform:rotate(45deg)"></div>',iconSize:[10,10],iconAnchor:[5,5]});
@@ -3434,21 +3443,7 @@ function _sgRenderEditHandles(){
   const verts = geomEdit.verts;
   if(verts.length<2) return;
   _sgGuideLine = L.polyline(verts.map(v=>[v.lat,v.lng]),{color:'#ff3d00',weight:3,dashArray:'5 5',opacity:.95,interactive:false}).addTo(gEditLayer);
-
-  for(let i=0;i<verts.length-1;i++){
-    const a=verts[i], b=verts[i+1];
-    const mid={lat:(a.lat+b.lat)/2,lng:(a.lng+b.lng)/2};
-    const insertAt=i+1;
-    const ghost=L.marker([mid.lat,mid.lng],{icon:_sgGhostIcon(),zIndexOffset:500})
-      .bindTooltip('+ insert point',{direction:'top',opacity:.9});
-    ghost.on('click',ev=>{
-      L.DomEvent.stop(ev);
-      geomEdit.verts.splice(insertAt,0,{row:null,lat:mid.lat,lng:mid.lng,locked:false,label:'AB Switch',isNew:true});
-      _sgRenderEditHandles();
-      toast('Point inserted — drag it into place, then Save Feeder');
-    });
-    ghost.addTo(gEditLayer);
-  }
+  // No midpoint 'bend grip' markers. Drag only the green geometry grips.
 
   verts.forEach((v,i)=>{
     const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(v.locked,i===geomEdit.selected),draggable:!v.locked,zIndexOffset:600})
@@ -3534,8 +3529,14 @@ function saveFeederEdit(){
     const base = v.row ? {...v.row} : {...template};
     base.feeding_lat = v.lat; base.feeding_lng = v.lng;
     base.pole_number = idx+1;
-    if(!base.feeding_name && !base.feeding_to){ base.feeding_name='AB Switch'; base.feeding_to='AB Switch'; }
-    if(v.overrideName){ base.feeding_name=v.overrideName; base.feeding_to=v.overrideName; }
+    if(!v.row){
+      base.feeding_name='BEND POINT';
+      base.feeding_to='BEND POINT';
+      base.source_type='BEND POINT';
+      base.feeding_code='';
+    }
+    if(!base.feeding_name && !base.feeding_to){ base.feeding_name='BEND POINT'; base.feeding_to='BEND POINT'; base.source_type='BEND POINT'; }
+    if(v.overrideName){ base.feeding_name=v.overrideName; base.feeding_to=v.overrideName; if(String(v.overrideName).toUpperCase().includes('BEND'))base.source_type='BEND POINT'; }
     if(v.overrideCode){ base.feeding_code=v.overrideCode; }
     // Unnamed points (generic "AB Switch") are deduped in buildTopology by
     // ROUNDED COORDINATES. After a drag, two different points can round to
