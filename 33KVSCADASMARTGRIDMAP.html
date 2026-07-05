@@ -1731,6 +1731,23 @@ body.tg-zoom-near .tg-area-label{font-size:11px!important;opacity:.94}
 body.tg-zoom-close .tg-mandal-label{font-size:12px!important;opacity:.95}
 body.tg-zoom-close .tg-area-label{font-size:13px!important;opacity:.98}
 
+
+/* Selected feeder name label - appears when feeder is selected/clicked even if label toggle is OFF */
+.sg-selected-feeder-label{
+  background:rgba(8,18,30,.92);
+  border:1px solid rgba(0,200,255,.45);
+  color:#e6fbff;
+  border-radius:6px;
+  padding:3px 8px;
+  font:900 10px/1.1 var(--mono),monospace;
+  letter-spacing:.4px;
+  white-space:nowrap;
+  box-shadow:0 3px 12px rgba(0,0,0,.38),0 0 14px rgba(0,200,255,.16);
+  pointer-events:none;
+}
+.sg-editing-feeder .leaflet-popup,
+.sg-editing-feeder .sg-line-tip{display:none!important}
+
 </style>
 </head>
 <body class="no-anim">
@@ -2785,6 +2802,39 @@ function num(v){if(v==null||v==='')return null;const x=Number(String(v).replace(
 function clean(s){return String(s||'').replace(/^33\s*\/\s*11\s*kv\s*/i,'').replace(/^132\s*kv\s*/i,'').replace(/^220\s*kv\s*/i,'').replace(/\s*sub[-\s]*station\s*$/i,'').replace(/\s+SS\s*$/i,' SS').replace(/\s+/g,' ').trim()}
 function compact(s){return clean(s).toUpperCase().replace(/[^A-Z0-9]/g,'')}
 
+
+function sgNorm(v){return compact(v||'');}
+function sgSame(a,b){return !b || sgNorm(a)===sgNorm(b);}
+function sgAnySame(value, arr){const v=sgNorm(value); return !v || (arr||[]).some(x=>sgNorm(x)===v);}
+function sgFeederMatch(c, fdr){
+  if(!fdr) return true;
+  return sgAnySame(fdr,[c.feeder_code,c.feeder_name]);
+}
+function sgEhtMatch(c, eht){
+  if(!eht) return true;
+  return sgAnySame(eht,[c.eht_name,c.eht_code,c.from && c.from.name,c.from && c.from.code]);
+}
+function sgFilterSignature(){
+  const ids=['fDiv','fSub','fSec','fEHT','fFeeder','q'];
+  return ids.map(id=>document.getElementById(id)?.value||'').join('|');
+}
+function sgShowNameForConnection(c){
+  const fdr=document.getElementById('fFeeder')?.value||'';
+  return (document.getElementById('tLbl')||{}).checked || sgFeederMatch(c,fdr) || sgFeederMatch(c,window._sgActiveFeederKey||'');
+}
+function sgMaybeFitShown(bounds, shown){
+  try{
+    if(!bounds || !bounds.isValid()) return;
+    const sig=sgFilterSignature();
+    const hasSpecific=!!(document.getElementById('fEHT')?.value || document.getElementById('fFeeder')?.value || document.getElementById('q')?.value);
+    if(!window._sgFitDone || (hasSpecific && window._sgLastFilterSig!==sig)){
+      map.fitBounds(bounds.pad(.22),{maxZoom:15});
+      window._sgFitDone=true;
+      window._sgLastFilterSig=sig;
+    }
+  }catch(e){}
+}
+
 function feederCableClass(ftype){
   const f=String(ftype||'').toUpperCase();
   if(f.includes('OH')) return 'oh';
@@ -2941,14 +2991,14 @@ function matchesFilters(c){
   const fdr=fFeeder.value;
   const q=document.getElementById('q').value.trim().toLowerCase();
 
-  if(window._sgLockedFeederKey && c.feeder_code!==window._sgLockedFeederKey && c.feeder_name!==window._sgLockedFeederKey) return false;
-  if(div&&c.division!==div)return false;
-  if(sub&&c.sub_division!==sub)return false;
-  if(sec&&c.section!==sec)return false;
-  if(eht && c.eht_name!==eht && c.eht_code!==eht && c.from.name!==eht)return false;
-  if(fdr&&c.feeder_code!==fdr&&c.feeder_name!==fdr)return false;
+  if(div && !sgSame(c.division,div)) return false;
+  if(sub && !sgSame(c.sub_division,sub)) return false;
+  if(sec && !sgSame(c.section,sec)) return false;
+  if(!sgEhtMatch(c,eht)) return false;
+  if(!sgFeederMatch(c,fdr)) return false;
+
   if(q){
-    const hay=[c.feeder_code,c.feeder_name,c.eht_name,c.eht_code,c.from.name,c.to.name,c.division,c.section].join(' ').toLowerCase();
+    const hay=[c.feeder_code,c.feeder_name,c.eht_name,c.eht_code,c.from&&c.from.name,c.to&&c.to.name,c.division,c.section].join(' ').toLowerCase();
     if(!hay.includes(q))return false;
   }
   if(c.type==='feeder'){
@@ -2989,7 +3039,11 @@ function render(){
     // Rectangular feeder-name hover box removed completely per field editing requirement.
     // Double-click → open the full feeder route map for this feeder.
     line.on('dblclick',ev=>{L.DomEvent.stop(ev);openFeederInRouteMap(c.feeder_code,c.feeder_name);});
-    line.on('click',ev=>{ if(window._sgEditModeOn){ L.DomEvent.stop(ev); enterFeederEdit(c.feeder_code||c.feeder_name); } });
+    line.on('click',ev=>{
+      L.DomEvent.stop(ev);
+      if(window._sgEditModeOn){ enterFeederEdit(c.feeder_code||c.feeder_name); }
+      else { window._sgActiveFeederKey=c.feeder_code||c.feeder_name; render(); toast(clean(c.feeder_name)||c.feeder_code||'Feeder selected'); }
+    });
     line.addTo(gLines);
 
     // Energy-flow animation: a second, animated dashed line on top (EHT→SS).
@@ -3001,10 +3055,11 @@ function render(){
 
     bounds.extend([c.from.lat,c.from.lng]); bounds.extend([c.to.lat,c.to.lng]);
 
-    // Optional persistent feeder-code label at the line midpoint (toggle).
-    if(showFeederLabels){
+    // Feeder name label: shows when labels toggle is ON, or when this feeder is selected/clicked/filtered.
+    if(showFeederLabels || sgShowNameForConnection(c)){
       const mid=pts[Math.floor(pts.length/2)];
-      L.marker(mid,{interactive:false,icon:L.divIcon({className:'',html:`<div class="node-label" style="border:1px solid ${col};font-size:7.5px">${clean(c.feeder_name).slice(0,26)||c.feeder_code}</div>`,iconSize:[1,1]})}).addTo(gLabels);
+      const fname=clean(c.feeder_name)||c.feeder_code||'Feeder';
+      L.marker(mid,{interactive:false,icon:L.divIcon({className:'',html:`<div class="sg-selected-feeder-label" style="border-color:${col}">${fname}</div>`,iconSize:[1,1],iconAnchor:[0,0]})}).addTo(gLabels);
     }
   });
 
@@ -3051,7 +3106,10 @@ function render(){
   if(document.getElementById('cntUG'))cntUG.textContent=cnt.ug;if(document.getElementById('cntOH'))cntOH.textContent=cnt.oh;if(document.getElementById('cnt33'))cnt33.textContent=(cnt.ug+cnt.oh); cntLink.textContent=cnt.link; cntHt.textContent=cnt.ht; cntDev.textContent=cnt.dev;
   document.getElementById('empty').style.display=rows.length?'none':'block';
   status(`SMARTGRID: <b>${shown.length}</b> connection(s) · <b>${Object.keys(used).length}</b> node(s)`);
-  if(bounds.isValid() && !window._sgFitDone){ map.fitBounds(bounds.pad(.18),{maxZoom:14}); window._sgFitDone=true; }
+  if((document.getElementById('fFeeder')?.value||document.getElementById('fEHT')?.value) && shown.length===0 && rows.length){
+    toast('No visible connection for this filter — check start/end coordinates or cable type layer toggles');
+  }
+  sgMaybeFitShown(bounds, shown);
 }
 
 function openFeederInRouteMap(code,name){
@@ -3073,53 +3131,48 @@ function populateFilters(){
   function fill(id,arr,label,old){
     const sel=document.getElementById(id); if(!sel)return;
     sel.innerHTML=`<option value="">${label}</option>`+arr.map(v=>`<option value="${String(v).replace(/"/g,'&quot;')}">${v}</option>`).join('');
-    if(arr.includes(old))sel.value=old; else sel.value='';
+    const found=arr.find(v=>sgNorm(v)===sgNorm(old));
+    if(found)sel.value=found; else sel.value='';
   }
   const base=rows||[];
-  const divRows=base;
-  const subRows=base.filter(r=>!current.div||r.division===current.div);
-  const secRows=subRows.filter(r=>!current.sub||r.sub_division===current.sub);
-  const ehtRows=secRows.filter(r=>!current.sec||r.section===current.sec);
-  const feederRows=ehtRows.filter(r=>!current.eht||r.eht_name===current.eht||r.eht_code===current.eht);
-
-  fill('fDiv',uniq(divRows.map(r=>r.division)),'All Divisions',current.div);
+  fill('fDiv',uniq(base.map(r=>r.division)),'All Divisions',current.div);
   const d=document.getElementById('fDiv')?.value||'';
 
-  const subRows2=base.filter(r=>!d||r.division===d);
-  fill('fSub',uniq(subRows2.map(r=>r.sub_division)),'All Sub-Divisions',current.sub);
+  const subRows=base.filter(r=>!d||sgSame(r.division,d));
+  fill('fSub',uniq(subRows.map(r=>r.sub_division)),'All Sub-Divisions',current.sub);
   const s=document.getElementById('fSub')?.value||'';
 
-  const secRows2=subRows2.filter(r=>!s||r.sub_division===s);
-  fill('fSec',uniq(secRows2.map(r=>r.section)),'All Sections',current.sec);
+  const secRows=subRows.filter(r=>!s||sgSame(r.sub_division,s));
+  fill('fSec',uniq(secRows.map(r=>r.section)),'All Sections',current.sec);
   const sec=document.getElementById('fSec')?.value||'';
 
-  const ehtRows2=secRows2.filter(r=>!sec||r.section===sec);
-  fill('fEHT',uniq(ehtRows2.map(r=>r.eht_name||r.eht_code)),'All EHT SS',current.eht);
+  const ehtRows=secRows.filter(r=>!sec||sgSame(r.section,sec));
+  fill('fEHT',uniq(ehtRows.map(r=>r.eht_name||r.eht_code)),'All EHT SS',current.eht);
   const e=document.getElementById('fEHT')?.value||'';
 
-  const feederRows2=ehtRows2.filter(r=>!e||r.eht_name===e||r.eht_code===e);
+  const feederRows=ehtRows.filter(r=>!e||sgAnySame(e,[r.eht_name,r.eht_code]));
   const fSel=document.getElementById('fFeeder');
   if(fSel){
     const seenF={};
-    const feeders=feederRows2
+    const feeders=feederRows
       .map(r=>({code:String(r.feeder_code||'').trim(), name:String(r.feeder_name||'').trim()}))
       .filter(f=>f.code||f.name)
-      .filter(f=>{const k=f.code||f.name;if(seenF[k])return false;seenF[k]=1;return true;})
+      .filter(f=>{const k=sgNorm(f.code||f.name);if(seenF[k])return false;seenF[k]=1;return true;})
       .sort((a,b)=>(a.name||a.code).localeCompare(b.name||b.code));
     fSel.innerHTML='<option value="">All Feeders</option>'+feeders.map(f=>{
       const val=String(f.code||f.name).replace(/"/g,'&quot;');
       const label=String(f.name||f.code).replace(/</g,'&lt;').replace(/>/g,'&gt;');
       return `<option value="${val}">${label}</option>`;
     }).join('');
-    if(feeders.some(f=>(f.code||f.name)===current.feeder))fSel.value=current.feeder;
-    else fSel.value='';
+    const found=feeders.find(f=>sgFeederMatch({feeder_code:f.code,feeder_name:f.name},current.feeder));
+    fSel.value=found?(found.code||found.name):'';
   }
 }
-function onFilterChange(){populateFilters();render()}
+function onFilterChange(){populateFilters();window._sgLastFilterSig=null;render()}
 function resetFilters(){
   ['fDiv','fSub','fSec','fEHT','fFeeder','q'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
   if(window._sgLockedFeederKey){ window._sgLockedFeederKey=null; document.body.classList.remove('sg-editing-feeder'); }
-  populateFilters();render()
+  window._sgActiveFeederKey=null; populateFilters();window._sgLastFilterSig=null;render()
 }
 async function handleFile(file){if(!file)return;const buf=await file.arrayBuffer();let raw=[];if(file.name.toLowerCase().endsWith('.csv')){const wb=XLSX.read(buf,{type:'array'});raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''})}else{const wb=XLSX.read(buf,{type:'array'});const sh=wb.Sheets[wb.SheetNames[0]];raw=XLSX.utils.sheet_to_json(sh,{defval:''})}rows=normalizeInputRows(raw);meta={fileName:file.name,updatedAt:new Date().toISOString(),rowCount:rows.length};populateFilters();render();fileInfo.textContent=`Loaded ${file.name} · ${rows.length} smart-grid rows`;toast('Smart Grid Excel loaded')}
 async function saveFirebase(){
@@ -3347,10 +3400,8 @@ function enterFeederEdit(key){
   const list = _sgRowsForFeeder(key);
   if(!list.length){ toast('No rows found for this feeder'); return; }
   const first = list[0];
-  window._sgLockedFeederKey = key;
   document.body.classList.add('sg-editing-feeder');
-  if(document.getElementById('fFeeder')){ document.getElementById('fFeeder').value = key; }
-  render();
+  window._sgActiveFeederKey = key;
   const verts = [];
   if(first.eht_lat!=null && first.eht_lng!=null){
     verts.push({row:null, lat:+first.eht_lat, lng:+first.eht_lng, locked:true, label:first.eht_name||'EHT SOURCE'});
@@ -3465,7 +3516,6 @@ function exitFeederEdit(clearLock=true){
   geomEdit={feederKey:null,verts:[],selected:-1};
   _sgShowEditBar(false);
   if(clearLock){
-    window._sgLockedFeederKey=null;
     document.body.classList.remove('sg-editing-feeder');
   }
 }
