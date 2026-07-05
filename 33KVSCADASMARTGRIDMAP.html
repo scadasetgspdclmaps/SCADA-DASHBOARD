@@ -5,7 +5,67 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>TGSPDCL — 33KV Smart Grid Map · SCADA Updated</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js">
+/* Mandal / area names enhancement + future master-data path placeholders */
+const SMARTGRID_MASTER_PATHS = window.SMARTGRID_MASTER_PATHS || {
+  ssTopology:'masterData/ssTopology',
+  endStartPoints:'smartgrid/endStartPoints',
+  latest:'smartgrid/latest',
+  history:'smartgrid/history'
+};
+function _tgGridLabelZoomClass(){
+  try{
+    const z=map.getZoom();
+    document.body.classList.remove('tg-zoom-far','tg-zoom-mid','tg-zoom-near','tg-zoom-close');
+    if(z<10)document.body.classList.add('tg-zoom-far');
+    else if(z<12)document.body.classList.add('tg-zoom-mid');
+    else if(z<14)document.body.classList.add('tg-zoom-near');
+    else document.body.classList.add('tg-zoom-close');
+    document.documentElement.style.setProperty('--tg-mandal-label-size',Math.max(7,Math.min(13,z*.85))+'px');
+    document.documentElement.style.setProperty('--tg-area-label-size',Math.max(8,Math.min(14,z*.95))+'px');
+  }catch(e){}
+}
+function _tgProp(p,names){
+  p=p||{};const keys=Object.keys(p);
+  for(const nm of names){
+    const k=keys.find(x=>String(x).toLowerCase().replace(/[^a-z0-9]/g,'')===String(nm).toLowerCase().replace(/[^a-z0-9]/g,''));
+    if(k&&p[k]!=null&&String(p[k]).trim())return String(p[k]).trim();
+  }
+  return '';
+}
+function _tgLabelName(f){return _tgProp(f.properties,['MANDAL_NAME','MANDAL','mandal_name','Mandal_Name','BLOCK_NAME','block_name','NAME','Name','name','AREA','area','WARD_NAME','ward_name']);}
+function _tgDistrictName(f){return _tgProp(f.properties,['DISTRICT','DIST_NAME','district','district_name','dtname']);}
+function _tgCenter(f){
+  try{const g=L.geoJSON(f),ls=g.getLayers();if(ls&&ls[0]&&ls[0].getBounds){const b=ls[0].getBounds();if(b.isValid())return b.getCenter();}}catch(e){}
+  return null;
+}
+let _tgMandalNameLayer=null;
+async function tgEnsureMandalAreaNames(){
+  try{
+    if(_tgMandalNameLayer&&map.hasLayer(_tgMandalNameLayer)){_tgGridLabelZoomClass();return;}
+    if(!_tgMandalNameLayer)_tgMandalNameLayer=L.layerGroup();
+    _tgMandalNameLayer.clearLayers();
+    let geo=null;
+    for(const u of ['./telangana_621_mandals.geojson','telangana_621_mandals.geojson']){
+      try{const r=await fetch(u,{cache:'force-cache'});if(r.ok){geo=await r.json();break;}}catch(e){}
+    }
+    if(!geo||!geo.features)return;
+    const metro=/HYDERABAD|MEDCHAL|MALKAJGIRI|RANGA|RANGAREDDY|SANGAREDDY|VIKARABAD|YADADRI|MEDAK|SIDDIPET|NALGONDA|MAHABUBNAGAR/i;
+    const area=/KHAIRATABAD|AMEERPET|SECUNDERABAD|BEGUMPET|JUBILEE|BANJARA|MADHAPUR|KUKATPALLY|MIYAPUR|SERILINGAMPALLY|KONDAPUR|GACHIBOWLI|KOKAPET|NARSINGI|ATTAPUR|SHAMSHABAD|UPPAL|BODUPPAL|GHATKESAR|CHERLAPALLY|KAPRA|MALKAJGIRI|KOMPALLY|MEDCHAL|ALWAL|JEEDIMETLA|LB NAGAR|NAGOLE|CHARMINAR|GOLCONDA|SOMAJIGUDA|AMBERPET|KARWAN|TOLI|CHOWKI/i;
+    geo.features.forEach(f=>{
+      const name=_tgLabelName(f); if(!name)return;
+      const d=_tgDistrictName(f);
+      if(!metro.test(d+' '+name)&&map.getZoom()<13)return;
+      const c=_tgCenter(f); if(!c)return;
+      L.marker(c,{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:`<div class="${area.test(name)?'tg-area-label':'tg-mandal-label'}">${String(name).replace(/[<>]/g,'')}</div>`,iconSize:[1,1],iconAnchor:[0,0]})}).addTo(_tgMandalNameLayer);
+    });
+    _tgMandalNameLayer.addTo(map);
+    _tgGridLabelZoomClass();
+  }catch(e){console.warn('Mandal label load failed',e);}
+}
+try{map.on('zoomend',()=>{_tgGridLabelZoomClass();});setTimeout(()=>{tgEnsureMandalAreaNames();_tgGridLabelZoomClass();},1800);}catch(e){}
+
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1621,6 +1681,56 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
 .sgconn-open{margin-top:8px;width:100%;border:1px solid #93c5fd;background:#eff6ff;color:#1d4ed8;border-radius:7px;padding:6px 8px;font-size:10px;font-weight:900;cursor:pointer}
 .sgconn-open:hover{background:#dbeafe}
 
+
+/* Smart Grid AB / DP visibility fix */
+.ab-icon{
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:#ffd600;
+  border:2px solid #374151;
+  box-shadow:0 0 0 2px rgba(255,255,255,.88),0 0 12px rgba(255,214,0,.95);
+  transform:scale(var(--sg-abdp-scale,1));
+  transform-origin:center center;
+}
+.dp-icon{
+  width:14px;
+  height:14px;
+  border-radius:3px;
+  background:#9c27b0;
+  border:2px solid #fff;
+  box-shadow:0 0 10px rgba(156,39,176,.85);
+  transform:rotate(45deg) scale(var(--sg-abdp-scale,1));
+  transform-origin:center center;
+}
+body.sg-editing-feeder .sg-line-tip,
+body.sg-editing-feeder .leaflet-tooltip.sg-line-tip{
+  display:none!important;
+}
+body.sg-editing-feeder .leaflet-popup{
+  display:none!important;
+}
+
+
+/* Zoom-responsive mandal / area labels for Grid Map View */
+:root{--tg-mandal-label-size:10px;--tg-area-label-size:10px}
+.tg-mandal-label,.tg-area-label{
+  background:rgba(255,255,255,.88);border:1px solid rgba(71,85,105,.25);
+  border-radius:4px;padding:1px 5px;color:#334155;font-family:Arial,system-ui,sans-serif;
+  font-weight:800;line-height:1.05;text-align:center;white-space:nowrap;pointer-events:none;
+  box-shadow:0 1px 5px rgba(0,0,0,.08);text-shadow:0 1px 0 rgba(255,255,255,.9);
+  transform:translate(-50%,-50%);opacity:.88
+}
+.tg-mandal-label{font-size:var(--tg-mandal-label-size,10px)}
+.tg-area-label{font-size:var(--tg-area-label-size,10px);color:#7f1d1d;border-color:rgba(220,38,38,.35)}
+body.tg-zoom-far .tg-mandal-label,body.tg-zoom-far .tg-area-label{display:none!important}
+body.tg-zoom-mid .tg-mandal-label{font-size:8px!important;opacity:.62}
+body.tg-zoom-mid .tg-area-label{font-size:9px!important;opacity:.78}
+body.tg-zoom-near .tg-mandal-label{font-size:10px!important;opacity:.88}
+body.tg-zoom-near .tg-area-label{font-size:11px!important;opacity:.94}
+body.tg-zoom-close .tg-mandal-label{font-size:12px!important;opacity:.95}
+body.tg-zoom-close .tg-area-label{font-size:13px!important;opacity:.98}
+
 </style>
 </head>
 <body class="no-anim">
@@ -1747,6 +1857,8 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
       <select class="hier-sel" id="fSub" onchange="onFilterChange()" style="width:100%"><option value="">ALL SUB-DIVISIONS</option></select></div>
     <div style="margin-bottom:6px"><div style="font-size:9px;color:#5a7a9a;letter-spacing:1px;margin-bottom:3px">SECTION</div>
       <select class="hier-sel" id="fSec" onchange="onFilterChange()" style="width:100%"><option value="">ALL SECTIONS</option></select></div>
+    <div style="margin-bottom:6px"><div style="font-size:9px;color:#5a7a9a;letter-spacing:1px;margin-bottom:3px">EHT SS</div>
+      <select class="hier-sel" id="fEHT" onchange="onFilterChange()" style="width:100%"><option value="">ALL EHT SS</option></select></div>
     <div style="margin-bottom:8px"><div style="font-size:9px;color:#5a7a9a;letter-spacing:1px;margin-bottom:3px">FEEDER</div>
       <select class="hier-sel" id="fFeeder" onchange="render()" style="width:100%"><option value="">ALL FEEDERS</option></select></div>
     <button class="reset-btn" onclick="resetFilters()" style="width:100%;background:#f6f9fc;border:1px solid #d5dfea;color:#5a7a9a;padding:8px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.5px;cursor:pointer">RESET FILTERS</button>
@@ -2738,7 +2850,17 @@ function nodeType(feedTo,name,type){const t=String(feedTo+' '+name+' '+type).toU
   if(/\bHT\b/.test(t))return 'ht';
   return 'ss33'}
 function colorFor(t,ftype){if(t==='link')return '#9c27b0';if(t==='ht')return '#00a88a';return feederCableClass(ftype)==='oh'?'#ff9800':'#2196f3'}
-function iconFor(type,name){if(type==='eht'){const kvm=String(name||'').match(/(\d{3})\s*K?V/i);const kv=kvm?kvm[1]+'KV':'EHT';return L.divIcon({className:'',html:'<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">'+kv+'</span></div></div>',iconSize:[40,28],iconAnchor:[20,14]});}if(type==='ab')return L.divIcon({className:'',html:'<div style="transform:scale(var(--sg-abdp-scale,1));transform-origin:center" class="ab-icon"></div>',iconSize:[12,12],iconAnchor:[6,6]});if(type==='dp')return L.divIcon({className:'',html:'<div style="transform:scale(var(--sg-abdp-scale,1));transform-origin:center" class="dp-icon"></div>',iconSize:[14,14],iconAnchor:[7,7]});if(type==='ht')return L.divIcon({className:'',html:'<div class="ht-icon"></div>',iconSize:[16,16],iconAnchor:[8,8]});return L.divIcon({className:'',html:'<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="bolt">⚡</span></div></div>',iconSize:[36,36],iconAnchor:[18,18]})}
+function iconFor(type,name){
+  if(type==='eht'){
+    const kvm=String(name||'').match(/(\d{3})\s*K?V/i);
+    const kv=kvm?kvm[1]+'KV':'EHT';
+    return L.divIcon({className:'',html:'<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">'+kv+'</span></div></div>',iconSize:[40,28],iconAnchor:[20,14]});
+  }
+  if(type==='ab')return L.divIcon({className:'',html:'<div class="ab-icon"></div>',iconSize:[18,18],iconAnchor:[9,9]});
+  if(type==='dp')return L.divIcon({className:'',html:'<div class="dp-icon"></div>',iconSize:[18,18],iconAnchor:[9,9]});
+  if(type==='ht')return L.divIcon({className:'',html:'<div class="ht-icon"></div>',iconSize:[16,16],iconAnchor:[8,8]});
+  return L.divIcon({className:'',html:'<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="bolt">⚡</span></div></div>',iconSize:[36,36],iconAnchor:[18,18]})
+}
 function normalizeInputRows(raw){
   const out=[], carry={};
   raw.forEach((r,idx)=>{
@@ -2791,7 +2913,7 @@ function buildTopology(){
     for(let i=0;i<seq.length-1;i++){
       const a=seq[i], b=seq[i+1];
       if(a.lat==null||a.lng==null||b.lat==null||b.lng==null)continue;
-      topology.push({feeder_code:first.feeder_code,feeder_name:first.feeder_name,feeder_type:first.feeder_type,division:first.division,sub_division:first.sub_division,section:first.section,from:a,to:b,type:ftype});
+      topology.push({feeder_code:first.feeder_code,feeder_name:first.feeder_name,feeder_type:first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,division:first.division,sub_division:first.sub_division,section:first.section,from:a,to:b,type:ftype});
     }
     seq.forEach(n=>{nodesByKey[nodeKey(n)]=n});
   });
@@ -2813,7 +2935,31 @@ function curve(a,b,i,total,ctype){
   else if(isCurvy) spread=(i-(total-1)/2)*0.0014 + 0.10*len*((i%2)?1:-1)*0; 
   if(!isCurvy && total<=1) return [A,B];
   const pts=[];for(let t=0;t<=1.0001;t+=.1){const bow=Math.sin(Math.PI*t)*spread;pts.push(L.latLng(A.lat+(B.lat-A.lat)*t+ny*bow,A.lng+(B.lng-A.lng)*t+nx*bow))}pts.push(B);return pts}
-function matchesFilters(c){const div=fDiv.value,sub=fSub.value,sec=fSec.value,fdr=fFeeder.value,q=document.getElementById('q').value.trim().toLowerCase();if(div&&c.division!==div)return false;if(sub&&c.sub_division!==sub)return false;if(sec&&c.section!==sec)return false;if(fdr&&c.feeder_code!==fdr&&c.feeder_name!==fdr)return false;if(q){const hay=[c.feeder_code,c.feeder_name,c.from.name,c.to.name,c.division,c.section].join(' ').toLowerCase();if(!hay.includes(q))return false}if(c.type==='feeder'){const cls=feederCableClass(c.feeder_type);if(cls==='ug'&&!tUG.checked)return false;if(cls==='oh'&&!tOH.checked)return false;}if(c.type==='link'&&!tLink.checked)return false;if(c.type==='ht'&&!tHT.checked)return false;return true}
+function matchesFilters(c){
+  const div=fDiv.value, sub=fSub.value, sec=fSec.value;
+  const eht=document.getElementById('fEHT') ? document.getElementById('fEHT').value : '';
+  const fdr=fFeeder.value;
+  const q=document.getElementById('q').value.trim().toLowerCase();
+
+  if(window._sgLockedFeederKey && c.feeder_code!==window._sgLockedFeederKey && c.feeder_name!==window._sgLockedFeederKey) return false;
+  if(div&&c.division!==div)return false;
+  if(sub&&c.sub_division!==sub)return false;
+  if(sec&&c.section!==sec)return false;
+  if(eht && c.eht_name!==eht && c.eht_code!==eht && c.from.name!==eht)return false;
+  if(fdr&&c.feeder_code!==fdr&&c.feeder_name!==fdr)return false;
+  if(q){
+    const hay=[c.feeder_code,c.feeder_name,c.eht_name,c.eht_code,c.from.name,c.to.name,c.division,c.section].join(' ').toLowerCase();
+    if(!hay.includes(q))return false;
+  }
+  if(c.type==='feeder'){
+    const cls=feederCableClass(c.feeder_type);
+    if(cls==='ug'&&!tUG.checked)return false;
+    if(cls==='oh'&&!tOH.checked)return false;
+  }
+  if(c.type==='link'&&!tLink.checked)return false;
+  if(c.type==='ht'&&!tHT.checked)return false;
+  return true
+}
 // ── Interactive render (rewritten per Naresh 03-Jul-2026) ──
 // Fixes: (1) node labels no longer permanent — OFF by default, shown on
 // hover or via the Feeder Code Labels toggle; (2) NO popup box on click —
@@ -2840,11 +2986,7 @@ function render(){
     const pts=curve(c.from,c.to,idx,pairCount[k],c.type);
     const w = c.type==='link' ? Math.max(1.5,sgLineWeight*0.8) : sgLineWeight;
     const line=L.polyline(pts,{color:col,weight:w,opacity:.9,dashArray:c.type==='link'?'7 5':null,lineCap:'round',lineJoin:'round'});
-    // Name shown as a hover tooltip that follows the cursor — NO popup box.
-    line.bindTooltip(
-      `${c.feeder_name}${c.feeder_code?' · '+c.feeder_code:''}`,
-      {sticky:true,direction:'top',opacity:.95,className:'sg-line-tip'}
-    );
+    // Rectangular feeder-name hover box removed completely per field editing requirement.
     // Double-click → open the full feeder route map for this feeder.
     line.on('dblclick',ev=>{L.DomEvent.stop(ev);openFeederInRouteMap(c.feeder_code,c.feeder_name);});
     line.on('click',ev=>{ if(window._sgEditModeOn){ L.DomEvent.stop(ev); enterFeederEdit(c.feeder_code||c.feeder_name); } });
@@ -2919,8 +3061,66 @@ function openFeederInRouteMap(code,name){
   window.open(url,'_blank','noopener');
   toast('Opening Feeder Route Map → '+key);
 }
-function populateFilters(){const vals=(k,base=rows)=>[...new Set(base.map(r=>r[k]).filter(Boolean))].sort();function fill(id,arr,label){const sel=document.getElementById(id),old=sel.value;sel.innerHTML=`<option value="">${label}</option>`+arr.map(v=>`<option value="${String(v).replace(/"/g,'&quot;')}">${v}</option>`).join('');if(arr.includes(old))sel.value=old}fill('fDiv',vals('division'),'All Divisions');fill('fSub',vals('sub_division'),'All Sub-Divisions');fill('fSec',vals('section'),'All Sections');fill('fFeeder',[...new Set(rows.map(r=>r.feeder_code||r.feeder_name).filter(Boolean))].sort(),'All Feeders')}
-function onFilterChange(){populateFilters();render()}function resetFilters(){['fDiv','fSub','fSec','fFeeder','q'].forEach(id=>document.getElementById(id).value='');populateFilters();render()}
+function populateFilters(){
+  const current={
+    div:document.getElementById('fDiv')?.value||'',
+    sub:document.getElementById('fSub')?.value||'',
+    sec:document.getElementById('fSec')?.value||'',
+    eht:document.getElementById('fEHT')?.value||'',
+    feeder:document.getElementById('fFeeder')?.value||''
+  };
+  const uniq=arr=>[...new Set(arr.filter(v=>v!=null&&String(v).trim()!==''))].sort((a,b)=>String(a).localeCompare(String(b)));
+  function fill(id,arr,label,old){
+    const sel=document.getElementById(id); if(!sel)return;
+    sel.innerHTML=`<option value="">${label}</option>`+arr.map(v=>`<option value="${String(v).replace(/"/g,'&quot;')}">${v}</option>`).join('');
+    if(arr.includes(old))sel.value=old; else sel.value='';
+  }
+  const base=rows||[];
+  const divRows=base;
+  const subRows=base.filter(r=>!current.div||r.division===current.div);
+  const secRows=subRows.filter(r=>!current.sub||r.sub_division===current.sub);
+  const ehtRows=secRows.filter(r=>!current.sec||r.section===current.sec);
+  const feederRows=ehtRows.filter(r=>!current.eht||r.eht_name===current.eht||r.eht_code===current.eht);
+
+  fill('fDiv',uniq(divRows.map(r=>r.division)),'All Divisions',current.div);
+  const d=document.getElementById('fDiv')?.value||'';
+
+  const subRows2=base.filter(r=>!d||r.division===d);
+  fill('fSub',uniq(subRows2.map(r=>r.sub_division)),'All Sub-Divisions',current.sub);
+  const s=document.getElementById('fSub')?.value||'';
+
+  const secRows2=subRows2.filter(r=>!s||r.sub_division===s);
+  fill('fSec',uniq(secRows2.map(r=>r.section)),'All Sections',current.sec);
+  const sec=document.getElementById('fSec')?.value||'';
+
+  const ehtRows2=secRows2.filter(r=>!sec||r.section===sec);
+  fill('fEHT',uniq(ehtRows2.map(r=>r.eht_name||r.eht_code)),'All EHT SS',current.eht);
+  const e=document.getElementById('fEHT')?.value||'';
+
+  const feederRows2=ehtRows2.filter(r=>!e||r.eht_name===e||r.eht_code===e);
+  const fSel=document.getElementById('fFeeder');
+  if(fSel){
+    const seenF={};
+    const feeders=feederRows2
+      .map(r=>({code:String(r.feeder_code||'').trim(), name:String(r.feeder_name||'').trim()}))
+      .filter(f=>f.code||f.name)
+      .filter(f=>{const k=f.code||f.name;if(seenF[k])return false;seenF[k]=1;return true;})
+      .sort((a,b)=>(a.name||a.code).localeCompare(b.name||b.code));
+    fSel.innerHTML='<option value="">All Feeders</option>'+feeders.map(f=>{
+      const val=String(f.code||f.name).replace(/"/g,'&quot;');
+      const label=String(f.name||f.code).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<option value="${val}">${label}</option>`;
+    }).join('');
+    if(feeders.some(f=>(f.code||f.name)===current.feeder))fSel.value=current.feeder;
+    else fSel.value='';
+  }
+}
+function onFilterChange(){populateFilters();render()}
+function resetFilters(){
+  ['fDiv','fSub','fSec','fEHT','fFeeder','q'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  if(window._sgLockedFeederKey){ window._sgLockedFeederKey=null; document.body.classList.remove('sg-editing-feeder'); }
+  populateFilters();render()
+}
 async function handleFile(file){if(!file)return;const buf=await file.arrayBuffer();let raw=[];if(file.name.toLowerCase().endsWith('.csv')){const wb=XLSX.read(buf,{type:'array'});raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''})}else{const wb=XLSX.read(buf,{type:'array'});const sh=wb.Sheets[wb.SheetNames[0]];raw=XLSX.utils.sheet_to_json(sh,{defval:''})}rows=normalizeInputRows(raw);meta={fileName:file.name,updatedAt:new Date().toISOString(),rowCount:rows.length};populateFilters();render();fileInfo.textContent=`Loaded ${file.name} · ${rows.length} smart-grid rows`;toast('Smart Grid Excel loaded')}
 async function saveFirebase(){
   if(!rows.length){toast('Upload Excel first');return}
@@ -3114,6 +3314,7 @@ let gEditLayer = L.layerGroup().addTo(map);
 let gNewFeederLayer = L.layerGroup().addTo(map);
 window._sgEditModeOn = false;
 let geomEdit = {feederKey:null, verts:[], selected:-1};
+window._sgLockedFeederKey = null;
 let _sgGuideLine = null;
 
 function gpsGoTo(){
@@ -3132,7 +3333,7 @@ function toggleGeomEditMode(){
   window._sgEditModeOn = !window._sgEditModeOn;
   const btn = document.getElementById('btnEditGeom');
   if(btn) btn.classList.toggle('on', window._sgEditModeOn);
-  if(!window._sgEditModeOn) exitFeederEdit();
+  if(!window._sgEditModeOn){ exitFeederEdit(true); render(); }
   toast(window._sgEditModeOn ? 'Edit mode ON — click any feeder line to edit its shape' : 'Edit mode OFF');
 }
 
@@ -3142,10 +3343,14 @@ function _sgRowsForFeeder(key){
 
 function enterFeederEdit(key){
   if(!window._sgEditModeOn) return;
-  exitFeederEdit();
+  exitFeederEdit(false);
   const list = _sgRowsForFeeder(key);
   if(!list.length){ toast('No rows found for this feeder'); return; }
   const first = list[0];
+  window._sgLockedFeederKey = key;
+  document.body.classList.add('sg-editing-feeder');
+  if(document.getElementById('fFeeder')){ document.getElementById('fFeeder').value = key; }
+  render();
   const verts = [];
   if(first.eht_lat!=null && first.eht_lng!=null){
     verts.push({row:null, lat:+first.eht_lat, lng:+first.eht_lng, locked:true, label:first.eht_name||'EHT SOURCE'});
@@ -3255,10 +3460,14 @@ function _sgShowEditBar(show,name){
   else bar.style.display='none';
 }
 
-function exitFeederEdit(){
+function exitFeederEdit(clearLock=true){
   gEditLayer.clearLayers();
   geomEdit={feederKey:null,verts:[],selected:-1};
   _sgShowEditBar(false);
+  if(clearLock){
+    window._sgLockedFeederKey=null;
+    document.body.classList.remove('sg-editing-feeder');
+  }
 }
 
 function saveFeederEdit(){
@@ -3291,7 +3500,8 @@ function saveFeederEdit(){
   buildTopology(); render();
   toast('Feeder geometry saved — pushing to Firebase…');
   saveFirebase();
-  exitFeederEdit();
+  exitFeederEdit(true);
+  render();
 }
 
 // ── New Feeder: click-to-place tool ──
