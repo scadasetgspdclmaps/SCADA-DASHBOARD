@@ -3053,6 +3053,20 @@ function curve(a,b,i,total,ctype){
 // animation (EHT→SS moving dashes) when window.sgFlowOn.
 let sgLineWeight = window.sgLineWeight || 3;
 let sgFlowOn = (window.sgFlowOn !== false);
+
+
+/* Core colour helpers restored — required by render() */
+function feederCableClass(ftype){
+  const f = String(ftype || '').toUpperCase();
+  if(f.includes('OH')) return 'oh';
+  return 'ug';
+}
+function colorFor(t, ftype){
+  if(t === 'link') return '#9c27b0';
+  if(t === 'ht') return '#00a88a';
+  return feederCableClass(ftype) === 'oh' ? '#ff9800' : '#2196f3';
+}
+
 function render(){
   buildTopology();
   gLines.clearLayers(); gNodes.clearLayers(); gLabels.clearLayers();
