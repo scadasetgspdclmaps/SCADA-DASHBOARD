@@ -65,23 +65,9 @@ async function tgEnsureMandalAreaNames(){
 }
 try{map.on('zoomend',()=>{_tgGridLabelZoomClass();});setTimeout(()=>{tgEnsureMandalAreaNames();_tgGridLabelZoomClass();},1800);}catch(e){}
 
-
-/* Bridge existing symbol adjuster AB/DP slider to Smart Grid AB-DP CSS variable */
-function sgSyncAbDpScale(){
-  try{
-    const v =
-      getComputedStyle(document.documentElement).getPropertyValue('--tg-ab-icon-scale') ||
-      getComputedStyle(document.documentElement).getPropertyValue('--tg-abdp-icon-scale') ||
-      getComputedStyle(document.documentElement).getPropertyValue('--tg-dp-icon-scale') ||
-      '1';
-    document.documentElement.style.setProperty('--sg-abdp-scale', String(v).trim() || '1');
-  }catch(e){}
-}
-setInterval(sgSyncAbDpScale, 800);
-setTimeout(sgSyncAbDpScale, 300);
-
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1793,36 +1779,6 @@ path.sg-feeder-line{cursor:pointer}
 
 
 .sg-selected-feeder-label{display:none!important}
-
-/* Visible Smart Grid node symbols */
-.ab-icon{
-  width:14px;height:14px;border-radius:50%;
-  background:#ffd600;border:2px solid #374151;
-  box-shadow:0 0 0 2px rgba(255,255,255,.88),0 0 12px rgba(255,214,0,.95);
-  transform:scale(var(--sg-abdp-scale,1));
-  transform-origin:center center;
-}
-.dp-icon{
-  width:14px;height:14px;border-radius:3px;
-  background:#9c27b0;border:2px solid #fff;
-  box-shadow:0 0 10px rgba(156,39,176,.85);
-  transform:rotate(45deg) scale(var(--sg-abdp-scale,1));
-  transform-origin:center center;
-}
-.ht-icon{
-  width:14px;height:14px;border-radius:4px;
-  background:#00a88a;border:2px solid #fff;
-  box-shadow:0 0 10px rgba(0,168,138,.85);
-  transform:scale(var(--sg-abdp-scale,1));
-  transform-origin:center center;
-}
-.sg-hover-tip{
-  background:rgba(8,18,30,.94)!important;border:1px solid rgba(0,200,255,.45)!important;
-  color:#e6fbff!important;border-radius:6px!important;padding:3px 8px!important;
-  font:900 10px/1.1 var(--mono),monospace!important;letter-spacing:.4px!important;
-  white-space:nowrap!important;box-shadow:0 3px 12px rgba(0,0,0,.38),0 0 14px rgba(0,200,255,.16)!important;
-}
-
 </style>
 </head>
 <body class="no-anim">
@@ -1932,6 +1888,7 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <button class="sg-act load" onclick="loadFirebase()">↻ Load Latest From Firebase</button>
     <button class="sg-act dl" onclick="restoreFromHistory()" style="background:#455a64;color:#fff">🕐 Restore Last History Snapshot</button>
     <button class="sg-act dl" onclick="downloadTopologyCsv()">⬇ Download Topology CSV</button>
+    <button class="sg-act dl" onclick="sgOpenPrintDialog()" style="background:linear-gradient(135deg,#00695c,#00897b)">🖨 Print / PDF Export</button>
     <button class="sg-act edit" id="btnEditGeom" onclick="toggleGeomEditMode()">✏️ Edit Feeder Geometry</button>
     <button class="sg-act newf" onclick="startNewFeederMode()">➕ New Feeder</button>
     <div style="display:flex;gap:4px;margin-top:6px">
@@ -2899,6 +2856,7 @@ function sgShowNameForConnection(c){
 }
 function sgMaybeFitShown(bounds, shown){
   try{
+    if(window._sgEditModeOn || (geomEdit&&geomEdit.feederKey)) return; // never move the view mid-edit
     if(!bounds || !bounds.isValid()) return;
     const sig=sgFilterSignature();
     const hasSpecific=!!(document.getElementById('fEHT')?.value || document.getElementById('fFeeder')?.value || document.getElementById('q')?.value);
@@ -3112,79 +3070,18 @@ function colorFor(t, ftype){
   return feederCableClass(ftype) === 'oh' ? '#ff9800' : '#2196f3';
 }
 
-
-
-/* Core node icon helper restored — required for EHT / 33-11KV SS / AB-DP nodes */
-function iconFor(type, name){
-  type = String(type || '').toLowerCase();
-
-  if(type === 'bend'){
-    return L.divIcon({
-      className:'',
-      html:'',
-      iconSize:[0,0],
-      iconAnchor:[0,0]
-    });
-  }
-
-  if(type === 'eht'){
-    const kvm = String(name || '').match(/(\d{3})\s*K?V/i);
-    const kv = kvm ? kvm[1] + 'KV' : 'EHT';
-    return L.divIcon({
-      className:'',
-      html:'<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">'+kv+'</span></div></div>',
-      iconSize:[40,28],
-      iconAnchor:[20,14]
-    });
-  }
-
-  if(type === 'ab'){
-    return L.divIcon({
-      className:'',
-      html:'<div class="ab-icon"></div>',
-      iconSize:[18,18],
-      iconAnchor:[9,9]
-    });
-  }
-
-  if(type === 'dp'){
-    return L.divIcon({
-      className:'',
-      html:'<div class="dp-icon"></div>',
-      iconSize:[18,18],
-      iconAnchor:[9,9]
-    });
-  }
-
-  if(type === 'ht'){
-    return L.divIcon({
-      className:'',
-      html:'<div class="ht-icon"></div>',
-      iconSize:[16,16],
-      iconAnchor:[8,8]
-    });
-  }
-
-  return L.divIcon({
-    className:'',
-    html:'<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>',
-    iconSize:[36,36],
-    iconAnchor:[18,18]
-  });
-}
-
 function render(){
   buildTopology();
   gLines.clearLayers(); gNodes.clearLayers(); gLabels.clearLayers();
   const shown=topology.filter(matchesFilters);
   const pairCount={},pairIdx={};
-  shown.forEach(c=>{const k=compact(c.from.name)+'>'+compact(c.to.name);pairCount[k]=(pairCount[k]||0)+1});
+  shown.forEach(c=>{const k=compact(c.from.name)+String(c.from.code||'')+'>'+compact(c.to.name)+String(c.to.code||'');pairCount[k]=(pairCount[k]||0)+1});
   const bounds=L.latLngBounds([]);
   let cnt={ug:0,oh:0,link:0,ht:0,dev:0};
   const showFeederLabels = (document.getElementById('tLbl')||{}).checked;
 
   shown.forEach(c=>{
-    const k=compact(c.from.name)+'>'+compact(c.to.name), idx=pairIdx[k]||0; pairIdx[k]=idx+1;
+    const k=compact(c.from.name)+String(c.from.code||'')+'>'+compact(c.to.name)+String(c.to.code||''), idx=pairIdx[k]||0; pairIdx[k]=idx+1;
     if(c.type==='feeder')cnt[feederCableClass(c.feeder_type)]++;else cnt[c.type]++;
     const col=colorFor(c.type,c.feeder_type);
     const pts=curve(c.from,c.to,idx,pairCount[k],c.type);
@@ -3543,8 +3440,16 @@ function toggleGeomEditMode(){
   window._sgEditModeOn = !window._sgEditModeOn;
   const btn = document.getElementById('btnEditGeom');
   if(btn) btn.classList.toggle('on', window._sgEditModeOn);
+  // STATIC MAP during editing (per Naresh 05-Jul-2026): the basemap,
+  // substation icons and other feeders must NOT move while dragging grips.
+  // Map pan + double-click zoom are frozen; scroll zoom stays available
+  // for precision. Everything is restored the moment edit mode goes off.
+  try{
+    if(window._sgEditModeOn){ map.dragging.disable(); map.doubleClickZoom.disable(); map.boxZoom.disable(); }
+    else { map.dragging.enable(); map.doubleClickZoom.enable(); map.boxZoom.enable(); }
+  }catch(e){}
   if(!window._sgEditModeOn){ exitFeederEdit(true); render(); }
-  toast(window._sgEditModeOn ? 'Edit mode ON — click any feeder line to edit its shape' : 'Edit mode OFF');
+  toast(window._sgEditModeOn ? 'Edit mode ON — click any feeder line to edit its shape (map is frozen; scroll to zoom)' : 'Edit mode OFF');
 }
 
 function _sgRowsForFeeder(key){
@@ -3572,19 +3477,39 @@ function enterFeederEdit(key){
   if(verts.length<2){ toast('This feeder has too few points to edit'); return; }
   verts[verts.length-1].locked = true; // final destination fixed, AutoCAD-style
 
-  // AutoCAD-style: first and last points are fixed. If the feeder has no
-  // internal geometry points, create two temporary bend grips so the user can
-  // manually shape the line without creating AB switches.
-  const internalEditable = verts.slice(1,-1).filter(v=>!v.locked).length;
-  if(internalEditable===0 && verts.length===2){
-    const a=verts[0], b=verts[1];
-    const p1={row:null,lat:a.lat+(b.lat-a.lat)*0.33,lng:a.lng+(b.lng-a.lng)*0.33,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true};
-    const p2={row:null,lat:a.lat+(b.lat-a.lat)*0.66,lng:a.lng+(b.lng-a.lng)*0.66,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true};
-    verts.splice(1,0,p1,p2);
-  }
+  // AutoCAD-style: first and last points are fixed. Divide EVERY segment
+  // into draggable BEND grips, count proportional to segment length —
+  // longer runs get more grips (max 4/segment), short hops get none.
+  // These are PURE GEOMETRY points: they never render as AB switches and
+  // never pollute the device list. (Per Naresh 05-Jul-2026: previous tool
+  // was inventing AB switches that don't exist in the field.)
+  _sgAutoDivideSegments(verts);
   geomEdit = {feederKey:key, verts, selected:-1};
   _sgRenderEditHandles();
   _sgShowEditBar(true, first.feeder_name||key);
+}
+
+function _sgSegLen(a,b){ return Math.hypot(b.lat-a.lat, b.lng-a.lng); }
+
+function _sgAutoDivideSegments(verts){
+  let total=0;
+  for(let i=0;i<verts.length-1;i++) total+=_sgSegLen(verts[i],verts[i+1]);
+  if(total<=0) return;
+  // quantum: one bend roughly every 1/8 of the total run, but never finer
+  // than ~150m (0.0014°) so short feeders don't get spammed with grips.
+  const quantum=Math.max(total/8, 0.0014);
+  for(let i=verts.length-2;i>=0;i--){
+    const a=verts[i], b=verts[i+1];
+    const len=_sgSegLen(a,b);
+    const n=Math.min(4, Math.floor(len/quantum));
+    if(n<1) continue;
+    const inserts=[];
+    for(let k=1;k<=n;k++){
+      const t=k/(n+1);
+      inserts.push({row:null,lat:a.lat+(b.lat-a.lat)*t,lng:a.lng+(b.lng-a.lng)*t,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true});
+    }
+    verts.splice(i+1,0,...inserts);
+  }
 }
 
 function _sgVertIcon(locked, selected){
@@ -3601,14 +3526,29 @@ function _sgRenderEditHandles(){
   const verts = geomEdit.verts;
   if(verts.length<2) return;
   _sgGuideLine = L.polyline(verts.map(v=>[v.lat,v.lng]),{color:'#ff3d00',weight:3,dashArray:'5 5',opacity:.95,interactive:false}).addTo(gEditLayer);
-  // No midpoint 'bend grip' markers. Drag only the green geometry grips.
+  // ◆ ghost diamonds at segment midpoints — click to insert an extra BEND
+  // POINT exactly there. Inserts are pure geometry (never AB switches).
+  for(let i=0;i<verts.length-1;i++){
+    const a=verts[i], b=verts[i+1];
+    const mid={lat:(a.lat+b.lat)/2,lng:(a.lng+b.lng)/2};
+    const insertAt=i+1;
+    const ghost=L.marker([mid.lat,mid.lng],{icon:_sgGhostIcon(),zIndexOffset:500})
+      .bindTooltip('+ insert bend point',{direction:'top',opacity:.9});
+    ghost.on('click',ev=>{
+      L.DomEvent.stop(ev);
+      geomEdit.verts.splice(insertAt,0,{row:null,lat:mid.lat,lng:mid.lng,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true});
+      _sgRenderEditHandles();
+      toast('Bend point inserted — drag it into place');
+    });
+    ghost.addTo(gEditLayer);
+  }
 
   verts.forEach((v,i)=>{
     const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(v.locked,i===geomEdit.selected),draggable:!v.locked,zIndexOffset:600})
       .bindTooltip(v.locked?('🔒 '+clean(v.label)):clean(v.label),{direction:'top',opacity:.95});
     if(!v.locked){
       marker.on('drag',e=>{
-        const ll=e.target.getLatLng(); v.lat=ll.lat; v.lng=ll.lng;
+        const ll=e.target.getLatLng(); v.lat=ll.lat; v.lng=ll.lng; v.moved=true;
         if(_sgGuideLine) _sgGuideLine.setLatLngs(geomEdit.verts.map(x=>[x.lat,x.lng]));
       });
       marker.on('dragend',()=>_sgRenderEditHandles());
@@ -3643,6 +3583,16 @@ function applyVertexAttrs(){
   if(code){ v.overrideCode=code; }
   _sgRenderEditHandles();
   toast('Point attributes updated — Save Feeder to commit');
+}
+
+function convertVertexToAB(){
+  const i=geomEdit.selected;
+  if(i<0){ toast('Select a point first'); return; }
+  const v=geomEdit.verts[i];
+  if(v.locked){ toast('Endpoints cannot become AB switches'); return; }
+  v.overrideName='AB Switch'; v.label='AB Switch'; v.isBend=false; v.makeAB=true;
+  _sgRenderEditHandles();
+  toast('Point marked as AB SWITCH — Save Feeder to commit');
 }
 
 function deleteSelectedVertex(){
@@ -3681,7 +3631,11 @@ function saveFeederEdit(){
   const template=list[0];
   // Every vertex EXCEPT the synthetic EHT-source pseudo-vertex (row:null at
   // index 0) maps to a real data row — rebuild them fresh in their new order.
-  const feedVerts = geomEdit.verts.filter((v,i)=> !(i===0 && v.row===null));
+  // Auto-divided BEND grips that were never dragged (and never converted to
+  // AB) are pure scaffolding — drop them so repeated edit sessions don't
+  // pile up junk rows.
+  const feedVerts = geomEdit.verts.filter((v,i)=> !(i===0 && v.row===null))
+    .filter(v => !(v.isBend && v.row===null && !v.moved && !v.makeAB));
   rows = rows.filter(r => (r.feeder_code||r.feeder_name)!==key);
   feedVerts.forEach((v,idx)=>{
     const base = v.row ? {...v.row} : {...template};
@@ -3695,6 +3649,7 @@ function saveFeederEdit(){
     }
     if(!base.feeding_name && !base.feeding_to){ base.feeding_name='BEND POINT'; base.feeding_to='BEND POINT'; base.source_type='BEND POINT'; }
     if(v.overrideName){ base.feeding_name=v.overrideName; base.feeding_to=v.overrideName; if(String(v.overrideName).toUpperCase().includes('BEND'))base.source_type='BEND POINT'; }
+    if(v.makeAB){ base.feeding_name='AB Switch'; base.feeding_to='AB Switch'; base.source_type='AB SWITCH'; }
     if(v.overrideCode){ base.feeding_code=v.overrideCode; }
     // Unnamed points (generic "AB Switch") are deduped in buildTopology by
     // ROUNDED COORDINATES. After a drag, two different points can round to
@@ -3821,6 +3776,202 @@ function nfFinish(){
   populateFilters(); render();
   toast('New feeder "'+meta.feeder_name+'" added — click ☁ Save/Update Firebase to publish');
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PRINT / PDF EXPORT — vector schematic (added 05-Jul-2026 per Naresh)
+   - Exports whatever the current filters show (division/sub/section/EHT/feeder)
+   - A2/A3/A4, portrait/landscape
+   - Lines, icons and text are TRUE VECTORS: labels are drawn ~4pt so the
+     full-page view reads as clean lines only, and zooming into the PDF
+     reveals razor-sharp feeder & substation names (no pixelation, ever).
+   - Optional raster basemap underlay captured from the active tile layer.
+     Carto/OSM/Esri tiles send CORS headers so capture works; Google tiles
+     do not — export falls back to a plain background with a note.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function sgOpenPrintDialog(){
+  if(!rows.length){ toast('Load data first'); return; }
+  document.getElementById('pdfDlg').style.display='block';
+}
+
+function _sgPdfTitle(){
+  const g=id=>document.getElementById(id)?.value||'';
+  const parts=[g('fDiv'),g('fSub'),g('fSec'),g('fEHT'),g('fFeeder')].filter(Boolean);
+  return parts.length?parts.join(' · '):'ALL DIVISIONS — FULL NETWORK';
+}
+
+const _sgPaperMM={a2:[420,594],a3:[297,420],a4:[210,297]};
+
+async function _sgCaptureTileBackground(bounds, pxW, pxH){
+  // Choose the deepest zoom where the bounds still fit in pxW×pxH.
+  const crs=L.CRS.EPSG3857;
+  let z;
+  for(z=17;z>=3;z--){
+    const nw=crs.latLngToPoint(L.latLng(bounds.getNorth(),bounds.getWest()),z);
+    const se=crs.latLngToPoint(L.latLng(bounds.getSouth(),bounds.getEast()),z);
+    if((se.x-nw.x)<=pxW && (se.y-nw.y)<=pxH) break;
+  }
+  const nw=crs.latLngToPoint(L.latLng(bounds.getNorth(),bounds.getWest()),z);
+  const se=crs.latLngToPoint(L.latLng(bounds.getSouth(),bounds.getEast()),z);
+  const w=Math.ceil(se.x-nw.x), h=Math.ceil(se.y-nw.y);
+  const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+  const def=_bmDefs[curBM];
+  if(!def) throw new Error('Active basemap ('+curBM+') has no exportable tiles');
+  const tpl=def[0];
+  const sub=(def[1]&&def[1].subdomains)||'abc';
+  const t0x=Math.floor(nw.x/256), t0y=Math.floor(nw.y/256);
+  const t1x=Math.floor(se.x/256), t1y=Math.floor(se.y/256);
+  const jobs=[];
+  for(let tx=t0x;tx<=t1x;tx++)for(let ty=t0y;ty<=t1y;ty++){
+    const url=tpl.replace('{z}',z).replace('{x}',tx).replace('{y}',ty)
+      .replace('{s}',sub[Math.abs(tx+ty)%sub.length]).replace('{r}','');
+    jobs.push(new Promise(res=>{
+      const img=new Image(); img.crossOrigin='anonymous';
+      img.onload=()=>{ try{ctx.drawImage(img,tx*256-nw.x,ty*256-nw.y);}catch(e){} res(); };
+      img.onerror=()=>res();
+      img.src=url;
+    }));
+  }
+  await Promise.all(jobs);
+  // Throws right here if any tile tainted the canvas (CORS) — caller falls back.
+  canvas.toDataURL('image/jpeg',0.1);
+  return {canvas, originPx:nw, zoom:z};
+}
+
+async function sgExportPDF(){
+  const prog=document.getElementById('pdfProg');
+  prog.style.display='block'; prog.textContent='Building topology…';
+  try{
+    buildTopology();
+    const shown=topology.filter(matchesFilters);
+    if(!shown.length){ toast('Nothing visible with current filters'); prog.style.display='none'; return; }
+
+    const paper=document.getElementById('pdfPaper').value;
+    const orient=document.getElementById('pdfOrient').value;
+    let [pw,ph]=_sgPaperMM[paper];
+    if(orient==='landscape'){ const t=pw; pw=ph; ph=t; }
+    const margin=12, headerH=16;
+    const drawW=pw-margin*2, drawH=ph-margin*2-headerH;
+
+    const bounds=L.latLngBounds([]);
+    shown.forEach(c=>{ bounds.extend([c.from.lat,c.from.lng]); bounds.extend([c.to.lat,c.to.lng]); });
+    const padded=bounds.pad(0.06);
+
+    let bg=null;
+    if(document.getElementById('pdfBg').checked){
+      prog.textContent='Capturing basemap tiles…';
+      try{ bg=await _sgCaptureTileBackground(padded, 4200, 4200); }
+      catch(e){ console.warn('Basemap capture failed (CORS/network) — exporting without background:',e); toast('Basemap could not be captured (Google tiles block export — try Dark/Street) — exporting schematic only'); }
+    }
+    const crs=L.CRS.EPSG3857;
+    const z=bg?bg.zoom:15;
+    const origin=bg?bg.originPx:crs.latLngToPoint(L.latLng(padded.getNorth(),padded.getWest()),z);
+    const seP=crs.latLngToPoint(L.latLng(padded.getSouth(),padded.getEast()),z);
+    const extW=seP.x-origin.x, extH=seP.y-origin.y;
+    const scale=Math.min(drawW/extW, drawH/extH);
+    const offX=margin+(drawW-extW*scale)/2, offY=margin+headerH+(drawH-extH*scale)/2;
+    const P=(lat,lng)=>{ const p=crs.latLngToPoint(L.latLng(lat,lng),z); return [offX+(p.x-origin.x)*scale, offY+(p.y-origin.y)*scale]; };
+
+    prog.textContent='Drawing vectors…';
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:orient,unit:'mm',format:paper});
+
+    if(bg){
+      doc.addImage(bg.canvas.toDataURL('image/jpeg',0.82),'JPEG',offX,offY,extW*scale,extH*scale);
+      if(doc.setGState){ // soft white wash so vectors pop over the map
+        doc.setFillColor(255,255,255);
+        doc.setGState(new doc.GState({opacity:0.28}));
+        doc.rect(offX,offY,extW*scale,extH*scale,'F');
+        doc.setGState(new doc.GState({opacity:1}));
+      }
+    }
+
+    // Header / title block
+    doc.setFillColor(18,35,58); doc.rect(0,0,pw,headerH-2,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text('TGSPDCL · 33KV SMART GRID SCHEMATIC',margin,6.5);
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.text(_sgPdfTitle(),margin,11.5);
+    doc.setFontSize(6.5);
+    doc.text(new Date().toLocaleString()+' · '+shown.length+' connections',pw-margin,6.5,{align:'right'});
+    doc.text('SCADA Circle, Banjara Hills',pw-margin,11.5,{align:'right'});
+
+    const hex=h=>{const m=h.replace('#','');return [parseInt(m.substr(0,2),16),parseInt(m.substr(2,2),16),parseInt(m.substr(4,2),16)];};
+    const showSSLbl=document.getElementById('pdfSSLabels').checked;
+    const showFLbl=document.getElementById('pdfFeederLabels').checked;
+
+    // Lines — same curve engine as the on-screen render, so what you see
+    // is what prints (including your saved bend-point geometry).
+    const pairCount={},pairIdx={};
+    shown.forEach(c=>{const k=compact(c.from.name)+String(c.from.code||'')+'>'+compact(c.to.name)+String(c.to.code||'');pairCount[k]=(pairCount[k]||0)+1});
+    shown.forEach(c=>{
+      const k=compact(c.from.name)+String(c.from.code||'')+'>'+compact(c.to.name)+String(c.to.code||''), idx=pairIdx[k]||0; pairIdx[k]=idx+1;
+      const pts=curve(c.from,c.to,idx,pairCount[k],c.type).map(ll=>P(ll.lat,ll.lng));
+      const [r,g,b]=hex(colorFor(c.type,c.feeder_type));
+      doc.setDrawColor(r,g,b);
+      doc.setLineWidth(c.type==='feeder'?0.45:0.32);
+      if(c.type==='link') doc.setLineDashPattern([1.4,1],0); else doc.setLineDashPattern([],0);
+      for(let i=0;i<pts.length-1;i++) doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
+      doc.setLineDashPattern([],0);
+      if(showFLbl){
+        const mid=pts[Math.floor(pts.length/2)];
+        doc.setFontSize(3.6); doc.setTextColor(r,g,b); doc.setFont('helvetica','normal');
+        doc.text(clean(c.feeder_name)||String(c.feeder_code||''),mid[0]+0.6,mid[1]-0.6);
+      }
+    });
+
+    // Nodes — pure bend geometry is never drawn.
+    const done={};
+    shown.forEach(c=>[c.from,c.to].forEach(n=>{
+      if(n.kind==='bend')return;
+      const key=n.kind+'|'+compact(n.name)+'|'+(n.code||'')+'|'+(+n.lat).toFixed(6)+','+(+n.lng).toFixed(6);
+      if(done[key])return; done[key]=1;
+      const [x,y]=P(n.lat,n.lng);
+      if(n.kind==='eht'){
+        doc.setFillColor(211,47,47); doc.setDrawColor(120,20,20); doc.setLineWidth(0.25);
+        doc.rect(x-2.2,y-1.5,4.4,3,'FD');
+        if(showSSLbl){ doc.setFontSize(4.2); doc.setTextColor(120,20,20); doc.setFont('helvetica','bold'); doc.text(clean(n.name),x,y-2.2,{align:'center'}); }
+      } else if(n.kind==='ss33'){
+        doc.setFillColor(21,101,192); doc.setDrawColor(255,255,255); doc.setLineWidth(0.25);
+        doc.circle(x,y,1.3,'FD');
+        if(showSSLbl){ doc.setFontSize(3.8); doc.setTextColor(30,58,95); doc.setFont('helvetica','normal'); doc.text(clean(n.name),x,y-1.8,{align:'center'}); }
+      } else if(n.kind==='ab'){
+        doc.setFillColor(255,143,0); doc.setDrawColor(120,70,0); doc.setLineWidth(0.15);
+        doc.rect(x-0.7,y-0.7,1.4,1.4,'FD');
+      } else if(n.kind==='dp'){
+        doc.setFillColor(106,27,154); doc.setDrawColor(255,255,255); doc.setLineWidth(0.15);
+        doc.circle(x,y,0.7,'FD');
+      } else if(n.kind==='ht'){
+        doc.setFillColor(0,168,138); doc.circle(x,y,0.8,'F');
+      }
+    }));
+
+    // Legend strip
+    const ly=ph-9;
+    doc.setFontSize(5.5); doc.setFont('helvetica','normal');
+    let cx=margin;
+    [['#2196f3','33KV UG'],['#ff9800','33KV OH'],['#9c27b0','Link Line'],['#00a88a','HT Service']].forEach(([col,lab])=>{
+      const [r,g,b]=hex(col);
+      doc.setDrawColor(r,g,b); doc.setLineWidth(0.6); doc.line(cx,ly,cx+6,ly);
+      doc.setTextColor(40,40,40); doc.text(lab,cx+7.5,ly+1);
+      cx+=7.5+doc.getTextWidth(lab)+6;
+    });
+    doc.setFillColor(211,47,47); doc.rect(cx,ly-1.2,3,2.4,'F'); doc.setTextColor(40,40,40); doc.text('EHT SS',cx+4,ly+1); cx+=4+doc.getTextWidth('EHT SS')+6;
+    doc.setFillColor(21,101,192); doc.circle(cx+1,ly,1.1,'F'); doc.text('33/11KV SS',cx+3.5,ly+1); cx+=3.5+doc.getTextWidth('33/11KV SS')+6;
+    doc.setFillColor(255,143,0); doc.rect(cx,ly-0.8,1.6,1.6,'F'); doc.text('AB Switch',cx+3,ly+1);
+
+    const fname='SMARTGRID_'+_sgPdfTitle().replace(/[^A-Za-z0-9]+/g,'_').slice(0,60)+'_'+paper.toUpperCase()+'.pdf';
+    doc.save(fname);
+    prog.style.display='none';
+    toast('PDF exported — '+fname);
+  }catch(e){
+    console.error('PDF export failed:',e);
+    prog.style.display='none';
+    toast('PDF export failed — see console (F12)');
+  }
+}
 </script>
 
 <!-- ═══ Geometry Editor toolbar (AutoCAD-style vertex editing) ═══ -->
@@ -3832,6 +3983,7 @@ function nfFinish(){
     <input id="sgeAttrName" placeholder="Point name" style="width:110px;padding:5px 7px;border-radius:5px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11px">
     <input id="sgeAttrCode" placeholder="Code" style="width:70px;padding:5px 7px;border-radius:5px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11px">
     <button onclick="applyVertexAttrs()" style="background:#1565c0;color:#fff;border:none;border-radius:6px;padding:6px 9px;cursor:pointer;font-weight:700;font-size:11px">Apply</button>
+    <button onclick="convertVertexToAB()" style="background:#6a1b9a;color:#fff;border:none;border-radius:6px;padding:6px 9px;cursor:pointer;font-weight:700;font-size:11px" title="Only if an AB switch really exists here in the field">⬛ Make AB Switch</button>
   </span>
   <button onclick="saveFeederEdit()" style="background:#00a88a;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">💾 Save Feeder</button>
   <button onclick="exitFeederEdit()" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">Cancel</button>
@@ -3863,6 +4015,37 @@ function nfFinish(){
   <button onclick="nfUndo()" style="background:#ff8f00;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">↶ Undo Last</button>
   <button onclick="nfFinish()" style="background:#00a88a;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">✓ Finish Feeder</button>
   <button onclick="nfCancel()" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">Cancel</button>
+</div>
+
+<!-- ═══ Print / PDF Export dialog ═══ -->
+<div id="pdfDlg" style="display:none;position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:6500;background:#12233a;color:#fff;padding:16px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.5);font-family:var(--sans);font-size:12px;width:300px">
+  <div style="font-weight:800;font-size:13.5px;margin-bottom:10px">🖨 Print / PDF Export</div>
+  <div style="font-size:10px;opacity:.75;margin-bottom:10px;line-height:1.4">Exports exactly what your current filters show (Division / Sub-Division / Section / EHT / Feeder). Vector output — labels are tiny on the page and razor-sharp when you zoom into the PDF.</div>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <select id="pdfPaper" style="flex:1;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px">
+      <option value="a3" selected>A3</option>
+      <option value="a4">A4</option>
+      <option value="a2">A2</option>
+    </select>
+    <select id="pdfOrient" style="flex:1;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px">
+      <option value="landscape" selected>Landscape</option>
+      <option value="portrait">Portrait</option>
+    </select>
+  </div>
+  <label style="display:flex;align-items:center;gap:7px;margin-bottom:6px;cursor:pointer;font-size:11.5px">
+    <input type="checkbox" id="pdfBg" checked> Map background (works on Dark / Street / Satellite basemaps)
+  </label>
+  <label style="display:flex;align-items:center;gap:7px;margin-bottom:6px;cursor:pointer;font-size:11.5px">
+    <input type="checkbox" id="pdfSSLabels" checked> Substation / EHT names (tiny — visible on zoom)
+  </label>
+  <label style="display:flex;align-items:center;gap:7px;margin-bottom:12px;cursor:pointer;font-size:11.5px">
+    <input type="checkbox" id="pdfFeederLabels" checked> Feeder names at line midpoints (tiny — visible on zoom)
+  </label>
+  <div style="display:flex;gap:8px">
+    <button onclick="sgExportPDF()" style="flex:1;background:#00a88a;color:#fff;border:none;border-radius:6px;padding:9px;cursor:pointer;font-weight:800;font-size:11.5px">⬇ Generate PDF</button>
+    <button onclick="document.getElementById('pdfDlg').style.display='none'" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:9px 12px;cursor:pointer;font-weight:700;font-size:11.5px">Close</button>
+  </div>
+  <div id="pdfProg" style="display:none;margin-top:10px;font-size:10.5px;color:#7fd8c8">Rendering…</div>
 </div>
 
 </body>
