@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -65,6 +64,21 @@ async function tgEnsureMandalAreaNames(){
   }catch(e){console.warn('Mandal label load failed',e);}
 }
 try{map.on('zoomend',()=>{_tgGridLabelZoomClass();});setTimeout(()=>{tgEnsureMandalAreaNames();_tgGridLabelZoomClass();},1800);}catch(e){}
+
+
+/* Bridge existing symbol adjuster AB/DP slider to Smart Grid AB-DP CSS variable */
+function sgSyncAbDpScale(){
+  try{
+    const v =
+      getComputedStyle(document.documentElement).getPropertyValue('--tg-ab-icon-scale') ||
+      getComputedStyle(document.documentElement).getPropertyValue('--tg-abdp-icon-scale') ||
+      getComputedStyle(document.documentElement).getPropertyValue('--tg-dp-icon-scale') ||
+      '1';
+    document.documentElement.style.setProperty('--sg-abdp-scale', String(v).trim() || '1');
+  }catch(e){}
+}
+setInterval(sgSyncAbDpScale, 800);
+setTimeout(sgSyncAbDpScale, 300);
 
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1779,6 +1793,36 @@ path.sg-feeder-line{cursor:pointer}
 
 
 .sg-selected-feeder-label{display:none!important}
+
+/* Visible Smart Grid node symbols */
+.ab-icon{
+  width:14px;height:14px;border-radius:50%;
+  background:#ffd600;border:2px solid #374151;
+  box-shadow:0 0 0 2px rgba(255,255,255,.88),0 0 12px rgba(255,214,0,.95);
+  transform:scale(var(--sg-abdp-scale,1));
+  transform-origin:center center;
+}
+.dp-icon{
+  width:14px;height:14px;border-radius:3px;
+  background:#9c27b0;border:2px solid #fff;
+  box-shadow:0 0 10px rgba(156,39,176,.85);
+  transform:rotate(45deg) scale(var(--sg-abdp-scale,1));
+  transform-origin:center center;
+}
+.ht-icon{
+  width:14px;height:14px;border-radius:4px;
+  background:#00a88a;border:2px solid #fff;
+  box-shadow:0 0 10px rgba(0,168,138,.85);
+  transform:scale(var(--sg-abdp-scale,1));
+  transform-origin:center center;
+}
+.sg-hover-tip{
+  background:rgba(8,18,30,.94)!important;border:1px solid rgba(0,200,255,.45)!important;
+  color:#e6fbff!important;border-radius:6px!important;padding:3px 8px!important;
+  font:900 10px/1.1 var(--mono),monospace!important;letter-spacing:.4px!important;
+  white-space:nowrap!important;box-shadow:0 3px 12px rgba(0,0,0,.38),0 0 14px rgba(0,200,255,.16)!important;
+}
+
 </style>
 </head>
 <body class="no-anim">
@@ -3066,6 +3110,67 @@ function colorFor(t, ftype){
   if(t === 'link') return '#9c27b0';
   if(t === 'ht') return '#00a88a';
   return feederCableClass(ftype) === 'oh' ? '#ff9800' : '#2196f3';
+}
+
+
+
+/* Core node icon helper restored — required for EHT / 33-11KV SS / AB-DP nodes */
+function iconFor(type, name){
+  type = String(type || '').toLowerCase();
+
+  if(type === 'bend'){
+    return L.divIcon({
+      className:'',
+      html:'',
+      iconSize:[0,0],
+      iconAnchor:[0,0]
+    });
+  }
+
+  if(type === 'eht'){
+    const kvm = String(name || '').match(/(\d{3})\s*K?V/i);
+    const kv = kvm ? kvm[1] + 'KV' : 'EHT';
+    return L.divIcon({
+      className:'',
+      html:'<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">'+kv+'</span></div></div>',
+      iconSize:[40,28],
+      iconAnchor:[20,14]
+    });
+  }
+
+  if(type === 'ab'){
+    return L.divIcon({
+      className:'',
+      html:'<div class="ab-icon"></div>',
+      iconSize:[18,18],
+      iconAnchor:[9,9]
+    });
+  }
+
+  if(type === 'dp'){
+    return L.divIcon({
+      className:'',
+      html:'<div class="dp-icon"></div>',
+      iconSize:[18,18],
+      iconAnchor:[9,9]
+    });
+  }
+
+  if(type === 'ht'){
+    return L.divIcon({
+      className:'',
+      html:'<div class="ht-icon"></div>',
+      iconSize:[16,16],
+      iconAnchor:[8,8]
+    });
+  }
+
+  return L.divIcon({
+    className:'',
+    html:'<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>',
+    iconSize:[36,36],
+    iconAnchor:[18,18]
+  });
 }
 
 function render(){
