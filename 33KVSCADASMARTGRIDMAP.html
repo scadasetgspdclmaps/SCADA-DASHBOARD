@@ -1729,9 +1729,14 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <div class="sg-file-status" id="fileInfo">No file loaded yet.</div>
     <button class="sg-act save" onclick="saveFirebase()">☁ Save / Update Firebase</button>
     <button class="sg-act load" onclick="loadFirebase()">↻ Load Latest From Firebase</button>
+    <button class="sg-act dl" onclick="restoreFromHistory()" style="background:#455a64;color:#fff">🕐 Restore Last History Snapshot</button>
     <button class="sg-act dl" onclick="downloadTopologyCsv()">⬇ Download Topology CSV</button>
     <button class="sg-act edit" id="btnEditGeom" onclick="toggleGeomEditMode()">✏️ Edit Feeder Geometry</button>
     <button class="sg-act newf" onclick="startNewFeederMode()">➕ New Feeder</button>
+    <div style="display:flex;gap:4px;margin-top:6px">
+      <input id="gpsGoInput" placeholder="lat, lng" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid #d5dfea;font-size:10.5px">
+      <button class="sg-act" style="width:auto;margin-top:0;background:#37475a;color:#fff;padding:6px 10px" onclick="gpsGoTo()">📍 Go</button>
+    </div>
   </div>
 
   <!-- DRILL-DOWN FILTER (route-map style) -->
@@ -2918,7 +2923,57 @@ function openFeederInRouteMap(code,name){
 function populateFilters(){const vals=(k,base=rows)=>[...new Set(base.map(r=>r[k]).filter(Boolean))].sort();function fill(id,arr,label){const sel=document.getElementById(id),old=sel.value;sel.innerHTML=`<option value="">${label}</option>`+arr.map(v=>`<option value="${String(v).replace(/"/g,'&quot;')}">${v}</option>`).join('');if(arr.includes(old))sel.value=old}fill('fDiv',vals('division'),'All Divisions');fill('fSub',vals('sub_division'),'All Sub-Divisions');fill('fSec',vals('section'),'All Sections');fill('fFeeder',[...new Set(rows.map(r=>r.feeder_code||r.feeder_name).filter(Boolean))].sort(),'All Feeders')}
 function onFilterChange(){populateFilters();render()}function resetFilters(){['fDiv','fSub','fSec','fFeeder','q'].forEach(id=>document.getElementById(id).value='');populateFilters();render()}
 async function handleFile(file){if(!file)return;const buf=await file.arrayBuffer();let raw=[];if(file.name.toLowerCase().endsWith('.csv')){const wb=XLSX.read(buf,{type:'array'});raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''})}else{const wb=XLSX.read(buf,{type:'array'});const sh=wb.Sheets[wb.SheetNames[0]];raw=XLSX.utils.sheet_to_json(sh,{defval:''})}rows=normalizeInputRows(raw);meta={fileName:file.name,updatedAt:new Date().toISOString(),rowCount:rows.length};populateFilters();render();fileInfo.textContent=`Loaded ${file.name} · ${rows.length} smart-grid rows`;toast('Smart Grid Excel loaded')}
-async function saveFirebase(){if(!rows.length){toast('Upload Excel first');return}buildTopology();const payload={meta:{...meta,updatedAt:new Date().toISOString(),connections:topology.length,feeders:new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size},rows};const url=`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json`;const res=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok){toast('Firebase save failed');return}await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/history.json`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});toast('Saved to Firebase /smartgrid/latest')}
+async function saveFirebase(){
+  if(!rows.length){toast('Upload Excel first');return}
+  buildTopology();
+  const payload={meta:{...meta,updatedAt:new Date().toISOString(),connections:topology.length,feeders:new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size},rows};
+  // Safety guard (05-Jul-2026): if what we're about to write is drastically
+  // smaller than what's already live, stop and ask — this is exactly the
+  // kind of write that silently wipes out good data.
+  try{
+    const cur=await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json?ts=${Date.now()}`);
+    const curData=await cur.json();
+    const curCount=curData&&curData.rows?curData.rows.length:0;
+    if(curCount>20 && rows.length < curCount*0.5){
+      const ok=confirm(`⚠ Live Firebase data has ${curCount} rows; you're about to save only ${rows.length} (a big drop). Continue and overwrite?`);
+      if(!ok){ toast('Save cancelled — nothing overwritten'); return; }
+    }
+  }catch(e){ console.warn('Pre-save safety check skipped (could not read current data):',e); }
+  let res;
+  try{
+    res=await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  }catch(e){
+    console.error('Firebase save network error:',e);
+    toast('❌ Firebase save FAILED — network/CORS error (see console). Nothing was overwritten.');
+    return;
+  }
+  if(!res.ok){
+    let bodyTxt=''; try{bodyTxt=await res.text();}catch(e2){}
+    console.error('Firebase save failed:', res.status, bodyTxt);
+    toast(`❌ Firebase save failed (HTTP ${res.status}) — see console`);
+    return;
+  }
+  try{
+    await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/history.json`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  }catch(e){ console.warn('History snapshot POST failed (latest.json still saved fine):',e); }
+  toast(`✅ Saved to Firebase /smartgrid/latest · ${rows.length} rows`);
+}
+
+async function restoreFromHistory(){
+  if(!confirm('This will REPLACE your current in-memory data with the most recent history snapshot from Firebase. Continue?')) return;
+  try{
+    const res=await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/history.json?orderBy="$key"&limitToLast=1`);
+    const data=await res.json();
+    if(!data){ toast('No history snapshots found'); return; }
+    const key=Object.keys(data)[0];
+    const snap=data[key];
+    if(!snap||!snap.rows){ toast('History snapshot was empty'); return; }
+    rows=snap.rows; meta=snap.meta||{};
+    populateFilters(); render();
+    fileInfo.textContent=`Restored history snapshot · ${rows.length} rows · ${meta.updatedAt||''}`;
+    toast('Restored last history snapshot — review, then Save/Update Firebase to make it live');
+  }catch(e){ console.error('Restore failed:',e); toast('Restore failed — see console (F12)'); }
+}
 async function loadFirebase(){
   // Split error handling (04-Jul-2026): the old single catch blamed
   // "Firebase load failed" even when the fetch SUCCEEDED and a later
@@ -3062,6 +3117,18 @@ window._sgEditModeOn = false;
 let geomEdit = {feederKey:null, verts:[], selected:-1};
 let _sgGuideLine = null;
 
+function gpsGoTo(){
+  const raw=(document.getElementById('gpsGoInput').value||'').trim();
+  const m=raw.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+  if(!m){ toast('Enter coordinates as "lat, lng"'); return; }
+  const lat=+m[1], lng=+m[2];
+  map.setView([lat,lng],18);
+  if(window._gpsMarker) map.removeLayer(window._gpsMarker);
+  window._gpsMarker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div style="width:14px;height:14px;border-radius:50%;background:#ffab00;border:2px solid #fff;box-shadow:0 0 0 6px rgba(255,171,0,.35)"></div>',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(map)
+    .bindTooltip('Target: '+lat.toFixed(6)+', '+lng.toFixed(6),{permanent:true,direction:'top'});
+  toast('Jumped to '+lat.toFixed(6)+', '+lng.toFixed(6)+' — if editing/placing, click here to snap a point to this exact spot');
+}
+
 function toggleGeomEditMode(){
   window._sgEditModeOn = !window._sgEditModeOn;
   const btn = document.getElementById('btnEditGeom');
@@ -3144,6 +3211,30 @@ function _sgRenderEditHandles(){
 
   const delBtn=document.getElementById('sgeDelBtn');
   if(delBtn) delBtn.disabled = geomEdit.selected<0;
+  const attr=document.getElementById('sgeAttr');
+  if(attr){
+    if(geomEdit.selected>=0){
+      const v=geomEdit.verts[geomEdit.selected];
+      document.getElementById('sgeAttrName').value = v.overrideName!=null ? v.overrideName : (v.label||'');
+      document.getElementById('sgeAttrCode').value = v.overrideCode!=null ? v.overrideCode : (v.row&&v.row.feeding_code)||'';
+      attr.style.display='inline-flex';
+    } else {
+      attr.style.display='none';
+    }
+  }
+}
+
+function applyVertexAttrs(){
+  const i=geomEdit.selected;
+  if(i<0){ toast('Select a point first'); return; }
+  const v=geomEdit.verts[i];
+  if(v.locked){ toast('Endpoint attributes come from the source data — edit the sheet instead'); return; }
+  const name=(document.getElementById('sgeAttrName').value||'').trim();
+  const code=(document.getElementById('sgeAttrCode').value||'').trim();
+  if(name){ v.overrideName=name; v.label=name; }
+  if(code){ v.overrideCode=code; }
+  _sgRenderEditHandles();
+  toast('Point attributes updated — Save Feeder to commit');
 }
 
 function deleteSelectedVertex(){
@@ -3186,6 +3277,16 @@ function saveFeederEdit(){
     base.feeding_lat = v.lat; base.feeding_lng = v.lng;
     base.pole_number = idx+1;
     if(!base.feeding_name && !base.feeding_to){ base.feeding_name='AB Switch'; base.feeding_to='AB Switch'; }
+    if(v.overrideName){ base.feeding_name=v.overrideName; base.feeding_to=v.overrideName; }
+    if(v.overrideCode){ base.feeding_code=v.overrideCode; }
+    // Unnamed points (generic "AB Switch") are deduped in buildTopology by
+    // ROUNDED COORDINATES. After a drag, two different points can round to
+    // the same key and silently collapse into one — the route then jumps
+    // straight past a point instead of following it, which looks exactly
+    // like a "disjointed" line. Tagging every touched point with a unique
+    // code forces buildTopology to key it by name+code instead, so it can
+    // never collide with a neighbour again.
+    if(!base.feeding_code){ base.feeding_code = `EDIT-${idx+1}-${Date.now().toString(36)}${Math.random().toString(36).slice(2,5)}`; }
     rows.push(base);
   });
   buildTopology(); render();
@@ -3289,7 +3390,8 @@ function nfFinish(){
       eht_code:srcCode, eht_name:srcName, eht_lat:src.lat, eht_lng:src.lng,
       feeder_type:meta.feeder_type, feeder_name:meta.feeder_name, feeder_code:meta.feeder_code||meta.feeder_name,
       pole_number:i+1, source_type:'',
-      feeding_code:'', feeding_to:label, feeding_name:label,
+      feeding_code: p.snap ? (p.snap.code||'') : `NEWF-${i+1}-${Date.now().toString(36)}${Math.random().toString(36).slice(2,5)}`,
+      feeding_to:label, feeding_name:label,
       feeding_lat:p.lat, feeding_lng:p.lng, raw_index:-1
     };
   });
@@ -3308,6 +3410,11 @@ function nfFinish(){
   <div id="sgeTitle" style="font-weight:800;font-size:12.5px"></div>
   <div style="opacity:.7;font-size:10px;max-width:260px;white-space:normal;line-height:1.3">Drag ● points · click ◆ to insert a new point · 🔒 endpoints are fixed</div>
   <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled style="background:#c62828;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">✕ Delete Point</button>
+  <span id="sgeAttr" style="display:none;align-items:center;gap:5px">
+    <input id="sgeAttrName" placeholder="Point name" style="width:110px;padding:5px 7px;border-radius:5px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11px">
+    <input id="sgeAttrCode" placeholder="Code" style="width:70px;padding:5px 7px;border-radius:5px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11px">
+    <button onclick="applyVertexAttrs()" style="background:#1565c0;color:#fff;border:none;border-radius:6px;padding:6px 9px;cursor:pointer;font-weight:700;font-size:11px">Apply</button>
+  </span>
   <button onclick="saveFeederEdit()" style="background:#00a88a;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">💾 Save Feeder</button>
   <button onclick="exitFeederEdit()" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">Cancel</button>
 </div>
