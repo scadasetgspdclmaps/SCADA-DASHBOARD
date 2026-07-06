@@ -1763,19 +1763,30 @@ body.tg-zoom-close .tg-area-label{font-size:13px!important;opacity:.98}
   box-shadow:0 3px 12px rgba(0,0,0,.38),0 0 14px rgba(0,200,255,.16)!important;
 }
 path.sg-feeder-line{cursor:pointer}
+/* AutoCAD grip conventions (06-Jul-2026 per Naresh): cold grip = solid blue
+   SQUARE, hot (selected) = red square, locked endpoint = grey square. These
+   are pure geometry handles — deliberately nothing like the orange-diamond
+   AB switch symbol, which they were being mistaken for. */
 .sg-edit-grip{
-  width:13px;height:13px;border-radius:50%;
-  background:#00c853;border:2px solid #fff;
-  box-shadow:0 0 0 1px #0f172a,0 0 10px rgba(0,200,83,.65);
+  width:11px;height:11px;border-radius:2px;
+  background:#0d6efd;border:1.5px solid #fff;
+  box-shadow:0 0 0 1px #0f172a,0 0 8px rgba(13,110,253,.7);
 }
 .sg-edit-grip.selected{
-  background:#ffab00;
-  box-shadow:0 0 0 1px #0f172a,0 0 12px rgba(255,171,0,.85);
+  background:#ff1744;
+  box-shadow:0 0 0 1px #0f172a,0 0 12px rgba(255,23,68,.9);
 }
 .sg-edit-grip.locked{
-  width:15px;height:15px;border-radius:4px;background:#607d8b;
-  box-shadow:0 0 0 1px #0f172a,0 0 10px rgba(96,125,139,.55);
+  width:14px;height:14px;border-radius:2px;background:#78909c;border:2px solid #fff;
+  box-shadow:0 0 0 1px #0f172a,0 0 8px rgba(96,125,139,.55);
 }
+.sg-grip-insert{
+  width:13px;height:13px;border-radius:50%;
+  background:rgba(255,255,255,.85);border:1.5px dashed #546e7a;
+  color:#37474f;font:800 11px/11px var(--sans);
+  display:flex;align-items:center;justify-content:center;
+}
+.sg-grip-insert:hover{background:#fff;border-color:#0d6efd;color:#0d6efd}
 
 
 .sg-selected-feeder-label{display:none!important}
@@ -2018,10 +2029,10 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
   </div>
 </div>
 
-<div id="empty" style="position:fixed;left:calc(50% + 165px);top:50%;z-index:800;transform:translate(-50%,-50%);background:rgba(15,34,54,.9);border:1px solid var(--border);border-radius:14px;padding:24px 28px;text-align:center;color:#d1d5db;max-width:440px;box-shadow:0 14px 40px rgba(0,0,0,.4)">
-  <h2 style="font-size:17px;margin-bottom:9px;color:#fff">Upload Smart Grid Excel</h2>
-  <p style="font-size:12px;color:#9aa0a6;line-height:1.6">Saves to Firebase under <b>/smartgrid</b>. Use the gist sheet with EHT source row + feeding-end rows. Cut points are skipped automatically.</p>
-</div>
+<!-- Center-screen "Upload Smart Grid Excel" overlay REMOVED 06-Jul-2026 per
+     Naresh — it was blocking the map. The sidebar upload card is the only
+     upload UI now. Kept as a hidden stub so legacy refs can't crash. -->
+<div id="empty" style="display:none"></div>
 <script>
 // ══ MAP + BASEMAP + GRID MAP VIEW ENGINE (verbatim from route map) ══
 // STATIC_SS33: route map embedded a substation list here used only as a
@@ -2411,7 +2422,20 @@ function _tgIsDegenerateBox(f){
       }
       area=Math.abs(area)/2;
       const bbox=(maxX-minX)*(maxY-minY);
-      return bbox>0 && (area/bbox)>=0.97;
+      if(bbox>0 && (area/bbox)>=0.90) return true; // near-full box
+      // Rectilinear test (06-Jul-2026, per Naresh — the yellow "rectangle
+      // with a notch" over Hyderabad): if ~all edges are axis-aligned the
+      // ring is a synthetic bbox artifact, NOT a real district boundary.
+      // Real administrative boundaries are never grid-aligned.
+      let axisEdges=0, totalEdges=0;
+      for(let i=0;i<r.length;i++){
+        const [x1,y1]=r[i], [x2,y2]=r[(i+1)%r.length];
+        const dx=Math.abs(x2-x1), dy=Math.abs(y2-y1);
+        if(dx<1e-12&&dy<1e-12) continue; // duplicate/densified point
+        totalEdges++;
+        if(dx<1e-7||dy<1e-7) axisEdges++;
+      }
+      return totalEdges>0 && (axisEdges/totalEdges)>=0.9;
     };
     return rings.every(ringIsBoxy);
   }catch(e){ return false; }
@@ -3070,6 +3094,36 @@ function colorFor(t, ftype){
   return feederCableClass(ftype) === 'oh' ? '#ff9800' : '#2196f3';
 }
 
+/* ROOT-CAUSE FIX 06-Jul-2026: render()'s node loop calls iconFor(), but the
+   function had been DELETED in an earlier external edit. The first node threw
+   ReferenceError → loop died → NO EHT/SS icons on the map, stats stuck at
+   "—", and the old upload overlay never hid. Rebuilt here against the icon
+   CSS classes that survived (.eht-wrap/.ss33-wrap/.ab-wrap/.dp-wrap). */
+function iconFor(kind,name){
+  if(kind==='eht'){
+    return L.divIcon({className:'',iconSize:[40,28],iconAnchor:[20,14],html:
+      `<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">EHT</span></div></div>`});
+  }
+  if(kind==='ss33'){
+    return L.divIcon({className:'',iconSize:[32,32],iconAnchor:[16,16],html:
+      `<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>`});
+  }
+  if(kind==='ab'){
+    return L.divIcon({className:'',iconSize:[14,14],iconAnchor:[7,7],html:
+      `<div class="ab-wrap"><div style="width:9px;height:9px;background:#ff9800;border:1.6px solid #7a4a00;transform:rotate(45deg);box-shadow:0 0 4px rgba(255,152,0,.8)"></div></div>`});
+  }
+  if(kind==='dp'){
+    return L.divIcon({className:'',iconSize:[14,14],iconAnchor:[7,7],html:
+      `<div class="dp-wrap"><div style="width:9px;height:9px;border-radius:50%;background:#8e24aa;border:1.6px solid #fff;box-shadow:0 0 4px rgba(142,36,170,.8)"></div></div>`});
+  }
+  if(kind==='ht'){
+    return L.divIcon({className:'',iconSize:[12,12],iconAnchor:[6,6],html:
+      `<div style="width:8px;height:8px;border-radius:50%;background:#00a88a;border:1.5px solid #fff"></div>`});
+  }
+  return L.divIcon({className:'',iconSize:[10,10],iconAnchor:[5,5],html:
+    `<div style="width:7px;height:7px;border-radius:50%;background:#90a4ae;border:1px solid #fff"></div>`});
+}
+
 function render(){
   buildTopology();
   gLines.clearLayers(); gNodes.clearLayers(); gLabels.clearLayers();
@@ -3133,10 +3187,12 @@ function render(){
     const named=(n.name&&!/^(AB Switch|DP Structure|Feeding Point)$/i.test(n.name))||n.code;
     const key=n.kind+'|'+(named?(compact(n.name)+'|'+String(n.code||'')):((+n.lat).toFixed(6)+','+(+n.lng).toFixed(6)));
     if(used[key])return; used[key]=true;
+    try{
     const m=L.marker([n.lat,n.lng],{icon:iconFor(n.kind,n.name),riseOnHover:true})
       .bindTooltip(clean(n.name),{direction:'right',offset:[16,0],className:'sg-node-label',opacity:.96});
     m.on('click',()=>{ L.popup({className:'ss-popup',maxWidth:390}).setLatLng([n.lat,n.lng]).setContent(sgPopupHtml(n,nodeConnections[key]||[])).openOn(map); });
     m.addTo(gNodes);
+    }catch(nodeErr){ console.warn('Node icon failed for',n&&n.name,nodeErr); }
     // Pole-number labels (default OFF) — tiny badge with the sheet's
     // pole_number at each waypoint, per Naresh 04-Jul-2026.
     if((document.getElementById('tPole')||{}).checked && n.pole!=null && n.pole!==''){
@@ -3157,8 +3213,8 @@ function render(){
   stFeeders.textContent=new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size;
   stNodes.textContent=Object.keys(used).length;
   stConns.textContent=shown.length;
-  if(document.getElementById('cntUG'))cntUG.textContent=cnt.ug;if(document.getElementById('cntOH'))cntOH.textContent=cnt.oh;if(document.getElementById('cnt33'))cnt33.textContent=(cnt.ug+cnt.oh); cntLink.textContent=cnt.link; cntHt.textContent=cnt.ht; cntDev.textContent=cnt.dev;
-  document.getElementById('empty').style.display=rows.length?'none':'block';
+  if(document.getElementById('cntUG'))cntUG.textContent=cnt.ug;if(document.getElementById('cntOH'))cntOH.textContent=cnt.oh;if(document.getElementById('cnt33'))cnt33.textContent=(cnt.ug+cnt.oh); if(document.getElementById('cntLink'))cntLink.textContent=cnt.link; if(document.getElementById('cntHt'))cntHt.textContent=cnt.ht; if(document.getElementById('cntDev'))cntDev.textContent=cnt.dev;
+  const _emptyEl=document.getElementById('empty'); if(_emptyEl)_emptyEl.style.display='none';
   status(`SMARTGRID: <b>${shown.length}</b> connection(s) · <b>${Object.keys(used).length}</b> node(s)`);
   if((document.getElementById('fFeeder')?.value||document.getElementById('fEHT')?.value) && shown.length===0 && rows.length){
     toast('No visible connection for this filter — check start/end coordinates or cable type layer toggles');
@@ -3518,14 +3574,16 @@ function _sgVertIcon(locked, selected){
   return L.divIcon({className:'',html:`<div class="${cls}"></div>`,iconSize:[size,size],iconAnchor:[size/2,size/2]});
 }
 function _sgGhostIcon(){
-  return L.divIcon({className:'',html:'<div style="width:10px;height:10px;background:#fff;border:2px solid #ff3d00;transform:rotate(45deg)"></div>',iconSize:[10,10],iconAnchor:[5,5]});
+  // Neutral "+" insert handle — deliberately NOT the orange diamond, which
+  // is the AB switch symbol and was causing exactly that confusion.
+  return L.divIcon({className:'',html:'<div class="sg-grip-insert">+</div>',iconSize:[13,13],iconAnchor:[6.5,6.5]});
 }
 
 function _sgRenderEditHandles(){
   gEditLayer.clearLayers();
   const verts = geomEdit.verts;
   if(verts.length<2) return;
-  _sgGuideLine = L.polyline(verts.map(v=>[v.lat,v.lng]),{color:'#ff3d00',weight:3,dashArray:'5 5',opacity:.95,interactive:false}).addTo(gEditLayer);
+  _sgGuideLine = L.polyline(verts.map(v=>[v.lat,v.lng]),{color:'#00e5ff',weight:3,dashArray:'6 5',opacity:.95,interactive:false}).addTo(gEditLayer);
   // ◆ ghost diamonds at segment midpoints — click to insert an extra BEND
   // POINT exactly there. Inserts are pure geometry (never AB switches).
   for(let i=0;i<verts.length-1;i++){
@@ -3800,10 +3858,21 @@ function _sgPdfTitle(){
   return parts.length?parts.join(' · '):'ALL DIVISIONS — FULL NETWORK';
 }
 
-const _sgPaperMM={a2:[420,594],a3:[297,420],a4:[210,297]};
+const _sgPaperMM={a0:[841,1189],a1:[594,841],a2:[420,594],a3:[297,420],a4:[210,297],a5:[148,210],a6:[105,148],letter:[216,279],legal:[216,356],tabloid:[279,432]};
+// Pixel budget for the raster underlay, scaled to paper — big sheets get big captures.
+const _sgPaperPx={a0:8000,a1:6800,a2:5600,a3:4600,a4:3600,a5:2800,a6:2200,letter:3600,legal:4000,tabloid:4600};
+// Exportable tile sources (all send CORS headers). Google's do not — Voyager
+// is the visually closest street style that legally allows canvas capture.
+const _sgPdfTiles={
+  street:{tpl:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',sub:'abc'},
+  voyager:{tpl:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',sub:'abcd'},
+  light:{tpl:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',sub:'abcd'},
+  dark:{tpl:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',sub:'abcd'},
+  satellite:{tpl:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',sub:'a'}
+};
 
-async function _sgCaptureTileBackground(bounds, pxW, pxH){
-  // Choose the deepest zoom where the bounds still fit in pxW×pxH.
+async function _sgCaptureTileBackground(bounds, pxW, pxH, srcName){
+  const src=_sgPdfTiles[srcName]||_sgPdfTiles.street;
   const crs=L.CRS.EPSG3857;
   let z;
   for(z=17;z>=3;z--){
@@ -3817,26 +3886,23 @@ async function _sgCaptureTileBackground(bounds, pxW, pxH){
   const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
   const ctx=canvas.getContext('2d');
   ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
-  const def=_bmDefs[curBM];
-  if(!def) throw new Error('Active basemap ('+curBM+') has no exportable tiles');
-  const tpl=def[0];
-  const sub=(def[1]&&def[1].subdomains)||'abc';
   const t0x=Math.floor(nw.x/256), t0y=Math.floor(nw.y/256);
   const t1x=Math.floor(se.x/256), t1y=Math.floor(se.y/256);
+  let ok=0, fail=0;
   const jobs=[];
   for(let tx=t0x;tx<=t1x;tx++)for(let ty=t0y;ty<=t1y;ty++){
-    const url=tpl.replace('{z}',z).replace('{x}',tx).replace('{y}',ty)
-      .replace('{s}',sub[Math.abs(tx+ty)%sub.length]).replace('{r}','');
+    const url=src.tpl.replace('{z}',z).replace('{x}',tx).replace('{y}',ty)
+      .replace('{s}',src.sub[Math.abs(tx+ty)%src.sub.length]);
     jobs.push(new Promise(res=>{
       const img=new Image(); img.crossOrigin='anonymous';
-      img.onload=()=>{ try{ctx.drawImage(img,tx*256-nw.x,ty*256-nw.y);}catch(e){} res(); };
-      img.onerror=()=>res();
+      img.onload=()=>{ try{ctx.drawImage(img,tx*256-nw.x,ty*256-nw.y);ok++;}catch(e){fail++;} res(); };
+      img.onerror=()=>{fail++;res();};
       img.src=url;
     }));
   }
   await Promise.all(jobs);
-  // Throws right here if any tile tainted the canvas (CORS) — caller falls back.
-  canvas.toDataURL('image/jpeg',0.1);
+  if(ok===0) throw new Error('all tiles failed for '+srcName);
+  canvas.toDataURL('image/jpeg',0.1); // throws if CORS-tainted
   return {canvas, originPx:nw, zoom:z};
 }
 
@@ -3860,10 +3926,17 @@ async function sgExportPDF(){
     const padded=bounds.pad(0.06);
 
     let bg=null;
-    if(document.getElementById('pdfBg').checked){
-      prog.textContent='Capturing basemap tiles…';
-      try{ bg=await _sgCaptureTileBackground(padded, 4200, 4200); }
-      catch(e){ console.warn('Basemap capture failed (CORS/network) — exporting without background:',e); toast('Basemap could not be captured (Google tiles block export — try Dark/Street) — exporting schematic only'); }
+    const bmChoice=document.getElementById('pdfBasemap')?document.getElementById('pdfBasemap').value:'street';
+    if(bmChoice!=='none'){
+      const pxBudget=_sgPaperPx[paper]||4200;
+      // Background is compulsory (per Naresh): fallback chain guarantees it.
+      const chain=[bmChoice,'street','light'].filter((v,i,a)=>a.indexOf(v)===i);
+      for(const srcName of chain){
+        prog.textContent='Capturing '+srcName+' basemap tiles…';
+        try{ bg=await _sgCaptureTileBackground(padded, pxBudget, pxBudget, srcName); break; }
+        catch(e){ console.warn('Basemap "'+srcName+'" capture failed, trying next:',e); }
+      }
+      if(!bg) toast('All basemap sources failed (network?) — exporting schematic only');
     }
     const crs=L.CRS.EPSG3857;
     const z=bg?bg.zoom:15;
@@ -3916,51 +3989,90 @@ async function sgExportPDF(){
       for(let i=0;i<pts.length-1;i++) doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
       doc.setLineDashPattern([],0);
       if(showFLbl){
-        const mid=pts[Math.floor(pts.length/2)];
-        doc.setFontSize(3.6); doc.setTextColor(r,g,b); doc.setFont('helvetica','normal');
-        doc.text(clean(c.feeder_name)||String(c.feeder_code||''),mid[0]+0.6,mid[1]-0.6);
+        // Rotated label lying ON the line (per Naresh): angle follows the
+        // segment direction at the midpoint. Vector text — tiny on the page,
+        // razor sharp when zooming into the PDF.
+        const mi=Math.floor(pts.length/2);
+        const a=pts[Math.max(0,mi-1)], b=pts[Math.min(pts.length-1,mi+1)], mid=pts[mi];
+        let ang=Math.atan2(-(b[1]-a[1]), b[0]-a[0])*180/Math.PI; // PDF angle: CCW, y-down screen → negate dy
+        if(ang>90)ang-=180; if(ang<-90)ang+=180;                  // keep text upright
+        doc.setFontSize(3.4); doc.setTextColor(r,g,b); doc.setFont('helvetica','normal');
+        doc.text(clean(c.feeder_name)||String(c.feeder_code||''),mid[0],mid[1]-0.35,{angle:ang,align:'center'});
       }
     });
 
-    // Nodes — pure bend geometry is never drawn.
+    // Nodes — pure bend geometry is never drawn. Stats collected as we go.
     const done={};
+    const nstat={eht:0,ss33:0,ab:0,dp:0,ht:0};
     shown.forEach(c=>[c.from,c.to].forEach(n=>{
       if(n.kind==='bend')return;
       const key=n.kind+'|'+compact(n.name)+'|'+(n.code||'')+'|'+(+n.lat).toFixed(6)+','+(+n.lng).toFixed(6);
       if(done[key])return; done[key]=1;
+      if(nstat[n.kind]!=null)nstat[n.kind]++;
       const [x,y]=P(n.lat,n.lng);
       if(n.kind==='eht'){
-        doc.setFillColor(211,47,47); doc.setDrawColor(120,20,20); doc.setLineWidth(0.25);
-        doc.rect(x-2.2,y-1.5,4.4,3,'FD');
-        if(showSSLbl){ doc.setFontSize(4.2); doc.setTextColor(120,20,20); doc.setFont('helvetica','bold'); doc.text(clean(n.name),x,y-2.2,{align:'center'}); }
+        doc.setFillColor(183,28,28); doc.setDrawColor(255,255,255); doc.setLineWidth(0.3);
+        doc.rect(x-2.6,y-1.7,5.2,3.4,'FD');
+        doc.setFontSize(2.6); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+        doc.text('EHT',x,y+0.85,{align:'center'});
+        if(showSSLbl){ doc.setFontSize(4.4); doc.setTextColor(140,20,20); doc.text(clean(n.name),x,y-2.4,{align:'center'}); }
       } else if(n.kind==='ss33'){
-        doc.setFillColor(21,101,192); doc.setDrawColor(255,255,255); doc.setLineWidth(0.25);
-        doc.circle(x,y,1.3,'FD');
-        if(showSSLbl){ doc.setFontSize(3.8); doc.setTextColor(30,58,95); doc.setFont('helvetica','normal'); doc.text(clean(n.name),x,y-1.8,{align:'center'}); }
+        // bullseye: outer ring + solid core, matching the on-screen icon
+        doc.setDrawColor(21,101,192); doc.setLineWidth(0.28); doc.circle(x,y,1.5,'S');
+        doc.setFillColor(21,101,192); doc.circle(x,y,0.85,'F');
+        if(showSSLbl){ doc.setFontSize(3.8); doc.setTextColor(30,58,95); doc.setFont('helvetica','normal'); doc.text(clean(n.name),x,y-2.1,{align:'center'}); }
       } else if(n.kind==='ab'){
-        doc.setFillColor(255,143,0); doc.setDrawColor(120,70,0); doc.setLineWidth(0.15);
-        doc.rect(x-0.7,y-0.7,1.4,1.4,'FD');
+        // orange diamond — same symbol language as on screen
+        doc.setFillColor(255,143,0); doc.setDrawColor(122,74,0); doc.setLineWidth(0.15);
+        doc.triangle(x,y-1,x+1,y,x,y+1,'FD'); doc.triangle(x,y-1,x-1,y,x,y+1,'FD');
       } else if(n.kind==='dp'){
-        doc.setFillColor(106,27,154); doc.setDrawColor(255,255,255); doc.setLineWidth(0.15);
+        doc.setFillColor(142,36,170); doc.setDrawColor(255,255,255); doc.setLineWidth(0.15);
         doc.circle(x,y,0.7,'FD');
       } else if(n.kind==='ht'){
         doc.setFillColor(0,168,138); doc.circle(x,y,0.8,'F');
       }
     }));
 
-    // Legend strip
-    const ly=ph-9;
-    doc.setFontSize(5.5); doc.setFont('helvetica','normal');
-    let cx=margin;
-    [['#2196f3','33KV UG'],['#ff9800','33KV OH'],['#9c27b0','Link Line'],['#00a88a','HT Service']].forEach(([col,lab])=>{
-      const [r,g,b]=hex(col);
-      doc.setDrawColor(r,g,b); doc.setLineWidth(0.6); doc.line(cx,ly,cx+6,ly);
-      doc.setTextColor(40,40,40); doc.text(lab,cx+7.5,ly+1);
-      cx+=7.5+doc.getTextWidth(lab)+6;
-    });
-    doc.setFillColor(211,47,47); doc.rect(cx,ly-1.2,3,2.4,'F'); doc.setTextColor(40,40,40); doc.text('EHT SS',cx+4,ly+1); cx+=4+doc.getTextWidth('EHT SS')+6;
-    doc.setFillColor(21,101,192); doc.circle(cx+1,ly,1.1,'F'); doc.text('33/11KV SS',cx+3.5,ly+1); cx+=3.5+doc.getTextWidth('33/11KV SS')+6;
-    doc.setFillColor(255,143,0); doc.rect(cx,ly-0.8,1.6,1.6,'F'); doc.text('AB Switch',cx+3,ly+1);
+    // ── LABEL INDEX (what every symbol means) + NETWORK STATS boxes ──
+    const cntTypes={ug:0,oh:0,link:0,ht:0};
+    shown.forEach(c=>{ if(c.type==='feeder')cntTypes[feederCableClass(c.feeder_type)]++; else if(cntTypes[c.type]!=null)cntTypes[c.type]++; });
+    const feederSet=new Set(shown.map(c=>c.feeder_code||c.feeder_name));
+
+    const boxW=64, boxH=46, bx=pw-margin-boxW, by=ph-margin-boxH;
+    doc.setFillColor(255,255,255); doc.setDrawColor(60,60,60); doc.setLineWidth(0.25);
+    if(doc.setGState){ doc.setGState(new doc.GState({opacity:0.93})); doc.rect(bx,by,boxW,boxH,'FD'); doc.setGState(new doc.GState({opacity:1})); }
+    else doc.rect(bx,by,boxW,boxH,'FD');
+    doc.setFontSize(5.6); doc.setTextColor(20,20,20); doc.setFont('helvetica','bold');
+    doc.text('LABEL INDEX',bx+2.5,by+4);
+    doc.setFont('helvetica','normal'); doc.setFontSize(4.6);
+    let yy=by+8;
+    const li=(draw,label)=>{ draw(bx+4.5,yy-0.8); doc.setTextColor(35,35,35); doc.text(label,bx+9,yy); yy+=4.1; };
+    li((x,y)=>{doc.setFillColor(183,28,28);doc.rect(x-2,y-1.2,4,2.4,'F');doc.setFontSize(2.2);doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.text('EHT',x,y+0.6,{align:'center'});doc.setFont('helvetica','normal');doc.setFontSize(4.6);},'EHT Source Substation (132/220KV)');
+    li((x,y)=>{doc.setDrawColor(21,101,192);doc.setLineWidth(0.25);doc.circle(x,y,1.2,'S');doc.setFillColor(21,101,192);doc.circle(x,y,0.65,'F');},'33/11KV Substation');
+    li((x,y)=>{doc.setFillColor(255,143,0);doc.setDrawColor(122,74,0);doc.setLineWidth(0.12);doc.triangle(x,y-0.9,x+0.9,y,x,y+0.9,'FD');doc.triangle(x,y-0.9,x-0.9,y,x,y+0.9,'FD');},'AB Switch (air-break isolator)');
+    li((x,y)=>{doc.setFillColor(142,36,170);doc.setDrawColor(255,255,255);doc.circle(x,y,0.65,'FD');},'DP Structure (double pole)');
+    const lin=(col,dash)=>((x,y)=>{const[r2,g2,b2]=hex(col);doc.setDrawColor(r2,g2,b2);doc.setLineWidth(0.5);if(dash)doc.setLineDashPattern([1.2,0.9],0);doc.line(x-2.5,y,x+2.5,y);doc.setLineDashPattern([],0);});
+    li(lin('#2196f3'),'33KV Feeder — UG cable');
+    li(lin('#ff9800'),'33KV Feeder — OH line');
+    li(lin('#9c27b0',true),'33KV Link Line (tie)');
+    li(lin('#00a88a'),'HT Service');
+    doc.setFontSize(3.8); doc.setTextColor(90,90,90);
+    doc.text('Names are vector text — zoom the PDF to read.',bx+2.5,yy+0.5);
+
+    const sx=bx-boxW-4, sw=boxW;
+    doc.setFillColor(255,255,255); doc.setDrawColor(60,60,60);
+    if(doc.setGState){ doc.setGState(new doc.GState({opacity:0.93})); doc.rect(sx,by,sw,boxH,'FD'); doc.setGState(new doc.GState({opacity:1})); }
+    else doc.rect(sx,by,sw,boxH,'FD');
+    doc.setFontSize(5.6); doc.setTextColor(20,20,20); doc.setFont('helvetica','bold');
+    doc.text('NETWORK STATS',sx+2.5,by+4);
+    doc.setFont('helvetica','normal'); doc.setFontSize(4.6); doc.setTextColor(35,35,35);
+    const st=[
+      ['EHT Source SS',nstat.eht],['33/11KV SS',nstat.ss33],['AB Switches',nstat.ab],
+      ['DP Structures',nstat.dp],['Feeders',feederSet.size],['Connections',shown.length],
+      ['UG segments',cntTypes.ug],['OH segments',cntTypes.oh],['Link lines',cntTypes.link],['HT services',cntTypes.ht]
+    ];
+    let sy=by+8;
+    st.forEach(([lab,val])=>{ doc.text(lab,sx+2.5,sy); doc.setFont('helvetica','bold'); doc.text(String(val),sx+sw-2.5,sy,{align:'right'}); doc.setFont('helvetica','normal'); sy+=3.7; });
 
     const fname='SMARTGRID_'+_sgPdfTitle().replace(/[^A-Za-z0-9]+/g,'_').slice(0,60)+'_'+paper.toUpperCase()+'.pdf';
     doc.save(fname);
@@ -3977,7 +4089,7 @@ async function sgExportPDF(){
 <!-- ═══ Geometry Editor toolbar (AutoCAD-style vertex editing) ═══ -->
 <div id="sgeBar" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6000;background:#12233a;color:#fff;padding:9px 14px;border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.45);font-family:var(--sans);font-size:12px;align-items:center;gap:10px;white-space:nowrap">
   <div id="sgeTitle" style="font-weight:800;font-size:12.5px"></div>
-  <div style="opacity:.7;font-size:10px;max-width:260px;white-space:normal;line-height:1.3">Drag ● points · click ◆ to insert a new point · 🔒 endpoints are fixed</div>
+  <div style="opacity:.7;font-size:10px;max-width:270px;white-space:normal;line-height:1.3">Drag ■ blue grips to bend the line (pure geometry — NOT AB switches) · ⊕ inserts a drag point · grey ■ endpoints are fixed</div>
   <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled style="background:#c62828;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">✕ Delete Point</button>
   <span id="sgeAttr" style="display:none;align-items:center;gap:5px">
     <input id="sgeAttrName" placeholder="Point name" style="width:110px;padding:5px 7px;border-radius:5px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11px">
@@ -4023,18 +4135,31 @@ async function sgExportPDF(){
   <div style="font-size:10px;opacity:.75;margin-bottom:10px;line-height:1.4">Exports exactly what your current filters show (Division / Sub-Division / Section / EHT / Feeder). Vector output — labels are tiny on the page and razor-sharp when you zoom into the PDF.</div>
   <div style="display:flex;gap:8px;margin-bottom:8px">
     <select id="pdfPaper" style="flex:1;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px">
-      <option value="a3" selected>A3</option>
-      <option value="a4">A4</option>
-      <option value="a2">A2</option>
+      <option value="a0">A0 (841×1189)</option>
+      <option value="a1">A1 (594×841)</option>
+      <option value="a2">A2 (420×594)</option>
+      <option value="a3" selected>A3 (297×420)</option>
+      <option value="a4">A4 (210×297)</option>
+      <option value="a5">A5 (148×210)</option>
+      <option value="a6">A6 (105×148)</option>
+      <option value="letter">Letter (216×279)</option>
+      <option value="legal">Legal (216×356)</option>
+      <option value="tabloid">Tabloid (279×432)</option>
     </select>
     <select id="pdfOrient" style="flex:1;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px">
       <option value="landscape" selected>Landscape</option>
       <option value="portrait">Portrait</option>
     </select>
   </div>
-  <label style="display:flex;align-items:center;gap:7px;margin-bottom:6px;cursor:pointer;font-size:11.5px">
-    <input type="checkbox" id="pdfBg" checked> Map background (works on Dark / Street / Satellite basemaps)
-  </label>
+  <select id="pdfBasemap" style="width:100%;margin-bottom:8px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px">
+    <option value="street" selected>🗺 Street map background (OSM)</option>
+    <option value="voyager">🗺 Street — Carto Voyager (Google-style)</option>
+    <option value="light">🗺 Light grey background (Carto)</option>
+    <option value="dark">🗺 Dark background (Carto)</option>
+    <option value="satellite">🛰 Satellite background (Esri)</option>
+    <option value="none">— No background (pure schematic)</option>
+  </select>
+  <div style="font-size:9px;opacity:.6;margin-bottom:8px;line-height:1.35">Google's own tiles legally block export capture — Carto Voyager gives the same street-map look. If a basemap fails to download, the exporter automatically falls back to OSM so the background is always there.</div>
   <label style="display:flex;align-items:center;gap:7px;margin-bottom:6px;cursor:pointer;font-size:11.5px">
     <input type="checkbox" id="pdfSSLabels" checked> Substation / EHT names (tiny — visible on zoom)
   </label>
