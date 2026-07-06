@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TGSPDCL — Master Data Manager · Source Templates</title>
+<title>TGSPDCL — Master Data Manager · Exact Source Report Format</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -15,44 +15,46 @@ body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(-
 .tab{padding:14px 18px;font-size:11px;font-weight:900;letter-spacing:1px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:8px;white-space:nowrap;text-transform:uppercase}
 .tab:hover{color:#fff;background:rgba(255,255,255,.04)}.tab.active{color:#c4b5fd;border-bottom-color:#a855f7;background:rgba(168,85,247,.08)}
 .num{background:rgba(255,255,255,.1);width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}.tab.active .num{background:#a855f7;color:#fff}.badge{background:#a855f7;color:#fff;font-size:9px;padding:1px 7px;border-radius:8px;font-family:var(--mono)}
-.wrap{max-width:1680px;margin:22px auto;padding:0 22px}.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}.stat .v{font-size:22px;font-weight:900;color:#a855f7;font-family:var(--mono)}.stat .l{font:900 9px var(--mono);letter-spacing:1px;color:var(--muted);margin-top:5px;text-transform:uppercase}
-.note{background:#111827;border:1px dashed #45556c;border-radius:9px;padding:12px 14px;margin-bottom:16px;font:12px/1.45 var(--mono);color:#cbd5e1}.note b{color:#a855f7}.note .ok{color:#86efac}
+.wrap{max-width:1780px;margin:22px auto;padding:0 22px}.stats{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:18px}.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}.stat .v{font-size:22px;font-weight:900;color:#a855f7;font-family:var(--mono)}.stat .l{font:900 9px var(--mono);letter-spacing:1px;color:var(--muted);margin-top:5px;text-transform:uppercase}
+.note{background:#111827;border:1px dashed #45556c;border-radius:9px;padding:12px 14px;margin-bottom:16px;font:12px/1.45 var(--mono);color:#cbd5e1}.note b{color:#a855f7}.note .ok{color:#86efac}.note .warn{color:#fcd34d}
 .pane{display:none}.pane.active{display:block;animation:fade .22s}@keyframes fade{from{opacity:.25;transform:translateY(5px)}to{opacity:1;transform:none}}
 .toolbar{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;flex-wrap:wrap}.search{flex:1;min-width:260px;display:flex;gap:8px;align-items:center;background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:8px 12px}.search input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:13px}.search input::placeholder{color:#64748b}select{background:#0f172a;border:1px solid var(--border);color:#fff;padding:8px 10px;border-radius:7px;font-size:11px}
 .count{background:rgba(168,85,247,.15);color:#c4b5fd;font:900 10px var(--mono);padding:7px 12px;border-radius:10px}.btn{padding:8px 13px;border-radius:7px;font-size:10px;font-weight:900;letter-spacing:.7px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase}.btn-primary{background:#7c3aed;color:#fff}.btn-green{background:var(--green);color:#fff}.btn-red{background:var(--red);color:#fff}.btn-amber{background:#d97706;color:#fff}.btn-outline{background:transparent;color:#cbd5e1;border:1.5px solid var(--border)}.btn-outline:hover{border-color:#a855f7;color:#fff}.filebtn{position:relative;overflow:hidden}.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}.card-hd{padding:12px 16px;background:#0f172a;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;align-items:center}.title{font:900 11px var(--mono);letter-spacing:1.5px;color:#a855f7}.hint{font-size:11px;color:#94a3b8}
-.table-wrap{max-height:62vh;overflow:auto}table{width:100%;border-collapse:collapse;font-size:11px}th{position:sticky;top:0;z-index:2;background:#0f172a;color:#94a3b8;font-size:9.2px;letter-spacing:.55px;text-transform:uppercase;padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}td{padding:8px 10px;border-bottom:1px solid #263244;color:#dbeafe;vertical-align:top}tr:hover td{background:rgba(168,85,247,.05)}.code{font-family:var(--mono);font-size:10px;color:#94a3b8}.muted{color:#94a3b8}.strong{font-weight:800;color:#fff}.tag{display:inline-block;background:#0f172a;border:1px solid var(--border);border-radius:7px;padding:2px 7px;margin:1px 3px 1px 0;font-size:10px;color:#cbd5e1}.tag.reg{border-color:rgba(16,185,129,.5);color:#86efac}.tag.alt{border-color:rgba(245,158,11,.5);color:#fcd34d}.empty{padding:28px;text-align:center;color:#94a3b8;font-style:italic}.actions{display:flex;gap:5px;justify-content:flex-end}.actions button{font-size:9px;padding:4px 8px;border:1px solid var(--border);background:transparent;color:#cbd5e1;border-radius:5px;cursor:pointer;font-weight:800}.actions button:hover{border-color:#a855f7;color:#fff}
-#toast{position:fixed;bottom:22px;right:22px;z-index:9999;background:#16a34a;color:#fff;padding:12px 18px;border-radius:10px;font-weight:800;transform:translateY(80px);transition:.25s;max-width:480px;box-shadow:0 8px 24px rgba(0,0,0,.35)}#toast.show{transform:none}#toast.err{background:#dc2626}
+.table-wrap{max-height:62vh;overflow:auto}table{width:100%;border-collapse:collapse;font-size:10.7px}th{position:sticky;top:0;z-index:2;background:#0f172a;color:#94a3b8;font-size:8.7px;letter-spacing:.45px;text-transform:uppercase;padding:9px 9px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}td{padding:7px 9px;border-bottom:1px solid #263244;color:#dbeafe;vertical-align:middle}tr:hover td{background:rgba(168,85,247,.05)}.code{font-family:var(--mono);font-size:9.8px;color:#94a3b8}.muted{color:#94a3b8}.strong{font-weight:800;color:#fff}.tag{display:inline-block;background:#0f172a;border:1px solid var(--border);border-radius:7px;padding:2px 7px;margin:1px 3px 1px 0;font-size:9.7px;color:#cbd5e1;white-space:nowrap}.tag.reg{border-color:rgba(16,185,129,.5);color:#86efac}.tag.alt{border-color:rgba(245,158,11,.5);color:#fcd34d}.tag.link{border-color:#a78bfa;color:#c4b5fd}.empty{padding:28px;text-align:center;color:#94a3b8;font-style:italic}.actions{display:flex;gap:5px;justify-content:flex-end}.actions button{font-size:9px;padding:4px 8px;border:1px solid var(--border);background:transparent;color:#cbd5e1;border-radius:5px;cursor:pointer;font-weight:800}.actions button:hover{border-color:#a855f7;color:#fff}.lvcell{color:#e0f2fe;font-weight:800}.capcell{color:#fef3c7;font-weight:900;text-align:center}.ssrow{border-left:3px solid transparent}.ssrow.firstofss{border-left-color:#a855f7}
+#toast{position:fixed;bottom:22px;right:22px;z-index:9999;background:#16a34a;color:#fff;padding:12px 18px;border-radius:10px;font-weight:800;transform:translateY(80px);transition:.25s;max-width:560px;box-shadow:0 8px 24px rgba(0,0,0,.35)}#toast.show{transform:none}#toast.err{background:#dc2626}
 @media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head><body>
 <div class="topbar">
   <h1>⚙️ MASTER DATA MANAGER</h1>
-  <div class="sub">SOURCE REPORT TEMPLATES · SS COORDINATES · EHT SOURCES · FEEDER ARCHITECTURE · LIVE FIREBASE</div>
+  <div class="sub">EXACT SS SOURCES FORMAT · PTR/LV-WISE SOURCE LINKAGE · FEEDER CODES · LIVE FIREBASE</div>
   <div class="right"><span id="fbChip" class="chip">☁ INIT</span><span class="chip live">● FIREBASE</span><button class="btn btn-outline" onclick="window.close()" style="color:#fff;border-color:rgba(255,255,255,.3)">✕ CLOSE</button></div>
 </div>
 <div class="tabs">
-  <div class="tab active" data-pane="sscoords" onclick="switchTab('sscoords')"><span class="num">1</span>SS COORDINATES <span class="badge" id="badge-sscoords">0</span></div>
-  <div class="tab" data-pane="sssources" onclick="switchTab('sssources')"><span class="num">2</span>SS SOURCES REPORT <span class="badge" id="badge-sssources">0</span></div>
+  <div class="tab active" data-pane="sssources" onclick="switchTab('sssources')"><span class="num">1</span>SS SOURCES EXACT FORMAT <span class="badge" id="badge-sssources">0</span></div>
+  <div class="tab" data-pane="sscoords" onclick="switchTab('sscoords')"><span class="num">2</span>SS COORDINATES <span class="badge" id="badge-sscoords">0</span></div>
   <div class="tab" data-pane="eht" onclick="switchTab('eht')"><span class="num">3</span>EHT SOURCES <span class="badge" id="badge-eht">0</span></div>
   <div class="tab" data-pane="topology" onclick="switchTab('topology')"><span class="num">4</span>FEEDER ARCHITECTURE <span class="badge" id="badge-topology">0</span></div>
-  <div class="tab" data-pane="ptrs" onclick="switchTab('ptrs')"><span class="num">5</span>PTR SUMMARY <span class="badge" id="badge-ptrs">0</span></div>
+  <div class="tab" data-pane="ptrs" onclick="switchTab('ptrs')"><span class="num">5</span>PTR/LV ROW SUMMARY <span class="badge" id="badge-ptrs">0</span></div>
 </div>
 <div class="wrap">
   <div class="stats">
+    <div class="stat"><div class="v" id="stat-sssources">—</div><div class="l">SS Source Rows</div></div>
+    <div class="stat"><div class="v" id="stat-sscount">—</div><div class="l">Unique SS</div></div>
+    <div class="stat"><div class="v" id="stat-ptrs">—</div><div class="l">PTR/LV Rows</div></div>
+    <div class="stat"><div class="v" id="stat-multi">—</div><div class="l">Multi Source SS</div></div>
     <div class="stat"><div class="v" id="stat-sscoords">—</div><div class="l">SS Coordinates</div></div>
-    <div class="stat"><div class="v" id="stat-sssources">—</div><div class="l">SS Sources</div></div>
     <div class="stat"><div class="v" id="stat-eht">—</div><div class="l">EHT Sources</div></div>
     <div class="stat"><div class="v" id="stat-topology">—</div><div class="l">Feeders</div></div>
-    <div class="stat"><div class="v" id="stat-multi">—</div><div class="l">Multi-source SS</div></div>
-    <div class="stat"><div class="v" id="stat-ptrs">—</div><div class="l">PTR Rows</div></div>
   </div>
   <div class="note">
-    <span class="ok">Corrected:</span> removed the separate SmartGrid Connections template. The Smart Grid Map should generate connections directly from these master reports:
-    <b>/masterData/ssCoordinates</b> + <b>/masterData/ssSources</b> + <b>/masterData/ehtSources</b> + <b>/masterData/topology</b>.
+    <span class="ok">Corrected:</span> SS Sources is now stored <b>LV/PTR-row wise</b> in the same Excel format with <b>PTR capacity + regular feeder code + alternate feeder codes</b>. 
+    <span class="warn">Reason:</span> different PTRs/LVs of the same 33/11KV SS can have different incoming sources. Firebase saves both:
+    <b>/masterData/ssSourceRows</b> and grouped <b>/masterData/ssSources</b>.
   </div>
-  <div id="pane-sscoords" class="pane active"></div>
-  <div id="pane-sssources" class="pane"></div>
+  <div id="pane-sssources" class="pane active"></div>
+  <div id="pane-sscoords" class="pane"></div>
   <div id="pane-eht" class="pane"></div>
   <div id="pane-topology" class="pane"></div>
   <div id="pane-ptrs" class="pane"></div>
@@ -61,54 +63,36 @@ body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(-
 <script>
 const FIREBASE_URL = "https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app";
 const PATHS = {
+  sssources: "masterData/ssSourceRows",
+  ssSourcesGrouped: "masterData/ssSources",
   sscoords: "masterData/ssCoordinates",
-  sssources: "masterData/ssSources",
   eht: "masterData/ehtSources",
   topology: "masterData/topology",
   ptrs: "masterData/ptrSummary"
 };
+const EXACT_SOURCE_HEADERS = ['S.No.', 'Name of the Division', 'Name of the Sub Division', 'Name of the section', 'SS Code', 'Name of the 33/11 KV Sub Station', 'Name of the LVs', 'PTR capacity existing in MVA', 'Regular Source', 'Regular_Feeder_Code', 'Name of Regular Source', 'Alternate_Source-I_feeder_code', 'Alternate Source-I', 'Name of Alternate Source-I', 'Alternate_Source-II_feeder_code', 'Alternate Source-II', 'Name of Alternate Source-II', 'Alternate_Source-III_feeder_code', 'Alternate Source-III', 'Name of Alternate Source-III', 'Alternate_Source-IV_feeder_code', 'Alternate Source-IV', 'Name of Alternate Source-IV', 'Link Line', 'Name of Link Line'];
 const TEMPLATES = {
-  sscoords: ['ss_code', 'NAME', 'Latitude ', 'Longitude', 'Lines_Division', 'Lines_Sub_Division', 'Lines_Section'],
-  sssources: ['S.No.', 'Name of the Division', 'Name of the Sub Division', 'Name of the section', 'SS Code', 'Name of the 33/11KV Sub Statioin', 'Name of the LVs', 'PTR capacity existing in MVA ', 'Regular Source', 'Regular_Feeder_Code', 'Name of Regular Source ', 'Alternate_ Source-I_feeder_code', 'Alternate  Source-I', 'Name of Alternate Source-I ', 'Alternate_ Source-II_feeder_code', 'Alternate  Source-II', 'Name of Alternate Source-II ', 'Alternate_ Source-III_feeder_code', 'Alternate  Source-III', 'Name of Alternate Source-III ', 'Alternate  Source-IV', 'Alternate_ Source-IV_feeder_code', 'Name of Alternate  Source-IV', 'Link Line', 'Name of Link  Line '],
+  sssources: EXACT_SOURCE_HEADERS,
+  sscoords: ['ss_code', 'NAME', 'Latitude', 'Longitude', 'Lines_Division', 'Lines_Sub_Division', 'Lines_Section'],
   eht: ['EHT_SS_CODE', 'EHT_SS_NAME', 'LAT', 'LONG', 'No_LVs', 'No. of 33KV Feeders', 'PTRs', 'Total PTR Capacity'],
   topology: ['Feeder Code', 'Feeder Name', 'Feeder Type', 'Cable Type', 'EHT Source', 'EHT Code', 'Feeds To 33/11KV SS', 'Division', 'Sub Division', 'Section'],
-  ptrs: ["SS Code","Name of the 33/11KV SS","Name of the LVs","PTR capacity existing in MVA","Division","Sub Division","Section"]
+  ptrs: ["SS Code","Name of the 33/11KV SS","Name of the LVs","PTR capacity existing in MVA","Division","Sub Division","Section","Regular_Feeder_Code","Name of Regular Source"]
 };
 const SCHEMA = {
-  sscoords: {
-    title:"📍 33/11KV SS Coordinates — exact CSV template",
-    hint:"Use the exact uploaded CSV headers: ss_code, NAME, Latitude, Longitude, Lines_Division, Lines_Sub_Division, Lines_Section",
-    search:"Search SS name / code / section",
-    cols:["ssCode","ssName","lat","lng","division","subDivision","section"]
-  },
   sssources: {
-    title:"🔀 SS Sources Report — exact Excel template",
-    hint:"Use the exact SS Sources Excel columns, including Regular Source and Alternate Source-I to IV.",
-    search:"Search SS / source feeder / link line",
-    cols:["ssCode","ssName","division","subDivision","section","lvs","regular","alternates","linkLine"]
+    title:"🔀 SS Sources Report — exact Excel format with PTR/LV-wise source linkage",
+    hint:"Same format as your Excel. Every LV/PTR row is preserved with feeder codes.",
+    search:"Search SS / LV / regular / alternate / feeder code",
+    cols:["sno","division","subDivision","section","ssCode","ssName","lvName","ptrCapacity","regularSourceType","regularFeederCode","regularFeederName","alt1Code","alt1Type","alt1Name","alt2Code","alt2Type","alt2Name","alt3Code","alt3Type","alt3Name","alt4Code","alt4Type","alt4Name","linkLine","linkLineName"]
   },
-  eht: {
-    title:"⚡ EHT Sources / EHT Coordinates",
-    hint:"Upload EHT_SS_CODE, EHT_SS_NAME, LAT, LONG, No_LVs, No. of 33KV Feeders, PTRs, Total PTR Capacity",
-    search:"Search EHT name / code",
-    cols:["ehtCode","ehtName","lat","lng","noLVs","no33KVFeeders","ptrs","totalPtrCapacity"]
-  },
-  topology: {
-    title:"🔌 Feeder Architecture / Topology",
-    hint:"Upload feeder-wise EHT source and destination SS list. Smart Grid will use this for feeder-to-source relation.",
-    search:"Search feeder / EHT / destination",
-    cols:["feederCode","feederName","feederType","cableType","ehtSource","feedsTo","division","subDivision","section"]
-  },
-  ptrs: {
-    title:"📊 PTR Summary extracted from SS Sources report",
-    hint:"This is auto-created from the SS Sources Excel LV/PTR rows.",
-    search:"Search SS / LV / PTR",
-    cols:["ssCode","ssName","lvName","ptrCapacity","division","subDivision","section"]
-  }
+  sscoords: {title:"📍 33/11KV SS Coordinates", hint:"Exact CSV: ss_code, NAME, Latitude, Longitude, Lines_Division, Lines_Sub_Division, Lines_Section", search:"Search SS name / code / section", cols:["ssCode","ssName","lat","lng","division","subDivision","section"]},
+  eht: {title:"⚡ EHT Sources", hint:"EHT coordinates and feeder counts", search:"Search EHT name / code", cols:["ehtCode","ehtName","lat","lng","noLVs","no33KVFeeders","ptrs","totalPtrCapacity"]},
+  topology: {title:"🔌 Feeder Architecture", hint:"Feeder-wise EHT source and destination SS list", search:"Search feeder / EHT / destination", cols:["feederCode","feederName","feederType","cableType","ehtSource","feedsTo","division","subDivision","section"]},
+  ptrs: {title:"📊 PTR/LV Row Summary", hint:"Auto-created from exact SS Sources report", search:"Search SS / LV / PTR / source", cols:["ssCode","ssName","lvName","ptrCapacity","division","subDivision","section","regularFeederCode","regularFeederName"]}
 };
-let DB={sscoords:{},sssources:{},eht:{},topology:{},ptrs:{}};
+let DB={sssources:{},sscoords:{},eht:{},topology:{},ptrs:{},ssSourcesGrouped:{}};
 const $=id=>document.getElementById(id);
-function toast(msg,err){const t=$('toast');t.textContent=msg;t.classList.toggle('err',!!err);t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),3200)}
+function toast(msg,err){const t=$('toast');t.textContent=msg;t.classList.toggle('err',!!err);t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),3500)}
 function chip(cls,txt){const e=$('fbChip');e.className='chip '+(cls||'');e.textContent=txt}
 function safeKey(s){return String(s||'').toUpperCase().replace(/[.#$\[\]\/]/g,'_').replace(/\s+/g,'_').replace(/[^A-Z0-9_-]/g,'').slice(0,180)||'EMPTY'}
 function hnorm(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
@@ -121,21 +105,25 @@ async function fbPut(path,obj){const r=await fetch(`${FIREBASE_URL}/${path}.json
 async function boot(){
   chip('', '☁ LOADING');
   try{
-    for(const k of Object.keys(PATHS)) DB[k] = await fetch(`${FIREBASE_URL}/${PATHS[k]}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
+    DB.sssources = await fetch(`${FIREBASE_URL}/${PATHS.sssources}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
+    DB.ssSourcesGrouped = await fetch(`${FIREBASE_URL}/${PATHS.ssSourcesGrouped}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
+    DB.sscoords = await fetch(`${FIREBASE_URL}/${PATHS.sscoords}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
+    DB.eht = await fetch(`${FIREBASE_URL}/${PATHS.eht}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
+    DB.topology = await fetch(`${FIREBASE_URL}/${PATHS.topology}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
+    DB.ptrs = await fetch(`${FIREBASE_URL}/${PATHS.ptrs}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
     chip('live','☁ LIVE'); buildPanes(); renderAll();
   }catch(e){console.error(e); chip('err','⚠ FAILED'); buildPanes(); renderAll(); toast('Firebase load failed', true)}
 }
 function switchTab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.pane===n));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+n))}
 function buildPanes(){
   Object.keys(SCHEMA).forEach(type=>{
-    const s=SCHEMA[type];
-    const uploadLabel = type==='sssources' ? '⬆ UPLOAD SOURCES EXCEL' : type==='sscoords' ? '⬆ UPLOAD COORD CSV' : '⬆ UPLOAD EXCEL / CSV';
+    const s=SCHEMA[type]; const uploadLabel = type==='sssources' ? '⬆ UPLOAD SAME SOURCES EXCEL' : '⬆ UPLOAD EXCEL / CSV';
     $(`pane-${type}`).innerHTML = `
       <div class="toolbar">
         <div class="search"><span>🔍</span><input id="srch-${type}" placeholder="${s.search}" oninput="renderType('${type}')"></div>
         <select id="filt-${type}" onchange="renderType('${type}')"><option value="">All Divisions</option></select>
         <span class="count" id="cnt-${type}">0 records</span>
-        <button class="btn btn-outline" onclick="downloadTemplate('${type}')">⬇ TEMPLATE</button>
+        <button class="btn btn-outline" onclick="downloadTemplate('${type}')">⬇ SAME TEMPLATE</button>
         <label class="btn btn-green filebtn">${uploadLabel}<input type="file" accept=".csv,.xlsx,.xls" onchange="importFile('${type}',this.files[0]);this.value=''"></label>
         <button class="btn btn-outline" onclick="exportCSV('${type}')">CSV</button>
       </div>
@@ -147,29 +135,33 @@ function buildPanes(){
 }
 function populateFilters(){
   const divs=new Set();
-  [...Object.values(DB.sscoords),...Object.values(DB.sssources),...Object.values(DB.topology),...Object.values(DB.ptrs)].forEach(r=>{const d=r.division||r.linesDivision;if(d)divs.add(d)});
+  [...Object.values(DB.sssources),...Object.values(DB.sscoords),...Object.values(DB.topology),...Object.values(DB.ptrs)].forEach(r=>{const d=r.division||r.linesDivision;if(d)divs.add(d)});
   const opts='<option value="">All Divisions</option>'+[...divs].sort().map(d=>`<option>${d}</option>`).join('');
   Object.keys(SCHEMA).forEach(k=>{const el=$(`filt-${k}`);if(el)el.innerHTML=opts});
 }
 function refreshStats(){
-  $('stat-sscoords').textContent=Object.keys(DB.sscoords).length;
   $('stat-sssources').textContent=Object.keys(DB.sssources).length;
+  $('stat-sscount').textContent=new Set(Object.values(DB.sssources).map(r=>r.ssCode||r.ssName).filter(Boolean)).size;
+  $('stat-ptrs').textContent=Object.keys(DB.ptrs).length;
+  $('stat-multi').textContent=Object.values(DB.ssSourcesGrouped).filter(r=>(r.sourceCount||0)>=2).length;
+  $('stat-sscoords').textContent=Object.keys(DB.sscoords).length;
   $('stat-eht').textContent=Object.keys(DB.eht).length;
   $('stat-topology').textContent=Object.keys(DB.topology).length;
-  $('stat-ptrs').textContent=Object.keys(DB.ptrs).length;
-  $('stat-multi').textContent=Object.values(DB.sssources).filter(r=>(r.sources||[]).length>=2).length;
   Object.keys(SCHEMA).forEach(k=>$(`badge-${k}`).textContent=Object.keys(DB[k]).length);
 }
 function renderAll(){populateFilters();refreshStats();Object.keys(SCHEMA).forEach(renderType)}
 function filterArr(type){
   const q=($(`srch-${type}`)?.value||'').toUpperCase().trim(), div=$(`filt-${type}`)?.value||'';
-  return Object.values(DB[type]).filter(r=>{if(q&&!JSON.stringify(r).toUpperCase().includes(q))return false;if(div&&(r.division||r.linesDivision)!==div)return false;return true}).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  return Object.values(DB[type]).filter(r=>{if(q&&!JSON.stringify(r).toUpperCase().includes(q))return false;if(div&&(r.division||r.linesDivision)!==div)return false;return true}).sort((a,b)=>(a.ssName||a.feederName||a.ehtName||'').localeCompare(b.ssName||b.feederName||b.ehtName||''));
 }
 function showVal(v,key){
   if(Array.isArray(v)) return v.map((x,i)=>`<span class="tag ${i?'alt':'reg'}">${x.feederName||x.name||x.lvName||x}</span>`).join('');
-  if(key==='regular') return v?`<span class="tag reg">${v.feederName||v.name||v}</span>`:'<span class="muted">—</span>';
-  if(key==='alternates') return (v||[]).map(x=>`<span class="tag alt">${x.feederName||x.name||x}</span>`).join('')||'<span class="muted">—</span>';
-  if(key==='lvs') return (v||[]).map(x=>`<span class="tag">${x.lvName} · ${x.ptrCapacity||''} MVA</span>`).join('')||'<span class="muted">—</span>';
+  if(key==='regularFeederName'||key==='regular') return v?`<span class="tag reg">${v.feederName||v}</span>`:'<span class="muted">—</span>';
+  if(/^alt\dName$/.test(key)) return v?`<span class="tag alt">${v}</span>`:'<span class="muted">—</span>';
+  if(/^alt\dCode$/.test(key)||key==='regularFeederCode') return v?`<span class="code">${v}</span>`:'<span class="muted">—</span>';
+  if(key==='linkLineName') return v?`<span class="tag link">${v}</span>`:'<span class="muted">—</span>';
+  if(key==='lvName') return `<span class="lvcell">${v||'—'}</span>`;
+  if(key==='ptrCapacity') return `<span class="capcell">${v||'—'}</span>`;
   if(key==='feedsTo') return (v||[]).map(x=>`<span class="tag">${x}</span>`).join('')||'<span class="muted">—</span>';
   return v==null||v===''?'<span class="muted">—</span>':String(v);
 }
@@ -177,19 +169,27 @@ function renderType(type){
   const arr=filterArr(type), s=SCHEMA[type], tb=$(`tb-${type}`);
   $(`cnt-${type}`).textContent=`${arr.length} records`;
   if(!arr.length){tb.innerHTML=`<tr><td colspan="${s.cols.length}" class="empty">No records uploaded</td></tr>`;return}
-  tb.innerHTML=arr.map(r=>`<tr>${s.cols.map(c=>`<td class="${/code/i.test(c)?'code':''}">${showVal(r[c],c)}</td>`).join('')}</tr>`).join('');
+  let lastSS='';
+  tb.innerHTML=arr.map(r=>{const curSS=r.ssCode||r.ssName||''; const first=curSS!==lastSS; lastSS=curSS; return `<tr class="ssrow ${first?'firstofss':''}">${s.cols.map(c=>`<td class="${/code/i.test(c)||c==='ssCode'?'code':''}">${showVal(r[c],c)}</td>`).join('')}</tr>`}).join('');
 }
 async function importFile(type,file){
   if(!file)return;
   const rows=await readRows(file);
   if(!rows.length){toast('No rows found',true);return}
-  const obj = type==='sssources'?normalizeSSSources(rows):Object.fromEntries(rows.map((r,i)=>{const rec=normalizeRow(type,r,i);const key=keyFor(type,rec,i);return key&&key!=='EMPTY'?[key,rec]:null}).filter(Boolean));
+  let obj={};
+  if(type==='sssources') obj=normalizeSSSourcesExact(rows);
+  else obj=Object.fromEntries(rows.map((r,i)=>{const rec=normalizeRow(type,r,i);const key=keyFor(type,rec,i);return key&&key!=='EMPTY'?[key,rec]:null}).filter(Boolean));
   if(!Object.keys(obj).length){toast('No valid rows. Check template headers.',true);return}
   if(!confirm(`Upload ${Object.keys(obj).length} ${SCHEMA[type].title} records to Firebase?`))return;
   DB[type]={...DB[type],...obj};
-  if(type==='sssources') buildPtrSummaryFromSources();
-  await fbPut(PATHS[type],DB[type]);
-  if(type==='sssources') await fbPut(PATHS.ptrs,DB.ptrs);
+  if(type==='sssources'){
+    buildGroupedSourcesAndPtrSummary();
+    await fbPut(PATHS.sssources,DB.sssources);
+    await fbPut(PATHS.ssSourcesGrouped,DB.ssSourcesGrouped);
+    await fbPut(PATHS.ptrs,DB.ptrs);
+  } else {
+    await fbPut(PATHS[type],DB[type]);
+  }
   toast(`✓ Uploaded ${Object.keys(obj).length} records`);
   renderAll();
 }
@@ -201,33 +201,48 @@ function normalizeRow(type,r,i){
   if(type==='topology') return {feederCode:get(r,['Feeder Code','33KV Feeder Code']),feederName:get(r,['Feeder Name','Name of 33KV Feeder']),feederType:get(r,['Feeder Type','Type of Feeder'])||'33KV Feeder',cableType:get(r,['Cable Type','UG/OH']),ehtSource:get(r,['EHT Source','Name of the EHT SS']),ehtCode:get(r,['EHT Code']),feedsTo:splitList(get(r,['Feeds To 33/11KV SS','Feeding To','Destination SS'])),division:get(r,['Division']),subDivision:get(r,['Sub Division']),section:get(r,['Section'])};
   return r;
 }
-function normalizeSSSources(rows){
+function normalizeSSSourcesExact(rows){
   const out={}; let cur={division:'',subDivision:'',section:'',ssCode:'',ssName:''};
   rows.forEach((r,idx)=>{
-    const div=get(r,['Name of the Division']), sub=get(r,['Name of the Sub Division']), sec=get(r,['Name of the section']), code=get(r,['SS Code']), name=get(r,['Name of the 33/11KV Sub Statioin','Name of the 33/11KV Sub Station']);
+    const div=get(r,['Name of the Division']), sub=get(r,['Name of the Sub Division']), sec=get(r,['Name of the section']), code=get(r,['SS Code']), name=get(r,['Name of the 33/11 KV Sub Station','Name of the 33/11KV Sub Statioin','Name of the 33/11KV Sub Station']);
     if(div)cur.division=div;if(sub)cur.subDivision=sub;if(sec)cur.section=sec;if(code)cur.ssCode=code;if(name)cur.ssName=name;
-    if(!cur.ssCode&&!cur.ssName)return;
-    const key=safeKey(cur.ssCode||cur.ssName);
-    if(!out[key]) out[key]={ssCode:cur.ssCode,ssName:cur.ssName,division:cur.division,subDivision:cur.subDivision,section:cur.section,lvs:[],sources:[],regular:null,alternates:[],linkLine:''};
-    const rec=out[key];
-    const lv=get(r,['Name of the LVs']); const cap=num(get(r,['PTR capacity existing in MVA ']));
-    if(lv||cap) rec.lvs.push({lvName:lv,ptrCapacity:cap});
-    const regCode=get(r,['Regular_Feeder_Code']); const regName=get(r,['Name of Regular Source ']);
-    if((regCode||regName)&&!rec.regular) rec.regular={sourceType:get(r,['Regular Source'])||'Regular-1',feederCode:regCode,feederName:regName};
-    [['I','Alternate_ Source-I_feeder_code','Alternate  Source-I','Name of Alternate Source-I '],['II','Alternate_ Source-II_feeder_code','Alternate  Source-II','Name of Alternate Source-II '],['III','Alternate_ Source-III_feeder_code','Alternate  Source-III','Name of Alternate Source-III '],['IV','Alternate_ Source-IV_feeder_code','Alternate  Source-IV','Name of Alternate  Source-IV']].forEach(([roman,codeH,typeH,nameH])=>{
-      const cd=get(r,[codeH]); const nm=get(r,[nameH]); const st=get(r,[typeH])||('Alternate-'+roman);
-      if((cd||nm)&&!rec.alternates.some(a=>(a.feederCode&&a.feederCode===cd)||(a.feederName&&a.feederName===nm))) rec.alternates.push({sourceType:st,feederCode:cd,feederName:nm});
-    });
-    const link=get(r,['Name of Link  Line ']); if(link&&!rec.linkLine)rec.linkLine=link;
+    const lv=get(r,['Name of the LVs']); const cap=num(get(r,['PTR capacity existing in MVA','PTR capacity existing in MVA ']));
+    const hasSource = get(r,['Regular_Feeder_Code','Name of Regular Source','Alternate_Source-I_feeder_code','Name of Alternate Source-I']);
+    if(!cur.ssCode&&!cur.ssName&&!lv&&!hasSource)return;
+    const rec={
+      sno:get(r,['S.No.','S.No','Sl No'])||idx+1,
+      division:cur.division, subDivision:cur.subDivision, section:cur.section, ssCode:cur.ssCode, ssName:cur.ssName,
+      lvName:lv, ptrCapacity:cap,
+      regularSourceType:get(r,['Regular Source']), regularFeederCode:get(r,['Regular_Feeder_Code']), regularFeederName:get(r,['Name of Regular Source']),
+      alt1Code:get(r,['Alternate_Source-I_feeder_code','Alternate_ Source-I_feeder_code']), alt1Type:get(r,['Alternate Source-I','Alternate  Source-I']), alt1Name:get(r,['Name of Alternate Source-I']),
+      alt2Code:get(r,['Alternate_Source-II_feeder_code','Alternate_ Source-II_feeder_code']), alt2Type:get(r,['Alternate Source-II','Alternate  Source-II']), alt2Name:get(r,['Name of Alternate Source-II']),
+      alt3Code:get(r,['Alternate_Source-III_feeder_code','Alternate_ Source-III_feeder_code']), alt3Type:get(r,['Alternate Source-III','Alternate  Source-III']), alt3Name:get(r,['Name of Alternate Source-III']),
+      alt4Code:get(r,['Alternate_Source-IV_feeder_code','Alternate_ Source-IV_feeder_code']), alt4Type:get(r,['Alternate Source-IV','Alternate  Source-IV']), alt4Name:get(r,['Name of Alternate Source-IV','Name of Alternate  Source-IV']),
+      linkLine:get(r,['Link Line']), linkLineName:get(r,['Name of Link Line','Name of Link  Line'])
+    };
+    const key=safeKey([rec.ssCode||rec.ssName, rec.lvName||idx, rec.ptrCapacity||'', idx].join('_'));
+    out[key]=rec;
   });
-  Object.values(out).forEach(r=>{r.sources=[r.regular,...r.alternates].filter(Boolean)});
   return out;
 }
-function buildPtrSummaryFromSources(){
-  const ptrs={};Object.values(DB.sssources).forEach(s=>{(s.lvs||[]).forEach((lv,i)=>{const rec={ssCode:s.ssCode,ssName:s.ssName,lvName:lv.lvName,ptrCapacity:lv.ptrCapacity,division:s.division,subDivision:s.subDivision,section:s.section};ptrs[safeKey([s.ssCode||s.ssName,lv.lvName,i].join('_'))]=rec})});DB.ptrs=ptrs;
+function buildGroupedSourcesAndPtrSummary(){
+  const grouped={}, ptrs={};
+  Object.values(DB.sssources).forEach((r,i)=>{
+    const sk=safeKey(r.ssCode||r.ssName);
+    if(!grouped[sk]) grouped[sk]={ssCode:r.ssCode,ssName:r.ssName,division:r.division,subDivision:r.subDivision,section:r.section,ptrs:[],sourcesByPTR:[],sourceCount:0};
+    const srcs=[];
+    if(r.regularFeederCode||r.regularFeederName) srcs.push({sourceType:'Regular',feederCode:r.regularFeederCode,feederName:r.regularFeederName});
+    [1,2,3,4].forEach(n=>{if(r['alt'+n+'Code']||r['alt'+n+'Name']) srcs.push({sourceType:'Alternate-'+n,feederCode:r['alt'+n+'Code'],feederName:r['alt'+n+'Name']})});
+    grouped[sk].ptrs.push({lvName:r.lvName,ptrCapacity:r.ptrCapacity});
+    grouped[sk].sourcesByPTR.push({lvName:r.lvName,ptrCapacity:r.ptrCapacity,regular:srcs[0]||null,alternates:srcs.slice(1),linkLine:r.linkLineName||r.linkLine});
+    grouped[sk].sourceCount=Math.max(grouped[sk].sourceCount,srcs.length);
+    const pk=safeKey([r.ssCode||r.ssName,r.lvName,i].join('_'));
+    ptrs[pk]={ssCode:r.ssCode,ssName:r.ssName,lvName:r.lvName,ptrCapacity:r.ptrCapacity,division:r.division,subDivision:r.subDivision,section:r.section,regularFeederCode:r.regularFeederCode,regularFeederName:r.regularFeederName};
+  });
+  DB.ssSourcesGrouped=grouped; DB.ptrs=ptrs;
 }
 function downloadTemplate(type){download(type+'_template.csv', TEMPLATES[type].map(csvEsc).join(',')+'\n')}
-function exportCSV(type){const cols=SCHEMA[type].cols;const csv=[cols.join(',')].concat(Object.values(DB[type]).map(r=>cols.map(c=>csvEsc(Array.isArray(r[c])?JSON.stringify(r[c]):r[c])).join(','))).join('\n');download(type+'_firebase_export.csv',csv)}
+function exportCSV(type){const cols=SCHEMA[type].cols;const csv=[cols.join(',')].concat(Object.values(DB[type]).map(r=>cols.map(c=>csvEsc(r[c])).join(','))).join('\n');download(type+'_firebase_export.csv',csv)}
 boot();
 window.mdm={DB,PATHS,boot};
 </script>
