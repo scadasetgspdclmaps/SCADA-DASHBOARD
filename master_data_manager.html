@@ -1,488 +1,234 @@
 <!doctype html>
 <html lang="en"><head>
-  
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TGSPDCL — Master Data Manager · Smart Grid Ready</title>
+<title>TGSPDCL — Master Data Manager · Source Templates</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --purple:#7c3aed;--purple2:#a855f7;--green:#16a34a;--red:#dc2626;--amber:#d97706;
-  --bg:#0f172a;--card:#1e293b;--card2:#111827;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;
-  --blue:#38bdf8;--mono:Consolas,Monaco,monospace
-}
+:root{--bg:#0f172a;--card:#1e293b;--card2:#111827;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--purple:#7c3aed;--purple2:#a855f7;--green:#16a34a;--red:#dc2626;--amber:#d97706;--blue:#38bdf8;--mono:Consolas,Monaco,monospace}
 body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px}
-.topbar{background:linear-gradient(90deg,#7c3aed,#a855f7);padding:14px 28px;display:flex;gap:18px;align-items:center;box-shadow:0 2px 16px rgba(124,58,237,.35)}
-.topbar h1{font-size:18px;letter-spacing:1.8px;font-weight:900}.sub{font-size:11px;letter-spacing:.6px;opacity:.86}.right{margin-left:auto;display:flex;gap:10px;align-items:center}
-.chip{font:800 10px/1 var(--mono);letter-spacing:1px;padding:6px 12px;border-radius:15px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12)}
-.chip.live{background:rgba(16,185,129,.22);color:#a7f3d0}.chip.err{background:rgba(220,38,38,.25);color:#fecaca}
+.topbar{background:linear-gradient(90deg,#7c3aed,#a855f7);padding:14px 28px;display:flex;align-items:center;gap:18px;box-shadow:0 2px 14px rgba(124,58,237,.35)}
+.topbar h1{font-size:18px;font-weight:900;letter-spacing:1.8px}.sub{font-size:11px;letter-spacing:.6px;opacity:.86}.right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.chip{font:900 10px/1 var(--mono);letter-spacing:1px;padding:6px 12px;border-radius:15px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12)}.chip.live{background:rgba(16,185,129,.22);color:#a7f3d0}.chip.err{background:rgba(220,38,38,.25);color:#fecaca}
 .tabs{background:#1e293b;border-bottom:1px solid var(--border);display:flex;padding:0 22px;position:sticky;top:0;z-index:50;overflow:auto}
-.tab{padding:14px 16px;font-size:11px;font-weight:900;letter-spacing:1px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.tab{padding:14px 18px;font-size:11px;font-weight:900;letter-spacing:1px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:8px;white-space:nowrap;text-transform:uppercase}
 .tab:hover{color:#fff;background:rgba(255,255,255,.04)}.tab.active{color:#c4b5fd;border-bottom-color:#a855f7;background:rgba(168,85,247,.08)}
-.num{background:rgba(255,255,255,.1);width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}.tab.active .num{background:#a855f7;color:#fff}
-.badge{background:#a855f7;color:#fff;font-size:9px;padding:1px 7px;border-radius:8px;font-family:var(--mono)}
-.wrap{max-width:1680px;margin:22px auto;padding:0 22px}
-.stats{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:18px}.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
-.stat .v{font-size:22px;font-weight:900;color:#a855f7;font-family:var(--mono)}.stat .l{font-size:9px;letter-spacing:1px;color:var(--muted);font-weight:900;margin-top:5px;text-transform:uppercase}
-.pane{display:none}.pane.active{display:block;animation:fade .22s}@keyframes fade{from{opacity:.2;transform:translateY(5px)}to{opacity:1;transform:none}}
-.toolbar{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;flex-wrap:wrap}
-.search{flex:1;min-width:260px;display:flex;gap:8px;align-items:center;background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:8px 12px}
-.search input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:13px}.search input::placeholder{color:#64748b}
-select,.mini-input{background:#0f172a;border:1px solid var(--border);color:#fff;padding:8px 10px;border-radius:7px;font-size:11px;letter-spacing:.4px}
-.count{background:rgba(168,85,247,.15);color:#c4b5fd;font:800 10px var(--mono);padding:7px 12px;border-radius:10px}
-.btn{padding:8px 13px;border-radius:7px;font-size:10px;font-weight:900;letter-spacing:.7px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase}
-.btn-primary{background:#7c3aed;color:#fff}.btn-primary:hover{background:#6d28d9}.btn-green{background:var(--green);color:#fff}.btn-red{background:var(--red);color:#fff}.btn-amber{background:#d97706;color:#fff}
-.btn-outline{background:transparent;color:#cbd5e1;border:1.5px solid var(--border)}.btn-outline:hover{border-color:#a855f7;color:#c4b5fd}
-.filebtn{position:relative;overflow:hidden}.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
-.data-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}.card-hd{padding:12px 16px;background:#0f172a;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;align-items:center}
-.card-hd .title{font:900 11px var(--mono);letter-spacing:1.5px;color:#a855f7}.hint{font-size:11px;color:#94a3b8}
-.table-wrap{max-height:62vh;overflow:auto}table{width:100%;border-collapse:collapse;font-size:11px}th{position:sticky;top:0;z-index:2;background:#0f172a;color:#94a3b8;font-size:9.3px;letter-spacing:.6px;text-transform:uppercase;padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:8px 10px;border-bottom:1px solid #263244;color:#dbeafe;vertical-align:top}tr:hover td{background:rgba(168,85,247,.05)}
-.code{font-family:var(--mono);font-size:10px;color:#94a3b8}.muted{color:#94a3b8}.strong{font-weight:800;color:#fff}.tag{display:inline-block;background:#0f172a;border:1px solid var(--border);border-radius:7px;padding:2px 7px;margin:1px 3px 1px 0;font-size:10px;color:#cbd5e1}
-.tag.reg{border-color:rgba(16,185,129,.5);color:#86efac}.tag.alt{border-color:rgba(245,158,11,.5);color:#fcd34d}.tag.ug{border-color:#38bdf8;color:#7dd3fc}.tag.oh{border-color:#fb923c;color:#fed7aa}
-.actions{display:flex;gap:5px;justify-content:flex-end}.actions button{font-size:9px;padding:4px 8px;border:1px solid var(--border);background:transparent;color:#cbd5e1;border-radius:5px;cursor:pointer;font-weight:800}.actions button:hover{border-color:#a855f7;color:#fff}
-.empty{padding:28px;text-align:center;color:#94a3b8;font-style:italic}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9000;display:none;align-items:center;justify-content:center;padding:22px}.modal-bg.active{display:flex}
-.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:900px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-.modal-hd{padding:16px 22px;background:linear-gradient(90deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:space-between;border-radius:13px 13px 0 0}.modal-hd h2{font-size:14px;letter-spacing:1px}.x{background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer}
-.modal-bd{padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:13px}.full{grid-column:1/-1}
-.field label{display:block;font:900 10px var(--mono);letter-spacing:.7px;color:#94a3b8;margin-bottom:5px;text-transform:uppercase}
-.field input,.field textarea,.field select{width:100%;background:#0f172a;border:1px solid var(--border);border-radius:6px;color:#fff;padding:9px 11px;font-size:12px}.field textarea{min-height:70px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:#a855f7;box-shadow:0 0 0 2px rgba(168,85,247,.18)}
-.modal-ft{padding:14px 22px;background:#0f172a;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;border-radius:0 0 13px 13px}
-#toast{position:fixed;bottom:22px;right:22px;z-index:9999;background:#16a34a;color:#fff;padding:12px 18px;border-radius:10px;font-weight:800;transform:translateY(80px);transition:.25s;max-width:450px;box-shadow:0 8px 24px rgba(0,0,0,.35)}#toast.show{transform:none}#toast.err{background:#dc2626}
-.pathbox{background:#0f172a;border:1px dashed var(--border);border-radius:10px;padding:11px 13px;margin-bottom:14px;color:#cbd5e1;font:12px var(--mono)}
-.pathbox b{color:#a855f7}
-@media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}.modal-bd{grid-template-columns:1fr}.toolbar{align-items:stretch}.btn{justify-content:center}}
+.num{background:rgba(255,255,255,.1);width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}.tab.active .num{background:#a855f7;color:#fff}.badge{background:#a855f7;color:#fff;font-size:9px;padding:1px 7px;border-radius:8px;font-family:var(--mono)}
+.wrap{max-width:1680px;margin:22px auto;padding:0 22px}.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}.stat .v{font-size:22px;font-weight:900;color:#a855f7;font-family:var(--mono)}.stat .l{font:900 9px var(--mono);letter-spacing:1px;color:var(--muted);margin-top:5px;text-transform:uppercase}
+.note{background:#111827;border:1px dashed #45556c;border-radius:9px;padding:12px 14px;margin-bottom:16px;font:12px/1.45 var(--mono);color:#cbd5e1}.note b{color:#a855f7}.note .ok{color:#86efac}
+.pane{display:none}.pane.active{display:block;animation:fade .22s}@keyframes fade{from{opacity:.25;transform:translateY(5px)}to{opacity:1;transform:none}}
+.toolbar{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;flex-wrap:wrap}.search{flex:1;min-width:260px;display:flex;gap:8px;align-items:center;background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:8px 12px}.search input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:13px}.search input::placeholder{color:#64748b}select{background:#0f172a;border:1px solid var(--border);color:#fff;padding:8px 10px;border-radius:7px;font-size:11px}
+.count{background:rgba(168,85,247,.15);color:#c4b5fd;font:900 10px var(--mono);padding:7px 12px;border-radius:10px}.btn{padding:8px 13px;border-radius:7px;font-size:10px;font-weight:900;letter-spacing:.7px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase}.btn-primary{background:#7c3aed;color:#fff}.btn-green{background:var(--green);color:#fff}.btn-red{background:var(--red);color:#fff}.btn-amber{background:#d97706;color:#fff}.btn-outline{background:transparent;color:#cbd5e1;border:1.5px solid var(--border)}.btn-outline:hover{border-color:#a855f7;color:#fff}.filebtn{position:relative;overflow:hidden}.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}.card-hd{padding:12px 16px;background:#0f172a;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;align-items:center}.title{font:900 11px var(--mono);letter-spacing:1.5px;color:#a855f7}.hint{font-size:11px;color:#94a3b8}
+.table-wrap{max-height:62vh;overflow:auto}table{width:100%;border-collapse:collapse;font-size:11px}th{position:sticky;top:0;z-index:2;background:#0f172a;color:#94a3b8;font-size:9.2px;letter-spacing:.55px;text-transform:uppercase;padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}td{padding:8px 10px;border-bottom:1px solid #263244;color:#dbeafe;vertical-align:top}tr:hover td{background:rgba(168,85,247,.05)}.code{font-family:var(--mono);font-size:10px;color:#94a3b8}.muted{color:#94a3b8}.strong{font-weight:800;color:#fff}.tag{display:inline-block;background:#0f172a;border:1px solid var(--border);border-radius:7px;padding:2px 7px;margin:1px 3px 1px 0;font-size:10px;color:#cbd5e1}.tag.reg{border-color:rgba(16,185,129,.5);color:#86efac}.tag.alt{border-color:rgba(245,158,11,.5);color:#fcd34d}.empty{padding:28px;text-align:center;color:#94a3b8;font-style:italic}.actions{display:flex;gap:5px;justify-content:flex-end}.actions button{font-size:9px;padding:4px 8px;border:1px solid var(--border);background:transparent;color:#cbd5e1;border-radius:5px;cursor:pointer;font-weight:800}.actions button:hover{border-color:#a855f7;color:#fff}
+#toast{position:fixed;bottom:22px;right:22px;z-index:9999;background:#16a34a;color:#fff;padding:12px 18px;border-radius:10px;font-weight:800;transform:translateY(80px);transition:.25s;max-width:480px;box-shadow:0 8px 24px rgba(0,0,0,.35)}#toast.show{transform:none}#toast.err{background:#dc2626}
+@media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head><body>
-
 <div class="topbar">
   <h1>⚙️ MASTER DATA MANAGER</h1>
-  <div class="sub">PTRs · FEEDER TOPOLOGY · SS SOURCES · EHT SOURCES · SMARTGRID CONNECTIONS · LIVE FIREBASE</div>
+  <div class="sub">SOURCE REPORT TEMPLATES · SS COORDINATES · EHT SOURCES · FEEDER ARCHITECTURE · LIVE FIREBASE</div>
   <div class="right"><span id="fbChip" class="chip">☁ INIT</span><span class="chip live">● FIREBASE</span><button class="btn btn-outline" onclick="window.close()" style="color:#fff;border-color:rgba(255,255,255,.3)">✕ CLOSE</button></div>
 </div>
-
 <div class="tabs">
-  <div class="tab active" data-pane="ptrs" onclick="switchTab('ptrs')"><span class="num">1</span>PTRs <span class="badge" id="badge-ptrs">0</span></div>
-  <div class="tab" data-pane="topology" onclick="switchTab('topology')"><span class="num">2</span>FEEDER TOPOLOGY <span class="badge" id="badge-topo">0</span></div>
-  <div class="tab" data-pane="sstopo" onclick="switchTab('sstopo')"><span class="num">3</span>SS SOURCES <span class="badge" id="badge-ss">0</span></div>
-  <div class="tab" data-pane="eht" onclick="switchTab('eht')"><span class="num">4</span>EHT SOURCES <span class="badge" id="badge-eht">0</span></div>
-  <div class="tab" data-pane="conn" onclick="switchTab('conn')"><span class="num">5</span>SMARTGRID CONNECTIONS <span class="badge" id="badge-conn">0</span></div>
+  <div class="tab active" data-pane="sscoords" onclick="switchTab('sscoords')"><span class="num">1</span>SS COORDINATES <span class="badge" id="badge-sscoords">0</span></div>
+  <div class="tab" data-pane="sssources" onclick="switchTab('sssources')"><span class="num">2</span>SS SOURCES REPORT <span class="badge" id="badge-sssources">0</span></div>
+  <div class="tab" data-pane="eht" onclick="switchTab('eht')"><span class="num">3</span>EHT SOURCES <span class="badge" id="badge-eht">0</span></div>
+  <div class="tab" data-pane="topology" onclick="switchTab('topology')"><span class="num">4</span>FEEDER ARCHITECTURE <span class="badge" id="badge-topology">0</span></div>
+  <div class="tab" data-pane="ptrs" onclick="switchTab('ptrs')"><span class="num">5</span>PTR SUMMARY <span class="badge" id="badge-ptrs">0</span></div>
 </div>
-
 <div class="wrap">
   <div class="stats">
-    <div class="stat"><div class="v" id="stat-ss">—</div><div class="l">33/11KV SS</div></div>
-    <div class="stat"><div class="v" id="stat-ptrs">—</div><div class="l">Total PTRs</div></div>
-    <div class="stat"><div class="v" id="stat-mva">—</div><div class="l">Total MVA</div></div>
-    <div class="stat"><div class="v" id="stat-feeders">—</div><div class="l">Feeders</div></div>
-    <div class="stat"><div class="v" id="stat-multi">—</div><div class="l">Multi-source SS</div></div>
+    <div class="stat"><div class="v" id="stat-sscoords">—</div><div class="l">SS Coordinates</div></div>
+    <div class="stat"><div class="v" id="stat-sssources">—</div><div class="l">SS Sources</div></div>
     <div class="stat"><div class="v" id="stat-eht">—</div><div class="l">EHT Sources</div></div>
-    <div class="stat"><div class="v" id="stat-conn">—</div><div class="l">Connections</div></div>
+    <div class="stat"><div class="v" id="stat-topology">—</div><div class="l">Feeders</div></div>
+    <div class="stat"><div class="v" id="stat-multi">—</div><div class="l">Multi-source SS</div></div>
+    <div class="stat"><div class="v" id="stat-ptrs">—</div><div class="l">PTR Rows</div></div>
   </div>
-
-  <div class="pathbox">
-    Smart Grid Map should read in this order:
-    <b>/masterData/connectionMaster</b> → <b>/masterData/ehtSources</b> + <b>/masterData/ptrs</b> → <b>/masterData/topology</b> + <b>/masterData/ssTopology</b>.
+  <div class="note">
+    <span class="ok">Corrected:</span> removed the separate SmartGrid Connections template. The Smart Grid Map should generate connections directly from these master reports:
+    <b>/masterData/ssCoordinates</b> + <b>/masterData/ssSources</b> + <b>/masterData/ehtSources</b> + <b>/masterData/topology</b>.
   </div>
-
-  <div id="pane-ptrs" class="pane active"></div>
-  <div id="pane-topology" class="pane"></div>
-  <div id="pane-sstopo" class="pane"></div>
+  <div id="pane-sscoords" class="pane active"></div>
+  <div id="pane-sssources" class="pane"></div>
   <div id="pane-eht" class="pane"></div>
-  <div id="pane-conn" class="pane"></div>
+  <div id="pane-topology" class="pane"></div>
+  <div id="pane-ptrs" class="pane"></div>
 </div>
-
-<div class="modal-bg" id="modalBg">
-  <div class="modal">
-    <div class="modal-hd"><h2 id="modalTitle">Edit</h2><button class="x" onclick="closeModal()">✕</button></div>
-    <div class="modal-bd" id="modalBody"></div>
-    <div class="modal-ft">
-      <button class="btn btn-red" id="deleteBtn" onclick="deleteRecord()" style="margin-right:auto;display:none">🗑 DELETE</button>
-      <button class="btn btn-outline" onclick="closeModal()">CANCEL</button>
-      <button class="btn btn-green" onclick="saveModal()">✓ SAVE TO FIREBASE</button>
-    </div>
-  </div>
-</div>
-
 <div id="toast"></div>
-
 <script>
 const FIREBASE_URL = "https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app";
 const PATHS = {
-  ptrs: "masterData/ptrs",
-  topology: "masterData/topology",
-  sstopo: "masterData/ssTopology",
+  sscoords: "masterData/ssCoordinates",
+  sssources: "masterData/ssSources",
   eht: "masterData/ehtSources",
-  conn: "masterData/connectionMaster"
+  topology: "masterData/topology",
+  ptrs: "masterData/ptrSummary"
 };
-let DB = {ptrs:{}, topology:{}, sstopo:{}, eht:{}, conn:{}};
-let EDIT = {type:null,key:null};
-
-const $ = id => document.getElementById(id);
-function toast(msg,err){const t=$('toast');t.textContent=msg;t.classList.toggle('err',!!err);t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),3000)}
-function chip(mode,txt){const e=$('fbChip');e.className='chip '+(mode||'');e.textContent=txt}
+const TEMPLATES = {
+  sscoords: ['ss_code', 'NAME', 'Latitude ', 'Longitude', 'Lines_Division', 'Lines_Sub_Division', 'Lines_Section'],
+  sssources: ['S.No.', 'Name of the Division', 'Name of the Sub Division', 'Name of the section', 'SS Code', 'Name of the 33/11KV Sub Statioin', 'Name of the LVs', 'PTR capacity existing in MVA ', 'Regular Source', 'Regular_Feeder_Code', 'Name of Regular Source ', 'Alternate_ Source-I_feeder_code', 'Alternate  Source-I', 'Name of Alternate Source-I ', 'Alternate_ Source-II_feeder_code', 'Alternate  Source-II', 'Name of Alternate Source-II ', 'Alternate_ Source-III_feeder_code', 'Alternate  Source-III', 'Name of Alternate Source-III ', 'Alternate  Source-IV', 'Alternate_ Source-IV_feeder_code', 'Name of Alternate  Source-IV', 'Link Line', 'Name of Link  Line '],
+  eht: ['EHT_SS_CODE', 'EHT_SS_NAME', 'LAT', 'LONG', 'No_LVs', 'No. of 33KV Feeders', 'PTRs', 'Total PTR Capacity'],
+  topology: ['Feeder Code', 'Feeder Name', 'Feeder Type', 'Cable Type', 'EHT Source', 'EHT Code', 'Feeds To 33/11KV SS', 'Division', 'Sub Division', 'Section'],
+  ptrs: ["SS Code","Name of the 33/11KV SS","Name of the LVs","PTR capacity existing in MVA","Division","Sub Division","Section"]
+};
+const SCHEMA = {
+  sscoords: {
+    title:"📍 33/11KV SS Coordinates — exact CSV template",
+    hint:"Use the exact uploaded CSV headers: ss_code, NAME, Latitude, Longitude, Lines_Division, Lines_Sub_Division, Lines_Section",
+    search:"Search SS name / code / section",
+    cols:["ssCode","ssName","lat","lng","division","subDivision","section"]
+  },
+  sssources: {
+    title:"🔀 SS Sources Report — exact Excel template",
+    hint:"Use the exact SS Sources Excel columns, including Regular Source and Alternate Source-I to IV.",
+    search:"Search SS / source feeder / link line",
+    cols:["ssCode","ssName","division","subDivision","section","lvs","regular","alternates","linkLine"]
+  },
+  eht: {
+    title:"⚡ EHT Sources / EHT Coordinates",
+    hint:"Upload EHT_SS_CODE, EHT_SS_NAME, LAT, LONG, No_LVs, No. of 33KV Feeders, PTRs, Total PTR Capacity",
+    search:"Search EHT name / code",
+    cols:["ehtCode","ehtName","lat","lng","noLVs","no33KVFeeders","ptrs","totalPtrCapacity"]
+  },
+  topology: {
+    title:"🔌 Feeder Architecture / Topology",
+    hint:"Upload feeder-wise EHT source and destination SS list. Smart Grid will use this for feeder-to-source relation.",
+    search:"Search feeder / EHT / destination",
+    cols:["feederCode","feederName","feederType","cableType","ehtSource","feedsTo","division","subDivision","section"]
+  },
+  ptrs: {
+    title:"📊 PTR Summary extracted from SS Sources report",
+    hint:"This is auto-created from the SS Sources Excel LV/PTR rows.",
+    search:"Search SS / LV / PTR",
+    cols:["ssCode","ssName","lvName","ptrCapacity","division","subDivision","section"]
+  }
+};
+let DB={sscoords:{},sssources:{},eht:{},topology:{},ptrs:{}};
+const $=id=>document.getElementById(id);
+function toast(msg,err){const t=$('toast');t.textContent=msg;t.classList.toggle('err',!!err);t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),3200)}
+function chip(cls,txt){const e=$('fbChip');e.className='chip '+(cls||'');e.textContent=txt}
 function safeKey(s){return String(s||'').toUpperCase().replace(/[.#$\[\]\/]/g,'_').replace(/\s+/g,'_').replace(/[^A-Z0-9_-]/g,'').slice(0,180)||'EMPTY'}
-function clean(s){return String(s||'').trim()}
-function nHead(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
-function get(row,names){const m={};Object.keys(row||{}).forEach(k=>m[nHead(k)]=row[k]);for(const n of names){const v=m[nHead(n)];if(v!==undefined && v!==null && String(v).trim()!=='')return String(v).trim()}return ''}
+function hnorm(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
+function get(row,names){const m={};Object.keys(row||{}).forEach(k=>m[hnorm(k)]=row[k]);for(const n of names){const v=m[hnorm(n)];if(v!==undefined&&v!==null&&String(v).trim()!=='')return String(v).trim()}return ''}
 function num(v){const x=parseFloat(String(v||'').replace(/[^\d.-]/g,''));return isFinite(x)?x:''}
 function splitList(s){return String(s||'').split(/[,;|]/).map(x=>x.trim()).filter(Boolean)}
 function csvEsc(v){v=v==null?'':String(v);return /[,"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
-function download(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function download(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),700)}
 async function fbPut(path,obj){const r=await fetch(`${FIREBASE_URL}/${path}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});if(!r.ok)throw new Error(await r.text())}
-async function fbDelete(path){const r=await fetch(`${FIREBASE_URL}/${path}.json`,{method:'DELETE'});if(!r.ok)throw new Error(await r.text())}
-
 async function boot(){
   chip('', '☁ LOADING');
   try{
-    const entries = await Promise.all(Object.entries(PATHS).map(async ([k,p])=>[k, await fetch(`${FIREBASE_URL}/${p}.json`).then(r=>r.ok?r.json():null).catch(()=>null)]));
-    entries.forEach(([k,v])=>DB[k]=v||{});
-    chip('live','☁ LIVE');
-    buildPanes(); renderAll();
-  }catch(e){console.error(e);chip('err','⚠ FAILED');toast('Firebase load failed',true);buildPanes();renderAll();}
+    for(const k of Object.keys(PATHS)) DB[k] = await fetch(`${FIREBASE_URL}/${PATHS[k]}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
+    chip('live','☁ LIVE'); buildPanes(); renderAll();
+  }catch(e){console.error(e); chip('err','⚠ FAILED'); buildPanes(); renderAll(); toast('Firebase load failed', true)}
 }
-function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.pane===name));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+name));}
-
-const SCHEMA = {
-  ptrs: {
-    title:'📊 PTR Master Data / 33-11KV SS Coordinates',
-    hint:'Upload columns: ss_code, NAME, Latitude, Longitude, Lines_Division, Lines_Sub_Division, Lines_Section, PTR capacities',
-    search:'Search SS name / code',
-    fields:[
-      ['ssCode','SS Code'],['ssName','Name of 33/11KV SS'],['lat','Latitude'],['lng','Longitude'],['linesDivision','Lines Division'],['linesSubDiv','Lines Sub-Division'],['linesSection','Lines Section'],['ptrCapacities','PTR Capacities comma separated'],['ptrCount','PTR Count'],['totalCapacityMVA','Total Capacity MVA']
-    ],
-    cols:['ssCode','ssName','lat','lng','linesDivision','linesSubDiv','linesSection','ptrCapacities','totalCapacityMVA']
-  },
-  topology: {
-    title:'🔌 Feeder Topology',
-    hint:'Upload feeder architecture: feeder, code, type, EHT source, feeds-to SS, division/subdivision/section',
-    search:'Search feeder / EHT / destination',
-    fields:[
-      ['feederName','Feeder Name'],['feederCode','Feeder Code'],['feederType','Feeder Type'],['cableType','Cable Type UG/OH'],['ehtSource','EHT Source'],['ehtCode','EHT Code'],['feedsTo','Feeds To SS comma separated'],['division','Division'],['sub_division','Sub Division'],['section','Section']
-    ],
-    cols:['feederName','feederCode','feederType','cableType','ehtSource','feedsTo','division','sub_division','section']
-  },
-  sstopo: {
-    title:'🔀 SS Source Mapping',
-    hint:'Upload SS source report: regular source + alternate source I to IV/V. Order: first Regular, remaining Alternates.',
-    search:'Search SS / source feeder',
-    fields:[
-      ['ssCode','SS Code'],['ssName','33/11KV SS Name'],['sourceFeedersText','Source Feeders comma separated, first regular'],['division','Division'],['sub_division','Sub Division'],['section','Section']
-    ],
-    cols:['ssCode','ssName','sourceFeeders','division','sub_division','section']
-  },
-  eht: {
-    title:'⚡ EHT Source Coordinates',
-    hint:'Upload EHT report: EHT_SS_CODE, EHT_SS_NAME, LAT, LONG, No_LVs, No. of 33KV Feeders, PTRs, Total PTR Capacity',
-    search:'Search EHT name / code',
-    fields:[
-      ['ehtCode','EHT SS Code'],['ehtName','EHT SS Name'],['lat','Latitude'],['lng','Longitude'],['noLVs','No. LVs'],['no33KVFeeders','No. of 33KV Feeders'],['ptrs','PTRs'],['totalPtrCapacity','Total PTR Capacity']
-    ],
-    cols:['ehtCode','ehtName','lat','lng','noLVs','no33KVFeeders','ptrs','totalPtrCapacity']
-  },
-  conn: {
-    title:'🧭 Smart Grid Connection Master / Start-End Points',
-    hint:'This is the final connection sheet for Smart Grid. Upload explicit start/end coordinates or rebuild from master topology + coordinates.',
-    search:'Search feeder / source / end point',
-    fields:[
-      ['feederName','Feeder Name'],['feederCode','Feeder Code'],['type','Type: 33KV Feeder / Link Line / HT Service'],['cableType','Cable Type UG/OH'],['sourceType','Source Type EHT/33-11KV/HT'],['sourceCode','Source Code'],['sourceName','Source Name'],['sourceLat','Source Latitude'],['sourceLng','Source Longitude'],['endType','End Type 33-11KV/HT/Link'],['endCode','End Code'],['endName','End Name'],['endLat','End Latitude'],['endLng','End Longitude'],['connectionType','MAIN/SPUR/LINK'],['sequence','Sequence']
-    ],
-    cols:['feederName','feederCode','type','cableType','sourceName','sourceLat','sourceLng','endName','endLat','endLng','connectionType','sequence']
-  }
-};
-
+function switchTab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.pane===n));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+n))}
 function buildPanes(){
   Object.keys(SCHEMA).forEach(type=>{
     const s=SCHEMA[type];
-    const rebuild = type==='conn' ? `<button class="btn btn-amber" onclick="rebuildConnectionsFromMaster()">⚙ REBUILD FROM MASTER</button>` : '';
+    const uploadLabel = type==='sssources' ? '⬆ UPLOAD SOURCES EXCEL' : type==='sscoords' ? '⬆ UPLOAD COORD CSV' : '⬆ UPLOAD EXCEL / CSV';
     $(`pane-${type}`).innerHTML = `
       <div class="toolbar">
         <div class="search"><span>🔍</span><input id="srch-${type}" placeholder="${s.search}" oninput="renderType('${type}')"></div>
         <select id="filt-${type}" onchange="renderType('${type}')"><option value="">All Divisions</option></select>
         <span class="count" id="cnt-${type}">0 records</span>
-        ${rebuild}
         <button class="btn btn-outline" onclick="downloadTemplate('${type}')">⬇ TEMPLATE</button>
-        <label class="btn btn-green filebtn">⬆ UPLOAD EXCEL / CSV<input type="file" accept=".csv,.xlsx,.xls" onchange="importFile('${type}',this.files[0]);this.value=''"></label>
+        <label class="btn btn-green filebtn">${uploadLabel}<input type="file" accept=".csv,.xlsx,.xls" onchange="importFile('${type}',this.files[0]);this.value=''"></label>
         <button class="btn btn-outline" onclick="exportCSV('${type}')">CSV</button>
-        <button class="btn btn-primary" onclick="openModal('${type}')">＋ ADD / EDIT</button>
       </div>
-      <div class="data-card">
+      <div class="card">
         <div class="card-hd"><span class="title">${s.title}</span><span class="hint">${s.hint}</span></div>
-        <div class="table-wrap"><table><thead><tr>${s.cols.map(c=>`<th>${c}</th>`).join('')}<th></th></tr></thead><tbody id="tb-${type}"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr>${s.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody id="tb-${type}"></tbody></table></div>
       </div>`;
   });
 }
-function renderAll(){populateDivFilters();refreshStats();Object.keys(SCHEMA).forEach(renderType);}
-function populateDivFilters(){
+function populateFilters(){
   const divs=new Set();
-  Object.values(DB.ptrs).forEach(p=>p.linesDivision&&divs.add(p.linesDivision));
-  Object.values(DB.topology).forEach(t=>t.division&&divs.add(t.division));
-  Object.values(DB.sstopo).forEach(s=>s.division&&divs.add(s.division));
+  [...Object.values(DB.sscoords),...Object.values(DB.sssources),...Object.values(DB.topology),...Object.values(DB.ptrs)].forEach(r=>{const d=r.division||r.linesDivision;if(d)divs.add(d)});
   const opts='<option value="">All Divisions</option>'+[...divs].sort().map(d=>`<option>${d}</option>`).join('');
-  Object.keys(SCHEMA).forEach(t=>{const el=$(`filt-${t}`);if(el)el.innerHTML=opts;});
+  Object.keys(SCHEMA).forEach(k=>{const el=$(`filt-${k}`);if(el)el.innerHTML=opts});
 }
 function refreshStats(){
-  const ptrArr=Object.values(DB.ptrs), topoArr=Object.values(DB.topology), ssArr=Object.values(DB.sstopo), ehtArr=Object.values(DB.eht), connArr=Object.values(DB.conn);
-  const totalPTRs=ptrArr.reduce((s,p)=>s+(parseFloat(p.ptrCount)||0),0);
-  const totalMVA=ptrArr.reduce((s,p)=>s+(parseFloat(p.totalCapacityMVA)||0),0);
-  const multi=ssArr.filter(s=>(s.sourceFeeders||[]).length>=2).length;
-  $('stat-ss').textContent=ptrArr.length;$('stat-ptrs').textContent=totalPTRs;$('stat-mva').textContent=Math.round(totalMVA);
-  $('stat-feeders').textContent=topoArr.length;$('stat-multi').textContent=multi;$('stat-eht').textContent=ehtArr.length;$('stat-conn').textContent=connArr.length;
-  Object.keys(SCHEMA).forEach(k=>{const b=$('badge-'+(k==='topology'?'topo':k==='sstopo'?'ss':k)); if(b)b.textContent=Object.keys(DB[k]).length;});
+  $('stat-sscoords').textContent=Object.keys(DB.sscoords).length;
+  $('stat-sssources').textContent=Object.keys(DB.sssources).length;
+  $('stat-eht').textContent=Object.keys(DB.eht).length;
+  $('stat-topology').textContent=Object.keys(DB.topology).length;
+  $('stat-ptrs').textContent=Object.keys(DB.ptrs).length;
+  $('stat-multi').textContent=Object.values(DB.sssources).filter(r=>(r.sources||[]).length>=2).length;
+  Object.keys(SCHEMA).forEach(k=>$(`badge-${k}`).textContent=Object.keys(DB[k]).length);
 }
-function recordText(r){return JSON.stringify(r||{}).toUpperCase();}
+function renderAll(){populateFilters();refreshStats();Object.keys(SCHEMA).forEach(renderType)}
 function filterArr(type){
-  const q=($(`srch-${type}`)?.value||'').toUpperCase().trim();
-  const div=$(`filt-${type}`)?.value||'';
-  return Object.entries(DB[type]||{}).filter(([k,r])=>{
-    if(q && !recordText(r).includes(q))return false;
-    if(div){
-      const d=r.division||r.linesDivision||'';
-      if(d!==div)return false;
-    }
-    return true;
-  }).sort((a,b)=>recordText(a[1]).localeCompare(recordText(b[1])));
+  const q=($(`srch-${type}`)?.value||'').toUpperCase().trim(), div=$(`filt-${type}`)?.value||'';
+  return Object.values(DB[type]).filter(r=>{if(q&&!JSON.stringify(r).toUpperCase().includes(q))return false;if(div&&(r.division||r.linesDivision)!==div)return false;return true}).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
 }
-function displayVal(type,key,v){
-  if(Array.isArray(v)) return v.map(x=>`<span class="tag">${clean(x.feederName||x)}</span>`).join('');
-  if(key==='feedsTo') return (v||[]).map(x=>`<span class="tag">${x}</span>`).join('');
-  if(key==='sourceFeeders') return (v||[]).map((x,i)=>`<span class="tag ${i?'alt':'reg'}">${i?'ALT':'REG'} · ${clean(x.feederName||x)}</span>`).join('');
-  if(key==='ptrCapacities') return (v||[]).join(' + ');
-  if(key==='cableType') return `<span class="tag ${String(v).toUpperCase().includes('OH')?'oh':'ug'}">${v||''}</span>`;
+function showVal(v,key){
+  if(Array.isArray(v)) return v.map((x,i)=>`<span class="tag ${i?'alt':'reg'}">${x.feederName||x.name||x.lvName||x}</span>`).join('');
+  if(key==='regular') return v?`<span class="tag reg">${v.feederName||v.name||v}</span>`:'<span class="muted">—</span>';
+  if(key==='alternates') return (v||[]).map(x=>`<span class="tag alt">${x.feederName||x.name||x}</span>`).join('')||'<span class="muted">—</span>';
+  if(key==='lvs') return (v||[]).map(x=>`<span class="tag">${x.lvName} · ${x.ptrCapacity||''} MVA</span>`).join('')||'<span class="muted">—</span>';
+  if(key==='feedsTo') return (v||[]).map(x=>`<span class="tag">${x}</span>`).join('')||'<span class="muted">—</span>';
   return v==null||v===''?'<span class="muted">—</span>':String(v);
 }
 function renderType(type){
-  const arr=filterArr(type);
-  const tb=$(`tb-${type}`), s=SCHEMA[type];
+  const arr=filterArr(type), s=SCHEMA[type], tb=$(`tb-${type}`);
   $(`cnt-${type}`).textContent=`${arr.length} records`;
-  if(!arr.length){tb.innerHTML=`<tr><td colspan="${s.cols.length+1}" class="empty">No records</td></tr>`;return;}
-  tb.innerHTML=arr.map(([key,r])=>`<tr>
-    ${s.cols.map(c=>`<td class="${/code/i.test(c)?'code':''}">${displayVal(type,c,r[c])}</td>`).join('')}
-    <td class="actions"><button onclick="openModal('${type}','${key}')">✎ EDIT</button><button onclick="deleteRecord('${type}','${key}')">🗑</button></td>
-  </tr>`).join('');
-}
-
-function openModal(type,key){
-  EDIT={type,key:key||null};
-  const s=SCHEMA[type], r=key?(DB[type][key]||{}):{};
-  $('modalTitle').textContent=(key?'✎ EDIT ':'＋ ADD ')+s.title.replace(/^[^A-Za-z]+/,'');
-  $('deleteBtn').style.display=key?'inline-flex':'none';
-  $('modalBody').innerHTML=s.fields.map(([id,label])=>{
-    let val='';
-    if(id==='ptrCapacities') val=(r.ptrCapacities||[]).join(', ');
-    else if(id==='feedsTo') val=(r.feedsTo||[]).join(', ');
-    else if(id==='sourceFeedersText') val=(r.sourceFeeders||[]).map(x=>x.feederName||x).join(', ');
-    else val=r[id]??'';
-    const isText = /feeds|sourceFeedersText/i.test(id);
-    return `<div class="field ${isText?'full':''}"><label>${label}</label>${isText?`<textarea data-id="${id}">${val}</textarea>`:`<input data-id="${id}" value="${String(val).replace(/"/g,'&quot;')}">`}</div>`;
-  }).join('');
-  $('modalBg').classList.add('active');
-}
-function closeModal(){$('modalBg').classList.remove('active');EDIT={type:null,key:null}}
-function formPayload(){
-  const type=EDIT.type, data={};
-  document.querySelectorAll('#modalBody [data-id]').forEach(el=>data[el.dataset.id]=el.value.trim());
-  return normalizeManual(type,data);
-}
-function normalizeManual(type,d){
-  if(type==='ptrs'){
-    const caps=splitList(d.ptrCapacities).map(num).filter(v=>v!=='');
-    return {...d, lat:num(d.lat), lng:num(d.lng), ptrCapacities:caps, ptrCount:num(d.ptrCount)||caps.length, totalCapacityMVA:num(d.totalCapacityMVA)||caps.reduce((a,b)=>a+b,0)};
-  }
-  if(type==='topology') return {...d, feedsTo:splitList(d.feedsTo)};
-  if(type==='sstopo') return {ssCode:d.ssCode, ssName:d.ssName, division:d.division, sub_division:d.sub_division, section:d.section, sourceFeeders:splitList(d.sourceFeedersText).map((x,i)=>({feederName:x, sourceType:i?'Alternate':'Regular'}))};
-  if(type==='eht') return {...d, lat:num(d.lat), lng:num(d.lng), noLVs:num(d.noLVs), no33KVFeeders:num(d.no33KVFeeders), totalPtrCapacity:num(d.totalPtrCapacity)};
-  if(type==='conn') return {...d, sourceLat:num(d.sourceLat), sourceLng:num(d.sourceLng), endLat:num(d.endLat), endLng:num(d.endLng), sequence:num(d.sequence)};
-  return d;
-}
-function keyFor(type,r){
-  if(type==='ptrs')return safeKey(r.ssCode||r.ssName);
-  if(type==='topology')return safeKey(r.feederCode||r.feederName);
-  if(type==='sstopo')return safeKey(r.ssCode||r.ssName);
-  if(type==='eht')return safeKey(r.ehtCode||r.ehtName);
-  if(type==='conn')return safeKey([r.feederCode||r.feederName,r.endCode||r.endName,r.sequence||1].join('_'));
-}
-async function saveModal(){
-  const type=EDIT.type, payload=formPayload(), key=keyFor(type,payload);
-  if(!key||key==='EMPTY'){toast('Key field is required',true);return;}
-  try{
-    await fbPut(`${PATHS[type]}/${key}`,{...payload,updatedAt:new Date().toISOString()});
-    if(EDIT.key && EDIT.key!==key){await fbDelete(`${PATHS[type]}/${EDIT.key}`);delete DB[type][EDIT.key];}
-    DB[type][key]={...payload,updatedAt:new Date().toISOString()};
-    toast('✓ Saved to Firebase');closeModal();populateDivFilters();refreshStats();renderType(type);
-  }catch(e){toast('Save failed: '+e.message,true);}
-}
-async function deleteRecord(type,key){
-  type=type||EDIT.type;key=key||EDIT.key;
-  if(!type||!key)return;
-  if(!confirm('Delete this record?'))return;
-  try{await fbDelete(`${PATHS[type]}/${key}`);delete DB[type][key];toast('✓ Deleted');closeModal();refreshStats();renderType(type);}catch(e){toast('Delete failed: '+e.message,true);}
-}
-
-function parseRowsFromFile(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=e=>{
-      try{
-        const wb=XLSX.read(e.target.result,{type:'array'});
-        const sh=wb.Sheets[wb.SheetNames[0]];
-        resolve(XLSX.utils.sheet_to_json(sh,{defval:''}));
-      }catch(err){reject(err);}
-    };
-    reader.onerror=reject;
-    reader.readAsArrayBuffer(file);
-  });
+  if(!arr.length){tb.innerHTML=`<tr><td colspan="${s.cols.length}" class="empty">No records uploaded</td></tr>`;return}
+  tb.innerHTML=arr.map(r=>`<tr>${s.cols.map(c=>`<td class="${/code/i.test(c)?'code':''}">${showVal(r[c],c)}</td>`).join('')}</tr>`).join('');
 }
 async function importFile(type,file){
   if(!file)return;
-  try{
-    const rows=await parseRowsFromFile(file);
-    if(!rows.length){toast('No rows found',true);return;}
-    const obj={};
-    rows.forEach((row,idx)=>{
-      const rec=normalizeImported(type,row,idx);
-      const k=keyFor(type,rec);
-      if(k&&k!=='EMPTY')obj[k]={...rec,updatedAt:new Date().toISOString()};
-    });
-    if(!Object.keys(obj).length){toast('No valid records found. Check headers.',true);return;}
-    if(!confirm(`Import ${Object.keys(obj).length} records into ${SCHEMA[type].title}? This will merge/replace same keys.`))return;
-    DB[type]={...DB[type],...obj};
-    await fbPut(PATHS[type],DB[type]);
-    toast(`✓ Imported ${Object.keys(obj).length} records to Firebase`);
-    populateDivFilters();refreshStats();renderType(type);
-  }catch(e){console.error(e);toast('Import failed: '+e.message,true);}
+  const rows=await readRows(file);
+  if(!rows.length){toast('No rows found',true);return}
+  const obj = type==='sssources'?normalizeSSSources(rows):Object.fromEntries(rows.map((r,i)=>{const rec=normalizeRow(type,r,i);const key=keyFor(type,rec,i);return key&&key!=='EMPTY'?[key,rec]:null}).filter(Boolean));
+  if(!Object.keys(obj).length){toast('No valid rows. Check template headers.',true);return}
+  if(!confirm(`Upload ${Object.keys(obj).length} ${SCHEMA[type].title} records to Firebase?`))return;
+  DB[type]={...DB[type],...obj};
+  if(type==='sssources') buildPtrSummaryFromSources();
+  await fbPut(PATHS[type],DB[type]);
+  if(type==='sssources') await fbPut(PATHS.ptrs,DB.ptrs);
+  toast(`✓ Uploaded ${Object.keys(obj).length} records`);
+  renderAll();
 }
-function normalizeImported(type,r,idx){
-  if(type==='ptrs'){
-    const capsRaw=get(r,['PTRs','PTR','PTR Capacity','PTR Capacities','PTR Capacity in MVA','PTR_capacity','PTRS']);
-    const caps=splitList(capsRaw).map(num).filter(v=>v!=='');
-    const total=num(get(r,['Total PTR Capacity','Total PTR Capacity MVA','Total Capacity','PTR Total','Total MVA']));
-    const ptrCount=num(get(r,['No_PTRs','No. of PTRs','PTR Count','No of PTRs']))||caps.length||'';
-    return {
-      ssCode:get(r,['ss_code','SS Code','SS_CODE','Station Code']),
-      ssName:get(r,['NAME','Name','Name of 33/11KV SS','Name of the 33/11KV SS','Substation Name','SS Name']),
-      lat:num(get(r,['Latitude','LAT','SS Latitude'])),
-      lng:num(get(r,['Longitude','LONG','LON','SS Longitude'])),
-      linesDivision:get(r,['Lines_Division','Division','Name of the Division']),
-      linesSubDiv:get(r,['Lines_Sub_Division','Sub Division','Name of Sub Division']),
-      linesSection:get(r,['Lines_Section','Section','Name of Section']),
-      ptrCapacities:caps,
-      ptrCount:ptrCount,
-      totalCapacityMVA:total||caps.reduce((a,b)=>a+b,0)
-    };
-  }
-  if(type==='topology'){
-    return {
-      feederName:get(r,['Name of 33KV Feeder','Feeder Name','name_of_33kv_feeder','Name of Feeder']),
-      feederCode:get(r,['33KV Feeder Code','Feeder Code','feeder_code','Code']),
-      feederType:get(r,['Type of Feeder','Feeder Type','source_type'])||'33KV Feeder',
-      cableType:get(r,['Cable Type','Type of Cable','UG/OH','feeder_type']),
-      ehtSource:get(r,['EHT Source','Name of the EHT SS','EHT SS Name','Source EHT','eht_name']),
-      ehtCode:get(r,['EHT Code','eht_code','EHT_SS_CODE']),
-      feedsTo:splitList(get(r,['Feeds To 33/11KV SS','Feeding To','feeder_feeding_to','Feeding End Name','Destination SS','Name of SS'])),
-      division:get(r,['Division','Lines_Division']),
-      sub_division:get(r,['Sub Division','Lines_Sub_Division']),
-      section:get(r,['Section','Lines_Section'])
-    };
-  }
-  if(type==='sstopo'){
-    const sources=[];
-    const regName=get(r,['Name of Regular Source','Regular Source Name','Regular Source','Name of Regular_Source']);
-    const regCode=get(r,['Regular_Feeder_Code','Regular Feeder Code','Regular Source Code']);
-    if(regName||regCode)sources.push({feederName:regName||regCode,feederCode:regCode,sourceType:'Regular'});
-    ['I','II','III','IV','V'].forEach(roman=>{
-      const nm=get(r,[`Name of Alternate Source-${roman}`,`Name of Alternate Source ${roman}`,`Alternate Source-${roman}`,`Alternate Source ${roman}`,`Alternate Source ${roman} Name`]);
-      const cd=get(r,[`Alternate_Source-${roman}_Feeder_Code`,`Alternate Source-${roman} Feeder Code`,`Alternate Feeder Code ${roman}`]);
-      if(nm||cd)sources.push({feederName:nm||cd,feederCode:cd,sourceType:'Alternate-'+roman});
-    });
-    return {
-      ssCode:get(r,['SS Code','ss_code']),
-      ssName:get(r,['Name of 33/11KV Substation','Name of the 33/11KV SS','SS Name','NAME']),
-      division:get(r,['Name of the Division','Division','Lines_Division']),
-      sub_division:get(r,['Name of Sub Division','Sub Division','Lines_Sub_Division']),
-      section:get(r,['Name of Section','Section','Lines_Section']),
-      sourceFeeders:sources
-    };
-  }
-  if(type==='eht'){
-    return {
-      ehtCode:get(r,['EHT_SS_CODE','EHT SS CODE','EHT Code','Code']),
-      ehtName:get(r,['EHT_SS_NAME','EHT SS NAME','EHT Name','Name']),
-      lat:num(get(r,['LAT','Latitude','Lat'])),
-      lng:num(get(r,['LONG','LON','Longitude','Long'])),
-      noLVs:num(get(r,['No_LVs','No. LVs','No of LVs'])),
-      no33KVFeeders:num(get(r,['No. of 33KV Feeders','No of 33KV Feeders','No_33KV_Feeders'])),
-      ptrs:get(r,['PTRs','PTR']),
-      totalPtrCapacity:num(get(r,['Total PTR Capacity','Total PTR Capacity MVA','Total Capacity']))
-    };
-  }
-  if(type==='conn'){
-    return {
-      feederName:get(r,['Feeder Name','Name of 33KV Feeder','name_of_33kv_feeder']),
-      feederCode:get(r,['Feeder Code','33KV Feeder Code','feeder_code']),
-      type:get(r,['Type','Type of Feeder','Feeder Type'])||'33KV Feeder',
-      cableType:get(r,['Cable Type','UG/OH','feeder_type']),
-      sourceType:get(r,['Source Type','Start Type']),
-      sourceCode:get(r,['Source Code','EHT Code','Start Code']),
-      sourceName:get(r,['Source Name','EHT Source','Name of the EHT SS','Start Name']),
-      sourceLat:num(get(r,['Source Latitude','Start Latitude','EHT Latitude','latitude_eht'])),
-      sourceLng:num(get(r,['Source Longitude','Start Longitude','EHT Longitude','longitude_eht'])),
-      endType:get(r,['End Type','Feeding To Type','Destination Type']),
-      endCode:get(r,['End Code','Feeding Code','feeder_feeding_code']),
-      endName:get(r,['End Name','Feeding End Name','feeder_feeding_to','Destination Name']),
-      endLat:num(get(r,['End Latitude','Feeding End Latitude','feeding_end_latitude'])),
-      endLng:num(get(r,['End Longitude','Feeding End Longitude','feeding_end_longitude'])),
-      connectionType:get(r,['Connection Type','Main/Spur'])||'MAIN',
-      sequence:num(get(r,['Sequence','Seq','Point No']))||idx+1
-    };
-  }
+function readRows(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});const sh=wb.Sheets[wb.SheetNames[0]];resolve(XLSX.utils.sheet_to_json(sh,{defval:''}))}catch(err){reject(err)}};r.onerror=reject;r.readAsArrayBuffer(file)})}
+function keyFor(type,r,i){if(type==='sscoords')return safeKey(r.ssCode||r.ssName);if(type==='eht')return safeKey(r.ehtCode||r.ehtName);if(type==='topology')return safeKey(r.feederCode||r.feederName);if(type==='ptrs')return safeKey([r.ssCode||r.ssName,r.lvName,i].join('_'));return safeKey(i)}
+function normalizeRow(type,r,i){
+  if(type==='sscoords') return {ssCode:get(r,['ss_code','SS Code']),ssName:get(r,['NAME','Name','SS Name']),lat:num(get(r,['Latitude ','Latitude','LAT'])),lng:num(get(r,['Longitude','LONG','LON'])),division:get(r,['Lines_Division']),subDivision:get(r,['Lines_Sub_Division']),section:get(r,['Lines_Section'])};
+  if(type==='eht') return {ehtCode:get(r,['EHT_SS_CODE','EHT SS CODE','EHT Code']),ehtName:get(r,['EHT_SS_NAME','EHT SS NAME','EHT Name']),lat:num(get(r,['LAT','Latitude'])),lng:num(get(r,['LONG','LON','Longitude'])),noLVs:num(get(r,['No_LVs','No. LVs'])),no33KVFeeders:num(get(r,['No. of 33KV Feeders','No of 33KV Feeders'])),ptrs:get(r,['PTRs']),totalPtrCapacity:num(get(r,['Total PTR Capacity']))};
+  if(type==='topology') return {feederCode:get(r,['Feeder Code','33KV Feeder Code']),feederName:get(r,['Feeder Name','Name of 33KV Feeder']),feederType:get(r,['Feeder Type','Type of Feeder'])||'33KV Feeder',cableType:get(r,['Cable Type','UG/OH']),ehtSource:get(r,['EHT Source','Name of the EHT SS']),ehtCode:get(r,['EHT Code']),feedsTo:splitList(get(r,['Feeds To 33/11KV SS','Feeding To','Destination SS'])),division:get(r,['Division']),subDivision:get(r,['Sub Division']),section:get(r,['Section'])};
   return r;
 }
-function downloadTemplate(type){
-  const headers = {
-    ptrs:['ss_code','NAME','Latitude','Longitude','Lines_Division','Lines_Sub_Division','Lines_Section','PTR Capacities','Total PTR Capacity'],
-    topology:['Feeder Code','Feeder Name','Feeder Type','Cable Type','EHT Source','EHT Code','Feeds To 33/11KV SS','Division','Sub Division','Section'],
-    sstopo:['SS Code','Name of 33/11KV Substation','Regular_Feeder_Code','Name of Regular Source','Alternate_Source-I_Feeder_Code','Name of Alternate Source-I','Alternate_Source-II_Feeder_Code','Name of Alternate Source-II','Division','Sub Division','Section'],
-    eht:['EHT_SS_CODE','EHT_SS_NAME','LAT','LONG','No_LVs','No. of 33KV Feeders','PTRs','Total PTR Capacity'],
-    conn:['Feeder Code','Feeder Name','Type','Cable Type','Source Type','Source Code','Source Name','Source Latitude','Source Longitude','End Type','End Code','End Name','End Latitude','End Longitude','Connection Type','Sequence']
-  }[type];
-  download(`${type}_template.csv`, headers.join(',')+'\n');
-}
-function exportCSV(type){
-  const s=SCHEMA[type], cols=s.cols;
-  const csv=[cols.join(',')].concat(Object.values(DB[type]).map(r=>cols.map(c=>csvEsc(Array.isArray(r[c])?JSON.stringify(r[c]):r[c])).join(','))).join('\n');
-  download(`${type}_firebase_export.csv`, csv);
-}
-async function rebuildConnectionsFromMaster(){
-  const out={};
-  Object.values(DB.topology).forEach((t,idx)=>{
-    const src = findEHT(t.ehtCode||t.ehtSource);
-    const dests = (t.feedsTo||[]);
-    dests.forEach((d,i)=>{
-      const ss=findSS(d);
-      const rec={
-        feederName:t.feederName, feederCode:t.feederCode, type:t.feederType||'33KV Feeder', cableType:t.cableType,
-        sourceType:'EHT', sourceCode:src.ehtCode||t.ehtCode||'', sourceName:src.ehtName||t.ehtSource||'', sourceLat:src.lat||'', sourceLng:src.lng||'',
-        endType:'33/11KV SS', endCode:ss.ssCode||'', endName:ss.ssName||d, endLat:ss.lat||'', endLng:ss.lng||'',
-        connectionType:'MAIN', sequence:i+1, division:t.division, sub_division:t.sub_division, section:t.section, updatedAt:new Date().toISOString()
-      };
-      out[keyFor('conn',rec)] = rec;
+function normalizeSSSources(rows){
+  const out={}; let cur={division:'',subDivision:'',section:'',ssCode:'',ssName:''};
+  rows.forEach((r,idx)=>{
+    const div=get(r,['Name of the Division']), sub=get(r,['Name of the Sub Division']), sec=get(r,['Name of the section']), code=get(r,['SS Code']), name=get(r,['Name of the 33/11KV Sub Statioin','Name of the 33/11KV Sub Station']);
+    if(div)cur.division=div;if(sub)cur.subDivision=sub;if(sec)cur.section=sec;if(code)cur.ssCode=code;if(name)cur.ssName=name;
+    if(!cur.ssCode&&!cur.ssName)return;
+    const key=safeKey(cur.ssCode||cur.ssName);
+    if(!out[key]) out[key]={ssCode:cur.ssCode,ssName:cur.ssName,division:cur.division,subDivision:cur.subDivision,section:cur.section,lvs:[],sources:[],regular:null,alternates:[],linkLine:''};
+    const rec=out[key];
+    const lv=get(r,['Name of the LVs']); const cap=num(get(r,['PTR capacity existing in MVA ']));
+    if(lv||cap) rec.lvs.push({lvName:lv,ptrCapacity:cap});
+    const regCode=get(r,['Regular_Feeder_Code']); const regName=get(r,['Name of Regular Source ']);
+    if((regCode||regName)&&!rec.regular) rec.regular={sourceType:get(r,['Regular Source'])||'Regular-1',feederCode:regCode,feederName:regName};
+    [['I','Alternate_ Source-I_feeder_code','Alternate  Source-I','Name of Alternate Source-I '],['II','Alternate_ Source-II_feeder_code','Alternate  Source-II','Name of Alternate Source-II '],['III','Alternate_ Source-III_feeder_code','Alternate  Source-III','Name of Alternate Source-III '],['IV','Alternate_ Source-IV_feeder_code','Alternate  Source-IV','Name of Alternate  Source-IV']].forEach(([roman,codeH,typeH,nameH])=>{
+      const cd=get(r,[codeH]); const nm=get(r,[nameH]); const st=get(r,[typeH])||('Alternate-'+roman);
+      if((cd||nm)&&!rec.alternates.some(a=>(a.feederCode&&a.feederCode===cd)||(a.feederName&&a.feederName===nm))) rec.alternates.push({sourceType:st,feederCode:cd,feederName:nm});
     });
+    const link=get(r,['Name of Link  Line ']); if(link&&!rec.linkLine)rec.linkLine=link;
   });
-  if(!Object.keys(out).length){toast('No topology records available to rebuild',true);return;}
-  if(!confirm(`Rebuild ${Object.keys(out).length} smart-grid connections from master data?`))return;
-  DB.conn=out; await fbPut(PATHS.conn,DB.conn);
-  toast('✓ Connection master rebuilt from topology + coordinates');
-  refreshStats(); renderType('conn');
+  Object.values(out).forEach(r=>{r.sources=[r.regular,...r.alternates].filter(Boolean)});
+  return out;
 }
-function findEHT(q){q=safeKey(q);return Object.values(DB.eht).find(e=>safeKey(e.ehtCode)===q||safeKey(e.ehtName)===q)||{}}
-function findSS(q){q=safeKey(q);return Object.values(DB.ptrs).find(s=>safeKey(s.ssCode)===q||safeKey(s.ssName)===q)||{}}
-
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-$('modalBg').addEventListener('click',e=>{if(e.target===$('modalBg'))closeModal()});
+function buildPtrSummaryFromSources(){
+  const ptrs={};Object.values(DB.sssources).forEach(s=>{(s.lvs||[]).forEach((lv,i)=>{const rec={ssCode:s.ssCode,ssName:s.ssName,lvName:lv.lvName,ptrCapacity:lv.ptrCapacity,division:s.division,subDivision:s.subDivision,section:s.section};ptrs[safeKey([s.ssCode||s.ssName,lv.lvName,i].join('_'))]=rec})});DB.ptrs=ptrs;
+}
+function downloadTemplate(type){download(type+'_template.csv', TEMPLATES[type].map(csvEsc).join(',')+'\n')}
+function exportCSV(type){const cols=SCHEMA[type].cols;const csv=[cols.join(',')].concat(Object.values(DB[type]).map(r=>cols.map(c=>csvEsc(Array.isArray(r[c])?JSON.stringify(r[c]):r[c])).join(','))).join('\n');download(type+'_firebase_export.csv',csv)}
 boot();
-window.mdm={DB,PATHS,rebuildConnectionsFromMaster,boot};
+window.mdm={DB,PATHS,boot};
 </script>
 </body></html>
