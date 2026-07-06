@@ -2,41 +2,43 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TGSPDCL — Master Data Manager · Exact Source Report Format</title>
+<title>TGSPDCL — Master Data Manager · Source Reports</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f172a;--card:#1e293b;--card2:#111827;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--purple:#7c3aed;--purple2:#a855f7;--green:#16a34a;--red:#dc2626;--amber:#d97706;--blue:#38bdf8;--mono:Consolas,Monaco,monospace}
 body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px}
-.topbar{background:linear-gradient(90deg,#7c3aed,#a855f7);padding:14px 28px;display:flex;align-items:center;gap:18px;box-shadow:0 2px 14px rgba(124,58,237,.35)}
+.topbar{background:linear-gradient(90deg,#7c3aed,#a855f7);padding:14px 28px;display:flex;align-items:center;gap:18px;box-shadow:0 2px 14px rgba(124,58,237,.35);position:sticky;top:0;z-index:80}
 .topbar h1{font-size:18px;font-weight:900;letter-spacing:1.8px}.sub{font-size:11px;letter-spacing:.6px;opacity:.86}.right{margin-left:auto;display:flex;gap:10px;align-items:center}
 .chip{font:900 10px/1 var(--mono);letter-spacing:1px;padding:6px 12px;border-radius:15px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12)}.chip.live{background:rgba(16,185,129,.22);color:#a7f3d0}.chip.err{background:rgba(220,38,38,.25);color:#fecaca}
-.tabs{background:#1e293b;border-bottom:1px solid var(--border);display:flex;padding:0 22px;position:sticky;top:0;z-index:50;overflow:auto}
+.tabs{background:#1e293b;border-bottom:1px solid var(--border);display:flex;padding:0 22px;position:sticky;top:52px;z-index:70;overflow:auto}
 .tab{padding:14px 18px;font-size:11px;font-weight:900;letter-spacing:1px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:8px;white-space:nowrap;text-transform:uppercase}
 .tab:hover{color:#fff;background:rgba(255,255,255,.04)}.tab.active{color:#c4b5fd;border-bottom-color:#a855f7;background:rgba(168,85,247,.08)}
 .num{background:rgba(255,255,255,.1);width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}.tab.active .num{background:#a855f7;color:#fff}.badge{background:#a855f7;color:#fff;font-size:9px;padding:1px 7px;border-radius:8px;font-family:var(--mono)}
-.wrap{max-width:1780px;margin:22px auto;padding:0 22px}.stats{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:18px}.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}.stat .v{font-size:22px;font-weight:900;color:#a855f7;font-family:var(--mono)}.stat .l{font:900 9px var(--mono);letter-spacing:1px;color:var(--muted);margin-top:5px;text-transform:uppercase}
+.wrap{max-width:1780px;margin:22px auto;padding:0 22px}.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}.stat .v{font-size:22px;font-weight:900;color:#a855f7;font-family:var(--mono)}.stat .l{font:900 9px var(--mono);letter-spacing:1px;color:#94a3b8;margin-top:5px;text-transform:uppercase}
 .note{background:#111827;border:1px dashed #45556c;border-radius:9px;padding:12px 14px;margin-bottom:16px;font:12px/1.45 var(--mono);color:#cbd5e1}.note b{color:#a855f7}.note .ok{color:#86efac}.note .warn{color:#fcd34d}
 .pane{display:none}.pane.active{display:block;animation:fade .22s}@keyframes fade{from{opacity:.25;transform:translateY(5px)}to{opacity:1;transform:none}}
-.toolbar{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;flex-wrap:wrap}.search{flex:1;min-width:260px;display:flex;gap:8px;align-items:center;background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:8px 12px}.search input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:13px}.search input::placeholder{color:#64748b}select{background:#0f172a;border:1px solid var(--border);color:#fff;padding:8px 10px;border-radius:7px;font-size:11px}
-.count{background:rgba(168,85,247,.15);color:#c4b5fd;font:900 10px var(--mono);padding:7px 12px;border-radius:10px}.btn{padding:8px 13px;border-radius:7px;font-size:10px;font-weight:900;letter-spacing:.7px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase}.btn-primary{background:#7c3aed;color:#fff}.btn-green{background:var(--green);color:#fff}.btn-red{background:var(--red);color:#fff}.btn-amber{background:#d97706;color:#fff}.btn-outline{background:transparent;color:#cbd5e1;border:1.5px solid var(--border)}.btn-outline:hover{border-color:#a855f7;color:#fff}.filebtn{position:relative;overflow:hidden}.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.toolbar{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;flex-wrap:wrap}.search{flex:1;min-width:260px;display:flex;gap:8px;align-items:center;background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:8px 12px}.search input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:13px}.search input::placeholder{color:#64748b}
+select,input.small{background:#0f172a;border:1px solid var(--border);color:#fff;padding:8px 10px;border-radius:7px;font-size:11px}.count{background:rgba(168,85,247,.15);color:#c4b5fd;font:900 10px var(--mono);padding:7px 12px;border-radius:10px}
+.btn{padding:8px 13px;border-radius:7px;font-size:10px;font-weight:900;letter-spacing:.7px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase}.btn-primary{background:#7c3aed;color:#fff}.btn-green{background:var(--green);color:#fff}.btn-red{background:var(--red);color:#fff}.btn-amber{background:#d97706;color:#fff}.btn-outline{background:transparent;color:#cbd5e1;border:1.5px solid var(--border)}.btn-outline:hover{border-color:#a855f7;color:#fff}.filebtn{position:relative;overflow:hidden}.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}.card-hd{padding:12px 16px;background:#0f172a;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;align-items:center}.title{font:900 11px var(--mono);letter-spacing:1.5px;color:#a855f7}.hint{font-size:11px;color:#94a3b8}
-.table-wrap{max-height:62vh;overflow:auto}table{width:100%;border-collapse:collapse;font-size:10.7px}th{position:sticky;top:0;z-index:2;background:#0f172a;color:#94a3b8;font-size:8.7px;letter-spacing:.45px;text-transform:uppercase;padding:9px 9px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}td{padding:7px 9px;border-bottom:1px solid #263244;color:#dbeafe;vertical-align:middle}tr:hover td{background:rgba(168,85,247,.05)}.code{font-family:var(--mono);font-size:9.8px;color:#94a3b8}.muted{color:#94a3b8}.strong{font-weight:800;color:#fff}.tag{display:inline-block;background:#0f172a;border:1px solid var(--border);border-radius:7px;padding:2px 7px;margin:1px 3px 1px 0;font-size:9.7px;color:#cbd5e1;white-space:nowrap}.tag.reg{border-color:rgba(16,185,129,.5);color:#86efac}.tag.alt{border-color:rgba(245,158,11,.5);color:#fcd34d}.tag.link{border-color:#a78bfa;color:#c4b5fd}.empty{padding:28px;text-align:center;color:#94a3b8;font-style:italic}.actions{display:flex;gap:5px;justify-content:flex-end}.actions button{font-size:9px;padding:4px 8px;border:1px solid var(--border);background:transparent;color:#cbd5e1;border-radius:5px;cursor:pointer;font-weight:800}.actions button:hover{border-color:#a855f7;color:#fff}.lvcell{color:#e0f2fe;font-weight:800}.capcell{color:#fef3c7;font-weight:900;text-align:center}.ssrow{border-left:3px solid transparent}.ssrow.firstofss{border-left-color:#a855f7}
-#toast{position:fixed;bottom:22px;right:22px;z-index:9999;background:#16a34a;color:#fff;padding:12px 18px;border-radius:10px;font-weight:800;transform:translateY(80px);transition:.25s;max-width:560px;box-shadow:0 8px 24px rgba(0,0,0,.35)}#toast.show{transform:none}#toast.err{background:#dc2626}
-@media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}}
+.table-wrap{max-height:62vh;overflow:auto}table{width:100%;border-collapse:collapse;font-size:10.7px}th{position:sticky;top:0;z-index:2;background:#0f172a;color:#94a3b8;font-size:8.7px;letter-spacing:.45px;text-transform:uppercase;padding:9px 9px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}td{padding:7px 9px;border-bottom:1px solid #263244;color:#dbeafe;vertical-align:middle}tr:hover td{background:rgba(168,85,247,.05)}.code{font-family:var(--mono);font-size:9.8px;color:#94a3b8}.muted{color:#94a3b8}.tag{display:inline-block;background:#0f172a;border:1px solid var(--border);border-radius:7px;padding:2px 7px;margin:1px 3px 1px 0;font-size:9.7px;color:#cbd5e1;white-space:nowrap}.tag.reg{border-color:rgba(16,185,129,.5);color:#86efac}.tag.alt{border-color:rgba(245,158,11,.5);color:#fcd34d}.tag.link{border-color:#a78bfa;color:#c4b5fd}.empty{padding:28px;text-align:center;color:#94a3b8;font-style:italic}.lvcell{color:#e0f2fe;font-weight:800}.capcell{color:#fef3c7;font-weight:900;text-align:center}.ssrow{border-left:3px solid transparent}.ssrow.firstofss{border-left-color:#a855f7}
+.actions{display:flex;gap:5px;justify-content:flex-end}.actions button{font-size:9px;padding:4px 8px;border:1px solid var(--border);background:transparent;color:#cbd5e1;border-radius:5px;cursor:pointer;font-weight:800}.actions button:hover{border-color:#a855f7;color:#fff}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;display:none;align-items:center;justify-content:center;padding:22px}.modal-bg.active{display:flex}.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:1060px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}.modal-hd{padding:15px 20px;background:linear-gradient(90deg,#7c3aed,#a855f7);display:flex;justify-content:space-between;align-items:center;border-radius:13px 13px 0 0}.modal-hd h2{font-size:14px;letter-spacing:1px}.x{background:rgba(255,255,255,.16);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer}.modal-bd{padding:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.field label{display:block;font:900 9px var(--mono);letter-spacing:.7px;color:#94a3b8;margin-bottom:5px;text-transform:uppercase}.field input{width:100%;background:#0f172a;border:1px solid var(--border);border-radius:6px;color:#fff;padding:9px 10px;font-size:12px}.field input:focus{outline:none;border-color:#a855f7;box-shadow:0 0 0 2px rgba(168,85,247,.18)}.modal-ft{padding:14px 20px;background:#0f172a;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;border-radius:0 0 13px 13px}
+#toast{position:fixed;bottom:22px;right:22px;z-index:9999;background:#16a34a;color:#fff;padding:12px 18px;border-radius:10px;font-weight:800;transform:translateY(80px);transition:.25s;max-width:600px;box-shadow:0 8px 24px rgba(0,0,0,.35)}#toast.show{transform:none}#toast.err{background:#dc2626}
+@media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}.modal-bd{grid-template-columns:1fr}}
 </style>
 </head><body>
 <div class="topbar">
   <h1>⚙️ MASTER DATA MANAGER</h1>
-  <div class="sub">EXACT SS SOURCES FORMAT · PTR/LV-WISE SOURCE LINKAGE · FEEDER CODES · LIVE FIREBASE</div>
+  <div class="sub">SOURCE REPORTS · MANUAL EDIT · DUPLICATE CLEANUP · AUTO EXCEL REPORTS · LIVE FIREBASE</div>
   <div class="right"><span id="fbChip" class="chip">☁ INIT</span><span class="chip live">● FIREBASE</span><button class="btn btn-outline" onclick="window.close()" style="color:#fff;border-color:rgba(255,255,255,.3)">✕ CLOSE</button></div>
 </div>
 <div class="tabs">
   <div class="tab active" data-pane="sssources" onclick="switchTab('sssources')"><span class="num">1</span>SS SOURCES EXACT FORMAT <span class="badge" id="badge-sssources">0</span></div>
   <div class="tab" data-pane="sscoords" onclick="switchTab('sscoords')"><span class="num">2</span>SS COORDINATES <span class="badge" id="badge-sscoords">0</span></div>
   <div class="tab" data-pane="eht" onclick="switchTab('eht')"><span class="num">3</span>EHT SOURCES <span class="badge" id="badge-eht">0</span></div>
-  <div class="tab" data-pane="topology" onclick="switchTab('topology')"><span class="num">4</span>FEEDER ARCHITECTURE <span class="badge" id="badge-topology">0</span></div>
-  <div class="tab" data-pane="ptrs" onclick="switchTab('ptrs')"><span class="num">5</span>PTR/LV ROW SUMMARY <span class="badge" id="badge-ptrs">0</span></div>
+  <div class="tab" data-pane="reports" onclick="switchTab('reports')"><span class="num">4</span>AUTO REPORTS <span class="badge" id="badge-reports">XLSX</span></div>
 </div>
 <div class="wrap">
   <div class="stats">
@@ -46,51 +48,46 @@ body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(-
     <div class="stat"><div class="v" id="stat-multi">—</div><div class="l">Multi Source SS</div></div>
     <div class="stat"><div class="v" id="stat-sscoords">—</div><div class="l">SS Coordinates</div></div>
     <div class="stat"><div class="v" id="stat-eht">—</div><div class="l">EHT Sources</div></div>
-    <div class="stat"><div class="v" id="stat-topology">—</div><div class="l">Feeders</div></div>
   </div>
   <div class="note">
-    <span class="ok">Corrected:</span> SS Sources is now stored <b>LV/PTR-row wise</b> in the same Excel format with <b>PTR capacity + regular feeder code + alternate feeder codes</b>. 
-    <span class="warn">Reason:</span> different PTRs/LVs of the same 33/11KV SS can have different incoming sources. Firebase saves both:
-    <b>/masterData/ssSourceRows</b> and grouped <b>/masterData/ssSources</b>.
+    <span class="ok">Updated:</span> crossed tabs removed. Serial number is sorted numerically. Duplicate LV/PTR-source rows are cleaned automatically. 
+    Manual edit/delete and Excel/CSV download are added. Reports are generated directly from uploaded Firebase data.
   </div>
   <div id="pane-sssources" class="pane active"></div>
   <div id="pane-sscoords" class="pane"></div>
   <div id="pane-eht" class="pane"></div>
-  <div id="pane-topology" class="pane"></div>
-  <div id="pane-ptrs" class="pane"></div>
+  <div id="pane-reports" class="pane"></div>
+</div>
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-hd"><h2 id="modalTitle">Edit</h2><button class="x" onclick="closeModal()">✕</button></div>
+    <div class="modal-bd" id="modalBody"></div>
+    <div class="modal-ft">
+      <button class="btn btn-red" id="deleteBtn" onclick="deleteCurrent()" style="margin-right:auto">🗑 DELETE</button>
+      <button class="btn btn-outline" onclick="closeModal()">CANCEL</button>
+      <button class="btn btn-green" onclick="saveCurrent()">✓ SAVE</button>
+    </div>
+  </div>
 </div>
 <div id="toast"></div>
 <script>
 const FIREBASE_URL = "https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app";
 const PATHS = {
-  sssources: "masterData/ssSourceRows",
-  ssSourcesGrouped: "masterData/ssSources",
-  sscoords: "masterData/ssCoordinates",
-  eht: "masterData/ehtSources",
-  topology: "masterData/topology",
-  ptrs: "masterData/ptrSummary"
+  sssources:"masterData/ssSourceRows",
+  ssSourcesGrouped:"masterData/ssSources",
+  sscoords:"masterData/ssCoordinates",
+  eht:"masterData/ehtSources",
+  ptrs:"masterData/ptrSummary"
 };
-const EXACT_SOURCE_HEADERS = ['S.No.', 'Name of the Division', 'Name of the Sub Division', 'Name of the section', 'SS Code', 'Name of the 33/11 KV Sub Station', 'Name of the LVs', 'PTR capacity existing in MVA', 'Regular Source', 'Regular_Feeder_Code', 'Name of Regular Source', 'Alternate_Source-I_feeder_code', 'Alternate Source-I', 'Name of Alternate Source-I', 'Alternate_Source-II_feeder_code', 'Alternate Source-II', 'Name of Alternate Source-II', 'Alternate_Source-III_feeder_code', 'Alternate Source-III', 'Name of Alternate Source-III', 'Alternate_Source-IV_feeder_code', 'Alternate Source-IV', 'Name of Alternate Source-IV', 'Link Line', 'Name of Link Line'];
-const TEMPLATES = {
-  sssources: EXACT_SOURCE_HEADERS,
-  sscoords: ['ss_code', 'NAME', 'Latitude', 'Longitude', 'Lines_Division', 'Lines_Sub_Division', 'Lines_Section'],
-  eht: ['EHT_SS_CODE', 'EHT_SS_NAME', 'LAT', 'LONG', 'No_LVs', 'No. of 33KV Feeders', 'PTRs', 'Total PTR Capacity'],
-  topology: ['Feeder Code', 'Feeder Name', 'Feeder Type', 'Cable Type', 'EHT Source', 'EHT Code', 'Feeds To 33/11KV SS', 'Division', 'Sub Division', 'Section'],
-  ptrs: ["SS Code","Name of the 33/11KV SS","Name of the LVs","PTR capacity existing in MVA","Division","Sub Division","Section","Regular_Feeder_Code","Name of Regular Source"]
+const EXACT_SOURCE_HEADERS=['S.No.', 'Name of the Division', 'Name of the Sub Division', 'Name of the section', 'SS Code', 'Name of the 33/11 KV Sub Station', 'Name of the LVs', 'PTR capacity existing in MVA', 'Regular Source', 'Regular_Feeder_Code', 'Name of Regular Source', 'Alternate_Source-I_feeder_code', 'Alternate Source-I', 'Name of Alternate Source-I', 'Alternate_Source-II_feeder_code', 'Alternate Source-II', 'Name of Alternate Source-II', 'Alternate_Source-III_feeder_code', 'Alternate Source-III', 'Name of Alternate Source-III', 'Alternate_Source-IV_feeder_code', 'Alternate Source-IV', 'Name of Alternate Source-IV', 'Link Line', 'Name of Link Line'];
+const TEMPLATES={sssources:EXACT_SOURCE_HEADERS,sscoords:['ss_code', 'NAME', 'Latitude', 'Longitude', 'Lines_Division', 'Lines_Sub_Division', 'Lines_Section'],eht:['EHT_SS_CODE', 'EHT_SS_NAME', 'LAT', 'LONG', 'No_LVs', 'No. of 33KV Feeders', 'PTRs', 'Total PTR Capacity']};
+const SCHEMA={
+  sssources:{title:"🔀 SS Sources Report — exact Excel format, LV/PTR-wise",hint:"Same format as your Excel. Every LV/PTR row is preserved with feeder codes.",search:"Search SS / LV / regular / alternate / feeder code",cols:["sno","division","subDivision","section","ssCode","ssName","lvName","ptrCapacity","regularSourceType","regularFeederCode","regularFeederName","alt1Code","alt1Type","alt1Name","alt2Code","alt2Type","alt2Name","alt3Code","alt3Type","alt3Name","alt4Code","alt4Type","alt4Name","linkLine","linkLineName"]},
+  sscoords:{title:"📍 33/11KV SS Coordinates",hint:"Upload SS coordinate CSV/XLSX.",search:"Search SS name / code / section",cols:["ssCode","ssName","lat","lng","division","subDivision","section"]},
+  eht:{title:"⚡ EHT Sources",hint:"Upload EHT coordinate/source sheet.",search:"Search EHT name / code",cols:["ehtCode","ehtName","lat","lng","noLVs","no33KVFeeders","ptrs","totalPtrCapacity"]}
 };
-const SCHEMA = {
-  sssources: {
-    title:"🔀 SS Sources Report — exact Excel format with PTR/LV-wise source linkage",
-    hint:"Same format as your Excel. Every LV/PTR row is preserved with feeder codes.",
-    search:"Search SS / LV / regular / alternate / feeder code",
-    cols:["sno","division","subDivision","section","ssCode","ssName","lvName","ptrCapacity","regularSourceType","regularFeederCode","regularFeederName","alt1Code","alt1Type","alt1Name","alt2Code","alt2Type","alt2Name","alt3Code","alt3Type","alt3Name","alt4Code","alt4Type","alt4Name","linkLine","linkLineName"]
-  },
-  sscoords: {title:"📍 33/11KV SS Coordinates", hint:"Exact CSV: ss_code, NAME, Latitude, Longitude, Lines_Division, Lines_Sub_Division, Lines_Section", search:"Search SS name / code / section", cols:["ssCode","ssName","lat","lng","division","subDivision","section"]},
-  eht: {title:"⚡ EHT Sources", hint:"EHT coordinates and feeder counts", search:"Search EHT name / code", cols:["ehtCode","ehtName","lat","lng","noLVs","no33KVFeeders","ptrs","totalPtrCapacity"]},
-  topology: {title:"🔌 Feeder Architecture", hint:"Feeder-wise EHT source and destination SS list", search:"Search feeder / EHT / destination", cols:["feederCode","feederName","feederType","cableType","ehtSource","feedsTo","division","subDivision","section"]},
-  ptrs: {title:"📊 PTR/LV Row Summary", hint:"Auto-created from exact SS Sources report", search:"Search SS / LV / PTR / source", cols:["ssCode","ssName","lvName","ptrCapacity","division","subDivision","section","regularFeederCode","regularFeederName"]}
-};
-let DB={sssources:{},sscoords:{},eht:{},topology:{},ptrs:{},ssSourcesGrouped:{}};
+let DB={sssources:{},ssSourcesGrouped:{},sscoords:{},eht:{},ptrs:{}};
+let EDIT={type:null,key:null};
 const $=id=>document.getElementById(id);
 function toast(msg,err){const t=$('toast');t.textContent=msg;t.classList.toggle('err',!!err);t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),3500)}
 function chip(cls,txt){const e=$('fbChip');e.className='chip '+(cls||'');e.textContent=txt}
@@ -100,42 +97,52 @@ function get(row,names){const m={};Object.keys(row||{}).forEach(k=>m[hnorm(k)]=r
 function num(v){const x=parseFloat(String(v||'').replace(/[^\d.-]/g,''));return isFinite(x)?x:''}
 function splitList(s){return String(s||'').split(/[,;|]/).map(x=>x.trim()).filter(Boolean)}
 function csvEsc(v){v=v==null?'':String(v);return /[,"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
-function download(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),700)}
+function download(name,text,type='text/csv'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),700)}
 async function fbPut(path,obj){const r=await fetch(`${FIREBASE_URL}/${path}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});if(!r.ok)throw new Error(await r.text())}
+async function fbDel(path){const r=await fetch(`${FIREBASE_URL}/${path}.json`,{method:'DELETE'});if(!r.ok)throw new Error(await r.text())}
 async function boot(){
   chip('', '☁ LOADING');
   try{
-    DB.sssources = await fetch(`${FIREBASE_URL}/${PATHS.sssources}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
-    DB.ssSourcesGrouped = await fetch(`${FIREBASE_URL}/${PATHS.ssSourcesGrouped}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
-    DB.sscoords = await fetch(`${FIREBASE_URL}/${PATHS.sscoords}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
-    DB.eht = await fetch(`${FIREBASE_URL}/${PATHS.eht}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
-    DB.topology = await fetch(`${FIREBASE_URL}/${PATHS.topology}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
-    DB.ptrs = await fetch(`${FIREBASE_URL}/${PATHS.ptrs}.json`).then(r=>r.ok?r.json():null).catch(()=>null) || {};
+    for(const k of Object.keys(PATHS)) DB[k]=await fetch(`${FIREBASE_URL}/${PATHS[k]}.json`).then(r=>r.ok?r.json():null).catch(()=>null)||{};
     chip('live','☁ LIVE'); buildPanes(); renderAll();
-  }catch(e){console.error(e); chip('err','⚠ FAILED'); buildPanes(); renderAll(); toast('Firebase load failed', true)}
+  }catch(e){console.error(e);chip('err','⚠ FAILED');buildPanes();renderAll();toast('Firebase load failed',true)}
 }
 function switchTab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.pane===n));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+n))}
 function buildPanes(){
   Object.keys(SCHEMA).forEach(type=>{
-    const s=SCHEMA[type]; const uploadLabel = type==='sssources' ? '⬆ UPLOAD SAME SOURCES EXCEL' : '⬆ UPLOAD EXCEL / CSV';
-    $(`pane-${type}`).innerHTML = `
+    const s=SCHEMA[type]; const uploadLabel=type==='sssources'?'⬆ UPLOAD SAME SOURCES EXCEL':'⬆ UPLOAD EXCEL / CSV';
+    $(`pane-${type}`).innerHTML=`
       <div class="toolbar">
         <div class="search"><span>🔍</span><input id="srch-${type}" placeholder="${s.search}" oninput="renderType('${type}')"></div>
         <select id="filt-${type}" onchange="renderType('${type}')"><option value="">All Divisions</option></select>
         <span class="count" id="cnt-${type}">0 records</span>
         <button class="btn btn-outline" onclick="downloadTemplate('${type}')">⬇ SAME TEMPLATE</button>
         <label class="btn btn-green filebtn">${uploadLabel}<input type="file" accept=".csv,.xlsx,.xls" onchange="importFile('${type}',this.files[0]);this.value=''"></label>
+        <button class="btn btn-amber" onclick="downloadReport('${type}')">⬇ EXCEL REPORT</button>
         <button class="btn btn-outline" onclick="exportCSV('${type}')">CSV</button>
+        <button class="btn btn-primary" onclick="openEdit('${type}')">＋ MANUAL ADD</button>
+        <button class="btn btn-red" onclick="cleanupDuplicates()">🧹 CLEAN DUPLICATES</button>
       </div>
-      <div class="card">
-        <div class="card-hd"><span class="title">${s.title}</span><span class="hint">${s.hint}</span></div>
-        <div class="table-wrap"><table><thead><tr>${s.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody id="tb-${type}"></tbody></table></div>
-      </div>`;
+      <div class="card"><div class="card-hd"><span class="title">${s.title}</span><span class="hint">${s.hint}</span></div>
+      <div class="table-wrap"><table><thead><tr>${s.cols.map(c=>`<th>${c}</th>`).join('')}<th>ACTION</th></tr></thead><tbody id="tb-${type}"></tbody></table></div></div>`;
   });
+  $('pane-reports').innerHTML=`
+    <div class="toolbar">
+      <button class="btn btn-green" onclick="downloadFullWorkbook()">⬇ DOWNLOAD FULL AUTOMATIC REPORT WORKBOOK</button>
+      <button class="btn btn-amber" onclick="cleanupDuplicates()">🧹 CLEAN DUPLICATES & SAVE</button>
+      <button class="btn btn-outline" onclick="renderAll()">↻ REFRESH</button>
+    </div>
+    <div class="card"><div class="card-hd"><span class="title">📘 Automatic Reports</span><span class="hint">Generated from uploaded master data.</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Report</th><th>Description</th><th>Download</th></tr></thead><tbody>
+        <tr><td>SS Source Rows</td><td>Same Excel format with S.No numeric order, LV/PTR, feeder codes.</td><td><button class="btn btn-amber" onclick="downloadReport('sssources')">Excel</button></td></tr>
+        <tr><td>PTR/LV Summary</td><td>PTR-wise source linkage summary.</td><td><button class="btn btn-amber" onclick="downloadPTRSummary()">Excel</button></td></tr>
+        <tr><td>SS Coordinates</td><td>Coordinate master.</td><td><button class="btn btn-amber" onclick="downloadReport('sscoords')">Excel</button></td></tr>
+        <tr><td>EHT Sources</td><td>EHT coordinate/source master.</td><td><button class="btn btn-amber" onclick="downloadReport('eht')">Excel</button></td></tr>
+      </tbody></table></div></div>`;
 }
 function populateFilters(){
   const divs=new Set();
-  [...Object.values(DB.sssources),...Object.values(DB.sscoords),...Object.values(DB.topology),...Object.values(DB.ptrs)].forEach(r=>{const d=r.division||r.linesDivision;if(d)divs.add(d)});
+  [...Object.values(DB.sssources),...Object.values(DB.sscoords),...Object.values(DB.ptrs)].forEach(r=>{const d=r.division;if(d)divs.add(d)});
   const opts='<option value="">All Divisions</option>'+[...divs].sort().map(d=>`<option>${d}</option>`).join('');
   Object.keys(SCHEMA).forEach(k=>{const el=$(`filt-${k}`);if(el)el.innerHTML=opts});
 }
@@ -146,104 +153,56 @@ function refreshStats(){
   $('stat-multi').textContent=Object.values(DB.ssSourcesGrouped).filter(r=>(r.sourceCount||0)>=2).length;
   $('stat-sscoords').textContent=Object.keys(DB.sscoords).length;
   $('stat-eht').textContent=Object.keys(DB.eht).length;
-  $('stat-topology').textContent=Object.keys(DB.topology).length;
   Object.keys(SCHEMA).forEach(k=>$(`badge-${k}`).textContent=Object.keys(DB[k]).length);
 }
 function renderAll(){populateFilters();refreshStats();Object.keys(SCHEMA).forEach(renderType)}
-function filterArr(type){
+function sortedEntries(type){
+  const arr=Object.entries(DB[type]||{});
+  if(type==='sssources')return arr.sort((a,b)=>(parseFloat(a[1].sno)||999999)-(parseFloat(b[1].sno)||999999)||String(a[1].ssName||'').localeCompare(b[1].ssName||'')||String(a[1].lvName||'').localeCompare(b[1].lvName||''));
+  return arr.sort((a,b)=>JSON.stringify(a[1]).localeCompare(JSON.stringify(b[1])));
+}
+function filterEntries(type){
   const q=($(`srch-${type}`)?.value||'').toUpperCase().trim(), div=$(`filt-${type}`)?.value||'';
-  return Object.values(DB[type]).filter(r=>{if(q&&!JSON.stringify(r).toUpperCase().includes(q))return false;if(div&&(r.division||r.linesDivision)!==div)return false;return true}).sort((a,b)=>(a.ssName||a.feederName||a.ehtName||'').localeCompare(b.ssName||b.feederName||b.ehtName||''));
+  return sortedEntries(type).filter(([k,r])=>{if(q&&!JSON.stringify(r).toUpperCase().includes(q))return false;if(div&&r.division!==div)return false;return true});
 }
 function showVal(v,key){
-  if(Array.isArray(v)) return v.map((x,i)=>`<span class="tag ${i?'alt':'reg'}">${x.feederName||x.name||x.lvName||x}</span>`).join('');
-  if(key==='regularFeederName'||key==='regular') return v?`<span class="tag reg">${v.feederName||v}</span>`:'<span class="muted">—</span>';
-  if(/^alt\dName$/.test(key)) return v?`<span class="tag alt">${v}</span>`:'<span class="muted">—</span>';
-  if(/^alt\dCode$/.test(key)||key==='regularFeederCode') return v?`<span class="code">${v}</span>`:'<span class="muted">—</span>';
-  if(key==='linkLineName') return v?`<span class="tag link">${v}</span>`:'<span class="muted">—</span>';
-  if(key==='lvName') return `<span class="lvcell">${v||'—'}</span>`;
-  if(key==='ptrCapacity') return `<span class="capcell">${v||'—'}</span>`;
-  if(key==='feedsTo') return (v||[]).map(x=>`<span class="tag">${x}</span>`).join('')||'<span class="muted">—</span>';
+  if(key==='regularFeederName')return v?`<span class="tag reg">${v}</span>`:'<span class="muted">—</span>';
+  if(/^alt\dName$/.test(key))return v?`<span class="tag alt">${v}</span>`:'<span class="muted">—</span>';
+  if(/^alt\dCode$/.test(key)||key==='regularFeederCode'||key==='ssCode'||key==='ehtCode')return v?`<span class="code">${v}</span>`:'<span class="muted">—</span>';
+  if(key==='linkLineName')return v?`<span class="tag link">${v}</span>`:'<span class="muted">—</span>';
+  if(key==='lvName')return `<span class="lvcell">${v||'—'}</span>`;
+  if(key==='ptrCapacity')return `<span class="capcell">${v||'—'}</span>`;
   return v==null||v===''?'<span class="muted">—</span>':String(v);
 }
 function renderType(type){
-  const arr=filterArr(type), s=SCHEMA[type], tb=$(`tb-${type}`);
+  const arr=filterEntries(type), s=SCHEMA[type], tb=$(`tb-${type}`);
   $(`cnt-${type}`).textContent=`${arr.length} records`;
-  if(!arr.length){tb.innerHTML=`<tr><td colspan="${s.cols.length}" class="empty">No records uploaded</td></tr>`;return}
+  if(!arr.length){tb.innerHTML=`<tr><td colspan="${s.cols.length+1}" class="empty">No records uploaded</td></tr>`;return}
   let lastSS='';
-  tb.innerHTML=arr.map(r=>{const curSS=r.ssCode||r.ssName||''; const first=curSS!==lastSS; lastSS=curSS; return `<tr class="ssrow ${first?'firstofss':''}">${s.cols.map(c=>`<td class="${/code/i.test(c)||c==='ssCode'?'code':''}">${showVal(r[c],c)}</td>`).join('')}</tr>`}).join('');
+  tb.innerHTML=arr.map(([key,r])=>{const curSS=r.ssCode||r.ssName||'';const first=curSS!==lastSS;lastSS=curSS;return `<tr class="ssrow ${first?'firstofss':''}">${s.cols.map(c=>`<td class="${/code/i.test(c)||c==='ssCode'?'code':''}">${showVal(r[c],c)}</td>`).join('')}<td class="actions"><button onclick="openEdit('${type}','${key}')">✎ EDIT</button><button onclick="deleteRow('${type}','${key}')">🗑</button></td></tr>`}).join('');
 }
-async function importFile(type,file){
-  if(!file)return;
-  const rows=await readRows(file);
-  if(!rows.length){toast('No rows found',true);return}
-  let obj={};
-  if(type==='sssources') obj=normalizeSSSourcesExact(rows);
-  else obj=Object.fromEntries(rows.map((r,i)=>{const rec=normalizeRow(type,r,i);const key=keyFor(type,rec,i);return key&&key!=='EMPTY'?[key,rec]:null}).filter(Boolean));
-  if(!Object.keys(obj).length){toast('No valid rows. Check template headers.',true);return}
-  if(!confirm(`Upload ${Object.keys(obj).length} ${SCHEMA[type].title} records to Firebase?`))return;
-  DB[type]={...DB[type],...obj};
-  if(type==='sssources'){
-    buildGroupedSourcesAndPtrSummary();
-    await fbPut(PATHS.sssources,DB.sssources);
-    await fbPut(PATHS.ssSourcesGrouped,DB.ssSourcesGrouped);
-    await fbPut(PATHS.ptrs,DB.ptrs);
-  } else {
-    await fbPut(PATHS[type],DB[type]);
-  }
-  toast(`✓ Uploaded ${Object.keys(obj).length} records`);
-  renderAll();
-}
+async function importFile(type,file){if(!file)return;const rows=await readRows(file);if(!rows.length){toast('No rows found',true);return}let obj={};if(type==='sssources')obj=normalizeSSSourcesExact(rows);else obj=Object.fromEntries(rows.map((r,i)=>{const rec=normalizeRow(type,r,i);const key=keyFor(type,rec,i);return key&&key!=='EMPTY'?[key,rec]:null}).filter(Boolean));if(!Object.keys(obj).length){toast('No valid rows. Check headers.',true);return}if(!confirm(`Upload ${Object.keys(obj).length} records to Firebase? Existing matching keys will be updated.`))return;DB[type]={...DB[type],...obj};await saveType(type);toast(`✓ Uploaded ${Object.keys(obj).length} records`);renderAll();}
 function readRows(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});const sh=wb.Sheets[wb.SheetNames[0]];resolve(XLSX.utils.sheet_to_json(sh,{defval:''}))}catch(err){reject(err)}};r.onerror=reject;r.readAsArrayBuffer(file)})}
-function keyFor(type,r,i){if(type==='sscoords')return safeKey(r.ssCode||r.ssName);if(type==='eht')return safeKey(r.ehtCode||r.ehtName);if(type==='topology')return safeKey(r.feederCode||r.feederName);if(type==='ptrs')return safeKey([r.ssCode||r.ssName,r.lvName,i].join('_'));return safeKey(i)}
-function normalizeRow(type,r,i){
-  if(type==='sscoords') return {ssCode:get(r,['ss_code','SS Code']),ssName:get(r,['NAME','Name','SS Name']),lat:num(get(r,['Latitude ','Latitude','LAT'])),lng:num(get(r,['Longitude','LONG','LON'])),division:get(r,['Lines_Division']),subDivision:get(r,['Lines_Sub_Division']),section:get(r,['Lines_Section'])};
-  if(type==='eht') return {ehtCode:get(r,['EHT_SS_CODE','EHT SS CODE','EHT Code']),ehtName:get(r,['EHT_SS_NAME','EHT SS NAME','EHT Name']),lat:num(get(r,['LAT','Latitude'])),lng:num(get(r,['LONG','LON','Longitude'])),noLVs:num(get(r,['No_LVs','No. LVs'])),no33KVFeeders:num(get(r,['No. of 33KV Feeders','No of 33KV Feeders'])),ptrs:get(r,['PTRs']),totalPtrCapacity:num(get(r,['Total PTR Capacity']))};
-  if(type==='topology') return {feederCode:get(r,['Feeder Code','33KV Feeder Code']),feederName:get(r,['Feeder Name','Name of 33KV Feeder']),feederType:get(r,['Feeder Type','Type of Feeder'])||'33KV Feeder',cableType:get(r,['Cable Type','UG/OH']),ehtSource:get(r,['EHT Source','Name of the EHT SS']),ehtCode:get(r,['EHT Code']),feedsTo:splitList(get(r,['Feeds To 33/11KV SS','Feeding To','Destination SS'])),division:get(r,['Division']),subDivision:get(r,['Sub Division']),section:get(r,['Section'])};
-  return r;
-}
-function normalizeSSSourcesExact(rows){
-  const out={}; let cur={division:'',subDivision:'',section:'',ssCode:'',ssName:''};
-  rows.forEach((r,idx)=>{
-    const div=get(r,['Name of the Division']), sub=get(r,['Name of the Sub Division']), sec=get(r,['Name of the section']), code=get(r,['SS Code']), name=get(r,['Name of the 33/11 KV Sub Station','Name of the 33/11KV Sub Statioin','Name of the 33/11KV Sub Station']);
-    if(div)cur.division=div;if(sub)cur.subDivision=sub;if(sec)cur.section=sec;if(code)cur.ssCode=code;if(name)cur.ssName=name;
-    const lv=get(r,['Name of the LVs']); const cap=num(get(r,['PTR capacity existing in MVA','PTR capacity existing in MVA ']));
-    const hasSource = get(r,['Regular_Feeder_Code','Name of Regular Source','Alternate_Source-I_feeder_code','Name of Alternate Source-I']);
-    if(!cur.ssCode&&!cur.ssName&&!lv&&!hasSource)return;
-    const rec={
-      sno:get(r,['S.No.','S.No','Sl No'])||idx+1,
-      division:cur.division, subDivision:cur.subDivision, section:cur.section, ssCode:cur.ssCode, ssName:cur.ssName,
-      lvName:lv, ptrCapacity:cap,
-      regularSourceType:get(r,['Regular Source']), regularFeederCode:get(r,['Regular_Feeder_Code']), regularFeederName:get(r,['Name of Regular Source']),
-      alt1Code:get(r,['Alternate_Source-I_feeder_code','Alternate_ Source-I_feeder_code']), alt1Type:get(r,['Alternate Source-I','Alternate  Source-I']), alt1Name:get(r,['Name of Alternate Source-I']),
-      alt2Code:get(r,['Alternate_Source-II_feeder_code','Alternate_ Source-II_feeder_code']), alt2Type:get(r,['Alternate Source-II','Alternate  Source-II']), alt2Name:get(r,['Name of Alternate Source-II']),
-      alt3Code:get(r,['Alternate_Source-III_feeder_code','Alternate_ Source-III_feeder_code']), alt3Type:get(r,['Alternate Source-III','Alternate  Source-III']), alt3Name:get(r,['Name of Alternate Source-III']),
-      alt4Code:get(r,['Alternate_Source-IV_feeder_code','Alternate_ Source-IV_feeder_code']), alt4Type:get(r,['Alternate Source-IV','Alternate  Source-IV']), alt4Name:get(r,['Name of Alternate Source-IV','Name of Alternate  Source-IV']),
-      linkLine:get(r,['Link Line']), linkLineName:get(r,['Name of Link Line','Name of Link  Line'])
-    };
-    const key=safeKey([rec.ssCode||rec.ssName, rec.lvName||idx, rec.ptrCapacity||'', idx].join('_'));
-    out[key]=rec;
-  });
-  return out;
-}
-function buildGroupedSourcesAndPtrSummary(){
-  const grouped={}, ptrs={};
-  Object.values(DB.sssources).forEach((r,i)=>{
-    const sk=safeKey(r.ssCode||r.ssName);
-    if(!grouped[sk]) grouped[sk]={ssCode:r.ssCode,ssName:r.ssName,division:r.division,subDivision:r.subDivision,section:r.section,ptrs:[],sourcesByPTR:[],sourceCount:0};
-    const srcs=[];
-    if(r.regularFeederCode||r.regularFeederName) srcs.push({sourceType:'Regular',feederCode:r.regularFeederCode,feederName:r.regularFeederName});
-    [1,2,3,4].forEach(n=>{if(r['alt'+n+'Code']||r['alt'+n+'Name']) srcs.push({sourceType:'Alternate-'+n,feederCode:r['alt'+n+'Code'],feederName:r['alt'+n+'Name']})});
-    grouped[sk].ptrs.push({lvName:r.lvName,ptrCapacity:r.ptrCapacity});
-    grouped[sk].sourcesByPTR.push({lvName:r.lvName,ptrCapacity:r.ptrCapacity,regular:srcs[0]||null,alternates:srcs.slice(1),linkLine:r.linkLineName||r.linkLine});
-    grouped[sk].sourceCount=Math.max(grouped[sk].sourceCount,srcs.length);
-    const pk=safeKey([r.ssCode||r.ssName,r.lvName,i].join('_'));
-    ptrs[pk]={ssCode:r.ssCode,ssName:r.ssName,lvName:r.lvName,ptrCapacity:r.ptrCapacity,division:r.division,subDivision:r.subDivision,section:r.section,regularFeederCode:r.regularFeederCode,regularFeederName:r.regularFeederName};
-  });
-  DB.ssSourcesGrouped=grouped; DB.ptrs=ptrs;
-}
-function downloadTemplate(type){download(type+'_template.csv', TEMPLATES[type].map(csvEsc).join(',')+'\n')}
-function exportCSV(type){const cols=SCHEMA[type].cols;const csv=[cols.join(',')].concat(Object.values(DB[type]).map(r=>cols.map(c=>csvEsc(r[c])).join(','))).join('\n');download(type+'_firebase_export.csv',csv)}
-boot();
-window.mdm={DB,PATHS,boot};
+function keyFor(type,r,i){if(type==='sssources')return sourceKey(r);if(type==='sscoords')return safeKey(r.ssCode||r.ssName);if(type==='eht')return safeKey(r.ehtCode||r.ehtName);return safeKey(i)}
+function sourceKey(r){return safeKey([r.ssCode||r.ssName,r.lvName||'',r.ptrCapacity||'',r.regularFeederCode||'',r.regularFeederName||'',r.alt1Code||'',r.alt2Code||'',r.alt3Code||'',r.alt4Code||''].join('_'))}
+function normalizeRow(type,r,i){if(type==='sscoords')return {ssCode:get(r,['ss_code','SS Code']),ssName:get(r,['NAME','Name','SS Name']),lat:num(get(r,['Latitude ','Latitude','LAT'])),lng:num(get(r,['Longitude','LONG','LON'])),division:get(r,['Lines_Division']),subDivision:get(r,['Lines_Sub_Division']),section:get(r,['Lines_Section'])};if(type==='eht')return {ehtCode:get(r,['EHT_SS_CODE','EHT SS CODE','EHT Code']),ehtName:get(r,['EHT_SS_NAME','EHT SS NAME','EHT Name']),lat:num(get(r,['LAT','Latitude'])),lng:num(get(r,['LONG','LON','Longitude'])),noLVs:num(get(r,['No_LVs','No. LVs'])),no33KVFeeders:num(get(r,['No. of 33KV Feeders','No of 33KV Feeders'])),ptrs:get(r,['PTRs']),totalPtrCapacity:num(get(r,['Total PTR Capacity']))};return r}
+function normalizeSSSourcesExact(rows){const out={};let cur={division:'',subDivision:'',section:'',ssCode:'',ssName:''};rows.forEach((r,idx)=>{const div=get(r,['Name of the Division']),sub=get(r,['Name of the Sub Division']),sec=get(r,['Name of the section']),code=get(r,['SS Code']),name=get(r,['Name of the 33/11 KV Sub Station','Name of the 33/11KV Sub Statioin','Name of the 33/11KV Sub Station']);if(div)cur.division=div;if(sub)cur.subDivision=sub;if(sec)cur.section=sec;if(code)cur.ssCode=code;if(name)cur.ssName=name;const lv=get(r,['Name of the LVs']);const cap=num(get(r,['PTR capacity existing in MVA','PTR capacity existing in MVA ']));const rec={sno:num(get(r,['S.No.','S.No','Sl No']))||idx+1,division:cur.division,subDivision:cur.subDivision,section:cur.section,ssCode:cur.ssCode,ssName:cur.ssName,lvName:lv,ptrCapacity:cap,regularSourceType:get(r,['Regular Source']),regularFeederCode:get(r,['Regular_Feeder_Code']),regularFeederName:get(r,['Name of Regular Source']),alt1Code:get(r,['Alternate_Source-I_feeder_code','Alternate_ Source-I_feeder_code']),alt1Type:get(r,['Alternate Source-I','Alternate  Source-I']),alt1Name:get(r,['Name of Alternate Source-I']),alt2Code:get(r,['Alternate_Source-II_feeder_code','Alternate_ Source-II_feeder_code']),alt2Type:get(r,['Alternate Source-II','Alternate  Source-II']),alt2Name:get(r,['Name of Alternate Source-II']),alt3Code:get(r,['Alternate_Source-III_feeder_code','Alternate_ Source-III_feeder_code']),alt3Type:get(r,['Alternate Source-III','Alternate  Source-III']),alt3Name:get(r,['Name of Alternate Source-III']),alt4Code:get(r,['Alternate_Source-IV_feeder_code','Alternate_ Source-IV_feeder_code']),alt4Type:get(r,['Alternate Source-IV','Alternate  Source-IV']),alt4Name:get(r,['Name of Alternate Source-IV','Name of Alternate  Source-IV']),linkLine:get(r,['Link Line']),linkLineName:get(r,['Name of Link Line','Name of Link  Line'])};if(!rec.ssCode&&!rec.ssName&&!rec.lvName&&!rec.regularFeederCode&&!rec.regularFeederName)return;out[sourceKey(rec)]=rec});return out}
+function buildGroupedSourcesAndPtrSummary(){const grouped={},ptrs={};sortedEntries('sssources').forEach(([k,r],i)=>{const sk=safeKey(r.ssCode||r.ssName);if(!grouped[sk])grouped[sk]={ssCode:r.ssCode,ssName:r.ssName,division:r.division,subDivision:r.subDivision,section:r.section,ptrs:[],sourcesByPTR:[],sourceCount:0};const srcs=[];if(r.regularFeederCode||r.regularFeederName)srcs.push({sourceType:'Regular',feederCode:r.regularFeederCode,feederName:r.regularFeederName});[1,2,3,4].forEach(n=>{if(r['alt'+n+'Code']||r['alt'+n+'Name'])srcs.push({sourceType:'Alternate-'+n,feederCode:r['alt'+n+'Code'],feederName:r['alt'+n+'Name']})});grouped[sk].ptrs.push({lvName:r.lvName,ptrCapacity:r.ptrCapacity});grouped[sk].sourcesByPTR.push({lvName:r.lvName,ptrCapacity:r.ptrCapacity,regular:srcs[0]||null,alternates:srcs.slice(1),linkLine:r.linkLineName||r.linkLine});grouped[sk].sourceCount=Math.max(grouped[sk].sourceCount,srcs.length);ptrs[safeKey([r.ssCode||r.ssName,r.lvName,i].join('_'))]={ssCode:r.ssCode,ssName:r.ssName,lvName:r.lvName,ptrCapacity:r.ptrCapacity,division:r.division,subDivision:r.subDivision,section:r.section,regularFeederCode:r.regularFeederCode,regularFeederName:r.regularFeederName}});DB.ssSourcesGrouped=grouped;DB.ptrs=ptrs}
+async function saveType(type){if(type==='sssources'){buildGroupedSourcesAndPtrSummary();await fbPut(PATHS.sssources,DB.sssources);await fbPut(PATHS.ssSourcesGrouped,DB.ssSourcesGrouped);await fbPut(PATHS.ptrs,DB.ptrs)}else await fbPut(PATHS[type],DB[type])}
+async function cleanupDuplicates(){const before=Object.keys(DB.sssources).length;const clean={};Object.values(DB.sssources).forEach(r=>clean[sourceKey(r)]=r);DB.sssources=clean;await saveType('sssources');toast(`✓ Duplicate cleanup done: ${before} → ${Object.keys(DB.sssources).length} rows`);renderAll()}
+function openEdit(type,key){EDIT={type,key:key||null};const r=key?DB[type][key]:{};const s=SCHEMA[type];$('modalTitle').textContent=(key?'✎ EDIT ':'＋ ADD ')+s.title.replace(/^[^A-Za-z]+/,'');$('deleteBtn').style.display=key?'inline-flex':'none';$('modalBody').innerHTML=s.cols.map(c=>`<div class="field"><label>${c}</label><input data-id="${c}" value="${String(r[c]??'').replace(/"/g,'&quot;')}"></div>`).join('');$('modalBg').classList.add('active')}
+function closeModal(){$('modalBg').classList.remove('active');EDIT={type:null,key:null}}
+async function saveCurrent(){const type=EDIT.type;if(!type)return;const rec={};document.querySelectorAll('#modalBody [data-id]').forEach(el=>rec[el.dataset.id]=el.value.trim());if(type==='sssources')rec.ptrCapacity=num(rec.ptrCapacity);if(type==='sscoords'){rec.lat=num(rec.lat);rec.lng=num(rec.lng)}if(type==='eht'){rec.lat=num(rec.lat);rec.lng=num(rec.lng);rec.noLVs=num(rec.noLVs);rec.no33KVFeeders=num(rec.no33KVFeeders);rec.totalPtrCapacity=num(rec.totalPtrCapacity)}const key=keyFor(type,rec,Date.now());if(!key||key==='EMPTY'){toast('Key fields are missing',true);return}if(EDIT.key&&EDIT.key!==key)delete DB[type][EDIT.key];DB[type][key]=rec;await saveType(type);toast('✓ Saved');closeModal();renderAll()}
+async function deleteCurrent(){if(EDIT.type&&EDIT.key)await deleteRow(EDIT.type,EDIT.key)}
+async function deleteRow(type,key){if(!confirm('Delete this record?'))return;delete DB[type][key];await saveType(type);toast('✓ Deleted');closeModal();renderAll()}
+function downloadTemplate(type){download(type+'_same_template.csv',TEMPLATES[type].map(csvEsc).join(',')+'\n')}
+function rowsFor(type){if(type==='sssources')return sortedEntries('sssources').map(([k,r])=>SCHEMA.sssources.cols.map(c=>r[c]??''));return sortedEntries(type).map(([k,r])=>SCHEMA[type].cols.map(c=>r[c]??''))}
+function exportCSV(type){const cols=SCHEMA[type].cols;const csv=[cols.join(',')].concat(rowsFor(type).map(a=>a.map(csvEsc).join(','))).join('\n');download(type+'_export.csv',csv)}
+function sheetAOA(type){return [SCHEMA[type].cols].concat(rowsFor(type))}
+function downloadReport(type){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sheetAOA(type)),type);XLSX.writeFile(wb,type+'_automatic_report.xlsx')}
+function downloadPTRSummary(){const cols=SCHEMA.ptrs.cols;const rows=Object.values(DB.ptrs).map(r=>cols.map(c=>r[c]??''));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([cols].concat(rows)),'PTR Summary');XLSX.writeFile(wb,'PTR_LV_Source_Summary.xlsx')}
+function downloadFullWorkbook(){const wb=XLSX.utils.book_new();['sssources','sscoords','eht'].forEach(t=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sheetAOA(t)),t));const pcols=SCHEMA.ptrs.cols;XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([pcols].concat(Object.values(DB.ptrs).map(r=>pcols.map(c=>r[c]??'')))),'PTR_LV_Summary');XLSX.writeFile(wb,'TGSPDCL_Master_Data_Automatic_Reports.xlsx')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});$('modalBg').addEventListener('click',e=>{if(e.target===$('modalBg'))closeModal()});
+boot();window.mdm={DB,PATHS,boot,cleanupDuplicates,downloadFullWorkbook};
 </script>
 </body></html>
