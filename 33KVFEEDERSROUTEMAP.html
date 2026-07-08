@@ -2852,7 +2852,7 @@ function renderStaticSS(filterFn){
     _registerSSCoord(ss.lat,ss.lon);
 
     const h=`<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>`;
-    const layer=L.marker([ss.lat,ss.lon],{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[36,36],iconAnchor:[18,18]})});
+    const layer=L.marker([ss.lat,ss.lon],{zIndexOffset:3000,icon:L.divIcon({className:'',html:h,iconSize:[36,36],iconAnchor:[18,18]})});
     const popHtml=`<div class="pc-header-id">${ss.name}</div>
       <table class="popup-table">
         <tr><th>Section</th><td>${ss.section||''}</td></tr>
@@ -2894,7 +2894,7 @@ function renderStaticSS(filterFn){
 
     const kv=eht.name.match(/^(\d+)\s*KV/i)?.[1]||'EHT';
     const h=`<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">${kv}KV</span></div></div>`;
-    const layer=L.marker([eht.lat,eht.lon],{zIndexOffset:1000,icon:L.divIcon({className:'',html:h,iconSize:[40,28],iconAnchor:[20,14]})});
+    const layer=L.marker([eht.lat,eht.lon],{zIndexOffset:3000,icon:L.divIcon({className:'',html:h,iconSize:[40,28],iconAnchor:[20,14]})});
     const popHtml=`<div class="pc-header-id">${eht.name}</div>
       <table class="popup-table">
         <tr><th>LV Feeders</th><td>${eht.lvs||''}</td></tr>
@@ -6732,11 +6732,11 @@ function renderUploadedRows(rows,sourceFileName){
         // ── HT Service termination: hexagon (per Naresh sketch 08-Jul-2026) ──
         regType='ht-pts';
         layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',
-          html:`<div class='ht-wrap'><svg xmlns='http://www.w3.org/2000/svg' width='22' height='24' viewBox='0 0 22 25'>
-            <polygon points='11,1 21,6.5 21,18.5 11,24 1,18.5 1,6.5' fill='rgba(3,20,40,.85)' stroke='#10b981' stroke-width='1.8'/>
-            <text x='11' y='16' text-anchor='middle' font-size='9' font-weight='800' fill='#10b981' font-family='monospace'>HT</text>
+          html:`<div class='ht-wrap'><svg xmlns='http://www.w3.org/2000/svg' width='20' height='23' viewBox='0 0 20 23'>
+            <polygon points='10,1 19,6 19,17 10,22 1,17 1,6' fill='rgba(236,253,245,.96)' stroke='#10b981' stroke-width='2'/>
+            <text x='10' y='15' text-anchor='middle' font-size='8' font-weight='900' fill='#047857' font-family='monospace'>HT</text>
           </svg></div>`,
-          iconSize:[22,24],iconAnchor:[11,12]}),pane:'pointsPane'});
+          iconSize:[20,23],iconAnchor:[10,11]}),pane:'pointsPane'});
         layer.bindTooltip(feedingTo||'HT Service',{permanent:false,direction:'top',offset:[0,-10],className:'ss-label',opacity:.95});
       }else if(p.pn.spurKey){
         layer=L.circleMarker([p.lat,p.lng],{radius:2*(window.tgPointScale||1),fillColor:'#ffe082',fillOpacity:1,color:'#ff9800',weight:1.5,pane:'pointsPane',renderer:_CR});
@@ -6923,6 +6923,11 @@ function renderScope(scope){
     const scopedDiv = scope.division!=='ALL' ? scope.division : null;
     const scopedSub = scope.subDivision!=='ALL' ? scope.subDivision : null;
     const scopedSec = scope.section!=='ALL' ? scope.section : null;
+    // When the operator loads the full scope (ALL divisions/sub-divisions/sections/feeders),
+    // show ALL 33/11KV and EHT substation symbols. Earlier code tried to infer SS
+    // visibility only from feeder-name token hits, which made the layer counters show 0
+    // and hid the important SS/EHT icons even while feeders were visible.
+    const isWholeAllSelection = !scopedSec && !scopedSub && !scopedDiv && (!scope.feederName || scope.feederName==='ALL');
 
     const wantedCorpus = [...wantedNames].join(' ').toUpperCase();
     const ssNameTokenHit = (ss)=>{
@@ -6931,6 +6936,7 @@ function renderScope(scope){
       return toks.some(t=>wantedCorpus.includes(t));
     };
     const ssRelated = (ss)=>{
+      if(isWholeAllSelection) return true;
       if(scopedSec) return String(ss.section||'').toUpperCase()===String(scopedSec).toUpperCase();
       if(scopedSub) return String(ss.sub_div||ss.sub_division||'').toUpperCase()===String(scopedSub).toUpperCase();
       if(scopedDiv) return _normDiv(ss.division)===_normDiv(scopedDiv);
@@ -6970,7 +6976,6 @@ function renderScope(scope){
     }
 
     const ehtRelated = (eht)=>{
-      const isWholeAllSelection = !scopedSec && !scopedSub && !scopedDiv && (!scope.feederName || scope.feederName==='ALL');
       if(isWholeAllSelection) return true;
       const nearestDiv = ehtNearestDivision(eht);
       if(derivedDiv && nearestDiv && _normDiv(nearestDiv)===_normDiv(derivedDiv)) return true;
@@ -8016,8 +8021,14 @@ async function fbLoadSubstations(){
 
     // Re-render the SS list panel so changes are reflected.
     if (typeof renderSSList === 'function') renderSSList();
-    // Re-render map markers if those layers exist
-    if (typeof refreshSubstationLayers === 'function') refreshSubstationLayers();
+    // If feeders are already in view, rebuild substation markers immediately.
+    // This prevents stale/missing SS symbols after the Firebase coordinate restore.
+    try{
+      if((typeof renderedFeederSet!=='undefined' && renderedFeederSet.size>0) || userHasInteractedWithScope){
+        removeSubstationLayers(()=>true);
+        renderScope(currentScope || {division:'ALL',subDivision:'ALL',section:'ALL',feederName:'ALL'});
+      }
+    }catch(e){ console.warn('SS marker refresh skipped:', e); }
 
     return {
       ss33: s33.added + s33.updated, eht: eht.added + eht.updated,
@@ -9522,11 +9533,12 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
       const dest = getFeederFeedingTo(fn) || fn;
       const safe = escapeHtml(dest);
 
-      // Build the marker — small pink/magenta circle with hover label
+      // Build the marker using the SAME HT Service hexagon used in uploaded route points,
+      // so HT services never appear as a different pink/magenta circle.
       const ic = L.divIcon({
         className: 'ht-svc-marker',
-        html: '<div class="ht-svc-circle" title="' + escapeHtml(dest) + '"><div class="ht-svc-pulse"></div><span class="ht-svc-glyph">H</span></div>',
-        iconSize: [14,14], iconAnchor:[7,7]
+        html: '<div class="ht-wrap" title="' + escapeHtml(dest) + '"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="23" viewBox="0 0 20 23"><polygon points="10,1 19,6 19,17 10,22 1,17 1,6" fill="rgba(236,253,245,.96)" stroke="#10b981" stroke-width="2"/><text x="10" y="15" text-anchor="middle" font-size="8" font-weight="900" fill="#047857" font-family="monospace">HT</text></svg></div>',
+        iconSize: [20,23], iconAnchor:[10,11]
       });
       const marker = L.marker([bestTail.lat, bestTail.lng], {icon: ic, interactive: true, zIndexOffset: 700});
       marker.bindTooltip(safe + ' <br><span style="font-size:9px;opacity:.7">HT SERVICE · ' + escapeHtml(fn) + '</span>',
@@ -9803,6 +9815,9 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
 <!-- HT Service marker styles (must be outside the IIFE to render) -->
 <style>
   .ht-svc-marker{pointer-events:auto}
+  .ht-svc-marker .ht-wrap svg,
+  .ht-wrap svg{filter:drop-shadow(0 1px 3px rgba(0,0,0,.35));}
+  .ht-svc-marker .ht-wrap:hover{transform:scale(1.18);transition:.15s;}
   .ht-svc-circle{
     position:relative; width:14px; height:14px; border-radius:50%;
     background:linear-gradient(135deg,#f43f5e,#ec4899);
@@ -9825,7 +9840,7 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
     100%{transform:scale(2.4); opacity:0}
   }
   .ht-svc-tooltip{
-    background:#1e293b !important; color:#f43f5e !important; border:1px solid #f43f5e !important;
+    background:#ecfdf5 !important; color:#047857 !important; border:1px solid #10b981 !important;
     font-family:Consolas,Monaco,monospace !important; font-size:11px !important; font-weight:700 !important;
     padding:7px 11px !important; border-radius:7px !important; letter-spacing:.4px !important;
     box-shadow:0 4px 14px rgba(0,0,0,.4) !important;
