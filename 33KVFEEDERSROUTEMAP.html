@@ -5943,6 +5943,43 @@ function _findFeedersLinkedToSS(ssData){
 
   const linked=new Set();
 
+  // Strategy 0 (DEFINITIVE): feeder_feeding_to_code exact match via connectionMaster.
+  // Each row in the uploaded CSV carries feeder_feeding_to_code which is the SS's
+  // official code from masterData. Match this EXACTLY — no fuzzy logic needed.
+  // Per Naresh 08-Jul-2026: this must be tried first; it's the authoritative link.
+  if(Object.keys(MAP_CONNECTION_MASTER||{}).length) {
+    // Find the ssCode for the current SS
+    const targetSSCode = (ssData&&(ssData.code||ssData.ssCode||'')).trim();
+    const targetSSName = ssNorm;
+    // Build a set of all codes that map to this SS
+    const matchingCodes = new Set();
+    Object.keys(MAP_CONNECTION_MASTER).forEach(code=>{
+      const rec = MAP_CONNECTION_MASTER[code]||{};
+      const recSSCode = (rec.ssCode||rec.code||'').trim();
+      const recSSName = _normalizeSSName(rec.ssName||rec.name||'');
+      if((targetSSCode && recSSCode === targetSSCode) ||
+         (recSSName && ssDistinctive.every(w=>recSSName.split(/\s+/).some(rw=>_wordFuzzyEqual(rw,w))))){
+        matchingCodes.add(code);
+      }
+    });
+    if(matchingCodes.size){
+      // Find all feeder rows that have these codes in feeder_feeding_to_code
+      allLayers.forEach(item=>{
+        if(!item.layer||!item.layer.feature) return;
+        const p=item.layer.feature.properties||{};
+        const rowCode=(p.feeder_feeding_to_code||'').toString().trim();
+        if(rowCode && matchingCodes.has(rowCode)) linked.add(item.feederName);
+      });
+      // Also scan feederMetaMap for feeders whose endpoint code matches
+      Object.keys(feederMetaMap||{}).forEach(fn=>{
+        const m=feederMetaMap[fn]||{};
+        if(m.feeder_feeding_to_code && matchingCodes.has(m.feeder_feeding_to_code.toString().trim())){
+          linked.add(fn);
+        }
+      });
+    }
+  }
+
   // Strategy 1: feeder name pattern — SIDE-AWARE
   [...feederNames].forEach(fn=>{
     const fnUp=fn.toUpperCase();
@@ -6558,10 +6595,22 @@ function renderUploadedRows(rows,sourceFileName){
       const isAB=feedUP.includes('AB SWITCH')||feedUP.includes('ABSWITCH')||feedUP.includes('LINE AB');
       const isDP=ptypeUP.includes('DOUBLE POLE')||ptypeUP.includes('DOUBLEPOLE')||ptypeUP==='DP';
       const isCut=cutPt.toUpperCase().includes('CUT')||cutPt.toUpperCase().includes('VERTICAL')||cutPt.toUpperCase().includes('HORIZONTAL');
-      // HT Service termination: ONLY on the last pole AND pole_feeding_to says HT Service
-      // Per Naresh 08-Jul-2026: should only mark the actual endpoint, not every passing pole.
-      const isHTpt = !isAB && !isDP && _isLastPole &&
-        (feedUP.includes('HT SERVICE')||feedUP==='HT'||feederFeedingToUP.includes('HT SERVICE'));
+      // HT Service termination: ONLY on the last pole AND pole_feeding_to is PRIMARILY HT Service
+      // (not just one of many items like "AB Switch, HT Service, Next Pole / Cable Point")
+      // Per Naresh 08-Jul-2026: when HT Service appears alongside AB Switch or Next Pole,
+      // it's an intermediate connection note — the icon must NOT appear there.
+      const isHTpt = !isAB && !isDP && _isLastPole && (() => {
+        const f = feedUP.replace(/[,;\/]+/g,' ').trim();
+        // The DOMINANT destination must be HT Service — not just a secondary mention
+        if(!f.includes('HT SERVICE') && !f.includes('HT SERV')) return false;
+        // Reject if AB Switch is also present — that makes the AB icon take precedence
+        if(f.includes('AB SWITCH') || f.includes('ABSWITCH') || f.includes('LINE AB')) return false;
+        // Reject if "Next Pole" is the primary action (HT Service is secondary there)
+        if(f.startsWith('NEXT POLE') || f.startsWith('NEXT CABLE')) return false;
+        // Accept if HT Service is the leading or sole token
+        return (f.startsWith('HT SERVICE') || f.startsWith('HT SERV') ||
+                feederFeedingToUP.includes('HT SERVICE') || feederFeedingToUP.includes('HT SERV'));
+      })();
       // Switching Station endpoint: ONLY on the last pole AND feeder_feeding_to / pole_feeding_to names a SWS
       // Per Naresh 08-Jul-2026: feeder_type=SWS is on EVERY row of that feeder, so it must be AND-ed
       // with _isLastPole to avoid marking every intermediate pole as a Switching Station.
@@ -6693,14 +6742,20 @@ function renderUploadedRows(rows,sourceFileName){
       // can link feeders to their destination SS even before points are drawn.
       const feedingToVal = fuzzyGet(sampleRow,['feeder_feeding_to','Feeder Feeding To','feeding_to'])
         || (() => {
-          // If not in sampleRow, scan all rows for this feeder for the last non-empty value
           for(let ri=feederRows.length-1;ri>=0;ri--){
             const v=fuzzyGet(feederRows[ri],['feeder_feeding_to','Feeder Feeding To','feeding_to','Feeder Feeding to']);
             if(v&&v.toString().trim())return v.toString().trim();
           }
           return '';
         })();
-      feederMetaMap[feederName]={div,sub,sec,eht:getEHTNameFromRow(sampleRow),feeder_feeding_to:feedingToVal};
+      const feedingToCodeVal = (() => {
+        for(let ri=feederRows.length-1;ri>=0;ri--){
+          const v=fuzzyGet(feederRows[ri],['feeder_feeding_to_code','Feeder Feeding To Code']);
+          if(v&&v.toString().trim())return v.toString().trim();
+        }
+        return '';
+      })();
+      feederMetaMap[feederName]={div,sub,sec,eht:getEHTNameFromRow(sampleRow),feeder_feeding_to:feedingToVal,feeder_feeding_to_code:feedingToCodeVal};
     }
     feederNames.add(feederName);feederState[feederName]=true;
     allRenderedFeeders.push({feederName,points:parsed.length,coords:mainPoles.map(p=>[p.lat,p.lng])});
@@ -8428,6 +8483,8 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
   // ─── Shared state ───
   let LIVE_FEEDERS = {};        // safeFbKey → { status, feederName, lastBreakdownId, lastUpdated }
   let MAP_MASTER_PTRS = {};     // ssCode safekey → PTR record
+  let MAP_EHT_SOURCES = {};     // ehtCode → { ehtName, lat, lng, ptrs, ptr_cap, … }
+  let MAP_CONNECTION_MASTER = {}; // feeder_feeding_to_code → { ssName, ssCode, … }
   let LIVE_BREAKDOWNS = {};     // id → breakdown record (for badge panel)
   let _bpOpen = false;
 
@@ -8537,10 +8594,35 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         MAP_MASTER_PTRS = data || {};
-        const cnt = Object.keys(MAP_MASTER_PTRS).length;
-        console.log('[map] Loaded ' + cnt + ' PTR master records');
+        console.log('[map] Loaded ' + Object.keys(MAP_MASTER_PTRS).length + ' PTR master records');
       })
       .catch(err => console.warn('[map] PTR load failed:', err));
+  }
+
+  // 2b) LOAD /masterData/ehtSources — EHT source data by code
+  //     Per Naresh 08-Jul-2026: EHT (132/220/400KV) popup uses EXACT CODE
+  //     match from masterData/ehtSources. No fuzzy logic for EHT.
+  function loadEHTSources(){
+    return fetch(FIREBASE_URL + '/masterData/ehtSources.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        MAP_EHT_SOURCES = data || {};
+        console.log('[map] Loaded ' + Object.keys(MAP_EHT_SOURCES).length + ' EHT source records');
+      })
+      .catch(err => console.warn('[map] EHT sources load failed:', err));
+  }
+
+  // 2c) LOAD /masterData/connectionMaster — feeder_feeding_to_code → SS metadata
+  //     This is the authoritative link: every feeder row carries feeder_feeding_to_code
+  //     which keys into this table to identify which SS the feeder terminates at.
+  function loadConnectionMaster(){
+    return fetch(FIREBASE_URL + '/masterData/connectionMaster.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        MAP_CONNECTION_MASTER = data || {};
+        console.log('[map] Loaded ' + Object.keys(MAP_CONNECTION_MASTER).length + ' connection master records');
+      })
+      .catch(err => console.warn('[map] Connection master load failed:', err));
   }
 
   // Find PTR record for a given SS by name OR code (fuzzy)
@@ -8734,6 +8816,54 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
     if (popup.dataset.ptrAdded === '1') return;
     popup.dataset.ptrAdded = '1';
 
+    // ── EHT SOURCE (132/220/400KV): EXACT CODE LOOKUP ONLY ─────────────────
+    // Per Naresh 08-Jul-2026: EHT is a completely different voltage hierarchy.
+    // Never use fuzzy logic for EHT — fetch from /masterData/ehtSources by code.
+    const isEHTpopup = ss && (ss._type === 'eht' ||
+      /^(132|220|400)\s*KV/i.test(ss.name||'') || /\bEHT\b/i.test(ss.name||''));
+
+    if(isEHTpopup){
+      const ehtCode = (ss.code||ss.ehtCode||ss.ssCode||'').toString().trim();
+      let ehtRec = null;
+      // Try by code first
+      if(ehtCode){
+        ehtRec = MAP_EHT_SOURCES[ehtCode] ||
+          Object.values(MAP_EHT_SOURCES).find(e => (e.ehtCode||e.code||'').toString().trim() === ehtCode);
+      }
+      // Fallback: exact name match (no fuzzy)
+      if(!ehtRec && ss.name){
+        const nameUP = ss.name.toUpperCase().trim();
+        ehtRec = Object.values(MAP_EHT_SOURCES).find(e =>
+          (e.ehtName||e.name||'').toUpperCase().trim() === nameUP);
+      }
+
+      const ehtCardHtml = ehtRec ? (
+        '<div style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1.5px solid #f97316;border-radius:10px;padding:12px;margin:10px 0">'
+        + '<div style="font-size:9px;font-weight:800;color:#9a3412;letter-spacing:1.2px;margin-bottom:8px;font-family:Consolas,monospace">⚡ EHT SOURCE — MASTER DATA</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px;color:#7c2d12;margin-bottom:8px">'
+          + (ehtRec.ptrs    ? '<div><b>PTRs:</b> ' + escapeHtml(ehtRec.ptrs)    + '</div>' : '')
+          + (ehtRec.ptr_cap ? '<div><b>Capacity:</b> ' + escapeHtml(ehtRec.ptr_cap) + ' MVA</div>' : '')
+          + (ehtRec.max_load  ? '<div><b>Max Load:</b> ' + escapeHtml(ehtRec.max_load) + ' MVA</div>' : '')
+          + (ehtRec.per_load  ? '<div><b>% Loading:</b> ' + escapeHtml(ehtRec.per_load) + '</div>' : '')
+          + (ehtRec.feeders   ? '<div><b>33KV Feeders:</b> ' + escapeHtml(ehtRec.feeders) + '</div>' : '')
+          + (ehtRec.lvs       ? '<div><b>LV Feeders:</b> ' + escapeHtml(ehtRec.lvs) + '</div>' : '')
+        + '</div>'
+        + '</div>'
+      ) : (
+        '<div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;padding:10px;margin:10px 0;font-size:10px;color:#94a3b8;font-style:italic;text-align:center">'
+        + 'No EHT master data found — add via Master Data Manager.'
+        + '</div>'
+      );
+
+      // Inject before the linked feeders section
+      const feederHeading = [...popup.querySelectorAll('div')].find(d => /FEEDERS\s+FEEDING/i.test(d.textContent));
+      const wrap = document.createElement('div');
+      wrap.innerHTML = ehtCardHtml;
+      if(feederHeading) feederHeading.parentNode.insertBefore(wrap, feederHeading);
+      else popup.appendChild(wrap);
+      return;  // EHT done — no PTR card
+    }
+
     const ptr = findPTRForSS(ss);
     // Linked feeders (already computed by the underlying flyToSS)
     const linked = (typeof window._findFeedersLinkedToSS === 'function')
@@ -8791,7 +8921,8 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
   // 6) BOOTSTRAP — start integration after page is ready
   // ═════════════════════════════════════════════════════════════
   function bootstrapLiveIntegration(){
-    loadMasterPTRs().then(() => {
+    // Load all three master data sources in parallel (08-Jul-2026)
+    Promise.all([loadMasterPTRs(), loadEHTSources(), loadConnectionMaster()]).then(() => {
       subscribeFeedersSSE();
       // Initial pulls so badge / stats reflect current state immediately
       fetch(FIREBASE_URL + '/feeders.json')
@@ -8815,6 +8946,8 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
   window.mapLive = {
     feeders: () => LIVE_FEEDERS,
     ptrs: () => MAP_MASTER_PTRS,
+    ehtSources: () => MAP_EHT_SOURCES,
+    connectionMaster: () => MAP_CONNECTION_MASTER,
     refresh: bootstrapLiveIntegration,
     findPTR: findPTRForSS
   };
@@ -9226,6 +9359,10 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
     const _prevFly = window.flyToSS;
     window.flyToSS = function(ss){
       _prevFly.call(this, ss);
+      // Per Naresh 08-Jul-2026: NEVER apply fuzzy PTR logic to EHT sources
+      // (132/220/400KV). EHT data comes from /masterData/ehtSources by exact code.
+      const isEHTss = ss && (ss._type === 'eht' || /^(132|220|400)\s*KV/i.test(ss.name||''));
+      if(isEHTss) return;
       // After a slight delay, check whether the popup still has the "No PTR" fallback
       setTimeout(() => {
         const popups = document.querySelectorAll('.leaflet-popup.ss-popup .leaflet-popup-content');
