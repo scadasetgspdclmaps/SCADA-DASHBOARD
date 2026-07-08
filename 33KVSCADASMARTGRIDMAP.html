@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>TGSPDCL — 33KV Smart Grid Map · SCADA Updated</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js">
 /* Mandal / area names enhancement + future master-data path placeholders */
 const SMARTGRID_MASTER_PATHS = window.SMARTGRID_MASTER_PATHS || {
   ssTopology:'masterData/ssTopology',
@@ -1791,13 +1790,6 @@ path.sg-feeder-line{cursor:pointer}
 
 
 .sg-selected-feeder-label{display:none!important}
-
-/* Smart Grid connection-style and no-hover-box patch */
-.sg-hover-tip{display:none!important}
-.leaflet-tooltip.sg-hover-tip{display:none!important}
-path.sg-feeder-line{cursor:pointer}
-.sg-grip-insert{display:none!important}
-
 </style>
 </head>
 <body class="no-anim">
@@ -1960,16 +1952,6 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <label>LINE THICKNESS <span id="gspLineVal">3.0</span></label>
     <input type="range" min="1" max="8" step="0.5" value="3" oninput="setSGLineWeight(this.value)">
   </div>
-
-  <div class="gsp-row">
-    <label>CONNECTION STYLE <span id="gspConnStyleVal">STRAIGHT</span></label>
-    <select id="sgConnectionMode" onchange="setSGConnectionMode(this.value)" style="width:100%;padding:6px 8px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font-size:11px;font-weight:700">
-      <option value="straight" selected>Straight lines</option>
-      <option value="parallel">Curves only for parallel duplicates</option>
-      <option value="curved">Curved lines</option>
-    </select>
-  </div>
-
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
     <label style="margin-bottom:0"><span>ENERGY FLOW ANIMATION</span>
       <input type="checkbox" id="sgFlowToggle" checked onchange="setSGFlow(this.checked)" style="transform:translateY(2px)"></label>
@@ -3005,31 +2987,76 @@ function isCutOrBad(s){return /CUT\s*POINT|CUTPOINT/i.test(String(s||''))}
 function isDevice(s){return /AB\s*SWITCH|LINE\s*AB|DP\s*STRUCTURE|DP\b|RMU|ISOLATOR/i.test(String(s||''))}
 function nodeType(feedTo,name,type){
   const t=String(feedTo+' '+name+' '+type).toUpperCase();
-  // Pure geometry vertices used only to bend / route the smart-grid line.
-  // They should NOT appear as substations or AB switches.
   if(t.includes('BEND POINT')||t.includes('ROUTE POINT')||t.includes('WAYPOINT')||t.includes('GEOMETRY POINT'))return 'bend';
+  // New schema: type_of_cable_point can be "Next Pole / Cable Point" — that is
+  // a plain waypoint, NOT a device. Skip before checking AB/DP.
+  if(t.includes('NEXT POLE')||t.includes('ROUTE/WAY')||t.includes('ROUTE WAY')||t.includes('WAYPOINT'))return 'bend';
   if(t.includes('AB SWITCH')||t.includes('LINE AB'))return 'ab';
   if(/\bDP\b|DP\s*STRUCTURE/.test(t))return 'dp';
   if(t.includes('HT SERVICE'))return 'ht';
+  if(t.includes('SWITCHING STATION')||t.includes('SWS'))return 'sws';
   if(t.includes('33/11')||t.includes('33 KV SS')||t.includes('33KV SS')||t.includes('11KV SS'))return 'ss33';
   if(t.includes('EHT')||t.includes('132KV')||t.includes('132 KV')||t.includes('220KV')||t.includes('220 KV')||t.includes('400KV')||t.includes('400 KV'))return 'eht';
   if(/\bHT\b/.test(t))return 'ht';
-  return 'ss33'
+  return 'ss33';
 }
 function normalizeInputRows(raw){
   const out=[], carry={};
   raw.forEach((r,idx)=>{
     const o={};Object.keys(r||{}).forEach(k=>o[nkey(k)]=r[k]);
     const rec={
-      area_code:get(o,['area_code','Area Code']), circle:get(o,['operation_circle','Operation Circle']),
-      division:get(o,['lines_division','division','Lines Division']), sub_division:get(o,['lines_sub_division','sub_division','Sub Division']), section:get(o,['lines_section','section','Lines Section']),
-      eht_code:get(o,['eht_code','EHT Code']), eht_name:get(o,['name_of_the_eht_ss','EHT Name','eht_name']), eht_lat:num(get(o,['latitude_eht','EHT Lat','eht_lat','latitude'])), eht_lng:num(get(o,['longitude_eht','EHT Long','eht_long','longitude'])),
-      feeder_type:get(o,['type_of_feeder','Type of Feeder','feeder_type']), feeder_name:get(o,['name_of_33kv _feeder','name_of_33kv_feeder','feeder_name','Feeder Name']), feeder_code:get(o,['33kv_feeder_code','Feeder Code','feeder_code']),
-      pole_number:get(o,['pole_number','Point No','Point Number','sequence','seq']), source_type:get(o,['source_type','Source Type']),
-      feeding_code:get(o,['feeder_feeding_code','feeding_code','Feeding Code']), feeding_to:get(o,['feeder_feeding_to','feeding_to','Feeding To']), feeding_name:get(o,['feeding_end_name','Feeding Name','feeding_name','Feeding End Name']),
-      feeding_lat:num(get(o,['feeding_end_latitude','Feeding Latitude','feeding_latitude','feeding_lat'])), feeding_lng:num(get(o,['feeding_end_longitude','Feeding Longitude','feeding_longitude','feeding_lng'])),
+      // ── Hierarchy ──────────────────────────────────────────────────────
+      // New schema: division, sub_division, section (direct names)
+      // Old schema: lines_division, lines_sub_division, lines_section
+      area_code:    get(o,['area_code','Area Code']),
+      circle:       get(o,['operation_circle','Operation Circle']),
+      division:     get(o,['division','lines_division','Lines Division','Division']),
+      sub_division: get(o,['sub_division','lines_sub_division','Sub Division','SubDivision']),
+      section:      get(o,['section','lines_section','Lines Section','Section']),
+      // ── EHT Source ─────────────────────────────────────────────────────
+      // New schema: name_of_the_EHT _SS (with space), latitude/longitude
+      // Old schema: latitude_eht / longitude_eht
+      eht_code: get(o,['eht_code','EHT Code']),
+      eht_name: get(o,['name_of_the_eht_ss','name_of_eht_ss','eht_name','EHT Name','EHTName']),
+      eht_lat:  num(get(o,['latitude_eht','eht_lat','EHT Lat'])),
+      eht_lng:  num(get(o,['longitude_eht','eht_long','eht_lng','EHT Long'])),
+      // ── Feeder Identity ─────────────────────────────────────────────────
+      // New schema: feeder_name, feeder_code, feeder_type (direct names)
+      // Old schema: name_of_33kv _feeder, 33kv_feeder_code, type_of_feeder
+      feeder_type: get(o,['feeder_type','type_of_feeder','Type of Feeder','Type_of_Feeder']),
+      feeder_name: get(o,['feeder_name','name_of_33kv_feeder','name_of_33kv _feeder','Feeder Name','FeederName']),
+      feeder_code: get(o,['feeder_code','33kv_feeder_code','Feeder Code','FeederCode']),
+      // ── Waypoint ─────────────────────────────────────────────────────────
+      // New schema: pole_number, latitude, longitude (this pole's coords),
+      //   feeder_feeding_to (destination name), feeder_feeding_to_code (dest code),
+      //   pole_feeding_to (what this pole feeds), type_of_cable_point, type_of_pole
+      // Old schema: feeding_end_latitude/longitude, feeding_end_name, feeder_feeding_code
+      pole_number:  get(o,['pole_number','Point No','Point Number','sequence','seq','Pole Number']),
+      source_type:  get(o,['type_of_cable_point','Type of Cable Point','source_type','Source Type','type_of_pole','Type of Pole']),
+      feeding_code: get(o,['feeder_feeding_to_code','feeder_feeding_code','feeding_code','Feeding Code','Feeder Feeding To Code']),
+      feeding_to:   get(o,['feeder_feeding_to','pole_feeding_to','feeding_to','Feeding To','Feeder Feeding To','Pole Feeding To']),
+      feeding_name: get(o,['feeder_feeding_to','feeding_end_name','feeding_name','Feeding Name','Feeding End Name','Feeder Feeding To']),
+      // New schema stores this pole's coords in latitude/longitude;
+      // Old schema used feeding_end_latitude/feeding_end_longitude.
+      feeding_lat: num(get(o,['latitude','Latitude','feeding_end_latitude','Feeding Latitude','feeding_latitude','feeding_lat'])),
+      feeding_lng: num(get(o,['longitude','Longitude','feeding_end_longitude','Feeding Longitude','feeding_longitude','feeding_lng'])),
       raw_index:idx+2
     };
+    // ── New-schema: first row of each feeder IS the EHT source point ────
+    // Old schema had separate latitude_eht/longitude_eht cols; new schema
+    // doesn't. Detect the source row (pole_number blank/0/1 AND no prior
+    // carry for this feeder) and promote its lat/lng to eht_lat/eht_lng.
+    if(rec.eht_lat==null){
+      const pn=String(rec.pole_number||'').trim();
+      if((pn===''||pn==='0'||pn==='1')&&rec.eht_name&&rec.feeding_lat!=null)
+        rec.eht_lat=rec.feeding_lat;
+    }
+    if(rec.eht_lng==null){
+      const pn=String(rec.pole_number||'').trim();
+      if((pn===''||pn==='0'||pn==='1')&&rec.eht_name&&rec.feeding_lng!=null)
+        rec.eht_lng=rec.feeding_lng;
+    }
+    // ── carry-forward (merged-cell fill-down) ────────────────────────────
     ['area_code','circle','division','sub_division','section','feeder_type','feeder_name','feeder_code'].forEach(k=>{if(rec[k])carry[k]=rec[k];else rec[k]=carry[k]||''});
     if(rec.eht_code||rec.eht_name||rec.eht_lat||rec.eht_lng){['eht_code','eht_name','eht_lat','eht_lng'].forEach(k=>{if(rec[k]!=null&&rec[k]!=='')carry[k]=rec[k]})} else {['eht_code','eht_name','eht_lat','eht_lng'].forEach(k=>{rec[k]=carry[k]??rec[k]})}
     if(rec.feeder_code||rec.feeder_name) out.push(rec);
@@ -3061,7 +3088,11 @@ function buildTopology(){
     // all named "AB Switch" with no code were collapsing to ONE key before
     // (that's why only 2 showed). Coordinates make each physical switch unique.
     const nodeKey=n=>{
-      const named=(n.name&&!/^(AB Switch|DP Structure|Feeding Point)$/i.test(n.name))||n.code;
+      // Use feeder_feeding_to_code (stored in n.code) when available — it's
+      // the authoritative unique key in the new schema. Without it, fall back
+      // to coordinates so identically-named AB switches don't collapse.
+      if(n.code && !/^(EDIT-|NEWF-)/.test(n.code)) return n.kind+'|'+n.code;
+      const named=(n.name&&!/^(AB Switch|DP Structure|Feeding Point|Next Pole)$/i.test(n.name))||n.code;
       return n.kind+'|'+(named?(compact(n.name)+'|'+String(n.code||'')):((+n.lat).toFixed(6)+','+(+n.lng).toFixed(6)));
     };
     const seen={};seq=seq.filter(n=>{const k=nodeKey(n); if(seen[k])return false;seen[k]=1;return true});
@@ -3073,44 +3104,14 @@ function buildTopology(){
     seq.forEach(n=>{nodesByKey[nodeKey(n)]=n});
   });
 }
-
-window.sgConnectionMode = window.sgConnectionMode || 'straight';
-function setSGConnectionMode(v){
-  window.sgConnectionMode = v || 'straight';
-  try{
-    const s=document.getElementById('sgConnectionMode'); if(s)s.value=window.sgConnectionMode;
-    const l=document.getElementById('gspConnStyleVal'); if(l)l.textContent=window.sgConnectionMode.toUpperCase();
-    localStorage.setItem('sgConnectionMode',window.sgConnectionMode);
-  }catch(e){}
-  try{render();}catch(e){}
-}
-try{
-  const saved=localStorage.getItem('sgConnectionMode');
-  if(saved) window.sgConnectionMode=saved;
-  setTimeout(()=>setSGConnectionMode(window.sgConnectionMode),300);
-}catch(e){}
-function getSGConnectionMode(){
-  try{return document.getElementById('sgConnectionMode')?.value || window.sgConnectionMode || 'straight';}
-  catch(e){return window.sgConnectionMode || 'straight';}
-}
-
 function curve(a,b,i,total,ctype){
+  // Exact endpoints: no visual trimming. The line must connect to EHT/SS node centre.
   const A=L.latLng(a.lat,a.lng), B=L.latLng(b.lat,b.lng);
-  const mode=getSGConnectionMode();
-
-  // Straight mode: exact EHT/SS endpoint-to-endpoint line.
-  // Saved bend points still work, because the feeder is split into segments through those points.
-  if(mode==='straight') return [A,B];
-
   const dx=B.lng-A.lng,dy=B.lat-A.lat,len=Math.sqrt(dx*dx+dy*dy)||1e-9,nx=-dy/len,ny=dx/len;
-
-  // Parallel mode: only bend duplicate/overlapping parallel connections.
-  if(mode==='parallel' && total<=1) return [A,B];
-
+  const isCurvy=(ctype==='link'||ctype==='ht');
   let spread=(i-(total-1)/2)*0.0010;
-  if(mode==='curved' && total<=1) spread=0.09*len;
-  if(mode==='parallel' && total>1 && Math.abs(spread)<0.00015) spread=0.00015;
-
+  if(isCurvy && total<=1) spread=0.12*len;
+  if(!isCurvy && total<=1) return [A,B];
   const pts=[];
   for(let t=0;t<=1.0001;t+=.1){
     const bow=Math.sin(Math.PI*t)*spread;
@@ -3189,7 +3190,8 @@ function render(){
     const pts=curve(c.from,c.to,idx,pairCount[k],c.type);
     const w = c.type==='link' ? Math.max(1.5,sgLineWeight*0.8) : sgLineWeight;
     const line=L.polyline(pts,{color:col,weight:w,opacity:.9,dashArray:c.type==='link'?'7 5':null,lineCap:'round',lineJoin:'round',className:'sg-feeder-line'});
-    // Feeder hover rectangular tooltip removed completely.
+    // Feeder name appears ONLY on hover near the line, not as permanent map text.
+    line.bindTooltip(clean(c.feeder_name)||c.feeder_code||'Feeder',{sticky:true,direction:'top',opacity:.96,className:'sg-hover-tip'});
     // Double-click → open the full feeder route map for this feeder.
     line.on('dblclick',ev=>{L.DomEvent.stop(ev);openFeederInRouteMap(c.feeder_code,c.feeder_name);});
     line.on('click',ev=>{
@@ -3631,7 +3633,22 @@ function _sgRenderEditHandles(){
   const verts = geomEdit.verts;
   if(verts.length<2) return;
   _sgGuideLine = L.polyline(verts.map(v=>[v.lat,v.lng]),{color:'#00e5ff',weight:3,dashArray:'6 5',opacity:.95,interactive:false}).addTo(gEditLayer);
-  // Insert ghost markers disabled. Use only visible bend grips for AutoCAD-style line shaping.
+  // ◆ ghost diamonds at segment midpoints — click to insert an extra BEND
+  // POINT exactly there. Inserts are pure geometry (never AB switches).
+  for(let i=0;i<verts.length-1;i++){
+    const a=verts[i], b=verts[i+1];
+    const mid={lat:(a.lat+b.lat)/2,lng:(a.lng+b.lng)/2};
+    const insertAt=i+1;
+    const ghost=L.marker([mid.lat,mid.lng],{icon:_sgGhostIcon(),zIndexOffset:500})
+      .bindTooltip('+ insert bend point',{direction:'top',opacity:.9});
+    ghost.on('click',ev=>{
+      L.DomEvent.stop(ev);
+      geomEdit.verts.splice(insertAt,0,{row:null,lat:mid.lat,lng:mid.lng,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true});
+      _sgRenderEditHandles();
+      toast('Bend point inserted — drag it into place');
+    });
+    ghost.addTo(gEditLayer);
+  }
 
   verts.forEach((v,i)=>{
     const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(v.locked,i===geomEdit.selected),draggable:!v.locked,zIndexOffset:600})
@@ -4118,166 +4135,10 @@ async function sgExportPDF(){
 }
 </script>
 
-<script>
-/* Robust PDF export override — avoids jsPDF Invalid argument errors and respects straight/curve mode */
-(function(){
-  function _sgPdfSafeText(s,max=140){
-    return String(s==null?'':s).replace(/[^\x20-\x7E]+/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
-  }
-  function _sgPdfHex(h, fallback){
-    h=String(h||fallback||'#2196f3').trim();
-    if(!/^#[0-9a-fA-F]{6}$/.test(h)) h=fallback||'#2196f3';
-    const m=h.replace('#','');
-    return [parseInt(m.slice(0,2),16)||0,parseInt(m.slice(2,4),16)||0,parseInt(m.slice(4,6),16)||0];
-  }
-  function _sgPdfFinite(v,d=0){v=Number(v);return Number.isFinite(v)?v:d;}
-  async function _sgTryBackground(padded, pxBudget, bmChoice){
-    try{
-      if(typeof _sgCaptureTileBackground!=='function' || bmChoice==='none') return null;
-      const chain=[bmChoice,'street','light'].filter((v,i,a)=>v&&a.indexOf(v)===i);
-      for(const srcName of chain){
-        try{return await _sgCaptureTileBackground(padded, pxBudget, pxBudget, srcName);}
-        catch(e){console.warn('PDF basemap capture failed for',srcName,e);}
-      }
-    }catch(e){console.warn('PDF background skipped:',e);}
-    return null;
-  }
-  window.sgExportPDF = async function(){
-    const prog=document.getElementById('pdfProg');
-    if(prog){prog.style.display='block';prog.textContent='Preparing PDF…';}
-    try{
-      if(!window.jspdf || !window.jspdf.jsPDF) throw new Error('jsPDF library not loaded');
-      buildTopology();
-      const shown=(topology||[]).filter(matchesFilters).filter(c=>
-        c && c.from && c.to &&
-        Number.isFinite(+c.from.lat)&&Number.isFinite(+c.from.lng)&&
-        Number.isFinite(+c.to.lat)&&Number.isFinite(+c.to.lng)
-      );
-      if(!shown.length){ if(prog)prog.style.display='none'; toast('Nothing visible with current filters'); return; }
-
-      const paper=(document.getElementById('pdfPaper')?.value)||'a3';
-      const orient=(document.getElementById('pdfOrient')?.value)||'landscape';
-      const sizes={a4:[210,297],a3:[297,420],legal:[216,356]};
-      let [pw,ph]=sizes[paper]||sizes.a3; if(orient==='landscape'){const t=pw;pw=ph;ph=t;}
-      const margin=9, headerH=14, drawW=pw-margin*2, drawH=ph-margin*2-headerH;
-
-      const bounds=L.latLngBounds([]);
-      shown.forEach(c=>{bounds.extend([+c.from.lat,+c.from.lng]); bounds.extend([+c.to.lat,+c.to.lng]);});
-      const padded=bounds.isValid()?bounds.pad(.08):map.getBounds();
-
-      const {jsPDF}=window.jspdf;
-      const doc=new jsPDF({orientation:orient,unit:'mm',format:paper});
-      const crs=L.CRS.EPSG3857;
-      const bmChoice=(document.getElementById('pdfBasemap')?.value)||'street';
-      const pxBudget=({a4:2600,a3:3600,legal:3200}[paper])||3000;
-      let bg=null;
-      if(bmChoice!=='none'){
-        if(prog)prog.textContent='Capturing basemap…';
-        bg=await _sgTryBackground(padded,pxBudget,bmChoice);
-      }
-      const z=bg?bg.zoom:Math.max(10,Math.min(17,map.getZoom()||13));
-      const origin=bg?bg.originPx:crs.latLngToPoint(L.latLng(padded.getNorth(),padded.getWest()),z);
-      const seP=crs.latLngToPoint(L.latLng(padded.getSouth(),padded.getEast()),z);
-      const extW=Math.max(1,seP.x-origin.x), extH=Math.max(1,seP.y-origin.y);
-      const scale=Math.min(drawW/extW,drawH/extH);
-      const offX=margin+(drawW-extW*scale)/2, offY=margin+headerH+(drawH-extH*scale)/2;
-      const P=(lat,lng)=>{
-        const p=crs.latLngToPoint(L.latLng(+lat,+lng),z);
-        return [offX+(p.x-origin.x)*scale, offY+(p.y-origin.y)*scale];
-      };
-      const safeLine=(a,b)=>{ if([a[0],a[1],b[0],b[1]].every(Number.isFinite)) doc.line(a[0],a[1],b[0],b[1]); };
-      const safeText=(s,x,y,opt)=>{x=_sgPdfFinite(x,NaN);y=_sgPdfFinite(y,NaN);if(Number.isFinite(x)&&Number.isFinite(y))doc.text(_sgPdfSafeText(s),x,y,opt||{});};
-
-      if(bg){
-        try{
-          const w=extW*scale,h=extH*scale;
-          if(Number.isFinite(w)&&Number.isFinite(h)&&w>1&&h>1){
-            doc.addImage(bg.canvas.toDataURL('image/jpeg',0.80),'JPEG',offX,offY,w,h);
-            doc.setFillColor(255,255,255); doc.setDrawColor(255,255,255);
-            doc.setGState && doc.setGState(new doc.GState({opacity:.20}));
-            doc.rect(offX,offY,w,h,'F');
-            doc.setGState && doc.setGState(new doc.GState({opacity:1}));
-          }
-        }catch(e){console.warn('PDF background add skipped:',e);}
-      }else{
-        doc.setFillColor(245,248,252); doc.rect(offX,offY,extW*scale,extH*scale,'F');
-      }
-
-      doc.setFillColor(18,35,58); doc.rect(0,0,pw,headerH-2,'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(255,255,255);
-      safeText('TGSPDCL - 33KV SMART GRID MAP',margin,6.2);
-      doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
-      safeText((typeof _sgPdfTitle==='function'?_sgPdfTitle():'Smart Grid')+' | '+shown.length+' connections | '+new Date().toLocaleString(),margin,10.5);
-
-      if(prog)prog.textContent='Drawing smart grid vectors…';
-      const pairCount={},pairIdx={};
-      shown.forEach(c=>{const k=compact(c.from.name)+String(c.from.code||'')+'>'+compact(c.to.name)+String(c.to.code||'');pairCount[k]=(pairCount[k]||0)+1;});
-      shown.forEach(c=>{
-        const k=compact(c.from.name)+String(c.from.code||'')+'>'+compact(c.to.name)+String(c.to.code||''),idx=pairIdx[k]||0;pairIdx[k]=idx+1;
-        const color=(typeof colorFor==='function'?colorFor(c.type,c.feeder_type):'#2196f3');
-        const [r,g,b]=_sgPdfHex(color);
-        doc.setDrawColor(r,g,b); doc.setLineWidth(c.type==='feeder'?0.42:0.30);
-        if(c.type==='link')doc.setLineDashPattern([1.5,1],0); else doc.setLineDashPattern([],0);
-        let pts=[];
-        try{pts=curve(c.from,c.to,idx,pairCount[k],c.type).map(ll=>P(ll.lat,ll.lng));}
-        catch(e){pts=[P(c.from.lat,c.from.lng),P(c.to.lat,c.to.lng)];}
-        for(let i=0;i<pts.length-1;i++) safeLine(pts[i],pts[i+1]);
-        doc.setLineDashPattern([],0);
-        if(document.getElementById('pdfFeederLabels')?.checked && pts.length){
-          const mid=pts[Math.floor(pts.length/2)];
-          doc.setFont('helvetica','normal'); doc.setFontSize(3.0); doc.setTextColor(r,g,b);
-          safeText(clean(c.feeder_name)||c.feeder_code||'',mid[0],mid[1]-0.4,{align:'center'});
-        }
-      });
-
-      const done={}, nstat={eht:0,ss33:0,ab:0,dp:0,ht:0};
-      const showSS=document.getElementById('pdfSSLabels')?.checked;
-      shown.forEach(c=>[c.from,c.to].forEach(n=>{
-        if(!n||n.kind==='bend')return;
-        const key=n.kind+'|'+compact(n.name)+'|'+(n.code||'')+'|'+(+n.lat).toFixed(6)+','+(+n.lng).toFixed(6);
-        if(done[key])return; done[key]=1; if(nstat[n.kind]!=null)nstat[n.kind]++;
-        const [x,y]=P(n.lat,n.lng); if(!Number.isFinite(x)||!Number.isFinite(y))return;
-        if(n.kind==='eht'){
-          doc.setFillColor(183,28,28); doc.setDrawColor(255,255,255); doc.rect(x-2.5,y-1.6,5,3.2,'FD');
-          doc.setTextColor(255,255,255); doc.setFontSize(2.4); doc.setFont('helvetica','bold'); safeText('EHT',x,y+0.7,{align:'center'});
-          if(showSS){doc.setTextColor(120,20,20);doc.setFontSize(3.6);safeText(clean(n.name),x,y-2.3,{align:'center'});}
-        }else if(n.kind==='ss33'){
-          doc.setDrawColor(21,101,192); doc.setLineWidth(.25); doc.circle(x,y,1.25,'S'); doc.setFillColor(21,101,192); doc.circle(x,y,.70,'F');
-          if(showSS){doc.setTextColor(30,58,95);doc.setFontSize(3.3);doc.setFont('helvetica','normal');safeText(clean(n.name),x,y-2.0,{align:'center'});}
-        }else if(n.kind==='ab'){
-          doc.setFillColor(255,214,0); doc.setDrawColor(70,70,70); doc.circle(x,y,.75,'FD');
-        }else if(n.kind==='dp'){
-          doc.setFillColor(156,39,176); doc.setDrawColor(255,255,255); doc.rect(x-.65,y-.65,1.3,1.3,'FD');
-        }else if(n.kind==='ht'){
-          doc.setFillColor(0,168,138); doc.circle(x,y,.70,'F');
-        }
-      }));
-
-      const bx=pw-margin-58, by=ph-margin-35;
-      doc.setFillColor(255,255,255); doc.setDrawColor(80,80,80); doc.rect(bx,by,58,35,'FD');
-      doc.setFont('helvetica','bold'); doc.setFontSize(5.2); doc.setTextColor(20,20,20); safeText('LEGEND / STATS',bx+2.5,by+4);
-      doc.setFont('helvetica','normal'); doc.setFontSize(4.1);
-      const rows=[['EHT SS',nstat.eht],['33/11KV SS',nstat.ss33],['AB / DP',nstat.ab+' / '+nstat.dp],['Connections',shown.length],['Style',getSGConnectionMode?getSGConnectionMode():'straight']];
-      let yy=by+8; rows.forEach(([a,b])=>{doc.setTextColor(35,35,35);safeText(a,bx+2.5,yy);doc.setFont('helvetica','bold');safeText(String(b),bx+55,yy,{align:'right'});doc.setFont('helvetica','normal');yy+=4.2;});
-
-      const fname='SMARTGRID_'+_sgPdfSafeText((typeof _sgPdfTitle==='function'?_sgPdfTitle():'export'),50).replace(/[^A-Za-z0-9]+/g,'_')+'_'+paper.toUpperCase()+'.pdf';
-      doc.save(fname);
-      if(prog)prog.style.display='none';
-      toast('PDF exported - '+fname);
-    }catch(e){
-      console.error('PDF export failed:',e);
-      if(prog)prog.style.display='none';
-      toast('PDF export failed - '+(e.message||'see console'));
-    }
-  };
-  try{ sgExportPDF = window.sgExportPDF; }catch(e){}
-})();
-</script>
-
 <!-- ═══ Geometry Editor toolbar (AutoCAD-style vertex editing) ═══ -->
 <div id="sgeBar" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6000;background:#12233a;color:#fff;padding:9px 14px;border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.45);font-family:var(--sans);font-size:12px;align-items:center;gap:10px;white-space:nowrap">
   <div id="sgeTitle" style="font-weight:800;font-size:12.5px"></div>
-  <div style="opacity:.7;font-size:10px;max-width:270px;white-space:normal;line-height:1.3">Drag bend grips to arrange the line (pure geometry — NOT AB switches) · only green/blue bend grips are draggable · grey ■ endpoints are fixed</div>
+  <div style="opacity:.7;font-size:10px;max-width:270px;white-space:normal;line-height:1.3">Drag ■ blue grips to bend the line (pure geometry — NOT AB switches) · ⊕ inserts a drag point · grey ■ endpoints are fixed</div>
   <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled style="background:#c62828;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">✕ Delete Point</button>
   <span id="sgeAttr" style="display:none;align-items:center;gap:5px">
     <input id="sgeAttrName" placeholder="Point name" style="width:110px;padding:5px 7px;border-radius:5px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11px">
