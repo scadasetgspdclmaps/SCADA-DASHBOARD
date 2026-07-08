@@ -2859,8 +2859,19 @@ function renderStaticSS(filterFn){
         <tr><th>Sub Division</th><td>${ss.sub_div||''}</td></tr>
         <tr><th>Division</th><td>${ss.division||''}</td></tr>
       </table>`;
-    layer.bindPopup(popHtml,{maxWidth:340,minWidth:260});
-    layer.on('click',function(e){L.DomEvent.stopPropagation(e);layer.openPopup(e.latlng||layer.getLatLng());});
+    // Route all clicks through flyToSS so the PTR / source-card enhancement fires.
+    // flyToSS opens the popup itself (with feeders list + cards injected async).
+    // We still bindPopup as a fallback in case flyToSS isn't ready yet.
+    layer.bindPopup(popHtml,{maxWidth:400,minWidth:280,className:'ss-popup'});
+    layer.on('click',function(e){
+      L.DomEvent.stopPropagation(e);
+      if(typeof window.flyToSS === 'function'){
+        // Don't fly — just trigger the popup chain at current position
+        window.flyToSS(Object.assign({},ss,{_noPan:true}));
+      } else {
+        layer.openPopup(e.latlng||layer.getLatLng());
+      }
+    });
     const shortName=ss.name.replace(/33\/11KV\s?/i,'').replace(/\s?SS$/i,'').trim();
     layer.bindTooltip(shortName,{permanent:true,direction:'top',offset:[0,-18],className:'ss-label'});
     layer.addTo(map);
@@ -2888,8 +2899,17 @@ function renderStaticSS(filterFn){
         <tr><th>Max Load</th><td>${eht.max_load||''} MVA</td></tr>
         <tr><th>% Loading</th><td>${eht.per_load||''}</td></tr>
       </table>`;
-    layer.bindPopup(popHtml,{maxWidth:340,minWidth:260});
-    layer.on('click',function(e){L.DomEvent.stopPropagation(e);layer.openPopup(e.latlng||layer.getLatLng());});
+    layer.bindPopup(popHtml,{maxWidth:400,minWidth:280,className:'ss-popup'});
+    layer.on('click',function(e){
+      L.DomEvent.stopPropagation(e);
+      // Mark as EHT so enhancement uses exact-code lookup from ehtSources
+      const ehtObj = Object.assign({},eht,{_type:'eht',_noPan:true});
+      if(typeof window.flyToSS === 'function'){
+        window.flyToSS(ehtObj);
+      } else {
+        layer.openPopup(e.latlng||layer.getLatLng());
+      }
+    });
     const shortName=eht.name.replace(/^\d+\s*KV\s*/i,'').replace(/\s?SS$/i,'').trim();
     layer.bindTooltip(shortName,{permanent:true,direction:'top',offset:[0,-16],className:'ss-label'});
     layer.addTo(map);
@@ -6045,7 +6065,7 @@ function _findFeedersLinkedToSS(ssData){
 }
 
 function flyToSS(ss){
-  map.flyTo([ss.lat,ss.lon],17,{animate:true,duration:.8});
+  if(!ss._noPan) map.flyTo([ss.lat,ss.lon],17,{animate:true,duration:.8});
   const linkedFeeders=_findFeedersLinkedToSS(ss);
   const statusList=linkedFeeders.map(fn=>{
     const s=feederStatus[fn]||'live';
