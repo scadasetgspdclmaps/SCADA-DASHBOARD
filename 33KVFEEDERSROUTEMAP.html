@@ -2859,18 +2859,23 @@ function renderStaticSS(filterFn){
         <tr><th>Sub Division</th><td>${ss.sub_div||''}</td></tr>
         <tr><th>Division</th><td>${ss.division||''}</td></tr>
       </table>`;
-    // Route all clicks through flyToSS so the PTR / source-card enhancement fires.
-    // flyToSS opens the popup itself (with feeders list + cards injected async).
-    // We still bindPopup as a fallback in case flyToSS isn't ready yet.
-    layer.bindPopup(popHtml,{maxWidth:400,minWidth:280,className:'ss-popup'});
+    // IMPORTANT: do NOT bind the raw Section/Sub-Division popup here.
+    // Leaflet's internal bindPopup click listener can run after our custom handler
+    // and overwrite the enhanced flyToSS popup. We open a raw popup only as a
+    // true fallback when flyToSS is unavailable.
     layer.on('click',function(e){
-      L.DomEvent.stopPropagation(e);
+      if(e && e.originalEvent){ L.DomEvent.stop(e.originalEvent); }
       if(typeof window.flyToSS === 'function'){
-        // Don't fly — just trigger the popup chain at current position
-        window.flyToSS(Object.assign({},ss,{_noPan:true}));
+        // Don't fly — just trigger the enhanced popup chain at current position.
+        // Add _type so downstream enhancer treats it as a 33/11KV SS explicitly.
+        window.flyToSS(Object.assign({},ss,{_type:'33',_noPan:true}));
       } else {
-        layer.openPopup(e.latlng||layer.getLatLng());
+        L.popup({maxWidth:400,minWidth:280,className:'ss-popup'})
+          .setLatLng(e&&e.latlng?e.latlng:layer.getLatLng())
+          .setContent(popHtml)
+          .openOn(map);
       }
+      return false;
     });
     const shortName=ss.name.replace(/33\/11KV\s?/i,'').replace(/\s?SS$/i,'').trim();
     layer.bindTooltip(shortName,{permanent:true,direction:'top',offset:[0,-18],className:'ss-label'});
@@ -2899,16 +2904,21 @@ function renderStaticSS(filterFn){
         <tr><th>Max Load</th><td>${eht.max_load||''} MVA</td></tr>
         <tr><th>% Loading</th><td>${eht.per_load||''}</td></tr>
       </table>`;
-    layer.bindPopup(popHtml,{maxWidth:400,minWidth:280,className:'ss-popup'});
+    // Same rule as 33/11KV SS: no bindPopup here, otherwise Leaflet can
+    // overwrite the enhanced EHT popup with this raw table on marker click.
     layer.on('click',function(e){
-      L.DomEvent.stopPropagation(e);
-      // Mark as EHT so enhancement uses exact-code lookup from ehtSources
+      if(e && e.originalEvent){ L.DomEvent.stop(e.originalEvent); }
+      // Mark as EHT so enhancement uses exact-code lookup from ehtSources.
       const ehtObj = Object.assign({},eht,{_type:'eht',_noPan:true});
       if(typeof window.flyToSS === 'function'){
         window.flyToSS(ehtObj);
       } else {
-        layer.openPopup(e.latlng||layer.getLatLng());
+        L.popup({maxWidth:400,minWidth:280,className:'ss-popup'})
+          .setLatLng(e&&e.latlng?e.latlng:layer.getLatLng())
+          .setContent(popHtml)
+          .openOn(map);
       }
+      return false;
     });
     const shortName=eht.name.replace(/^\d+\s*KV\s*/i,'').replace(/\s?SS$/i,'').trim();
     layer.bindTooltip(shortName,{permanent:true,direction:'top',offset:[0,-16],className:'ss-label'});
