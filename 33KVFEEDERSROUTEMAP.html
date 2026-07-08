@@ -8485,6 +8485,10 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
   let MAP_MASTER_PTRS = {};     // ssCode safekey → PTR record
   let MAP_EHT_SOURCES = {};     // ehtCode → { ehtName, lat, lng, ptrs, ptr_cap, … }
   let MAP_CONNECTION_MASTER = {}; // feeder_feeding_to_code → { ssName, ssCode, … }
+  let MAP_SS_SOURCES = {};      // ssCode → [{ lvName, ptrCapacity, regularFeederCode,
+                                //              regularFeederName, regularSourceType,
+                                //              alt1Code, alt1Name, alt1Type,
+                                //              alt2Code, alt2Name, alt2Type, … }]
   let LIVE_BREAKDOWNS = {};     // id → breakdown record (for badge panel)
   let _bpOpen = false;
 
@@ -8623,6 +8627,81 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
         console.log('[map] Loaded ' + Object.keys(MAP_CONNECTION_MASTER).length + ' connection master records');
       })
       .catch(err => console.warn('[map] Connection master load failed:', err));
+  }
+
+  // 2c) LOAD /masterData/connectionMaster — feeder_feeding_to_code → SS metadata
+  //     This is the authoritative link: every feeder row carries feeder_feeding_to_code
+  //     which keys into this table to identify which SS the feeder terminates at.
+  function loadConnectionMaster(){
+    return fetch(FIREBASE_URL + '/masterData/connectionMaster.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        MAP_CONNECTION_MASTER = data || {};
+        console.log('[map] Loaded ' + Object.keys(MAP_CONNECTION_MASTER).length + ' connection master records');
+      })
+      .catch(err => console.warn('[map] Connection master load failed:', err));
+  }
+
+  // 2d) LOAD /masterData/ssSources — LV-level rows with regular + alternate feeder sources.
+  //     Each 33/11KV SS has multiple LV rows (LV1, LV2, LV3…); each row carries:
+  //       ssCode, ssName, lvName, ptrCapacity,
+  //       regularSourceType, regularFeederCode, regularFeederName,
+  //       alt1Code, alt1Type, alt1Name,  alt2Code, alt2Type, alt2Name (and more if present)
+  //     Grouped by ssCode for O(1) popup lookup.
+  function loadSSSources(){
+    return fetch(FIREBASE_URL + '/masterData/ssSources.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if(!data){ console.warn('[map] No ssSources data at /masterData/ssSources'); return; }
+        MAP_SS_SOURCES = {};
+        Object.values(data).forEach(rec => {
+          if(!rec || typeof rec !== 'object') return;
+          const code = (rec.ssCode||rec.SSCODE||rec.sscode||'').toString().trim();
+          if(!code) return;
+          if(!MAP_SS_SOURCES[code]) MAP_SS_SOURCES[code] = [];
+          MAP_SS_SOURCES[code].push(rec);
+        });
+        Object.values(MAP_SS_SOURCES).forEach(arr =>
+          arr.sort((a,b)=>{
+            const na=parseInt((a.lvName||a.LVNAME||'').replace(/\D/g,''))||0;
+            const nb=parseInt((b.lvName||b.LVNAME||'').replace(/\D/g,''))||0;
+            return na-nb;
+          })
+        );
+        // Name-based index for fallback
+        MAP_SS_SOURCES._byName = {};
+        Object.keys(MAP_SS_SOURCES).forEach(code=>{
+          const recs = MAP_SS_SOURCES[code];
+          const nameKey = ((recs[0]||{}).ssName||(recs[0]||{}).SSNAME||'').toUpperCase().trim();
+          if(nameKey) MAP_SS_SOURCES._byName[nameKey] = recs;
+        });
+        const cnt = Object.keys(MAP_SS_SOURCES).filter(k=>k!=='_byName').length;
+        console.log('[map] Loaded ssSources for ' + cnt + ' SS codes');
+      })
+      .catch(err => console.warn('[map] ssSources load failed (may not exist yet):', err));
+  }
+
+  // Resolve LV source rows for a given SS popup object
+  function _getSSSourceRows(ss){
+    if(!ss) return null;
+    const code = (ss.code||ss.ssCode||'').toString().trim();
+    if(code && MAP_SS_SOURCES[code]) return MAP_SS_SOURCES[code];
+    // Fallback: use ssCode from PTR record
+    const ptr = findPTRForSS(ss);
+    const ptrCode = ptr?(ptr.ssCode||'').toString().trim():'';
+    if(ptrCode && MAP_SS_SOURCES[ptrCode]) return MAP_SS_SOURCES[ptrCode];
+    // Fallback: name key
+    if(MAP_SS_SOURCES._byName){
+      const nameKey = (ss.name||'').toUpperCase().trim();
+      if(MAP_SS_SOURCES._byName[nameKey]) return MAP_SS_SOURCES._byName[nameKey];
+      const stripped = nameKey.replace(/^33\/11KV\s+/,'').replace(/\s+SS$/,'').trim();
+      const match = Object.keys(MAP_SS_SOURCES._byName).find(k=>{
+        const ks=k.replace(/^33\/11KV\s+/,'').replace(/\s+SS$/,'').trim();
+        return ks===stripped || k.includes(stripped) || nameKey.includes(ks);
+      });
+      if(match) return MAP_SS_SOURCES._byName[match];
+    }
+    return null;
   }
 
   // Find PTR record for a given SS by name OR code (fuzzy)
@@ -8869,6 +8948,107 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
     const linked = (typeof window._findFeedersLinkedToSS === 'function')
       ? window._findFeedersLinkedToSS(ss) : [];
 
+    // ── SS LV SOURCE CARD (Regular + Alternate feeders from Master Data) ────
+    // Per Naresh 08-Jul-2026: each 33/11KV SS popup must show its regular and
+    // alternate 33KV source feeders from masterData/ssSources, connected by
+    // ssCode. If any of those feeders are currently uploaded in the map,
+    // also show their live status colour.
+    const ssSourceRows = _getSSSourceRows(ss);
+    const sourceCardHtml = ssSourceRows && ssSourceRows.length ? (() => {
+      const f = (v) => escapeHtml(v||'');
+      const feederStatusCol = fn => {
+        if(!fn) return '#94a3b8';
+        const s = (window.feederStatus||{})[fn] || 'live';
+        return s==='breakdown'?'#ef4444': s==='idle'?'#9ca3af':'#22c55e';
+      };
+      // Try to resolve a map-feeder by code
+      const resolveFeederByCode = code => {
+        if(!code) return null;
+        const cStr = code.toString().trim();
+        // Check feederMetaMap or allLayers for a feeder whose feeder_code matches
+        if(window.feederMetaMap){
+          const m = Object.keys(window.feederMetaMap).find(fn=>{
+            const meta = window.feederMetaMap[fn]||{};
+            return (meta.feeder_code||'').toString().trim()===cStr ||
+                   (meta.regularFeederCode||'').toString().trim()===cStr;
+          });
+          if(m) return m;
+        }
+        // Search allLayers feature props
+        if(window.allLayers){
+          for(const it of window.allLayers){
+            const p=(it.layer&&it.layer.feature&&it.layer.feature.properties)||{};
+            if((p.feeder_code||'').toString().trim()===cStr) return it.feederName;
+          }
+        }
+        return null;
+      };
+
+      const rowsHtml = ssSourceRows.map(row=>{
+        const lv = f(row.lvName||row.LVNAME||'LV');
+        const cap = f(row.ptrCapacity||row.PTRCAPACITY||'—');
+        // Regular source
+        const regType = f(row.regularSourceType||row.REGULARSOURCETYPE||'');
+        const regCode = (row.regularFeederCode||row.REGULARFEEDERCODE||'').toString().trim();
+        const regName = f(row.regularFeederName||row.REGULARFEEDERNAME||'');
+        const regFn = resolveFeederByCode(regCode);
+        const regStat = regFn ? feederStatusCol(regFn) : '#94a3b8';
+        const regOnMap = !!regFn;
+
+        // Build alternate source entries (alt1, alt2, alt3…)
+        const alts = [];
+        for(let i=1; i<=5; i++){
+          const suffix = i===1?'1':String(i);
+          const ac = (row['alt'+suffix+'Code']||row['ALT'+suffix+'CODE']||'').toString().trim();
+          const an = row['alt'+suffix+'Name']||row['ALT'+suffix+'NAME']||'';
+          const at = row['alt'+suffix+'Type']||row['ALT'+suffix+'TYPE']||'';
+          if(ac||an) alts.push({code:ac, name:an, type:at});
+        }
+
+        const altHtml = alts.map(a=>{
+          const aFn = resolveFeederByCode(a.code);
+          const aStat = aFn ? feederStatusCol(aFn) : '#64748b';
+          const aOnMap = !!aFn;
+          return `<div style="display:flex;align-items:flex-start;gap:6px;padding:3px 0;border-left:2px solid #7c3aed;padding-left:6px;margin-top:3px">`
+            + `<span style="font-size:8px;color:#7c3aed;font-weight:800;min-width:22px;margin-top:1px">${f(a.type)||'Alt'}</span>`
+            + `<div style="flex:1;min-width:0">`
+              + `<div style="font-size:10px;font-weight:600;color:#312e81;word-break:break-word;line-height:1.3">`
+                + (a.name||a.code||'—')
+                + (aOnMap?`<span title="Feeder loaded on map" style="margin-left:4px;background:${aStat};color:#fff;font-size:7px;padding:1px 4px;border-radius:4px">ON MAP</span>`:`<span style="margin-left:4px;font-size:7px;color:#a5b4fc">${a.code||''}</span>`)
+              + `</div>`
+            + `</div>`
+            + `</div>`;
+        }).join('');
+
+        return `<div style="border:1px solid #e2e8f0;border-radius:8px;margin-bottom:7px;overflow:hidden">`
+          // Header row
+          + `<div style="background:#1e40af;padding:5px 9px;display:flex;justify-content:space-between;align-items:center">`
+            + `<span style="font-size:10px;font-weight:800;color:#fff;font-family:monospace">${lv}</span>`
+            + `<span style="font-size:9px;color:#bfdbfe;font-weight:700">${cap} MVA</span>`
+          + `</div>`
+          // Regular source
+          + `<div style="padding:6px 9px;background:#eff6ff">`
+            + `<div style="display:flex;align-items:flex-start;gap:6px">`
+              + `<span style="font-size:8px;font-weight:800;color:#1e40af;min-width:32px;margin-top:1px">${regType||'Reg'}</span>`
+              + `<div style="flex:1;min-width:0">`
+                + `<div style="font-size:10.5px;font-weight:700;color:#1e3a8a;word-break:break-word;line-height:1.3">`
+                  + (regName||regCode||'—')
+                  + (regOnMap?`<span title="Live status from map" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${regStat};margin-left:5px;vertical-align:middle;box-shadow:0 0 0 2px ${regStat}33"></span>`:`<span style="margin-left:4px;font-size:7px;color:#60a5fa">${regCode}</span>`)
+                + `</div>`
+              + `</div>`
+            + `</div>`
+            + altHtml
+          + `</div>`
+          + `</div>`;
+      }).join('');
+
+      return `<div style="margin:10px 0">`
+        + `<div style="font-size:9px;font-weight:800;color:#1e40af;letter-spacing:1.2px;margin-bottom:8px;font-family:Consolas,monospace">⚡ REGULAR &amp; ALTERNATE SOURCES (MASTER DATA)</div>`
+        + rowsHtml
+        + `<div style="font-size:8px;color:#94a3b8;margin-top:4px">● on-map = feeder status live  ◌ = not yet uploaded</div>`
+        + `</div>`;
+    })() : '';
+
     // Stat breakdown for the linked feeders
     let liveC = 0, bkdC = 0, idleC = 0;
     linked.forEach(fn => {
@@ -8903,16 +9083,16 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
       + '</div>'
     ) : '';
 
-    // Inject PTR card before the FEEDERS section
+    // Inject source card + PTR card + status summary before the FEEDERS section
     const feederHeading = [...popup.querySelectorAll('div')].find(d => /FEEDERS\s+FEEDING\s+THIS\s+SS/i.test(d.textContent));
     if (feederHeading){
       const wrap = document.createElement('div');
-      wrap.innerHTML = statusSummaryHtml + ptrCardHtml;
+      wrap.innerHTML = sourceCardHtml + statusSummaryHtml + ptrCardHtml;
       feederHeading.parentNode.insertBefore(wrap, feederHeading);
     } else {
       // No feeders heading — just append at end
       const wrap = document.createElement('div');
-      wrap.innerHTML = statusSummaryHtml + ptrCardHtml;
+      wrap.innerHTML = sourceCardHtml + statusSummaryHtml + ptrCardHtml;
       popup.appendChild(wrap);
     }
   }
@@ -8922,7 +9102,7 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
   // ═════════════════════════════════════════════════════════════
   function bootstrapLiveIntegration(){
     // Load all three master data sources in parallel (08-Jul-2026)
-    Promise.all([loadMasterPTRs(), loadEHTSources(), loadConnectionMaster()]).then(() => {
+    Promise.all([loadMasterPTRs(), loadEHTSources(), loadConnectionMaster(), loadSSSources()]).then(() => {
       subscribeFeedersSSE();
       // Initial pulls so badge / stats reflect current state immediately
       fetch(FIREBASE_URL + '/feeders.json')
@@ -8948,6 +9128,8 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
     ptrs: () => MAP_MASTER_PTRS,
     ehtSources: () => MAP_EHT_SOURCES,
     connectionMaster: () => MAP_CONNECTION_MASTER,
+    ssSources: () => MAP_SS_SOURCES,
+    getSSSourceRows: _getSSSourceRows,
     refresh: bootstrapLiveIntegration,
     findPTR: findPTRForSS
   };
