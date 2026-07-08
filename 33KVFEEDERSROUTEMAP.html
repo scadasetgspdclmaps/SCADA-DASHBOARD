@@ -1898,7 +1898,7 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
 
       <!-- Switching Station markers -->
       <div class="lrow" id="lyr-sws" onclick="toggleLyr('sws')">
-        <div class="lswatch legend-icon"><svg xmlns='http://www.w3.org/2000/svg' width='22' height='14' viewBox='0 0 22 14'><rect x='1' y='1' width='20' height='12' fill='none' stroke='#0ea5e9' stroke-width='1.5'/><line x1='5.7' y1='1' x2='5.7' y2='13' stroke='#0ea5e9' stroke-width='1'/><line x1='10.5' y1='1' x2='10.5' y2='13' stroke='#0ea5e9' stroke-width='1'/><line x1='15.3' y1='1' x2='15.3' y2='13' stroke='#0ea5e9' stroke-width='1'/><line x1='1' y1='5' x2='21' y2='5' stroke='#0ea5e9' stroke-width='1'/><line x1='1' y1='9' x2='21' y2='9' stroke='#0ea5e9' stroke-width='1'/></svg></div>
+        <div class="lswatch legend-icon"><svg xmlns='http://www.w3.org/2000/svg' width='22' height='14' viewBox='0 0 22 14'><rect x='1' y='1' width='20' height='12' fill='#fde047' stroke='#1e40af' stroke-width='1.5' rx='1'/><line x1='6.3' y1='1' x2='6.3' y2='13' stroke='#1e40af' stroke-width='1'/><line x1='11' y1='1' x2='11' y2='13' stroke='#1e40af' stroke-width='1'/><line x1='15.7' y1='1' x2='15.7' y2='13' stroke='#1e40af' stroke-width='1'/><line x1='1' y1='5' x2='21' y2='5' stroke='#1e40af' stroke-width='1'/><line x1='1' y1='9' x2='21' y2='9' stroke='#1e40af' stroke-width='1'/></svg></div>
         <div class="lname">Switching Station</div><div class="lcnt" id="cnt-sws">—</div><div class="tog"></div></div>
 
       <!-- ── ENERGY FLOW ANIMATION toggle (added 01-Jun-2026 per Naresh) ── -->
@@ -5960,19 +5960,47 @@ function _findFeedersLinkedToSS(ssData){
   });
 
   // Strategy 2: pole-row properties — uses correct field per type
+  // Updated 08-Jul-2026: also checks 'feeder_feeding_to' (the new schema
+  // column that explicitly names the destination 33/11KV SS per feeder row),
+  // and 'feeder_feeding_to_code' for code-based matching.
   allLayers.forEach(item=>{
-    if(!item.reg||!['points','fpoles'].includes(item.reg.type))return;
+    if(!item.reg||!['points','fpoles','ab','dp','ht-pts','sws','cut'].includes(item.reg.type))return;
     const p=item.layer.feature?.properties||{};
     if (isEHT){
-      const sEHT=_normalizeSSName(fuzzyGet(p,['name_of_eht_ss','EHT_SS','Name of EHT SS','eht_ss','name_of_the_eht_ss'])||'');
+      const sEHT=_normalizeSSName(
+        fuzzyGet(p,['name_of_the_eht_ss','name_of_eht_ss','EHT_SS','Name of EHT SS','eht_ss'])||''
+      );
       if (sEHT && _ssNameMatchesPart(ssDistinctive, ssNorm, sEHT)){
         linked.add(item.feederName);
       }
     } else {
+      // Check the explicit destination SS column first (new schema)
+      const sFeedingTo=_normalizeSSName(
+        fuzzyGet(p,['feeder_feeding_to','Feeder Feeding To','feeding_to','Feeding_To'])||''
+      );
+      if (sFeedingTo && _ssNameMatchesPart(ssDistinctive, ssNorm, sFeedingTo)){
+        linked.add(item.feederName); return;
+      }
+      // Fallback: legacy name_of_33_11_SS column
       const s33=_normalizeSSName(fuzzyGet(p,['name_of_33_11_SS','Name of 33/11 SS','name_of_the_33_11_SS'])||'');
       if (s33 && _ssNameMatchesPart(ssDistinctive, ssNorm, s33)){
+        linked.add(item.feederName); return;
+      }
+      // Fallback 2: pole_feeding_to on the LAST pole contains the SS name
+      // e.g. "33/11KV LV PRASAD SS" or "Switching Station"
+      const sPFT=_normalizeSSName(fuzzyGet(p,['Pole Feeding to','pole_feeding_to'])||'');
+      if (sPFT && _ssNameMatchesPart(ssDistinctive, ssNorm, sPFT)){
         linked.add(item.feederName);
       }
+    }
+  });
+
+  // Strategy 3: feederMetaMap — if feeder_feeding_to was stored at load time
+  Object.keys(feederMetaMap||{}).forEach(fn=>{
+    const m=feederMetaMap[fn]||{};
+    const dest=_normalizeSSName(m.feeder_feeding_to||m.feeding_to||'');
+    if(dest && _ssNameMatchesPart(ssDistinctive, ssNorm, dest)){
+      linked.add(fn);
     }
   });
 
@@ -6510,7 +6538,8 @@ function renderUploadedRows(rows,sourceFileName){
     });
 
     // ── Draw point markers ──
-    parsed.forEach(p=>{
+    parsed.forEach((p,_pIdx)=>{
+      const _isLastPole = _pIdx === parsed.length - 1;
       const poleNo=p.rawPoleNo;
       const cableP=_getRowVal(p.row,'type_of_cable_point','Type of Cable Point');
       const cutPt=_getRowVal(p.row,'cut_point','Cut Point');
@@ -6524,14 +6553,21 @@ function renderUploadedRows(rows,sourceFileName){
       //                e.g. "Double Pole Structure"
       const feedUP=feedingTo.toUpperCase();
       const ptypeUP=poleType.toUpperCase();
-      const feederTypeUP=(_getRowVal(p.row,'feeder_type','Type of Feeder','feeder_feeding_to')||'').toUpperCase().replace(/[\s_\-]/g,'');
+      const feederTypeUP=(_getRowVal(p.row,'feeder_type','Type of Feeder')||'').toUpperCase().replace(/[\s_\-]/g,'');
+      const feederFeedingToUP=(_getRowVal(p.row,'feeder_feeding_to','Feeder Feeding To','feeding_to')||'').toUpperCase();
       const isAB=feedUP.includes('AB SWITCH')||feedUP.includes('ABSWITCH')||feedUP.includes('LINE AB');
       const isDP=ptypeUP.includes('DOUBLE POLE')||ptypeUP.includes('DOUBLEPOLE')||ptypeUP==='DP';
       const isCut=cutPt.toUpperCase().includes('CUT')||cutPt.toUpperCase().includes('VERTICAL')||cutPt.toUpperCase().includes('HORIZONTAL');
-      // HT Service termination point: pole_feeding_to contains "HT Service"
-      const isHTpt = !isAB && !isDP && (feedUP.includes('HT SERVICE')||feedUP==='HT'||feedUP.startsWith('HT SERVICE'));
-      // Switching Station: feeder_type = SWS, or feeder_feeding_to contains "Switching Station"
-      const isSWSpt = !isAB && !isDP && (feederTypeUP==='SWS'||feedUP.includes('SWITCHING STATION')||feedUP.includes('SWITCHINGSTATION'));
+      // HT Service termination: ONLY on the last pole AND pole_feeding_to says HT Service
+      // Per Naresh 08-Jul-2026: should only mark the actual endpoint, not every passing pole.
+      const isHTpt = !isAB && !isDP && _isLastPole &&
+        (feedUP.includes('HT SERVICE')||feedUP==='HT'||feederFeedingToUP.includes('HT SERVICE'));
+      // Switching Station endpoint: ONLY on the last pole AND feeder_feeding_to / pole_feeding_to names a SWS
+      // Per Naresh 08-Jul-2026: feeder_type=SWS is on EVERY row of that feeder, so it must be AND-ed
+      // with _isLastPole to avoid marking every intermediate pole as a Switching Station.
+      const isSWSpt = !isAB && !isDP && _isLastPole &&
+        (feederTypeUP==='SWS'||feedUP.includes('SWITCHING STATION')||feedUP.includes('SWITCHINGSTATION')||
+         feederFeedingToUP.includes('SWITCHING STATION')||feederFeedingToUP.includes('SWITCHINGSTATION'));
       const cable=p.isOH?'OH':'UG';
       const ptColor=cableColor(p.typeRaw,p.isOH);
 
@@ -6547,6 +6583,13 @@ function renderUploadedRows(rows,sourceFileName){
         'Sub Division':_getRowVal(p.row,'sub_division','Sub Division'),
         'Division':_getRowVal(p.row,'division','Division'),
         'Latitude':p.lat,'Longitude':p.lng,
+        // feeder_feeding_to = the DESTINATION 33/11KV SS name (new schema col).
+        // Added 08-Jul-2026: Strategy 2 in _findFeedersLinkedToSS needs this
+        // to link feeders → substations. Without it, every SS popup showed
+        // "No feeders linked yet" even when rows clearly named the SS.
+        'feeder_feeding_to':_getRowVal(p.row,'feeder_feeding_to','Feeder Feeding To','feeding_to','Feeding_To'),
+        'feeder_feeding_to_code':_getRowVal(p.row,'feeder_feeding_to_code','Feeder Feeding To Code'),
+        'name_of_the_eht_ss':_getRowVal(p.row,'name_of_the_eht_ss','name_of_the_EHT _SS','name_of_EHT_SS','EHT_SS'),
         ...(p.pn.spurKey?{'Spur Line':p.rawPoleNo}:{}),
       };
       const feat={type:'Feature',geometry:{type:'Point',coordinates:[p.lng,p.lat]},properties:props};
@@ -6591,21 +6634,21 @@ function renderUploadedRows(rows,sourceFileName){
         // (Pole circle markers render at ~7 px diameter; the X here is 7×7 too.)
         layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'cut-pt-icon',html:`<div class='cut-wrap'><svg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 5 5'><line x1='0.8' y1='0.8' x2='4.2' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/><line x1='4.2' y1='0.8' x2='0.8' y2='4.2' stroke='#ffeb3b' stroke-width='1.1' stroke-linecap='round'/></svg></div>`,iconSize:[4,4],iconAnchor:[2,2]}),pane:'pointsPane'});
       }else if(isSWSpt){
-        // ── Switching Station: grid/busbar icon (per Naresh sketch 08-Jul-2026) ──
+        // ── Switching Station: grid/busbar icon, YELLOW box (per Naresh 08-Jul-2026) ──
+        // Only rendered at the LAST pole of the feeder (true endpoint).
         regType='sws';
         layer=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',
-          html:`<div class='sws-wrap'><svg xmlns='http://www.w3.org/2000/svg' width='26' height='16' viewBox='0 0 26 16'>
-            <rect x='1' y='1' width='24' height='14' fill='rgba(3,20,40,.85)' stroke='#0ea5e9' stroke-width='1.5' rx='1'/>
-            <line x1='7' y1='1' x2='7' y2='15' stroke='#0ea5e9' stroke-width='1'/>
-            <line x1='13' y1='1' x2='13' y2='15' stroke='#0ea5e9' stroke-width='1'/>
-            <line x1='19' y1='1' x2='19' y2='15' stroke='#0ea5e9' stroke-width='1'/>
-            <line x1='1' y1='6' x2='25' y2='6' stroke='#0ea5e9' stroke-width='1'/>
-            <line x1='1' y1='10' x2='25' y2='10' stroke='#0ea5e9' stroke-width='1'/>
+          html:`<div class='sws-wrap'><svg xmlns='http://www.w3.org/2000/svg' width='28' height='18' viewBox='0 0 28 18'>
+            <rect x='1' y='1' width='26' height='16' fill='#fde047' stroke='#1e40af' stroke-width='2' rx='1.5'/>
+            <line x1='7.7' y1='1' x2='7.7' y2='17' stroke='#1e40af' stroke-width='1.3'/>
+            <line x1='14' y1='1' x2='14' y2='17' stroke='#1e40af' stroke-width='1.3'/>
+            <line x1='20.3' y1='1' x2='20.3' y2='17' stroke='#1e40af' stroke-width='1.3'/>
+            <line x1='1' y1='6.5' x2='27' y2='6.5' stroke='#1e40af' stroke-width='1.3'/>
+            <line x1='1' y1='11.5' x2='27' y2='11.5' stroke='#1e40af' stroke-width='1.3'/>
           </svg></div>`,
-          iconSize:[26,16],iconAnchor:[13,8]}),pane:'pointsPane'});
-        // label the name below the icon
-        const swsName=feedingTo||'SWS';
-        layer.bindTooltip(swsName,{permanent:false,direction:'bottom',offset:[0,6],className:'ss-label',opacity:.95});
+          iconSize:[28,18],iconAnchor:[14,9]}),pane:'pointsPane',zIndexOffset:500});
+        const swsName=(_getRowVal(p.row,'feeder_feeding_to','Feeder Feeding To','feeding_to')||feedingTo||'SWS');
+        layer.bindTooltip(swsName,{permanent:false,direction:'bottom',offset:[0,7],className:'ss-label',opacity:.95});
       }else if(isHTpt){
         // ── HT Service termination: hexagon (per Naresh sketch 08-Jul-2026) ──
         regType='ht-pts';
@@ -6645,8 +6688,19 @@ function renderUploadedRows(rows,sourceFileName){
         if(!feederHierarchy[div][sub][sec].includes(feederName))
           feederHierarchy[div][sub][sec].push(feederName);
       }
-      // Store for stats
-      feederMetaMap[feederName]={div,sub,sec,eht:getEHTNameFromRow(sampleRow)};
+      // Store for stats — also capture the destination SS from feeder_feeding_to
+      // (new schema column, 08-Jul-2026) so _findFeedersLinkedToSS Strategy 3
+      // can link feeders to their destination SS even before points are drawn.
+      const feedingToVal = fuzzyGet(sampleRow,['feeder_feeding_to','Feeder Feeding To','feeding_to'])
+        || (() => {
+          // If not in sampleRow, scan all rows for this feeder for the last non-empty value
+          for(let ri=feederRows.length-1;ri>=0;ri--){
+            const v=fuzzyGet(feederRows[ri],['feeder_feeding_to','Feeder Feeding To','feeding_to','Feeder Feeding to']);
+            if(v&&v.toString().trim())return v.toString().trim();
+          }
+          return '';
+        })();
+      feederMetaMap[feederName]={div,sub,sec,eht:getEHTNameFromRow(sampleRow),feeder_feeding_to:feedingToVal};
     }
     feederNames.add(feederName);feederState[feederName]=true;
     allRenderedFeeders.push({feederName,points:parsed.length,coords:mainPoles.map(p=>[p.lat,p.lng])});
