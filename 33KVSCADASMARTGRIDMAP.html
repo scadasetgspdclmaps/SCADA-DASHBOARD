@@ -3017,14 +3017,16 @@ function normalizeInputRows(raw){
       // New schema: name_of_the_EHT _SS (with space), latitude/longitude
       // Old schema: latitude_eht / longitude_eht
       eht_code: get(o,['eht_code','EHT Code']),
-      eht_name: get(o,['name_of_the_eht_ss','name_of_eht_ss','eht_name','EHT Name','EHTName']),
+      // "name_of_the_EHT _SS" (space before _SS) normalises via nkey() to
+      // "name_of_the_eht__ss" (double underscore). Both variants listed here.
+      eht_name: get(o,['name_of_the_eht__ss','name_of_the_eht_ss','name_of_eht_ss','eht_name','EHT Name','EHTName']),
       eht_lat:  num(get(o,['latitude_eht','eht_lat','EHT Lat'])),
       eht_lng:  num(get(o,['longitude_eht','eht_long','eht_lng','EHT Long'])),
       // ── Feeder Identity ─────────────────────────────────────────────────
       // New schema: feeder_name, feeder_code, feeder_type (direct names)
       // Old schema: name_of_33kv _feeder, 33kv_feeder_code, type_of_feeder
       feeder_type: get(o,['feeder_type','type_of_feeder','Type of Feeder','Type_of_Feeder']),
-      feeder_name: get(o,['feeder_name','name_of_33kv_feeder','name_of_33kv _feeder','Feeder Name','FeederName']),
+      feeder_name: get(o,['feeder_name','name_of_33kv__feeder','name_of_33kv_feeder','name_of_33kv _feeder','Feeder Name','FeederName']),
       feeder_code: get(o,['feeder_code','33kv_feeder_code','Feeder Code','FeederCode']),
       // ── Waypoint ─────────────────────────────────────────────────────────
       // New schema: pole_number, latitude, longitude (this pole's coords),
@@ -3067,12 +3069,13 @@ function buildTopology(){
   topology=[];nodesByKey={};
   const byF={};rows.forEach(r=>{const k=r.feeder_code||r.feeder_name;if(!byF[k])byF[k]=[];byF[k].push(r)});
   Object.values(byF).forEach(list=>{
-    if(!list.length)return;const first=list[0];const ftype=normType(first.feeder_type);let seq=[];
+    if(!list.length)return;
+    // Sort first so pole_number=1 (source row) is always list[0] after sort.
+    const sorted=[...list].sort((a,b)=>(parseFloat(a.pole_number)||0)-(parseFloat(b.pole_number)||0));
+    const first=sorted[0]; // use sorted[0] so source row is always correct
+    const ftype=normType(first.feeder_type);let seq=[];
     const srcLat=first.eht_lat, srcLng=first.eht_lng;
     if(srcLat!=null&&srcLng!=null)seq.push({kind:ftype==='link'?'ss33':'eht',name:first.eht_name||'EHT SOURCE',code:first.eht_code||'',lat:srcLat,lng:srcLng,row:first,role:'source'});
-    // Sort waypoints by numeric pole_number so the route follows the real
-    // sequence even if sheet rows arrive out of order.
-    const sorted=[...list].sort((a,b)=>(parseFloat(a.pole_number)||0)-(parseFloat(b.pole_number)||0));
     sorted.forEach(r=>{
       if(r.feeding_lat==null||r.feeding_lng==null)return;
       if(isCutOrBad(r.feeding_to)||isCutOrBad(r.feeding_name))return;
@@ -3333,7 +3336,37 @@ function resetFilters(){
   if(window._sgLockedFeederKey){ window._sgLockedFeederKey=null; document.body.classList.remove('sg-editing-feeder'); }
   window._sgActiveFeederKey=null; populateFilters();window._sgLastFilterSig=null;render()
 }
-async function handleFile(file){if(!file)return;const buf=await file.arrayBuffer();let raw=[];if(file.name.toLowerCase().endsWith('.csv')){const wb=XLSX.read(buf,{type:'array'});raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''})}else{const wb=XLSX.read(buf,{type:'array'});const sh=wb.Sheets[wb.SheetNames[0]];raw=XLSX.utils.sheet_to_json(sh,{defval:''})}rows=normalizeInputRows(raw);meta={fileName:file.name,updatedAt:new Date().toISOString(),rowCount:rows.length};populateFilters();render();fileInfo.textContent=`Loaded ${file.name} · ${rows.length} smart-grid rows`;toast('Smart Grid Excel loaded')}
+async function handleFile(file){
+  if(!file)return;
+  const buf=await file.arrayBuffer();
+  let raw=[];
+  if(file.name.toLowerCase().endsWith('.csv')){
+    const wb=XLSX.read(buf,{type:'array'});
+    raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+  } else {
+    const wb=XLSX.read(buf,{type:'array'});
+    const sh=wb.Sheets[wb.SheetNames[0]];
+    raw=XLSX.utils.sheet_to_json(sh,{defval:''});
+  }
+  rows=normalizeInputRows(raw);
+  meta={fileName:file.name,updatedAt:new Date().toISOString(),rowCount:rows.length};
+  // Quick sanity check after normalize — helps diagnose column name mismatches
+  const withEHTName=rows.filter(r=>r.eht_name).length;
+  const withFeedingLat=rows.filter(r=>r.feeding_lat!=null).length;
+  const feeders=new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size;
+  console.log('[SmartGrid] Upload:', raw.length, 'raw rows →', rows.length, 'normalized | feeders:', feeders, '| with eht_name:', withEHTName, '| with feeding_lat:', withFeedingLat);
+  if(rows.length>0 && withEHTName===0){
+    toast('⚠ Uploaded '+rows.length+' rows but no EHT SS name found — check column "name_of_the_EHT _SS" in your Excel. See console (F12) for details.');
+    console.warn('[SmartGrid] Column names in first row:', Object.keys(raw[0]||{}));
+  } else if(rows.length>0 && withFeedingLat===0){
+    toast('⚠ '+rows.length+' rows loaded but no coordinates found — check "latitude" / "longitude" columns. See console (F12).');
+    console.warn('[SmartGrid] Column names in first row:', Object.keys(raw[0]||{}));
+  }
+  populateFilters();render();
+  buildTopology(); // re-run to get accurate count for status bar
+  fileInfo.textContent=`Loaded ${file.name} · ${rows.length} rows · ${feeders} feeders · ${topology.length} connections`;
+  toast(rows.length>0 ? ('✅ Loaded '+rows.length+' rows, '+feeders+' feeders, '+topology.length+' topology connections') : '⚠ File loaded but 0 rows — check column names');
+}
 async function saveFirebase(){
   if(!rows.length){toast('Upload Excel first');return}
   buildTopology();
