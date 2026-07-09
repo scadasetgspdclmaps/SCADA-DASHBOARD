@@ -1938,6 +1938,9 @@ path.sg-feeder-line{cursor:pointer}
 @keyframes sg-clean-pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.48)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0)}}
 .sg-clean-note{font-size:9.5px;color:#64748b;border-top:1px solid #e7eef8;padding-top:7px;margin-top:8px;line-height:1.3}
 
+
+/* Final clean bracket SS popup */
+.sg-clean-card{font-family:Arial,system-ui,sans-serif;min-width:320px;max-width:440px;color:#172033;background:#fff}.sg-clean-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px;border-bottom:1px solid #e7eef8;padding-bottom:7px}.sg-clean-title{font-size:15px;font-weight:900;color:#1f2f46;text-transform:uppercase;line-height:1.15}.sg-clean-sub{font-size:10px;color:#6b7a90;margin-top:3px;font-weight:700}.sg-clean-pill{font-size:9px;font-weight:900;border-radius:999px;background:#eef6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:3px 7px;white-space:nowrap}.sg-clean-empty{padding:9px;border:1px dashed #cbd5e1;background:#f8fafc;border-radius:7px;font-size:10.5px;color:#64748b;line-height:1.35}.sg-clean-group{display:grid;grid-template-columns:105px 1fr;gap:8px;margin:8px 0;border:1px solid #dce8fb;background:#f7fbff;border-radius:9px;padding:8px}.sg-clean-left{border-right:2px solid #7c3aed;padding-right:8px;display:flex;flex-direction:column;justify-content:center;gap:5px}.sg-clean-ptr{font-size:10.5px;color:#1f2f46;font-weight:900;display:flex;justify-content:space-between;gap:6px}.sg-clean-cap{color:#3b82f6;font-weight:900}.sg-clean-srcs{display:flex;flex-direction:column;gap:6px}.sg-clean-row{display:grid;grid-template-columns:34px 1fr 58px;gap:6px;align-items:center;border-radius:8px;padding:5px 6px;border:1px solid #e2e8f0;background:#fff}.sg-clean-row.reg.on{background:linear-gradient(90deg,#dcfce7,#ffffff);border-color:#86efac;box-shadow:0 0 14px rgba(22,163,74,.16)}.sg-clean-row.alt{background:#fff7ed;border-color:#fed7aa}.sg-clean-tag{font-size:9px;font-weight:900;text-align:center;color:#fff;border-radius:999px;padding:3px 0}.sg-clean-tag.reg{background:#2563eb}.sg-clean-tag.alt{background:#7c3aed}.sg-clean-feeder{font-size:10.8px;font-weight:900;color:#22324d;line-height:1.2;word-break:break-word}.sg-clean-code{font-size:8px;color:#8aa0bf;font-weight:800;margin-top:1px}.sg-clean-state{font-size:9px;font-weight:900;text-align:center;border-radius:999px;padding:3px 4px}.sg-clean-state.on{color:#166534;background:#bbf7d0;border:1px solid #86efac;animation:sg-clean-pulse 1.25s ease-in-out infinite}.sg-clean-state.off,.sg-clean-state.stby{color:#b91c1c;background:#fee2e2;border:1px solid #fecaca}@keyframes sg-clean-pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.48)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0)}}.sg-clean-note{font-size:9.5px;color:#64748b;border-top:1px solid #e7eef8;padding-top:7px;margin-top:8px;line-height:1.3}
 </style>
 </head>
 <body class="no-anim">
@@ -2121,7 +2124,10 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
       <input type="checkbox" checked onchange="window.tgSetGridShowMandalNames&&window.tgSetGridShowMandalNames(this.checked)" style="transform:translateY(2px)"></label>
   </div>
   <div class="gsp-row">
-    <label style="margin-bottom:0"><span>ORR / RRR ROADS</span>
+    
+<label class="lrow" data-toggle="tSS33"><span class="lswatch dot" style="border-color:#2196f3;background:#e0f2fe"></span><span class="lname">33/11KV SS Icons</span><span class="lcnt" id="cSS33">0</span><input id="tSS33" type="checkbox" checked style="display:none"><span class="tog"></span></label>
+<label class="lrow" data-toggle="tEHT"><span class="lswatch dot" style="border-color:#ff6d00;background:#fff3e0"></span><span class="lname">EHT SS Icons</span><span class="lcnt" id="cEHT">0</span><input id="tEHT" type="checkbox" checked style="display:none"><span class="tog"></span></label>
+<label style="margin-bottom:0"><span>ORR / RRR ROADS</span>
       <input type="checkbox" onchange="window.tgSetGridShowMajorRoads&&window.tgSetGridShowMajorRoads(this.checked)" style="transform:translateY(2px)"></label>
   </div>
 </div>
@@ -2986,6 +2992,11 @@ async function loadSmartGridMasterData(){
   try{
     const paths = [
       'masterData',
+      'masterData/ssCoordinates',
+      'masterData/ehtSources',
+      'masterData/ptrs',
+      'masterData/ptrSummary',
+      'masterData/connectionMaster',
       'masterData/ssTopology',
       'substationSources',
       'smartgrid/masterData',
@@ -3354,6 +3365,15 @@ function iconFor(kind,name){
 }
 
 // === FIX: Declare DOM elements inside render() to avoid ReferenceError ===
+
+// === MASTER COORDINATE FIX: fixed SS/EHT icons from Firebase masterData ===
+function sgNormKey(v){return compact(v||'');}
+function sgMasterFlatItems(){const items=[];function walk(o,p){if(!o||typeof o!=='object')return;if(Array.isArray(o)){o.forEach((v,i)=>walk(v,p+'/'+i));return;}items.push({path:p,data:o});Object.entries(o).forEach(([k,v])=>{if(v&&typeof v==='object')walk(v,p?p+'/'+k:k);});}walk(window.sgMasterData||sgMasterData||{},'');return items;}
+function sgNum(v){const n=Number(String(v??'').replace(/[^\d.\-]/g,''));return Number.isFinite(n)?n:NaN;}
+function sgMasterCoordIndex(){const idx={byCode:{},byName:{},ehtByName:{},ssByCode:{}};sgMasterFlatItems().forEach(it=>{const d=it.data||{};const lat=sgNum(sgObjVal?sgObjVal(d,['lat','latitude','LAT','Latitude']):d.lat);const lng=sgNum(sgObjVal?sgObjVal(d,['lng','lon','longitude','LNG','Longitude']):d.lng);if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat<15||lat>20||lng<76||lng>82)return;const code=(sgObjVal?sgObjVal(d,['ssCode','ss_code','SSCODE','SS Code','code','substation_code','ehtCode','eht_code']):d.ssCode)||'';const name=(sgObjVal?sgObjVal(d,['ssName','ss_name','SSNAME','SS Name','name','substation_name','ehtName','eht_name','source_name']):d.ssName)||'';const blob=(it.path+' '+JSON.stringify(d)).toUpperCase();const kind=/EHT|132|220|400/.test(blob)&&!/33\/11/.test(blob)?'eht':'ss33';const rec={lat,lng,code,name,kind,path:it.path};if(code){idx.byCode[sgNormKey(code)]=rec;if(kind==='ss33')idx.ssByCode[sgNormKey(code)]=rec;}if(name){idx.byName[sgNormKey(name)]=rec;if(kind==='eht')idx.ehtByName[sgNormKey(name)]=rec;}});return idx;}
+function sgApplyFixedCoord(n){if(!n)return n;const idx=sgMasterCoordIndex();const ck=sgNormKey(n.code||n.ss_code||n.feeding_code), nk=sgNormKey(n.name);let h=null;if(n.kind==='eht')h=(ck&&idx.byCode[ck])||(nk&&(idx.ehtByName[nk]||idx.byName[nk]));else if(n.kind==='ss33')h=(ck&&(idx.ssByCode[ck]||idx.byCode[ck]))||(nk&&idx.byName[nk]);else h=(ck&&idx.byCode[ck])||(nk&&idx.byName[nk]);if(h){n.lat=h.lat;n.lng=h.lng;n.fixedFromMaster=true;n.masterPath=h.path;}return n;}
+function sgPatchTopologyCoordinates(){try{(topology||[]).forEach(c=>{sgApplyFixedCoord(c.from);sgApplyFixedCoord(c.to);});}catch(e){console.warn('Master coordinate patch failed',e);}}
+// === END MASTER COORDINATE FIX ===
 function render(){
   const stRows = document.getElementById('stRows');
   const stFeeders = document.getElementById('stFeeders');
@@ -3367,6 +3387,7 @@ function render(){
   const cntDev = document.getElementById('cntDev');
 
   buildTopology();
+  sgPatchTopologyCoordinates();
   gLines.clearLayers(); gNodes.clearLayers(); gLabels.clearLayers();
   const shown=topology.filter(matchesFilters);
   const pairCount={},pairIdx={};
@@ -3426,6 +3447,8 @@ function render(){
   const used={};
   shown.forEach(c=>[c.from,c.to].forEach(n=>{
     if(n.kind==='bend') return;
+    if(n.kind==='ss33' && !(document.getElementById('tSS33')||{}).checked) return;
+    if(n.kind==='eht' && !(document.getElementById('tEHT')||{}).checked) return;
     if((n.kind==='ab'||n.kind==='dp') && !(document.getElementById('tDev')||{}).checked) return;
     const named=(n.name&&!/^(AB Switch|DP Structure|Feeding Point)$/i.test(n.name))||n.code;
     const key=n.kind+'|'+(named?(compact(n.name)+'|'+String(n.code||'')):((+n.lat).toFixed(6)+','+(+n.lng).toFixed(6)));
@@ -3456,6 +3479,7 @@ function render(){
   if(stFeeders) stFeeders.textContent=new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size;
   if(stNodes) stNodes.textContent=Object.keys(used).length;
   if(stConns) stConns.textContent=shown.length;
+  try{const uniqSS={},uniqEHT={};(topology||[]).forEach(c=>[c.from,c.to].forEach(n=>{if(!n)return;const k=compact(n.code||n.name);if(!k)return;if(n.kind==='ss33')uniqSS[k]=1;if(n.kind==='eht')uniqEHT[k]=1;}));const ssEl=document.getElementById('cSS33');if(ssEl)ssEl.textContent=Object.keys(uniqSS).length;const ehEl=document.getElementById('cEHT');if(ehEl)ehEl.textContent=Object.keys(uniqEHT).length;}catch(e){}
   if(cntUG) cntUG.textContent=cnt.ug;
   if(cntOH) cntOH.textContent=cnt.oh;
   if(cnt33) cnt33.textContent=(cnt.ug+cnt.oh);
@@ -4431,275 +4455,30 @@ function sgUniqueConnectedFeedersForNode(node, conns) {
 
 /* PTR-wise SS source popup matched by SS code / feeding code to Firebase master data */
 
+
 // === CLEAN SS POPUP + PTR SOURCE PARSER ===
 function sgEsc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function sgIsUsefulFeederName(v){
-  const s=String(v??'').trim();
-  if(!s) return false;
-  if(/^(regular|alternate|source|r-?\d+|a-?\d+|reg-?\d+|alt-?\d+)$/i.test(s)) return false;
-  if(/^\d{4,}$/.test(s)) return false;
-  if(/^[_\-–—]+$/.test(s)) return false;
-  return true;
-}
+function sgCleanFeeder(v){let s=String(v??'').trim().replace(/\s+/g,' ');if(!s)return '';if(/^(regular|alternate|source|r-?\d+|a-?\d+|reg-?\d+|alt-?\d+)$/i.test(s))return '';if(/^[_\-–—]+$/.test(s))return '';if(/^\d{4,}$/.test(s))return '';return s;}
 function sgIsCodeOnly(v){return /^\d{4,}$/.test(String(v??'').trim());}
-function sgFlatMasterItems(){
-  const items=[];
-  function walk(obj,path){
-    if(!obj || typeof obj !== 'object') return;
-    if(Array.isArray(obj)){ obj.forEach((v,i)=>walk(v,path+'/'+i)); return; }
-    items.push({path,data:obj});
-    Object.entries(obj).forEach(([k,v])=>{ if(v && typeof v==='object') walk(v,path?path+'/'+k:k); });
-  }
-  walk(window.sgMasterData || sgMasterData || {}, '');
-  return items;
-}
-function sgObjVal(obj, keys){
-  if(!obj || typeof obj!=='object') return '';
-  const ks=Object.keys(obj);
-  for(const want of keys){
-    const k=ks.find(x=>compact(x)===compact(want));
-    if(k && obj[k]!=null && String(obj[k]).trim()) return String(obj[k]).trim();
-  }
-  return '';
-}
-function sgCodesForNodeFromTopology(node, conns){
-  const codes=new Set();
-  [node?.code,node?.ss_code,node?.feeding_code].filter(Boolean).forEach(x=>codes.add(compact(x)));
-  (conns||[]).forEach(c=>{
-    try{
-      if(typeof sgConnTouchesNode==='function' && sgConnTouchesNode(c,node)){
-        [c.from?.code,c.to?.code,c.feeder_feeding_code,c.feeding_code,c.ss_code,c.ssCode].filter(Boolean).forEach(x=>codes.add(compact(x)));
-      }
-    }catch(e){}
-  });
-  return [...codes].filter(Boolean);
-}
-function sgFindMasterBySSCode(node, conns){
-  const codes=sgCodesForNodeFromTopology(node, conns);
-  const names=[node?.name,node?.code].map(compact).filter(Boolean);
-  const items=sgFlatMasterItems();
-
-  let found=items.filter(it=>{
-    const d=it.data||{};
-    const recCodes=[
-      sgObjVal(d,['ss_code','SS Code','ssCode','code','substation_code','substationCode','feeding_code','feeder_feeding_code','SSCode']),
-      d.ss_code,d.ssCode,d.code
-    ].map(compact).filter(Boolean);
-    return recCodes.some(c=>codes.includes(c));
-  });
-
-  if(!found.length){
-    found=items.filter(it=>{
-      const d=it.data||{};
-      const blob=[it.path,sgObjVal(d,['name_of_the_ss','name of the ss','ss_name','ssName','substation_name','substation','name']),d.name,d.ssName,d.substation].join(' ');
-      return names.some(n=>n && compact(blob).includes(n));
-    });
-  }
-  return found.slice(0,80);
-}
-function sgPtrNoFromKey(k){
-  const s=String(k||'').toUpperCase();
-  const m=s.match(/\bLV\s*[-_ ]?(\d+)\b/)||s.match(/\bPTR\s*[-_ ]?(\d+)\b/)||s.match(/POWER\s*TRANSFORMER\s*[-_ ]?(\d+)/)||s.match(/\bHV\s*[-_ ]?(\d+)\b/);
-  return m?m[1]:'';
-}
-function sgFindPtrNoInRecord(d){
-  const v=sgObjVal(d,['ptr','ptr_no','ptr number','ptr_name','lv','lv_no','lv number','lv_name','PTR','LV']);
-  const n=sgPtrNoFromKey(v);
-  if(n) return n;
-  for(const [k,val] of Object.entries(d||{})){
-    const n1=sgPtrNoFromKey(k); if(n1) return n1;
-    if(typeof val!=='object'){ const n2=sgPtrNoFromKey(val); if(n2) return n2; }
-  }
-  return '1';
-}
-function sgSourceKindFromKey(k){
-  const s=String(k||'').toUpperCase();
-  if(/\bALT\b|ALTERNATE/.test(s)) return 'alt';
-  if(/\bREG\b|REGULAR/.test(s)) return 'reg';
-  return '';
-}
-function sgSourceIndexFromKey(k){
-  const s=String(k||'').toUpperCase();
-  const roman={I:1,II:2,III:3,IV:4,V:5};
-  const rm=s.match(/\b(IV|III|II|I|V)\b/); if(rm) return roman[rm[1]];
-  const m=s.match(/(?:REGULAR|REG|ALTERNATE|ALT|SOURCE)\s*[-_ ]?(\d+)/i)||s.match(/[-_ ](\d+)$/);
-  return m?Number(m[1]):1;
-}
-function sgActiveKindForPtr(d,ptrNo){
-  const blob=[
-    sgObjVal(d,[`LV ${ptrNo} Active Source`,`LV-${ptrNo} Active Source`,`PTR ${ptrNo} Active Source`,`ptr${ptrNo}_active_source`,`active_source_${ptrNo}`]),
-    sgObjVal(d,['active_source','live_source','on_source','charged_source','source_on','present_source','current_source','status'])
-  ].join(' ').toUpperCase();
-  if(!blob) return '';
-  if(/ALT|ALTERNATE|A1|A2|A3|A4/.test(blob)) return 'alt';
-  if(/REG|REGULAR|R1|R2|R3/.test(blob)) return 'reg';
-  return '';
-}
-function sgEnsurePtr(ptrs,no,capacity){
-  no=String(no||'1');
-  if(!ptrs[no]) ptrs[no]={no,capacity:'',sources:[]};
-  if(capacity && !ptrs[no].capacity) ptrs[no].capacity=String(capacity).replace(/\s*MVA\s*$/i,'')+' MVA';
-  return ptrs[no];
-}
-function sgAddSource(ptr,kind,index,name,code,active){
-  name=String(name||'').trim();
-  if(!sgIsUsefulFeederName(name)) return;
-  const label=(kind==='alt'?'A':'R')+(index||1);
-  const key=compact(kind+'|'+label+'|'+name);
-  if(ptr.sources.some(s=>compact(s.kind+'|'+s.label+'|'+s.name)===key)) return;
-  ptr.sources.push({kind,label,index:index||1,name,code:sgIsCodeOnly(code)?String(code).trim():'',active:!!active});
-}
-function sgCapacityFromRecord(d,ptrNo){
-  return sgObjVal(d,[`LV ${ptrNo} Capacity`,`LV-${ptrNo} Capacity`,`LV${ptrNo} Capacity`,`PTR ${ptrNo} Capacity`,`PTR-${ptrNo} Capacity`,`PTR${ptrNo} Capacity`,'lv_capacity','ptr_capacity','PTR Capacity','capacity','mva','MVA']);
-}
-function sgSourceNameFromRecord(d,ptrNo,kind,index){
-  const pref=kind==='alt'?'alternate':'regular';
-  const short=kind==='alt'?'alt':'reg';
-  const roman=['','I','II','III','IV','V'][index]||String(index);
-  const keys=[
-    `LV ${ptrNo} ${pref} source ${index}`,`LV-${ptrNo} ${pref} source ${index}`,`LV${ptrNo} ${pref} source ${index}`,
-    `PTR ${ptrNo} ${pref} source ${index}`,`PTR-${ptrNo} ${pref} source ${index}`,`PTR${ptrNo} ${pref} source ${index}`,
-    `LV ${ptrNo} name of ${pref} source ${index}`,`PTR ${ptrNo} name of ${pref} source ${index}`,
-    `${pref}_source_${index}`,`${short}_${index}`,`${pref} source ${index}`,`${pref} source ${roman}`,
-    kind==='reg'?'name_of_regular_source':`name_of_alternate_source_${roman.toLowerCase()}`,
-    kind==='reg'?'regular_source':`alternate_source_${roman.toLowerCase()}`,
-    kind==='reg'?'Regular Source':`Alternate Source-${roman}`,
-    kind==='reg'?'Name of Regular Source':`Name of Alternate Source-${roman}`
-  ];
-  let code='';
-  for(const k of keys){
-    const v=sgObjVal(d,[k]);
-    if(!v) continue;
-    if(sgIsCodeOnly(v)){ code=v; continue; }
-    if(sgIsUsefulFeederName(v)) return {name:v,code};
-  }
-  return {name:'',code};
-}
-function sgExtractPtrSources(node, conns){
-  const recs=sgFindMasterBySSCode(node, conns);
-  const ptrs={};
-
-  recs.forEach(r=>{
-    const d=r.data||{};
-    const ptrNo=sgFindPtrNoInRecord(d);
-    const cap=sgCapacityFromRecord(d,ptrNo);
-    const ptr=sgEnsurePtr(ptrs,ptrNo,cap);
-    const activeKind=sgActiveKindForPtr(d,ptrNo);
-
-    // Structured nested PTR/LV objects
-    Object.entries(d).forEach(([k,v])=>{
-      if(!v || typeof v!=='object') return;
-      const n=sgPtrNoFromKey(k);
-      if(!n) return;
-      const p=sgEnsurePtr(ptrs,n,sgCapacityFromRecord(v,n)||sgObjVal(v,['capacity','mva','MVA']));
-      const ak=sgActiveKindForPtr(v,n)||activeKind;
-      for(let i=1;i<=4;i++){
-        let r1=sgSourceNameFromRecord(v,n,'reg',i);
-        if(r1.name) sgAddSource(p,'reg',i,r1.name,r1.code,(ak?ak==='reg':true));
-        let a1=sgSourceNameFromRecord(v,n,'alt',i);
-        if(a1.name) sgAddSource(p,'alt',i,a1.name,a1.code,(ak==='alt'));
-      }
-      Object.entries(v).forEach(([sk,sv])=>{
-        if(sv==null || typeof sv==='object') return;
-        const kind=sgSourceKindFromKey(sk);
-        if(!kind) return;
-        if(!/NAME|FEEDER|SOURCE/i.test(sk) && sgIsCodeOnly(sv)) return;
-        sgAddSource(p,kind,sgSourceIndexFromKey(sk),String(sv),'',(ak?ak===kind:kind==='reg'));
-      });
-    });
-
-    for(let i=1;i<=4;i++){
-      const rs=sgSourceNameFromRecord(d,ptrNo,'reg',i);
-      if(rs.name) sgAddSource(ptr,'reg',i,rs.name,rs.code,(activeKind?activeKind==='reg':true));
-      const al=sgSourceNameFromRecord(d,ptrNo,'alt',i);
-      if(al.name) sgAddSource(ptr,'alt',i,al.name,al.code,(activeKind==='alt'));
-    }
-
-    // Last fallback: only source/name columns that actually contain feeder-like names
-    Object.entries(d).forEach(([k,v])=>{
-      if(v==null || typeof v==='object') return;
-      const kind=sgSourceKindFromKey(k);
-      if(!kind) return;
-      if(!/NAME|FEEDER|SOURCE/i.test(k)) return;
-      if(!sgIsUsefulFeederName(v)) return;
-      const n=sgPtrNoFromKey(k)||ptrNo;
-      const p=sgEnsurePtr(ptrs,n,sgCapacityFromRecord(d,n));
-      sgAddSource(p,kind,sgSourceIndexFromKey(k),String(v),'',(sgActiveKindForPtr(d,n)||activeKind ? (sgActiveKindForPtr(d,n)||activeKind)===kind : kind==='reg'));
-    });
-  });
-
-  let arr=Object.values(ptrs).filter(p=>p.sources.length || p.capacity);
-  arr.forEach(p=>p.sources.sort((a,b)=>(a.kind===b.kind?a.index-b.index:(a.kind==='reg'?-1:1))));
-  arr.sort((a,b)=>Number(a.no)-Number(b.no));
-  return arr;
-}
-function sgGroupPtrSources(ptrs){
-  const groups={};
-  ptrs.forEach(p=>{
-    const sig=p.sources.map(s=>`${s.kind}:${s.label}:${compact(s.name)}:${s.active?'on':'off'}`).join('|') || 'empty';
-    if(!groups[sig]) groups[sig]={ptrs:[],sources:p.sources};
-    groups[sig].ptrs.push({no:p.no,cap:p.capacity||''});
-  });
-  return Object.values(groups);
-}
-function sgPtrSourcesHtml(ptrs){
-  if(!ptrs.length){
-    return `<div class="sg-clean-empty">No PTR/LV source mapping found for this SS code in master data. Check SS code in uploaded Smart Grid Excel and master-data SS code.</div>`;
-  }
-  const groups=sgGroupPtrSources(ptrs);
-  return groups.map(g=>`
-    <div class="sg-clean-group">
-      <div class="sg-clean-left">
-        ${g.ptrs.map(p=>`<div class="sg-clean-ptr"><span>LV-${sgEsc(p.no)}</span><span class="sg-clean-cap">${sgEsc(p.cap||'_ MVA')}</span></div>`).join('')}
-      </div>
-      <div class="sg-clean-srcs">
-        ${g.sources.map(s=>{
-          const state=s.active?'on':(s.kind==='alt'?'stby':'off');
-          const stateText=s.active?'✓':(s.kind==='alt'?'×':'×');
-          return `<div class="sg-clean-row ${s.kind} ${s.active?'on':''}">
-            <div class="sg-clean-tag ${s.kind}">${sgEsc(s.label)}</div>
-            <div><div class="sg-clean-feeder">${sgEsc(s.name)}</div>${s.code?`<div class="sg-clean-code">${sgEsc(s.code)}</div>`:''}</div>
-            <div class="sg-clean-state ${state}">${stateText}</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`).join('');
-}
-function sgUniqueFeedersForNode(node, conns){
-  const out=[], seen={};
-  (conns||[]).forEach(c=>{
-    const touch=(typeof sgConnTouchesNode==='function') ? sgConnTouchesNode(c,node) : false;
-    if(!touch) return;
-    const nm=clean(c.feeder_name)||c.feeder_code||'';
-    const key=compact(c.feeder_code||nm);
-    if(key && !seen[key]){seen[key]=1;out.push({name:nm});}
-  });
-  return out;
-}
-function sgTopologyConnectedMini(node, conns){
-  const feeders=sgUniqueFeedersForNode(node, conns||[]);
-  if(!feeders.length) return '';
-  return `<div class="sg-clean-note"><b>Smart Grid connected feeders:</b> ${feeders.slice(0,4).map(f=>sgEsc(f.name)).join(', ')}${feeders.length>4?' +'+(feeders.length-4)+' more':''}</div>`;
-}
-function sgPopupHtml(node, conns){
-  const ptrs=sgExtractPtrSources(node, conns||[]);
-  const codes=sgCodesForNodeFromTopology(node, conns||[]);
-  const title=clean(node.name)||'33/11KV Substation';
-  const section=node.row?.section||node.section||node.row?.sub_division||'';
-  return `<div class="sg-clean-card">
-    <div class="sg-clean-head">
-      <div>
-        <div class="sg-clean-title">${sgEsc(title)}</div>
-        <div class="sg-clean-sub">${sgEsc(section||'')}${codes.length?' · SS Code '+sgEsc(codes[0]):''}</div>
-      </div>
-      <div class="sg-clean-pill">${ptrs.length} LV/PTR</div>
-    </div>
-    ${sgPtrSourcesHtml(ptrs)}
-    ${sgTopologyConnectedMini(node,conns||[])}
-    <div class="sg-clean-note">R = regular source. A = alternate source. Green ✓ = presently ON/normal source. Red × = standby/off.</div>
-  </div>`;
-}
+function sgFlatMasterItems(){return sgMasterFlatItems();}
+function sgObjVal(obj,keys){if(!obj||typeof obj!=='object')return '';const ks=Object.keys(obj);for(const want of keys){const k=ks.find(x=>compact(x)===compact(want));if(k&&obj[k]!=null&&String(obj[k]).trim())return String(obj[k]).trim();}return '';}
+function sgCodesForNodeFromTopology(node,conns){const codes=new Set();[node?.code,node?.ss_code,node?.feeding_code].filter(Boolean).forEach(x=>codes.add(compact(x)));(conns||[]).forEach(c=>{try{if(typeof sgConnTouchesNode==='function'&&sgConnTouchesNode(c,node)){[c.from?.code,c.to?.code,c.feeder_feeding_code,c.feeding_code,c.ss_code,c.ssCode].filter(Boolean).forEach(x=>codes.add(compact(x)));}}catch(e){}});return [...codes].filter(Boolean);}
+function sgFindMasterBySSCode(node,conns){const codes=sgCodesForNodeFromTopology(node,conns);const names=[node?.name,node?.code].map(compact).filter(Boolean);const items=sgFlatMasterItems();let found=items.filter(it=>{const d=it.data||{};const recCodes=[sgObjVal(d,['ss_code','SS Code','ssCode','code','substation_code','substationCode','feeding_code','feeder_feeding_code','SSCode']),d.ss_code,d.ssCode,d.code].map(compact).filter(Boolean);return recCodes.some(c=>codes.includes(c));});if(!found.length){found=items.filter(it=>{const d=it.data||{};const blob=[it.path,sgObjVal(d,['name_of_the_ss','name of the ss','ss_name','ssName','substation_name','substation','name']),d.name,d.ssName,d.substation].join(' ');return names.some(n=>n&&compact(blob).includes(n));});}return found.slice(0,150);}
+function sgPtrNoFromKey(k){const s=String(k||'').toUpperCase();const m=s.match(/\bLV\s*[-_ ]?(\d+)\b/)||s.match(/\bPTR\s*[-_ ]?(\d+)\b/)||s.match(/POWER\s*TRANSFORMER\s*[-_ ]?(\d+)/)||s.match(/\bHV\s*[-_ ]?(\d+)\b/);return m?m[1]:'';}
+function sgKind(k){const s=String(k||'').toUpperCase();if(/\bALT\b|ALTERNATE/.test(s))return 'alt';if(/\bREG\b|REGULAR/.test(s))return 'reg';return '';}
+function sgIdx(k){const s=String(k||'').toUpperCase(),r={I:1,II:2,III:3,IV:4,V:5};const rm=s.match(/\b(IV|III|II|I|V)\b/);if(rm)return r[rm[1]];const m=s.match(/(?:REGULAR|REG|ALTERNATE|ALT|SOURCE)\s*[-_ ]?(\d+)/i)||s.match(/[-_ ](\d+)$/);return m?Number(m[1]):1;}
+function sgEnsurePtr(ptrs,no,cap){no=String(no||'1');if(!ptrs[no])ptrs[no]={no,capacity:'',sources:[]};if(cap&&!ptrs[no].capacity){const c=String(cap).trim();ptrs[no].capacity=/mva/i.test(c)?c:c+' MVA';}return ptrs[no];}
+function sgAddSource(ptr,kind,index,name,code,active){name=sgCleanFeeder(name);if(!name)return;const label=(kind==='alt'?'A':'R')+(index||1);const key=compact(kind+'|'+label+'|'+name);if(ptr.sources.some(s=>compact(s.kind+'|'+s.label+'|'+s.name)===key))return;ptr.sources.push({kind,label,index:index||1,name,code:sgIsCodeOnly(code)?String(code).trim():'',active:!!active});}
+function sgActiveKind(d,no){const blob=[sgObjVal(d,[`LV ${no} Active Source`,`PTR ${no} Active Source`,`active_source_${no}`]),sgObjVal(d,['active_source','live_source','on_source','charged_source','present_source','current_source','status'])].join(' ').toUpperCase();if(!blob)return '';if(/ALT|ALTERNATE|A1|A2|A3|A4/.test(blob))return 'alt';if(/REG|REGULAR|R1|R2|R3/.test(blob))return 'reg';return '';}
+function sgCap(d,no){return sgObjVal(d,[`LV ${no} Capacity`,`PTR ${no} Capacity`,`LV${no} Capacity`,`PTR${no} Capacity`,'lv_capacity','ptr_capacity','PTR Capacity','capacity','mva','MVA']);}
+function sgSourceFrom(d,no,kind,i){const pref=kind==='alt'?'alternate':'regular',short=kind==='alt'?'alt':'reg',roman=['','I','II','III','IV','V'][i]||String(i);const keys=[`LV ${no} ${pref} source ${i}`,`PTR ${no} ${pref} source ${i}`,`LV ${no} name of ${pref} source ${i}`,`PTR ${no} name of ${pref} source ${i}`,`${pref}_source_${i}`,`${short}_${i}`,`${pref} source ${i}`,`${pref} source ${roman}`,kind==='reg'?'name_of_regular_source':`name_of_alternate_source_${roman.toLowerCase()}`,kind==='reg'?'regular_source':`alternate_source_${roman.toLowerCase()}`,kind==='reg'?'Regular Source':`Alternate Source-${roman}`,kind==='reg'?'Name of Regular Source':`Name of Alternate Source-${roman}`,kind==='reg'?'regularSource':`alternateSource${i}`];let code='';for(const k of keys){const v=sgObjVal(d,[k]);if(!v)continue;if(sgIsCodeOnly(v)){code=v;continue;}const nm=sgCleanFeeder(v);if(nm)return {name:nm,code};}return {name:'',code};}
+function sgGuessPtr(d){const v=sgObjVal(d,['ptr','ptr_no','ptr number','ptr_name','lv','lv_no','lv number','lv_name','PTR','LV']);return sgPtrNoFromKey(v)||'';}
+function sgExtractPtrSources(node,conns){const recs=sgFindMasterBySSCode(node,conns),ptrs={};recs.forEach(r=>{const d=r.data||{};Object.entries(d).forEach(([k,v])=>{if(!v||typeof v!=='object')return;const n=sgPtrNoFromKey(k)||sgGuessPtr(v);if(!n)return;const p=sgEnsurePtr(ptrs,n,sgCap(v,n)||sgObjVal(v,['capacity','mva','MVA'])||sgCap(d,n));const ak=sgActiveKind(v,n)||sgActiveKind(d,n);for(let i=1;i<=4;i++){let rs=sgSourceFrom(v,n,'reg',i);if(rs.name)sgAddSource(p,'reg',i,rs.name,rs.code,(ak?ak==='reg':true));let al=sgSourceFrom(v,n,'alt',i);if(al.name)sgAddSource(p,'alt',i,al.name,al.code,(ak==='alt'));}Object.entries(v).forEach(([sk,sv])=>{if(sv==null||typeof sv==='object')return;const kind=sgKind(sk);if(!kind||!/NAME|FEEDER|SOURCE/i.test(sk))return;const nm=sgCleanFeeder(sv);if(nm)sgAddSource(p,kind,sgIdx(sk),nm,'',(ak?ak===kind:kind==='reg'));});});const ptrNos=new Set();Object.keys(d).forEach(k=>{const n=sgPtrNoFromKey(k);if(n)ptrNos.add(n);});const base=sgGuessPtr(d);if(base)ptrNos.add(base);if(!ptrNos.size)ptrNos.add('1');ptrNos.forEach(n=>{const p=sgEnsurePtr(ptrs,n,sgCap(d,n));const ak=sgActiveKind(d,n);for(let i=1;i<=4;i++){let rs=sgSourceFrom(d,n,'reg',i);if(rs.name)sgAddSource(p,'reg',i,rs.name,rs.code,(ak?ak==='reg':true));let al=sgSourceFrom(d,n,'alt',i);if(al.name)sgAddSource(p,'alt',i,al.name,al.code,(ak==='alt'));}Object.entries(d).forEach(([k,v])=>{if(v==null||typeof v==='object')return;const kind=sgKind(k);if(!kind||!/NAME|FEEDER|SOURCE/i.test(k))return;const colPtr=sgPtrNoFromKey(k);if(colPtr&&colPtr!==n)return;const nm=sgCleanFeeder(v);if(nm)sgAddSource(p,kind,sgIdx(k),nm,'',(ak?ak===kind:kind==='reg'));});});});const arr=Object.values(ptrs).filter(p=>p.sources.length||p.capacity);arr.forEach(p=>p.sources.sort((a,b)=>(a.kind===b.kind?a.index-b.index:(a.kind==='reg'?-1:1))));arr.sort((a,b)=>Number(a.no)-Number(b.no));return arr;}
+function sgGroupPtrSources(ptrs){const groups={};ptrs.forEach(p=>{const sig=p.sources.map(s=>`${s.kind}:${s.label}:${compact(s.name)}:${s.active?'on':'off'}`).join('|')||'empty';if(!groups[sig])groups[sig]={ptrs:[],sources:p.sources};groups[sig].ptrs.push({no:p.no,cap:p.capacity||''});});return Object.values(groups);}
+function sgPtrSourcesHtml(ptrs){if(!ptrs.length)return `<div class="sg-clean-empty">No PTR/LV source mapping found for this SS code in master data. Check SS code in uploaded Smart Grid Excel and master-data SS code.</div>`;return sgGroupPtrSources(ptrs).map(g=>`<div class="sg-clean-group"><div class="sg-clean-left">${g.ptrs.map(p=>`<div class="sg-clean-ptr"><span>LV-${sgEsc(p.no)}</span><span class="sg-clean-cap">${sgEsc(p.cap||'_ MVA')}</span></div>`).join('')}</div><div class="sg-clean-srcs">${g.sources.map(s=>{const state=s.active?'on':(s.kind==='alt'?'stby':'off');return `<div class="sg-clean-row ${s.kind} ${s.active?'on':''}"><div class="sg-clean-tag ${s.kind}">${sgEsc(s.label)}</div><div><div class="sg-clean-feeder">${sgEsc(s.name)}</div>${s.code?`<div class="sg-clean-code">${sgEsc(s.code)}</div>`:''}</div><div class="sg-clean-state ${state}">${s.active?'✓':'×'}</div></div>`;}).join('')}</div></div>`).join('');}
+function sgPopupHtml(node,conns){const ptrs=sgExtractPtrSources(node,conns||[]);const codes=sgCodesForNodeFromTopology(node,conns||[]);const title=clean(node.name)||'33/11KV Substation';const section=node.row?.section||node.section||node.row?.sub_division||'';return `<div class="sg-clean-card"><div class="sg-clean-head"><div><div class="sg-clean-title">${sgEsc(title)}</div><div class="sg-clean-sub">${sgEsc(section||'')}${codes.length?' · SS Code '+sgEsc(codes[0]):''}</div></div><div class="sg-clean-pill">${ptrs.length} LV/PTR</div></div>${sgPtrSourcesHtml(ptrs)}<div class="sg-clean-note">R = regular source. A = alternate source. Green ✓ = presently ON/normal source. Red × = standby/off.</div></div>`;}
 // === END CLEAN SS POPUP ===
+
 
 </script>
 
