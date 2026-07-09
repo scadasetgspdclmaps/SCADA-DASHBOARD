@@ -2852,7 +2852,7 @@ function renderStaticSS(filterFn){
     _registerSSCoord(ss.lat,ss.lon);
 
     const h=`<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>`;
-    const layer=L.marker([ss.lat,ss.lon],{zIndexOffset:3000,icon:L.divIcon({className:'',html:h,iconSize:[36,36],iconAnchor:[18,18]})});
+    const layer=L.marker([ss.lat,ss.lon],{zIndexOffset:3000,bubblingMouseEvents:false,icon:L.divIcon({className:'',html:h,iconSize:[36,36],iconAnchor:[18,18]})});
     const popHtml=`<div class="pc-header-id">${ss.name}</div>
       <table class="popup-table">
         <tr><th>Section</th><td>${ss.section||''}</td></tr>
@@ -2864,17 +2864,20 @@ function renderStaticSS(filterFn){
     // and overwrite the enhanced flyToSS popup. We open a raw popup only as a
     // true fallback when flyToSS is unavailable.
     layer.on('click',function(e){
-      if(e && e.originalEvent){ L.DomEvent.stop(e.originalEvent); }
-      if(typeof window.flyToSS === 'function'){
-        // Don't fly — just trigger the enhanced popup chain at current position.
-        // Add _type so downstream enhancer treats it as a 33/11KV SS explicitly.
-        window.flyToSS(Object.assign({},ss,{_type:'33',_noPan:true}));
-      } else {
-        L.popup({maxWidth:400,minWidth:280,className:'ss-popup'})
-          .setLatLng(e&&e.latlng?e.latlng:layer.getLatLng())
-          .setContent(popHtml)
-          .openOn(map);
-      }
+      if(e && e.originalEvent){ L.DomEvent.stopPropagation(e.originalEvent); L.DomEvent.preventDefault(e.originalEvent); }
+      const ssObj=Object.assign({},ss,{_type:'33',_noPan:true});
+      let opened=false;
+      try{
+        if(typeof window.flyToSS === 'function'){ window.flyToSS(ssObj); opened=true; }
+      }catch(err){ console.warn('[map] enhanced SS popup failed, using fallback:', err); }
+      setTimeout(function(){
+        if(!opened || !document.querySelector('.leaflet-popup.ss-popup')){
+          L.popup({maxWidth:420,minWidth:300,className:'ss-popup',closeOnClick:false,autoClose:true})
+            .setLatLng(e&&e.latlng?e.latlng:layer.getLatLng())
+            .setContent(popHtml)
+            .openOn(map);
+        }
+      },0);
       return false;
     });
     const shortName=ss.name.replace(/33\/11KV\s?/i,'').replace(/\s?SS$/i,'').trim();
@@ -2894,7 +2897,7 @@ function renderStaticSS(filterFn){
 
     const kv=eht.name.match(/^(\d+)\s*KV/i)?.[1]||'EHT';
     const h=`<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">${kv}KV</span></div></div>`;
-    const layer=L.marker([eht.lat,eht.lon],{zIndexOffset:3000,icon:L.divIcon({className:'',html:h,iconSize:[40,28],iconAnchor:[20,14]})});
+    const layer=L.marker([eht.lat,eht.lon],{zIndexOffset:3000,bubblingMouseEvents:false,icon:L.divIcon({className:'',html:h,iconSize:[40,28],iconAnchor:[20,14]})});
     const popHtml=`<div class="pc-header-id">${eht.name}</div>
       <table class="popup-table">
         <tr><th>LV Feeders</th><td>${eht.lvs||''}</td></tr>
@@ -2907,17 +2910,21 @@ function renderStaticSS(filterFn){
     // Same rule as 33/11KV SS: no bindPopup here, otherwise Leaflet can
     // overwrite the enhanced EHT popup with this raw table on marker click.
     layer.on('click',function(e){
-      if(e && e.originalEvent){ L.DomEvent.stop(e.originalEvent); }
+      if(e && e.originalEvent){ L.DomEvent.stopPropagation(e.originalEvent); L.DomEvent.preventDefault(e.originalEvent); }
       // Mark as EHT so enhancement uses exact-code lookup from ehtSources.
       const ehtObj = Object.assign({},eht,{_type:'eht',_noPan:true});
-      if(typeof window.flyToSS === 'function'){
-        window.flyToSS(ehtObj);
-      } else {
-        L.popup({maxWidth:400,minWidth:280,className:'ss-popup'})
-          .setLatLng(e&&e.latlng?e.latlng:layer.getLatLng())
-          .setContent(popHtml)
-          .openOn(map);
-      }
+      let opened=false;
+      try{
+        if(typeof window.flyToSS === 'function'){ window.flyToSS(ehtObj); opened=true; }
+      }catch(err){ console.warn('[map] enhanced EHT popup failed, using fallback:', err); }
+      setTimeout(function(){
+        if(!opened || !document.querySelector('.leaflet-popup.ss-popup')){
+          L.popup({maxWidth:420,minWidth:300,className:'ss-popup',closeOnClick:false,autoClose:true})
+            .setLatLng(e&&e.latlng?e.latlng:layer.getLatLng())
+            .setContent(popHtml)
+            .openOn(map);
+        }
+      },0);
       return false;
     });
     const shortName=eht.name.replace(/^\d+\s*KV\s*/i,'').replace(/\s?SS$/i,'').trim();
@@ -4261,12 +4268,23 @@ function flyToSSByIdx(idx){
   if(!s||!s.lat||!s.lon)return;
   const zoom=s._type==='eht'?15:17;
   map.flyTo([s.lat,s.lon],zoom,{animate:true,duration:.85,easeLinearity:.25});
-  // Use existing flyToSS for popup + linked feeder display
-  if(typeof flyToSS==='function'){
-    setTimeout(()=>{ try{ flyToSS(s); }catch(e){} },650);
-  }
+  // Use existing enhanced flyToSS for popup + linked feeder display.
+  // Important: use window.flyToSS and do not swallow failures silently; fall back to a basic popup.
+  setTimeout(()=>{
+    const ssObj=Object.assign({},s,{_noPan:true});
+    try{
+      if(typeof window.flyToSS==='function') window.flyToSS(ssObj);
+      else throw new Error('flyToSS missing');
+    }catch(err){
+      console.warn('[map] SS list popup failed, opening fallback:', err);
+      L.popup({maxWidth:420,minWidth:300,className:'ss-popup',closeOnClick:false,autoClose:true})
+        .setLatLng([s.lat,s.lon])
+        .setContent(`<div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#0f172a">${s.name||''}</div><div style="font-size:11px;color:#64748b">${s.section||''}${s.section&&s.division?' · ':''}${s.division||''}</div>`)
+        .openOn(map);
+    }
+  },650);
   // ── NEW (21 May 2026): filter visible feeders to only those connecting to this SS ──
-  focusOnSSFeeders(s);
+  try{ focusOnSSFeeders(s); }catch(err){ console.warn('[map] SS feeder focus failed:',err); }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -5979,13 +5997,13 @@ function _findFeedersLinkedToSS(ssData){
   // Per Naresh 08-Jul-2026: this must be tried first; it's the authoritative link.
   if(Object.keys(MAP_CONNECTION_MASTER||{}).length) {
     // Find the ssCode for the current SS
-    const targetSSCode = (ssData&&(ssData.code||ssData.ssCode||'')).trim();
+    const targetSSCode = ((ssData && (ssData.code||ssData.ssCode)) || '').toString().trim();
     const targetSSName = ssNorm;
     // Build a set of all codes that map to this SS
     const matchingCodes = new Set();
     Object.keys(MAP_CONNECTION_MASTER).forEach(code=>{
       const rec = MAP_CONNECTION_MASTER[code]||{};
-      const recSSCode = (rec.ssCode||rec.code||'').trim();
+      const recSSCode = (rec.ssCode||rec.code||'').toString().trim();
       const recSSName = _normalizeSSName(rec.ssName||rec.name||'');
       if((targetSSCode && recSSCode === targetSSCode) ||
          (recSSName && ssDistinctive.every(w=>recSSName.split(/\s+/).some(rw=>_wordFuzzyEqual(rw,w))))){
@@ -6075,8 +6093,15 @@ function _findFeedersLinkedToSS(ssData){
 }
 
 function flyToSS(ss){
+  if(!ss || !ss.lat || !ss.lon) return;
   if(!ss._noPan) map.flyTo([ss.lat,ss.lon],17,{animate:true,duration:.8});
-  const linkedFeeders=_findFeedersLinkedToSS(ss);
+  let linkedFeeders=[];
+  try{
+    linkedFeeders=(typeof _findFeedersLinkedToSS==='function' ? (_findFeedersLinkedToSS(ss)||[]) : []);
+  }catch(err){
+    console.warn('[map] SS feeder-link lookup failed, opening popup anyway:', err);
+    linkedFeeders=[];
+  }
   const statusList=linkedFeeders.map(fn=>{
     const s=feederStatus[fn]||'live';
     const col=s==='live'?'#00c853':s==='breakdown'?'#ff1744':'#9e9e9e';
@@ -8837,12 +8862,12 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
   function findPTRForSS(ss){
     if (!ss) return null;
     const ssName = (ss.name || ss.ssName || '').toUpperCase().trim();
-    const ssCode = (ss.code || ss.ssCode || '').trim();
+    const ssCode = (ss.code || ss.ssCode || '').toString().trim();
     // 1. By SS code (the cleanest key)
     if (ssCode){
       const sk = fbSafeKey(ssCode);
       if (MAP_MASTER_PTRS[sk]) return MAP_MASTER_PTRS[sk];
-      const byCode = Object.values(MAP_MASTER_PTRS).find(p => (p.ssCode||'').trim() === ssCode);
+      const byCode = Object.values(MAP_MASTER_PTRS).find(p => (p.ssCode||'').toString().trim() === ssCode);
       if (byCode) return byCode;
     }
     // 2. By exact SS name
@@ -9082,8 +9107,9 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
 
     const ptr = findPTRForSS(ss);
     // Linked feeders (already computed by the underlying flyToSS)
-    const linked = (typeof window._findFeedersLinkedToSS === 'function')
-      ? window._findFeedersLinkedToSS(ss) : [];
+    let linked = [];
+    try{ linked = (typeof window._findFeedersLinkedToSS === 'function')
+      ? (window._findFeedersLinkedToSS(ss)||[]) : []; }catch(err){ console.warn('[map] enhanced popup linked feeders failed:',err); linked=[]; }
 
     // ── SS LV SOURCE CARD (Regular + Alternate feeders from Master Data) ────
     // Per Naresh 08-Jul-2026: each 33/11KV SS popup must show its regular and
@@ -9614,7 +9640,7 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
     if (!ss) return null;
     const map = (window.mapLive && typeof window.mapLive.ptrs === 'function') ? window.mapLive.ptrs() : {};
     if (!map || !Object.keys(map).length) return null;
-    const ssCode = (ss.code || ss.ssCode || '').trim();
+    const ssCode = (ss.code || ss.ssCode || '').toString().trim();
     const ssName = (ss.name || ss.ssName || '').trim();
     if (!ssName && !ssCode) return null;
 
@@ -9622,7 +9648,7 @@ _tgExposeOne('renderedFeederSet', ()=>renderedFeederSet);
     if (ssCode){
       const sk = fbSafeKey(ssCode);
       if (map[sk]) return map[sk];
-      const byCode = Object.values(map).find(p => (p.ssCode||'').trim() === ssCode);
+      const byCode = Object.values(map).find(p => (p.ssCode||'').toString().trim() === ssCode);
       if (byCode) return byCode;
     }
     // 2. Exact name
@@ -12063,5 +12089,6 @@ window.tgRunBoundaryDiagnostic = async function(){
 setTimeout(function(){ if(typeof window.tgRunBoundaryDiagnostic==='function') window.tgRunBoundaryDiagnostic(); }, 3000);
 </script>
 
+<!-- FINAL SS POPUP CLICK FIX: numeric code-safe lookup + non-bubbling SS/EHT marker clicks (09-Jul-2026) -->
 </body>
 </html>
