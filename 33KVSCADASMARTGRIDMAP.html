@@ -1822,7 +1822,7 @@ path.sg-feeder-line{cursor:pointer}
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   NEW PTR GROUP STYLES — Exactly matches the hand-drawn note
+   NEW PTR GROUP STYLES — Matches your Master Data Manager columns
    ═══════════════════════════════════════════════════════════════════════ */
 .sg-ptr-group {
   border: 1px solid #e5e7eb;
@@ -1841,7 +1841,7 @@ path.sg-feeder-line{cursor:pointer}
 }
 .sg-bracket {
   width: 14px;
-  height: 26px;
+  height: 32px;
   display: block;
   flex-shrink: 0;
 }
@@ -1890,11 +1890,12 @@ path.sg-feeder-line{cursor:pointer}
 .sg-ptr-label {
   font-weight: 700;
   color: #1d4ed8;
-  min-width: 68px;
+  min-width: 40px;
 }
 .sg-ptr-label.alt { color: #9a3412; }
 .sg-ptr-arrow { color: #64748b; font-weight: 300; }
-.sg-ptr-feeder { flex: 1; }
+.sg-ptr-feeder-code { color: #475569; min-width: 70px; }
+.sg-ptr-feeder-name { flex: 1; }
 .sg-ptr-status {
   font-weight: 800;
   min-width: 28px;
@@ -3533,7 +3534,11 @@ async function handleFile(file){
   populateFilters();render();
   buildTopology(); // re-run to get accurate count for status bar
   fileInfo.textContent=`Loaded ${file.name} · ${rows.length} rows · ${feeders} feeders · ${topology.length} connections`;
-  toast(rows.length>0 ? ('✅ Loaded '+rows.length+' rows, '+feeders+' feeders, '+topology.length+' topology connections') : '⚠ File loaded but 0 rows — check column names');
+  
+  // === FIX: AUTOMATICALLY SAVE TO FIREBASE AFTER UPLOAD SO REFRESH WORKS ===
+  toast('Data loaded. Saving to Firebase so data persists after refresh...');
+  await saveFirebase();
+  // === END FIX ===
 }
 async function saveFirebase(){
   if(!rows.length){toast('Upload Excel first');return}
@@ -4397,7 +4402,7 @@ function sgFindMasterBySSCode(node, conns){
 }
 function sgPtrNoFromKey(k){
   const s=String(k||'').toUpperCase();
-  const m=s.match(/PTR\s*[-_ ]?(\d+)/i) || s.match(/POWER\s*TRANSFORMER\s*[-_ ]?(\d+)/i) || s.match(/\bHV\s*[-_ ]?(\d+)\b/i);
+  const m=s.match(/LV\s*[-_ ]?(\d+)/i) || s.match(/PTR\s*[-_ ]?(\d+)/i) || s.match(/POWER\s*TRANSFORMER\s*[-_ ]?(\d+)/i) || s.match(/\bHV\s*[-_ ]?(\d+)\b/i);
   return m?m[1]:'';
 }
 function sgSourceKindFromKey(k){
@@ -4444,7 +4449,7 @@ function sgExtractPtrSources(node, conns){
     val=String(val||'').trim();
     if(!val) return;
     const p=ensurePtr(no);
-    const label=(labelOverride || (kind==='alt'?'Alternate-':'Reg-')+index);
+    const label=(labelOverride || (kind==='alt'?'A':'R')+index);
     const key=compact(no+'|'+kind+'|'+label+'|'+val);
     if(seen[key]) return;
     seen[key]=1;
@@ -4460,7 +4465,7 @@ function sgExtractPtrSources(node, conns){
     Object.entries(d).forEach(([k,v])=>{
       if(v==null || typeof v==='object') return;
       const ptr=sgPtrNoFromKey(k);
-      if(ptr && /CAP|MVA|PTR/i.test(k) && !/SOURCE|REG|ALT/i.test(k)){
+      if(ptr && /CAP|MVA|LV|PTR/i.test(k) && !/SOURCE|REG|ALT/i.test(k)){
         ensurePtr(ptr).capacity=String(v).trim();
       }
     });
@@ -4550,8 +4555,8 @@ function sgPtrGroupedSummary(ptrs){
 function sgPtrSourcesHtml(groups){
   if(!groups.length){
     return `<div class="sg-src-empty">
-      No PTR-wise source mapping found for this SS code in loaded master data yet.
-      Add fields like PTR-1 Capacity, PTR-1 Regular Source, PTR-1 Alternate Source-1, PTR-1 Active Source.
+      No LV/PTR-wise source mapping found for this SS code in loaded master data yet.
+      Add fields like LV1 Capacity, LV1 Regular Source, LV1 Alternate Source-1.
     </div>`;
   }
   return `<div class="sg-ptr-wrap">${groups.map(g => `
@@ -4570,9 +4575,10 @@ function sgPtrSourcesHtml(groups){
           const statusClass = s.active ? 'on' : 'off';
           const ampsText = (s.amps && s.amps.trim()) ? `${s.amps} Amps` : '_ Amps';
           return `<div class="sg-ptr-source-row">
-            <span class="sg-ptr-label ${s.kind}">${s.label}</span>
+            <span class="sg-ptr-label ${s.kind}">(${s.label})</span>
             <span class="sg-ptr-arrow">→</span>
-            <span class="sg-ptr-feeder">${clean(s.val)}</span>
+            <span class="sg-ptr-feeder-code">${s.val}</span>
+            <span class="sg-ptr-feeder-name">${clean(s.val)}</span>
             <span class="sg-ptr-status ${statusClass}">(${status})</span>
             <span class="sg-ptr-amps">${ampsText}</span>
           </div>`;
