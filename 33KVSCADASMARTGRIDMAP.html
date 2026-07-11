@@ -2274,8 +2274,8 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <input type="range" min="0.5" max="3" step="0.05" value="1" oninput="setSGABDPSize(this.value)">
   </div>
   <div class="gsp-row">
-    <label>LINE THICKNESS <span id="gspLineVal">3.0</span></label>
-    <input type="range" min="1" max="8" step="0.5" value="3" oninput="setSGLineWeight(this.value)">
+    <label>LINE THICKNESS <span id="gspLineVal">1.5</span></label>
+    <input type="range" min="0.5" max="6" step="0.25" value="1.5" oninput="setSGLineWeight(this.value)">
   </div>
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
     <label style="margin-bottom:0"><span>ENERGY FLOW ANIMATION</span>
@@ -3103,7 +3103,7 @@ function setSGSSSize(v){ v=Math.max(.5,Math.min(2.5,+v||1)); document.documentEl
 function setSGEHTSize(v){ v=Math.max(.5,Math.min(2.5,+v||1)); document.documentElement.style.setProperty('--sg-eht-scale',v.toFixed(2)); const e=document.getElementById('gspEHTVal'); if(e)e.textContent=v.toFixed(2); }
 function setSGLabelSize(v){ v=Math.max(6,Math.min(16,+v||9)); document.documentElement.style.setProperty('--sg-label-size',v+'px'); const e=document.getElementById('gspLblVal'); if(e)e.textContent=v; }
 function setSGABDPSize(v){ v=Math.max(.5,Math.min(3,+v||1)); document.documentElement.style.setProperty('--sg-abdp-scale',v.toFixed(2)); const e=document.getElementById('gspABDPVal'); if(e)e.textContent=v.toFixed(2); }
-function setSGLineWeight(v){ v=Math.max(1,Math.min(8,+v||3)); window.sgLineWeight=v; sgLineWeight=v; const e=document.getElementById('gspLineVal'); if(e)e.textContent=(+v).toFixed(1); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
+function setSGLineWeight(v){ v=Math.max(.5,Math.min(6,+v||1.5)); window.sgLineWeight=v; sgLineWeight=v; const e=document.getElementById('gspLineVal'); if(e)e.textContent=(+v).toFixed(2); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
 function setSGFlow(on){ window.sgFlowOn=!!on; sgFlowOn=!!on; const e=document.getElementById('sgFlowToggle'); if(e)e.checked=!!on; if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
 function setSGFeederLabels(on){ const t=document.getElementById('tLbl'); if(t)t.checked=!!on; const s=document.getElementById('sgLblToggle'); if(s)s.checked=!!on; const row=document.getElementById('lyr-lbl'); if(row)row.classList.toggle('off',!on); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
 function setSGHTLabels(on){ window.sgHTLabelsOn=!!on; const s=document.getElementById('sgHTLblToggle'); if(s)s.checked=!!on; if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
@@ -3329,6 +3329,9 @@ function sgMasterFlatRecords(){
 function sgMasterBuildCoordCache(){
   const cache = {byCode:{}, byName:{}, all:[]};
   const recs = sgMasterFlatRecords();
+  // Current Master Data Manager writes the expanded list here. Use the older
+  // substationsEHT mirror only when the current branch is genuinely absent.
+  const hasCurrentEHT = recs.some(r=>/^masterData\/ehtSources(?:\/|$)/i.test(r.path||''));
   const latKeys = ['latitude','lat','ss_lat','ss latitude','substation_latitude','substation lat','eht_lat','eht latitude','latitude_eht','latitude_ss','Latitude'];
   const lngKeys = ['longitude','lng','long','lon','ss_lng','ss_long','ss longitude','substation_longitude','substation long','eht_lng','eht_long','eht longitude','longitude_eht','longitude_ss','Longitude'];
   const nameKeys = ['ss_name','ssName','name_of_the_ss','name of the ss','substation_name','substation','name','eht_name','name_of_the_eht_ss','name_of_the_EHT _SS','Name'];
@@ -3349,7 +3352,9 @@ function sgMasterBuildCoordCache(){
     // endStartPoints and legacy smartgrid copies must never create EHT icons.
     // They may still describe a feeder, but only the Master Data Manager's
     // /masterData/substationsEHT registry is allowed into the EHT cache.
-    const canonicalEHTPath = /^masterData\/substationsEHT(?:\/|$)/i.test(r.path||'');
+    const canonicalEHTPath = hasCurrentEHT
+      ? /^masterData\/ehtSources(?:\/|$)/i.test(r.path||'')
+      : /^masterData\/substationsEHT(?:\/|$)/i.test(r.path||'');
     if(kind==='eht' && !canonicalEHTPath) return;
     // 33/11KV coordinates also have one authority. The same 136 stations are
     // mirrored under legacy /substations33, which previously doubled 136→272.
@@ -3785,7 +3790,7 @@ function curve(a,b,i,total,ctype){
 // follows the line, and double-click still opens the route map; (3) line
 // thickness honors the adjuster (window.sgLineWeight); (4) energy-flow
 // animation (EHT→SS moving dashes) when window.sgFlowOn.
-let sgLineWeight = window.sgLineWeight || 3;
+let sgLineWeight = window.sgLineWeight || 1.5;
 // Flow animation state reads the checkbox directly (single source of truth,
 // per DeepSeek review 10-Jul-2026) — default OFF for fast initial load.
 let sgFlowOn = document.getElementById('sgFlowToggle')?.checked ?? false;
@@ -3878,7 +3883,7 @@ function render(){
     if(c.type==='feeder')cnt[feederCableClass(c.feeder_type)]++;else cnt[c.type]++;
     const col=colorFor(c.type,c.feeder_type);
     const pts=curve(c.from,c.to,idx,pairCount[k],c.type);
-    const w = c.type==='link' ? Math.max(1.5,sgLineWeight*0.8) : sgLineWeight;
+    const w = c.type==='link' ? Math.max(.8,sgLineWeight*0.8) : sgLineWeight;
     const line=L.polyline(pts,{color:col,weight:w,opacity:.9,dashArray:null,lineCap:'round',lineJoin:'round',className:'sg-feeder-line '+(c.type==='link'?'sg-link-line':'')});
     // Feeder name appears ONLY on hover near the line, not as permanent map text.
     // No rectangular hover box. Feeder identity remains available from the
@@ -4294,6 +4299,7 @@ document.addEventListener('click',e=>{
 
 let gEditLayer = L.layerGroup().addTo(map);
 let gCadSnapTargets = L.layerGroup().addTo(map);
+if(!map.getPane('editGripPane')){const p=map.createPane('editGripPane');p.style.zIndex='10000';p.style.pointerEvents='auto';}
 let gNewFeederLayer = L.layerGroup().addTo(map);
 window._sgEditModeOn = false;
 let geomEdit = {feederKey:null, verts:[], selected:-1};
@@ -4435,7 +4441,7 @@ function _sgRenderEditHandles(){
   // No midpoint insert markers. Use only existing green bend grips for AutoCAD-style shaping.
 
   verts.forEach((v,i)=>{
-    const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(false,i===geomEdit.selected),draggable:true,zIndexOffset:600})
+    const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(false,i===geomEdit.selected),draggable:true,zIndexOffset:5000,pane:'editGripPane',interactive:true})
       .bindTooltip(clean(v.label),{direction:'top',opacity:.95});
     marker.on('drag',e=>{
       const ll=e.target.getLatLng(); v.lat=ll.lat; v.lng=ll.lng; v.moved=true;
@@ -4504,6 +4510,22 @@ function deleteSelectedVertex(){
   geomEdit.selected=-1;
   _sgRenderEditHandles();
   toast('Point and adjoining end segment removed — Save to commit');
+}
+function sgDraftDeleteEndpoint(which){
+  if(!geomEdit.feederKey||geomEdit.verts.length<=2){toast('A feeder needs at least two remaining points');return;}
+  sgDraftSnapshot();
+  if(which==='start'){
+    geomEdit.verts.shift();
+    const s=geomEdit.verts[0];
+    geomEdit.sourceTarget={kind:'eht',name:s.overrideName||s.label||'',code:s.overrideCode||'',lat:s.lat,lng:s.lng};
+  }else{
+    geomEdit.verts.pop();
+    const e=geomEdit.verts[geomEdit.verts.length-1];e.moved=true;geomEdit.endTarget=null;
+  }
+  geomEdit.verts.forEach(v=>v.locked=false);
+  geomEdit.verts[0].locked=true;geomEdit.verts[geomEdit.verts.length-1].locked=true;
+  geomEdit.selected=-1;_sgRenderEditHandles();
+  toast((which==='start'?'Start':'End')+' endpoint and adjoining segment deleted — Save to commit');
 }
 
 function _sgShowEditBar(show,name){
@@ -4859,16 +4881,21 @@ async function sgExportPDF(){
     // is what prints (including your saved bend-point geometry).
     const pairCount={},pairIdx={};
     shown.forEach(c=>{const k=compact(c.from.name)+String(c.from.code||'')+'>'+compact(c.to.name)+String(c.to.code||'');pairCount[k]=(pairCount[k]||0)+1});
+    // Print one feeder name only, on that feeder's longest segment. The old
+    // exporter repeated the name on every segment and made the network unreadable.
+    const pdfBestSeg={};
+    shown.forEach(c=>{const fk=compact(c.feeder_code||c.feeder_name),d=Math.hypot(c.to.lat-c.from.lat,c.to.lng-c.from.lng);if(!pdfBestSeg[fk]||d>pdfBestSeg[fk].d)pdfBestSeg[fk]={c,d};});
     shown.forEach(c=>{
       const k=compact(c.from.name)+String(c.from.code||'')+'>'+compact(c.to.name)+String(c.to.code||''), idx=pairIdx[k]||0; pairIdx[k]=idx+1;
       const pts=curve(c.from,c.to,idx,pairCount[k],c.type).map(ll=>P(ll.lat,ll.lng));
       const [red,green,blue]=hex(colorFor(c.type,c.feeder_type));
       doc.setDrawColor(red,green,blue);
-      doc.setLineWidth(c.type==='feeder'?0.45:0.32);
+      doc.setLineWidth(c.type==='feeder'?0.20:0.15);
       if(c.type==='link') doc.setLineDashPattern([1.4,1],0); else doc.setLineDashPattern([],0);
       for(let i=0;i<pts.length-1;i++) doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
       doc.setLineDashPattern([],0);
-      if(showFLbl){
+      const pdfFeederKey=compact(c.feeder_code||c.feeder_name);
+      if(showFLbl && pdfBestSeg[pdfFeederKey] && pdfBestSeg[pdfFeederKey].c===c){
         // Rotated label lying ON the line (per Naresh): angle follows the
         // segment direction at the midpoint. Vector text — tiny on the page,
         // razor sharp when zooming into the PDF.
@@ -4876,7 +4903,7 @@ async function sgExportPDF(){
         const pointA=pts[Math.max(0,mi-1)], pointB=pts[Math.min(pts.length-1,mi+1)], mid=pts[mi];
         let ang=Math.atan2(-(pointB[1]-pointA[1]), pointB[0]-pointA[0])*180/Math.PI; // PDF angle: CCW, y-down screen → negate dy
         if(ang>90)ang-=180; if(ang<-90)ang+=180;                  // keep text upright
-        doc.setFontSize(3.4); doc.setTextColor(red,green,blue); doc.setFont('helvetica','normal');
+        doc.setFontSize(1.8); doc.setTextColor(red,green,blue); doc.setFont('helvetica','normal');
         doc.text(clean(c.feeder_name)||String(c.feeder_code||''),mid[0],mid[1]-0.35,{angle:ang,align:'center'});
       }
     });
@@ -4892,15 +4919,15 @@ async function sgExportPDF(){
       const [x,y]=P(n.lat,n.lng);
       if(n.kind==='eht'){
         doc.setFillColor(183,28,28); doc.setDrawColor(255,255,255); doc.setLineWidth(0.3);
-        doc.rect(x-2.6,y-1.7,5.2,3.4,'FD');
-        doc.setFontSize(2.6); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
-        doc.text('EHT',x,y+0.85,{align:'center'});
-        if(showSSLbl){ doc.setFontSize(4.4); doc.setTextColor(140,20,20); doc.text(clean(n.name),x,y-2.4,{align:'center'}); }
+        doc.rect(x-1.8,y-1.05,3.6,2.1,'FD');
+        doc.setFontSize(1.55); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+        doc.text('EHT',x,y+0.5,{align:'center'});
+        if(showSSLbl){ doc.setFontSize(2.15); doc.setTextColor(140,20,20); doc.text(clean(n.name),x,y-1.55,{align:'center'}); }
       } else if(n.kind==='ss33'){
         // bullseye: outer ring + solid core, matching the on-screen icon
-        doc.setDrawColor(21,101,192); doc.setLineWidth(0.28); doc.circle(x,y,1.5,'S');
-        doc.setFillColor(21,101,192); doc.circle(x,y,0.85,'F');
-        if(showSSLbl){ doc.setFontSize(3.8); doc.setTextColor(30,58,95); doc.setFont('helvetica','normal'); doc.text(clean(n.name),x,y-2.1,{align:'center'}); }
+        doc.setDrawColor(21,101,192); doc.setLineWidth(0.20); doc.circle(x,y,0.95,'S');
+        doc.setFillColor(21,101,192); doc.circle(x,y,0.52,'F');
+        if(showSSLbl){ doc.setFontSize(2.05); doc.setTextColor(30,58,95); doc.setFont('helvetica','normal'); doc.text(clean(n.name),x,y-1.35,{align:'center'}); }
       } else if(n.kind==='ab'){
         // orange diamond — same symbol language as on screen
         doc.setFillColor(255,143,0); doc.setDrawColor(122,74,0); doc.setLineWidth(0.15);
@@ -5469,6 +5496,8 @@ function sgEHTPopupHtml(node){
     <button id="sgeExtendBtn" onclick="sgDraftExtend()" class="sg-cad-btn">↗ Extend</button>
     <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled class="sg-cad-btn danger">✕ Delete</button>
     <button onclick="sgDraftUndo()" class="sg-cad-btn">↶ Undo</button>
+    <button onclick="sgDraftDeleteEndpoint('start')" class="sg-cad-btn danger">✕ Delete Start End</button>
+    <button onclick="sgDraftDeleteEndpoint('end')" class="sg-cad-btn danger">✕ Delete Final End</button>
     <button onclick="sgDraftTrim('after')" class="sg-cad-btn danger">✂ Trim After Point</button>
     <button onclick="sgDraftTrim('before')" class="sg-cad-btn danger">✂ Trim Before Point</button>
   </div>
