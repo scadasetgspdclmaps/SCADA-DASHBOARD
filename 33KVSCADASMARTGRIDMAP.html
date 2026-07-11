@@ -3594,6 +3594,12 @@ function nodeType(feedTo,name,type){
   if(/\bHT\b/.test(t))return 'ht';
   return 'ss33';
 }
+function sgEHTNameFromFeederName(name){
+  const s=String(name||'').trim();
+  // "220KV MOULA ALI-33KV AZAMABAD" -> "220KV MOULA ALI SS"
+  const m=s.match(/^\s*((?:132|220|400)\s*K?V\s+.+?)\s*-\s*33\s*K?V\b/i);
+  return m ? m[1].replace(/\s+/g,' ').trim()+' SS' : '';
+}
 function normalizeInputRows(raw){
   const out=[], carry={};
   raw.forEach((r,idx)=>{
@@ -3651,6 +3657,18 @@ function normalizeInputRows(raw){
       const pn=String(rec.pole_number||'').trim();
       if((pn===''||pn==='0'||pn==='1')&&rec.eht_name&&rec.feeding_lng!=null)
         rec.eht_lng=rec.feeding_lng;
+    }
+    // ── feeder-boundary-safe EHT source ──────────────────────────────────
+    // Never carry Chandrayana/Madhapur/etc. into the next feeder. Where the
+    // source is encoded in the feeder name, that prefix is authoritative and
+    // also repairs stale wrong EHT fields previously saved to Firebase.
+    const explicitFeeder=rec.feeder_name||rec.feeder_code;
+    const derivedEHT=sgEHTNameFromFeederName(rec.feeder_name);
+    const previousFeeder=carry.feeder_name||carry.feeder_code||'';
+    const isNewFeeder=!!explicitFeeder && compact(explicitFeeder)!==compact(previousFeeder);
+    if(isNewFeeder){
+      ['eht_code','eht_name','eht_lat','eht_lng'].forEach(k=>delete carry[k]);
+      if(derivedEHT){ rec.eht_name=derivedEHT; rec.eht_code=''; rec.eht_lat=null; rec.eht_lng=null; }
     }
     // ── carry-forward (merged-cell fill-down) ────────────────────────────
     ['area_code','circle','division','sub_division','section','feeder_type','feeder_name','feeder_code'].forEach(k=>{if(rec[k])carry[k]=rec[k];else rec[k]=carry[k]||''});
@@ -4251,9 +4269,11 @@ document.addEventListener('click',e=>{
    ═══════════════════════════════════════════════════════════════════════ */
 
 let gEditLayer = L.layerGroup().addTo(map);
+let gCadSnapTargets = L.layerGroup().addTo(map);
 let gNewFeederLayer = L.layerGroup().addTo(map);
 window._sgEditModeOn = false;
 let geomEdit = {feederKey:null, verts:[], selected:-1};
+let sgDraft={mode:'move',history:[],snap:{endpoint:true,midpoint:true,node:true,nearest:true}};
 window._sgLockedFeederKey = null;
 let _sgGuideLine = null;
 
@@ -4318,7 +4338,9 @@ function enterFeederEdit(key){
   // was inventing AB switches that don't exist in the field.)
   _sgAutoDivideSegments(verts);
   geomEdit = {feederKey:key, verts, selected:-1};
+  sgDraft.history=[]; sgDraft.mode='move';
   _sgRenderEditHandles();
+  sgShowStationCenters(true);
   _sgShowEditBar(true, first.feeder_name||key);
 }
 
@@ -4340,7 +4362,9 @@ function enterSpurEdit(conn){
     {row:target,lat:+b.lat,lng:+b.lng,locked:true,label:b.name||'SPUR DESTINATION'}
   ];
   geomEdit={feederKey:conn.feeder_code||conn.feeder_name,verts,selected:-1,mode:'spur',spurRow:target};
+  sgDraft.history=[]; sgDraft.mode='move';
   _sgRenderEditHandles();
+  sgShowStationCenters(true);
   _sgShowEditBar(true,(conn.feeder_name||'Feeder')+' — SPUR');
   toast('Spur edit: drag the green bend points, then Save Feeder');
 }
@@ -4459,6 +4483,7 @@ function _sgShowEditBar(show,name){
 
 function exitFeederEdit(clearLock=true){
   gEditLayer.clearLayers();
+  gCadSnapTargets.clearLayers();
   geomEdit={feederKey:null,verts:[],selected:-1};
   _sgShowEditBar(false);
   if(clearLock){
@@ -4497,6 +4522,7 @@ function saveFeederEdit(){
   const list=_sgRowsForFeeder(key);
   if(!list.length){ toast('Feeder rows missing'); exitFeederEdit(); return; }
   const template=list[0];
+  const sourceTarget=geomEdit.sourceTarget||null;
   // Every vertex EXCEPT the synthetic EHT-source pseudo-vertex (row:null at
   // index 0) maps to a real data row — rebuild them fresh in their new order.
   // Auto-divided BEND grips that were never dragged (and never converted to
@@ -4507,6 +4533,10 @@ function saveFeederEdit(){
   rows = rows.filter(r => (r.feeder_code||r.feeder_name)!==key);
   feedVerts.forEach((v,idx)=>{
     const base = v.row ? {...v.row} : {...template};
+    if(sourceTarget){
+      base.eht_name=sourceTarget.name||''; base.eht_code=sourceTarget.code||'';
+      base.eht_lat=+sourceTarget.lat; base.eht_lng=+sourceTarget.lng;
+    }
     base.feeding_lat = v.lat; base.feeding_lng = v.lng;
     base.pole_number = idx+1;
     if(!v.row){
@@ -4517,6 +4547,12 @@ function saveFeederEdit(){
     }
     if(!base.feeding_name && !base.feeding_to){ base.feeding_name='BEND POINT'; base.feeding_to='BEND POINT'; base.source_type='BEND POINT'; }
     if(v.overrideName){ base.feeding_name=v.overrideName; base.feeding_to=v.overrideName; if(String(v.overrideName).toUpperCase().includes('BEND'))base.source_type='BEND POINT'; }
+    if(geomEdit.endTarget && idx===feedVerts.length-1){
+      base.feeding_name=geomEdit.endTarget.name||v.overrideName||base.feeding_name;
+      base.feeding_to=base.feeding_name;
+      base.feeding_code=geomEdit.endTarget.code||'';
+      base.source_type=geomEdit.endTarget.kind==='eht'?'EHT SS':'33/11 KV Sub-Station';
+    }
     if(v.makeAB){ base.feeding_name='AB Switch'; base.feeding_to='AB Switch'; base.source_type='AB SWITCH'; }
     if(v.overrideCode){ base.feeding_code=v.overrideCode; }
     // Unnamed points (generic "AB Switch") are deduped in buildTopology by
@@ -4792,8 +4828,8 @@ async function sgExportPDF(){
     shown.forEach(c=>{
       const k=compact(c.from.name)+String(c.from.code||'')+'>'+compact(c.to.name)+String(c.to.code||''), idx=pairIdx[k]||0; pairIdx[k]=idx+1;
       const pts=curve(c.from,c.to,idx,pairCount[k],c.type).map(ll=>P(ll.lat,ll.lng));
-      const [r,g,b]=hex(colorFor(c.type,c.feeder_type));
-      doc.setDrawColor(r,g,b);
+      const [red,green,blue]=hex(colorFor(c.type,c.feeder_type));
+      doc.setDrawColor(red,green,blue);
       doc.setLineWidth(c.type==='feeder'?0.45:0.32);
       if(c.type==='link') doc.setLineDashPattern([1.4,1],0); else doc.setLineDashPattern([],0);
       for(let i=0;i<pts.length-1;i++) doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
@@ -4803,10 +4839,10 @@ async function sgExportPDF(){
         // segment direction at the midpoint. Vector text — tiny on the page,
         // razor sharp when zooming into the PDF.
         const mi=Math.floor(pts.length/2);
-        const a=pts[Math.max(0,mi-1)], b=pts[Math.min(pts.length-1,mi+1)], mid=pts[mi];
-        let ang=Math.atan2(-(b[1]-a[1]), b[0]-a[0])*180/Math.PI; // PDF angle: CCW, y-down screen → negate dy
+        const pointA=pts[Math.max(0,mi-1)], pointB=pts[Math.min(pts.length-1,mi+1)], mid=pts[mi];
+        let ang=Math.atan2(-(pointB[1]-pointA[1]), pointB[0]-pointA[0])*180/Math.PI; // PDF angle: CCW, y-down screen → negate dy
         if(ang>90)ang-=180; if(ang<-90)ang+=180;                  // keep text upright
-        doc.setFontSize(3.4); doc.setTextColor(r,g,b); doc.setFont('helvetica','normal');
+        doc.setFontSize(3.4); doc.setTextColor(red,green,blue); doc.setFont('helvetica','normal');
         doc.text(clean(c.feeder_name)||String(c.feeder_code||''),mid[0],mid[1]-0.35,{angle:ang,align:'center'});
       }
     });
@@ -5251,6 +5287,91 @@ function sgPopupHtml(node,conns){
   </div>`;
 }
 
+function sgDraftSnapshot(){
+  sgDraft.history.push(geomEdit.verts.map(v=>({...v})));
+  if(sgDraft.history.length>30)sgDraft.history.shift();
+}
+function sgDraftUndo(){
+  const old=sgDraft.history.pop();
+  if(!old){toast('Nothing to undo');return;}
+  geomEdit.verts=old; geomEdit.selected=-1; _sgRenderEditHandles();
+}
+function sgDraftInsertPoint(){
+  if(!geomEdit.feederKey)return;
+  let i=geomEdit.selected;
+  if(i<0||i>=geomEdit.verts.length-1)i=Math.max(0,geomEdit.verts.length-2);
+  const a=geomEdit.verts[i],b=geomEdit.verts[i+1];
+  sgDraftSnapshot();
+  geomEdit.verts.splice(i+1,0,{row:null,lat:(a.lat+b.lat)/2,lng:(a.lng+b.lng)/2,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true,moved:true});
+  geomEdit.selected=i+1; _sgRenderEditHandles(); toast('Midpoint inserted — drag it where required');
+}
+function sgDraftExtend(){
+  if(!geomEdit.feederKey)return;
+  sgDraft.mode=sgDraft.mode==='extend'?'move':'extend';
+  document.getElementById('sgeExtendBtn')?.classList.toggle('active',sgDraft.mode==='extend');
+  toast(sgDraft.mode==='extend'?'EXTEND active — click the new feeder endpoint on the map':'EXTEND cancelled');
+}
+function sgDraftChooseEndpoint(which){
+  if(!geomEdit.feederKey)return;
+  if(which==='source'&&geomEdit.mode==='spur'){toast('A spur source is its trunk junction; change the main feeder source instead');return;}
+  sgDraft.mode=which==='source'?'changeSource':'changeEnd';
+  ['sgeSourceBtn','sgeEndBtn','sgeExtendBtn'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  document.getElementById(which==='source'?'sgeSourceBtn':'sgeEndBtn')?.classList.add('active');
+  sgShowStationCenters(true);
+  toast((which==='source'?'CHANGE SOURCE':'CHANGE END')+' — click an SS/EHT centre target');
+}
+function sgShowStationCenters(on){
+  gCadSnapTargets.clearLayers();
+  if(!on||!geomEdit.feederKey)return;
+  sgAllMasterCoordNodes().forEach(n=>{
+    const col=n.kind==='eht'?'#fb923c':'#22d3ee';
+    const target=L.circleMarker([n.lat,n.lng],{radius:8,color:col,weight:2,fillColor:'#111827',fillOpacity:.72,pane:'markerPane'});
+    target.bindTooltip('CENTER SNAP · '+clean(n.name),{direction:'top',className:'sg-node-label',opacity:.98});
+    target.on('click',ev=>{L.DomEvent.stop(ev);sgDraftApplyStation(n);});
+    target.addTo(gCadSnapTargets);
+    L.circleMarker([n.lat,n.lng],{radius:1.8,color:'#fff',weight:1,fillColor:'#fff',fillOpacity:1,interactive:false,pane:'markerPane'}).addTo(gCadSnapTargets);
+  });
+}
+function sgDraftApplyStation(n){
+  if(!n||!['changeSource','changeEnd','extend'].includes(sgDraft.mode))return;
+  sgDraftSnapshot();
+  if(sgDraft.mode==='changeSource'){
+    const v=geomEdit.verts[0];
+    v.lat=+n.lat;v.lng=+n.lng;v.label=n.name;v.overrideName=n.name;v.overrideCode=n.code||'';v.locked=true;
+    geomEdit.sourceTarget={...n};
+  }else if(sgDraft.mode==='changeEnd'){
+    const v=geomEdit.verts[geomEdit.verts.length-1];
+    v.lat=+n.lat;v.lng=+n.lng;v.label=n.name;v.overrideName=n.name;v.overrideCode=n.code||'';v.locked=true;v.moved=true;
+    geomEdit.endTarget={...n};
+  }else{
+    const last=geomEdit.verts[geomEdit.verts.length-1];if(last)last.locked=false;
+    geomEdit.verts.push({row:null,lat:+n.lat,lng:+n.lng,locked:true,label:n.name,overrideName:n.name,overrideCode:n.code||'',moved:true});
+    geomEdit.endTarget={...n};
+  }
+  geomEdit.selected=-1;sgDraft.mode='move';_sgRenderEditHandles();
+  ['sgeSourceBtn','sgeEndBtn','sgeExtendBtn'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  toast('Snapped exactly to '+clean(n.name)+' centre — Save to commit');
+}
+function sgDraftToggleSnap(k,on){sgDraft.snap[k]=!!on;}
+function sgDraftSnapPoint(ll){
+  const candidates=[];
+  const add=(lat,lng,type)=>{const p=map.latLngToContainerPoint([lat,lng]),q=map.latLngToContainerPoint(ll);candidates.push({lat,lng,type,d:p.distanceTo(q)});};
+  if(sgDraft.snap.endpoint)geomEdit.verts.forEach(v=>add(v.lat,v.lng,'endpoint'));
+  if(sgDraft.snap.midpoint)for(let i=0;i<geomEdit.verts.length-1;i++){const a=geomEdit.verts[i],b=geomEdit.verts[i+1];add((a.lat+b.lat)/2,(a.lng+b.lng)/2,'midpoint');}
+  if(sgDraft.snap.node)Object.values(nodesByKey||{}).forEach(n=>{if(n&&n.lat!=null&&n.lng!=null&&n.kind!=='bend')add(n.lat,n.lng,'node');});
+  candidates.sort((a,b)=>a.d-b.d); const hit=candidates[0];
+  return hit&&hit.d<=22?hit:{lat:ll.lat,lng:ll.lng,type:'free'};
+}
+map.on('click',e=>{
+  if(!window._sgEditModeOn||!geomEdit.feederKey||sgDraft.mode!=='extend')return;
+  L.DomEvent.stop(e); const p=sgDraftSnapPoint(e.latlng); sgDraftSnapshot();
+  const last=geomEdit.verts[geomEdit.verts.length-1]; if(last)last.locked=false;
+  geomEdit.verts.push({row:null,lat:p.lat,lng:p.lng,locked:true,label:'EXTENDED ENDPOINT',overrideName:'BEND POINT',isBend:true,moved:true});
+  geomEdit.selected=-1; _sgRenderEditHandles(); sgDraft.mode='move';
+  document.getElementById('sgeExtendBtn')?.classList.remove('active');
+  toast('Feeder extended'+(p.type!=='free'?' — snapped to '+p.type:'')+'; Save Feeder to commit');
+});
+
 function sgEHTPopupHtml(node){
   const cache=window._sgMasterCoordCache||sgMasterBuildCoordCache();
   const code=compact(node.code||'');
@@ -5281,19 +5402,33 @@ function sgEHTPopupHtml(node){
 </script>
 
 <!-- ═══ Geometry Editor toolbar (AutoCAD-style vertex editing) ═══ -->
-<div id="sgeBar" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6000;background:#12233a;color:#fff;padding:9px 14px;border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.45);font-family:var(--sans);font-size:12px;align-items:center;gap:10px;white-space:nowrap">
-  <div id="sgeTitle" style="font-weight:800;font-size:12.5px"></div>
-  <div style="opacity:.7;font-size:10px;max-width:270px;white-space:normal;line-height:1.3">Drag ■ blue grips to bend the line (pure geometry — NOT AB switches) · ⊕ inserts a drag point · grey ■ endpoints are fixed</div>
-  <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled style="background:#c62828;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">✕ Delete Point</button>
-  <span id="sgeAttr" style="display:none;align-items:center;gap:5px">
-    <input id="sgeAttrName" placeholder="Point name" style="width:110px;padding:5px 7px;border-radius:5px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11px">
-    <input id="sgeAttrCode" placeholder="Code" style="width:70px;padding:5px 7px;border-radius:5px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11px">
-    <button onclick="applyVertexAttrs()" style="background:#1565c0;color:#fff;border:none;border-radius:6px;padding:6px 9px;cursor:pointer;font-weight:700;font-size:11px">Apply</button>
-    <button onclick="convertVertexToAB()" style="background:#6a1b9a;color:#fff;border:none;border-radius:6px;padding:6px 9px;cursor:pointer;font-weight:700;font-size:11px" title="Only if an AB switch really exists here in the field">⬛ Make AB Switch</button>
+<div id="sgeBar" style="display:none;position:fixed;top:72px;right:18px;z-index:6000;background:#1f232b;color:#fff;padding:12px;border:1px solid #4b5563;border-radius:7px;box-shadow:0 10px 32px rgba(0,0,0,.55);font-family:var(--sans);font-size:11px;width:245px;white-space:normal;flex-direction:column;gap:8px">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #4b5563;padding-bottom:7px"><div style="font-weight:800;color:#67e8f9">DRAFTING TOOLS</div><button onclick="exitFeederEdit()" style="background:none;border:0;color:#bbb;font-size:17px;cursor:pointer">×</button></div>
+  <div id="sgeTitle" style="font-weight:800;font-size:11.5px;line-height:1.35"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+    <button id="sgeSourceBtn" onclick="sgDraftChooseEndpoint('source')" class="sg-cad-btn">⚡ Change Source</button>
+    <button id="sgeEndBtn" onclick="sgDraftChooseEndpoint('end')" class="sg-cad-btn">◎ Change End</button>
+    <button onclick="sgDraftInsertPoint()" class="sg-cad-btn">⊕ Insert Point</button>
+    <button id="sgeExtendBtn" onclick="sgDraftExtend()" class="sg-cad-btn">↗ Extend</button>
+    <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled class="sg-cad-btn danger">✕ Delete</button>
+    <button onclick="sgDraftUndo()" class="sg-cad-btn">↶ Undo</button>
+  </div>
+  <div style="font-size:9px;color:#9ca3af;border-top:1px solid #3f4650;padding-top:7px">OBJECT SNAP</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:10px">
+    <label><input type="checkbox" checked onchange="sgDraftToggleSnap('endpoint',this.checked)"> Endpoint</label>
+    <label><input type="checkbox" checked onchange="sgDraftToggleSnap('midpoint',this.checked)"> Midpoint</label>
+    <label><input type="checkbox" checked onchange="sgDraftToggleSnap('node',this.checked)"> Node</label>
+    <label><input type="checkbox" checked onchange="sgDraftToggleSnap('nearest',this.checked)"> Nearest</label>
+    <label style="grid-column:1/3;color:#67e8f9"><input type="checkbox" checked onchange="sgShowStationCenters(this.checked)"> SS/EHT Centre</label>
+  </div>
+  <span id="sgeAttr" style="display:none;flex-direction:column;gap:5px;border-top:1px solid #3f4650;padding-top:7px">
+    <input id="sgeAttrName" placeholder="Point name" class="sg-cad-input"><input id="sgeAttrCode" placeholder="Code" class="sg-cad-input">
+    <div style="display:flex;gap:5px"><button onclick="applyVertexAttrs()" class="sg-cad-btn">Apply</button><button onclick="convertVertexToAB()" class="sg-cad-btn">Make AB</button></div>
   </span>
-  <button onclick="saveFeederEdit()" style="background:#00a88a;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">💾 Save Feeder</button>
-  <button onclick="exitFeederEdit()" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:700;font-size:11px">Cancel</button>
+  <div style="display:flex;gap:6px;border-top:1px solid #4b5563;padding-top:8px"><button onclick="saveFeederEdit()" class="sg-cad-btn save">💾 Save</button><button onclick="exitFeederEdit()" class="sg-cad-btn">Cancel</button></div>
+  <div style="font-size:9px;color:#94a3b8;line-height:1.35">Drag blue grips to reshape. Select a grip before Insert/Delete. Extend, then click the new endpoint on the map.</div>
 </div>
+<style>.sg-cad-btn{background:#374151;color:#fff;border:1px solid #596273;border-radius:4px;padding:6px 7px;cursor:pointer;font-size:10px;font-weight:700}.sg-cad-btn:hover,.sg-cad-btn.active{background:#075985;border-color:#22d3ee}.sg-cad-btn.danger{background:#7f1d1d}.sg-cad-btn.save{background:#047857}.sg-cad-btn:disabled{opacity:.35;cursor:not-allowed}.sg-cad-input{width:100%;padding:6px;border-radius:4px;border:1px solid #4b5563;background:#111827;color:#fff;font-size:10px}</style>
 
 <!-- ═══ New Feeder — identity form ═══ -->
 <div id="nfForm" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6000;background:#12233a;color:#fff;padding:14px 16px;border-radius:12px;box-shadow:0 8px 26px rgba(0,0,0,.45);font-family:var(--sans);font-size:12px;width:290px">
