@@ -2223,7 +2223,7 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <button class="sg-act save" onclick="saveFirebase()">☁ Save / Update Firebase</button>
     <button class="sg-act load" onclick="loadFirebase()">↻ Load Latest From Firebase</button>
     <button class="sg-act dl" onclick="restoreFromHistory()" style="background:#455a64;color:#fff">🕐 Restore Last History Snapshot</button>
-    <button class="sg-act dl" onclick="downloadTopologyCsv()">⬇ Download Topology CSV</button>
+    <button class="sg-act dl" onclick="downloadTopologyCsv()">⬇ Download Edited Upload</button>
     <button class="sg-act dl" onclick="sgOpenPrintDialog()" style="background:linear-gradient(135deg,#00695c,#00897b)">🖨 Print / PDF Export</button>
     <button class="sg-act edit" id="btnEditGeom" onclick="toggleGeomEditMode()">✏️ Edit Feeder Geometry</button>
     <button class="sg-act newf" onclick="startNewFeederMode()">➕ New Feeder</button>
@@ -3642,7 +3642,8 @@ function normalizeInputRows(raw){
       // Old schema used feeding_end_latitude/feeding_end_longitude.
       feeding_lat: num(get(o,['latitude','Latitude','feeding_end_latitude','Feeding Latitude','feeding_latitude','feeding_lat'])),
       feeding_lng: num(get(o,['longitude','Longitude','feeding_end_longitude','Feeding Longitude','feeding_longitude','feeding_lng'])),
-      raw_index:idx+2
+      raw_index:idx+2,
+      _raw:{...(r||{})}
     };
     // ── New-schema: first row of each feeder IS the EHT source point ────
     // Old schema had separate latitude_eht/longitude_eht cols; new schema
@@ -3880,7 +3881,8 @@ function render(){
     const w = c.type==='link' ? Math.max(1.5,sgLineWeight*0.8) : sgLineWeight;
     const line=L.polyline(pts,{color:col,weight:w,opacity:.9,dashArray:null,lineCap:'round',lineJoin:'round',className:'sg-feeder-line '+(c.type==='link'?'sg-link-line':'')});
     // Feeder name appears ONLY on hover near the line, not as permanent map text.
-    line.bindTooltip(clean(c.feeder_name)||c.feeder_code||'Feeder',{sticky:true,direction:'top',opacity:.96,className:'sg-hover-tip'});
+    // No rectangular hover box. Feeder identity remains available from the
+    // Feeder selector and drafting-panel title.
     // Double-click → open the full feeder route map for this feeder.
     line.on('dblclick',ev=>{L.DomEvent.stop(ev);openFeederInRouteMap(c.feeder_code,c.feeder_name);});
     line.on('click',ev=>{
@@ -4056,7 +4058,7 @@ async function handleFile(file){
     raw=XLSX.utils.sheet_to_json(sh,{defval:''});
   }
   rows=normalizeInputRows(raw);
-  meta={fileName:file.name,updatedAt:new Date().toISOString(),rowCount:rows.length};
+  meta={fileName:file.name,updatedAt:new Date().toISOString(),rowCount:rows.length,originalHeaders:Object.keys(raw[0]||{})};
   // Quick sanity check after normalize — helps diagnose column name mismatches
   const withEHTName=rows.filter(r=>r.eht_name).length;
   const withFeedingLat=rows.filter(r=>r.feeding_lat!=null).length;
@@ -4142,7 +4144,29 @@ async function loadFirebase(){
     toast('Loaded Firebase /smartgrid/latest');
   }catch(e){ console.error('Render error after load:',e); toast('Data loaded but render hit an error — see console (F12)'); }
 }
-function downloadTopologyCsv(){buildTopology();const header=['feeder_code','feeder_name','feeder_type','from_type','from_name','from_lat','from_lng','to_type','to_name','to_lat','to_lng','division','sub_division','section'];const lines=[header.join(',')];topology.forEach(c=>{const row=[c.feeder_code,c.feeder_name,c.feeder_type,c.from.kind,c.from.name,c.from.lat,c.from.lng,c.to.kind,c.to.name,c.to.lat,c.to.lng,c.division,c.sub_division,c.section].map(v=>'"'+String(v??'').replace(/"/g,'""')+'"');lines.push(row.join(','))});const blob=new Blob([lines.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='smartgrid_topology.csv';a.click();URL.revokeObjectURL(a.href)}
+function downloadTopologyCsv(){
+  if(!rows.length){toast('No uploaded data to download');return;}
+  const fallback=['division','sub_division','section','feeder_name','feeder_code','feeder_type','feeder_feeding_to','feeder_feeding_to_code','latitude','longitude','pole_number','pole_feeding_to','type_of_cable_point','type_of_feeder','type_of_pole'];
+  const headers=(meta.originalHeaders&&meta.originalHeaders.length)?meta.originalHeaders:fallback;
+  const findHeader=aliases=>headers.find(h=>aliases.some(a=>nkey(h)===nkey(a)));
+  const put=(o,aliases,v)=>{const h=findHeader(aliases);if(h)o[h]=v??'';};
+  const exportRows=rows.map(r=>{
+    const o={...(r._raw||{})};headers.forEach(h=>{if(o[h]===undefined)o[h]='';});
+    put(o,['division','lines_division'],r.division);put(o,['sub_division','lines_sub_division'],r.sub_division);put(o,['section','lines_section'],r.section);
+    put(o,['feeder_name','name_of_33kv_feeder','name_of_33kv _feeder'],r.feeder_name);put(o,['feeder_code','33kv_feeder_code'],r.feeder_code);put(o,['feeder_type','type_of_feeder'],r.feeder_type);
+    put(o,['latitude','feeding_end_latitude'],r.feeding_lat);put(o,['longitude','feeding_end_longitude'],r.feeding_lng);put(o,['pole_number','point_number','sequence'],r.pole_number);
+    const isBend=/BEND POINT/i.test(String(r.source_type||'')+' '+String(r.feeding_name||''));
+    put(o,['feeder_feeding_to','feeding_end_name'],isBend?'':(r.feeding_name||r.feeding_to));put(o,['feeder_feeding_to_code','feeder_feeding_code'],isBend?'':r.feeding_code);
+    put(o,['pole_feeding_to'],isBend?'Next Pole / Cable Point':(r.feeding_to||r.feeding_name));put(o,['type_of_cable_point'],isBend?'Route/Way Point':r.source_type);
+    put(o,['name_of_the_eht_ss','name_of_the_EHT _SS','eht_name'],r.eht_name);put(o,['eht_code'],r.eht_code);
+    const ordered={};headers.forEach(h=>ordered[h]=o[h]);return ordered;
+  });
+  const ws=XLSX.utils.json_to_sheet(exportRows,{header:headers});const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+  const original=String(meta.fileName||'smartgrid_edited.xlsx');
+  if(/\.csv$/i.test(original))XLSX.writeFile(wb,original.replace(/\.csv$/i,'_edited.csv'),{bookType:'csv'});
+  else XLSX.writeFile(wb,original.replace(/\.(xlsx|xls)$/i,'')+'_edited.xlsx');
+  toast('Downloaded in the uploaded row/column format');
+}
 
 // ═══ FEEDER / SS tab panels (per Naresh drawing 04-Jul-2026) ═══
 function toggleSGTab(which){
@@ -4411,16 +4435,16 @@ function _sgRenderEditHandles(){
   // No midpoint insert markers. Use only existing green bend grips for AutoCAD-style shaping.
 
   verts.forEach((v,i)=>{
-    const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(v.locked,i===geomEdit.selected),draggable:!v.locked,zIndexOffset:600})
-      .bindTooltip(v.locked?('🔒 '+clean(v.label)):clean(v.label),{direction:'top',opacity:.95});
-    if(!v.locked){
-      marker.on('drag',e=>{
-        const ll=e.target.getLatLng(); v.lat=ll.lat; v.lng=ll.lng; v.moved=true;
-        if(_sgGuideLine) _sgGuideLine.setLatLngs(geomEdit.verts.map(x=>[x.lat,x.lng]));
-      });
-      marker.on('dragend',()=>_sgRenderEditHandles());
-      marker.on('click',ev=>{ L.DomEvent.stop(ev); geomEdit.selected=(geomEdit.selected===i?-1:i); _sgRenderEditHandles(); });
-    }
+    const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(false,i===geomEdit.selected),draggable:true,zIndexOffset:600})
+      .bindTooltip(clean(v.label),{direction:'top',opacity:.95});
+    marker.on('drag',e=>{
+      const ll=e.target.getLatLng(); v.lat=ll.lat; v.lng=ll.lng; v.moved=true;
+      if(i===0)geomEdit.sourceTarget={kind:'eht',name:v.overrideName||v.label||'',code:v.overrideCode||'',lat:v.lat,lng:v.lng};
+      if(i===geomEdit.verts.length-1)geomEdit.endTarget={kind:'ss33',name:v.overrideName||v.label||'',code:v.overrideCode||'',lat:v.lat,lng:v.lng};
+      if(_sgGuideLine) _sgGuideLine.setLatLngs(geomEdit.verts.map(x=>[x.lat,x.lng]));
+    });
+    marker.on('dragend',()=>_sgRenderEditHandles());
+    marker.on('click',ev=>{ L.DomEvent.stop(ev); geomEdit.selected=(geomEdit.selected===i?-1:i); _sgRenderEditHandles(); });
     marker.addTo(gEditLayer);
   });
 
@@ -4443,7 +4467,6 @@ function applyVertexAttrs(){
   const i=geomEdit.selected;
   if(i<0){ toast('Select a point first'); return; }
   const v=geomEdit.verts[i];
-  if(v.locked){ toast('Endpoint attributes come from the source data — edit the sheet instead'); return; }
   const name=(document.getElementById('sgeAttrName').value||'').trim();
   const code=(document.getElementById('sgeAttrCode').value||'').trim();
   if(name){ v.overrideName=name; v.label=name; }
@@ -4456,7 +4479,6 @@ function convertVertexToAB(){
   const i=geomEdit.selected;
   if(i<0){ toast('Select a point first'); return; }
   const v=geomEdit.verts[i];
-  if(v.locked){ toast('Endpoints cannot become AB switches'); return; }
   v.overrideName='AB Switch'; v.label='AB Switch'; v.isBend=false; v.makeAB=true;
   _sgRenderEditHandles();
   toast('Point marked as AB SWITCH — Save Feeder to commit');
@@ -4465,13 +4487,23 @@ function convertVertexToAB(){
 function deleteSelectedVertex(){
   const i=geomEdit.selected;
   if(i<0) return;
-  const v=geomEdit.verts[i];
-  if(v.locked){ toast('Endpoints are fixed — cannot delete'); return; }
   if(geomEdit.verts.length<=2){ toast('A feeder needs at least 2 points'); return; }
+  sgDraftSnapshot();
   geomEdit.verts.splice(i,1);
+  // Deleting an end grip also deletes its final segment. The immediately
+  // preceding/following bend automatically becomes the new editable endpoint.
+  geomEdit.verts.forEach(v=>v.locked=false);
+  geomEdit.verts[0].locked=true;
+  geomEdit.verts[geomEdit.verts.length-1].locked=true;
+  if(i===0){
+    const s=geomEdit.verts[0];geomEdit.sourceTarget={kind:'eht',name:s.overrideName||s.label||'',code:s.overrideCode||'',lat:s.lat,lng:s.lng};
+  }
+  if(i>=geomEdit.verts.length){
+    const e=geomEdit.verts[geomEdit.verts.length-1];geomEdit.endTarget=null;e.moved=true;
+  }
   geomEdit.selected=-1;
   _sgRenderEditHandles();
-  toast('Point removed — Save Feeder to commit');
+  toast('Point and adjoining end segment removed — Save to commit');
 }
 
 function _sgShowEditBar(show,name){
@@ -4505,6 +4537,7 @@ function saveFeederEdit(){
     const bends=geomEdit.verts.slice(1,-1);
     const added=bends.map((v,i)=>{
       const r={...target};
+      r._raw={};
       r.pole_number=prefix+'/0.'+(i+1);
       r.feeding_lat=v.lat; r.feeding_lng=v.lng;
       r.feeding_name='BEND POINT'; r.feeding_to='BEND POINT';
@@ -4540,6 +4573,7 @@ function saveFeederEdit(){
     base.feeding_lat = v.lat; base.feeding_lng = v.lng;
     base.pole_number = idx+1;
     if(!v.row){
+      base._raw={};
       base.feeding_name='BEND POINT';
       base.feeding_to='BEND POINT';
       base.source_type='BEND POINT';
@@ -5286,6 +5320,29 @@ function sgPopupHtml(node,conns){
     <div class="sg-lv-note">R = regular source, A = alternate source. Green ON = presently feeding/normal source. Alternate stays STANDBY unless master data active-source/status says it is ON.</div>
   </div>`;
 }
+function sgDraftTrim(side){
+  const i=geomEdit.selected;
+  if(i<0){toast('Select the grip where the feeder should be trimmed');return;}
+  if(side==='after'){
+    if(i<1){toast('Keep at least the source and one endpoint');return;}
+    sgDraftSnapshot();
+    geomEdit.verts=geomEdit.verts.slice(0,i+1);
+    geomEdit.verts.forEach(v=>v.locked=false);
+    geomEdit.verts[0].locked=true;
+    const end=geomEdit.verts[geomEdit.verts.length-1];end.locked=true;end.moved=true;
+    geomEdit.endTarget=null;
+  }else{
+    if(i>=geomEdit.verts.length-1){toast('Keep at least one segment after the trim point');return;}
+    sgDraftSnapshot();
+    geomEdit.verts=geomEdit.verts.slice(i);
+    geomEdit.verts.forEach(v=>v.locked=false);
+    geomEdit.verts[0].locked=true;
+    geomEdit.verts[geomEdit.verts.length-1].locked=true;
+    geomEdit.sourceTarget=null;
+  }
+  geomEdit.selected=-1;_sgRenderEditHandles();
+  toast('Unwanted '+side+' section removed — Save to commit');
+}
 
 function sgDraftSnapshot(){
   sgDraft.history.push(geomEdit.verts.map(v=>({...v})));
@@ -5412,6 +5469,8 @@ function sgEHTPopupHtml(node){
     <button id="sgeExtendBtn" onclick="sgDraftExtend()" class="sg-cad-btn">↗ Extend</button>
     <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled class="sg-cad-btn danger">✕ Delete</button>
     <button onclick="sgDraftUndo()" class="sg-cad-btn">↶ Undo</button>
+    <button onclick="sgDraftTrim('after')" class="sg-cad-btn danger">✂ Trim After Point</button>
+    <button onclick="sgDraftTrim('before')" class="sg-cad-btn danger">✂ Trim Before Point</button>
   </div>
   <div style="font-size:9px;color:#9ca3af;border-top:1px solid #3f4650;padding-top:7px">OBJECT SNAP</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:10px">
