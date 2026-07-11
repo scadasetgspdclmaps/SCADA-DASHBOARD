@@ -2285,6 +2285,10 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <label style="margin-bottom:0"><span>FEEDER CODE LABELS</span>
       <input type="checkbox" id="sgLblToggle" onchange="setSGFeederLabels(this.checked)" style="transform:translateY(2px)"></label>
   </div>
+  <div class="gsp-row">
+    <label style="margin-bottom:0"><span>HT SERVICE LABELS</span>
+      <input type="checkbox" id="sgHTLblToggle" onchange="setSGHTLabels(this.checked)" style="transform:translateY(2px)"></label>
+  </div>
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
     <label style="margin-bottom:0"><span>AREA BORDERS ONLY</span>
       <input type="checkbox" checked onchange="window.tgSetGridShowWards&&window.tgSetGridShowWards(this.checked)" style="transform:translateY(2px)"></label>
@@ -3102,6 +3106,7 @@ function setSGABDPSize(v){ v=Math.max(.5,Math.min(3,+v||1)); document.documentEl
 function setSGLineWeight(v){ v=Math.max(1,Math.min(8,+v||3)); window.sgLineWeight=v; sgLineWeight=v; const e=document.getElementById('gspLineVal'); if(e)e.textContent=(+v).toFixed(1); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
 function setSGFlow(on){ window.sgFlowOn=!!on; sgFlowOn=!!on; const e=document.getElementById('sgFlowToggle'); if(e)e.checked=!!on; if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
 function setSGFeederLabels(on){ const t=document.getElementById('tLbl'); if(t)t.checked=!!on; const s=document.getElementById('sgLblToggle'); if(s)s.checked=!!on; const row=document.getElementById('lyr-lbl'); if(row)row.classList.toggle('off',!on); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
+function setSGHTLabels(on){ window.sgHTLabelsOn=!!on; const s=document.getElementById('sgHTLblToggle'); if(s)s.checked=!!on; if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
 ['tUG','tOH','t33','tLink','tHT','tSS33','tEHT','tDev','tLbl','tPole'].forEach(id=>{ if(!document.getElementById(id)){ const c=document.createElement('input'); c.type='checkbox'; c.id=id; c.checked=(id!=='tLbl'&&id!=='tPole'); c.style.display='none'; document.body.appendChild(c);} });
 // Layer-panel "Feeder Code Labels" row starts OFF to match tLbl default.
 setTimeout(()=>{ const row=document.getElementById('lyr-lbl'); if(row)row.classList.add('off'); },0);
@@ -3346,6 +3351,10 @@ function sgMasterBuildCoordCache(){
     // /masterData/substationsEHT registry is allowed into the EHT cache.
     const canonicalEHTPath = /^masterData\/substationsEHT(?:\/|$)/i.test(r.path||'');
     if(kind==='eht' && !canonicalEHTPath) return;
+    // 33/11KV coordinates also have one authority. The same 136 stations are
+    // mirrored under legacy /substations33, which previously doubled 136→272.
+    const canonicalSSPath = /^masterData\/ssCoordinates(?:\/|$)/i.test(r.path||'');
+    if(kind==='ss33' && !canonicalSSPath) return;
     const item={kind,name,code,lat,lng,path:r.path,data:d};
     cache.all.push(item);
     if(code){
@@ -3746,20 +3755,9 @@ function buildTopology(){
   });
 }
 function curve(a,b,i,total,ctype){
-  // Exact endpoints: no visual trimming. The line must connect to EHT/SS node centre.
+  // Exact stored geometry: never invent sideways bows between endpoints.
   const A=L.latLng(a.lat,a.lng), B=L.latLng(b.lat,b.lng);
-  const dx=B.lng-A.lng,dy=B.lat-A.lat,len=Math.sqrt(dx*dx+dy*dy)||1e-9,nx=-dy/len,ny=dx/len;
-  const isCurvy=(ctype==='link'||ctype==='ht');
-  let spread=(i-(total-1)/2)*0.0010;
-  if(isCurvy && total<=1) spread=0.12*len;
-  if(!isCurvy && total<=1) return [A,B];
-  const pts=[];
-  for(let t=0;t<=1.0001;t+=.1){
-    const bow=Math.sin(Math.PI*t)*spread;
-    pts.push(L.latLng(A.lat+(B.lat-A.lat)*t+ny*bow,A.lng+(B.lng-A.lng)*t+nx*bow));
-  }
-  pts.push(B);
-  return pts
+  return [A,B];
 }
 // ── Interactive render (rewritten per Naresh 03-Jul-2026) ──
 // Fixes: (1) node labels no longer permanent — OFF by default, shown on
@@ -3926,10 +3924,19 @@ function render(){
     }
     // No permanent feeder-list box at EHT stations. Feeder information remains
     // available in the Feeder tab/filter without cluttering the EHT symbol.
+    if(n.kind==='ht' && window.sgHTLabelsOn===true && clean(n.name)){
+      L.marker([n.lat,n.lng],{interactive:false,icon:L.divIcon({className:'',
+        html:`<div class="node-label" style="border:1px solid #059669;color:#065f46;background:#ecfdf5;font-size:8px;white-space:nowrap">${sgHtmlEsc(clean(n.name))}</div>`,
+        iconSize:[1,1],iconAnchor:[-14,17]})}).addTo(gLabels);
+    }
     if(n.kind==='ab'||n.kind==='dp')cnt.dev++;
   }));
   sgAddMasterStandaloneNodes(used);
   sgRefreshSubstationCounts();
+
+  // HT Services currently come from uploaded feeder endpoints (no HT master
+  // yet), so count unique rendered HT nodes rather than feeder-type lines.
+  const renderedHTCount=Object.keys(used).filter(k=>String(k).toLowerCase().startsWith('ht|')).length;
 
   if(stRows) stRows.textContent=rows.length;
   if(stFeeders) stFeeders.textContent=new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size;
@@ -3939,7 +3946,7 @@ function render(){
   if(cntOH) cntOH.textContent=cnt.oh;
   if(cnt33) cnt33.textContent=(cnt.ug+cnt.oh);
   if(cntLink) cntLink.textContent=cnt.link;
-  if(cntHt) cntHt.textContent=cnt.ht;
+  if(cntHt) cntHt.textContent=renderedHTCount;
   if(cntDev) cntDev.textContent=cnt.dev;
 
   const _emptyEl=document.getElementById('empty'); if(_emptyEl)_emptyEl.style.display='none';
@@ -5077,8 +5084,11 @@ function sgUnitsFromSSSourceRows(node,conns){
   })();
   if(!rows||!rows.length) return [];
   const units=[];
-  rows.forEach(r=>{
-    const lvNo=parseInt(String(r.lvName||'').replace(/\D/g,''))||1;
+  rows.forEach((r,rowIndex)=>{
+    // Each ssSourceRows record represents one physical LV/PTR. Some imported
+    // records incorrectly repeat lvName="LV1"/"PTR-1" for every transformer;
+    // use their already-sorted master-row order to guarantee PTR-1, PTR-2…
+    const lvNo=rowIndex+1;
     const u={id:'PTR-'+lvNo,type:'PTR',no:String(lvNo),
       capacity:String(r.ptrCapacity||'').trim()?String(r.ptrCapacity).trim()+' MVA':'',
       sources:[]};
