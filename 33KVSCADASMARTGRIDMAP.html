@@ -3346,7 +3346,7 @@ function sgMasterBuildCoordCache(){
     // /masterData/substationsEHT registry is allowed into the EHT cache.
     const canonicalEHTPath = /^masterData\/substationsEHT(?:\/|$)/i.test(r.path||'');
     if(kind==='eht' && !canonicalEHTPath) return;
-    const item={kind,name,code,lat,lng,path:r.path};
+    const item={kind,name,code,lat,lng,path:r.path,data:d};
     cache.all.push(item);
     if(code){
       const k=compact(code);
@@ -3869,7 +3869,7 @@ function render(){
     line.on('dblclick',ev=>{L.DomEvent.stop(ev);openFeederInRouteMap(c.feeder_code,c.feeder_name);});
     line.on('click',ev=>{
       L.DomEvent.stop(ev);
-      if(window._sgEditModeOn){ enterFeederEdit(c.feeder_code||c.feeder_name); }
+      if(window._sgEditModeOn){ c.spur ? enterSpurEdit(c) : enterFeederEdit(c.feeder_code||c.feeder_name); }
       else { toast(clean(c.feeder_name)||c.feeder_code||'Feeder selected'); }
     });
     line.addTo(gLines);
@@ -3924,12 +3924,8 @@ function render(){
         html:`<div class="node-label" style="font-size:7px;padding:1px 4px;opacity:.92">${n.pole}</div>`,
         iconSize:[1,1],iconAnchor:[-7,14]})}).addTo(gLabels);
     }
-    if(n.kind==='eht'){
-      const html=sgEhtFeederLabelHtml(n,nodeConnections[key]||[]);
-      if(html){
-        L.marker([n.lat,n.lng],{interactive:false,icon:L.divIcon({className:'',html:html,iconSize:[1,1],iconAnchor:[-26,-26]})}).addTo(gLabels);
-      }
-    }
+    // No permanent feeder-list box at EHT stations. Feeder information remains
+    // available in the Feeder tab/filter without cluttering the EHT symbol.
     if(n.kind==='ab'||n.kind==='dp')cnt.dev++;
   }));
   sgAddMasterStandaloneNodes(used);
@@ -4319,6 +4315,29 @@ function enterFeederEdit(key){
   _sgShowEditBar(true, first.feeder_name||key);
 }
 
+// Branch-specific editor. A spur can consist of only one stored row, so the
+// normal whole-feeder editor used to reject it as "too few points". Keep the
+// junction and destination fixed and provide draggable geometry grips between.
+function enterSpurEdit(conn){
+  if(!window._sgEditModeOn || !conn || !conn.spur) return;
+  exitFeederEdit(false);
+  const target=conn.to&&conn.to.row;
+  if(!target){ toast('Spur data row not found'); return; }
+  document.body.classList.add('sg-editing-feeder');
+  window._sgActiveFeederKey=conn.feeder_code||conn.feeder_name;
+  const a=conn.from, b=conn.to;
+  const verts=[
+    {row:null,lat:+a.lat,lng:+a.lng,locked:true,label:'SPUR JUNCTION'},
+    {row:null,lat:a.lat+(b.lat-a.lat)/3,lng:a.lng+(b.lng-a.lng)/3,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true,moved:true},
+    {row:null,lat:a.lat+2*(b.lat-a.lat)/3,lng:a.lng+2*(b.lng-a.lng)/3,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true,moved:true},
+    {row:target,lat:+b.lat,lng:+b.lng,locked:true,label:b.name||'SPUR DESTINATION'}
+  ];
+  geomEdit={feederKey:conn.feeder_code||conn.feeder_name,verts,selected:-1,mode:'spur',spurRow:target};
+  _sgRenderEditHandles();
+  _sgShowEditBar(true,(conn.feeder_name||'Feeder')+' — SPUR');
+  toast('Spur edit: drag the green bend points, then Save Feeder');
+}
+
 function _sgSegLen(a,b){ return Math.hypot(b.lat-a.lat, b.lng-a.lng); }
 
 function _sgAutoDivideSegments(verts){
@@ -4443,6 +4462,31 @@ function exitFeederEdit(clearLock=true){
 function saveFeederEdit(){
   const key=geomEdit.feederKey;
   if(!key){ return; }
+  if(geomEdit.mode==='spur'){
+    const target=geomEdit.spurRow;
+    const at=rows.indexOf(target);
+    if(at<0){ toast('Spur row missing'); exitFeederEdit(); return; }
+    const pole=String(target.pole_number||'1/A/1');
+    const cut=pole.lastIndexOf('/');
+    const prefix=cut>=0?pole.slice(0,cut):pole+'/A';
+    const endPart=cut>=0?pole.slice(cut+1):'1';
+    const bends=geomEdit.verts.slice(1,-1);
+    const added=bends.map((v,i)=>{
+      const r={...target};
+      r.pole_number=prefix+'/0.'+(i+1);
+      r.feeding_lat=v.lat; r.feeding_lng=v.lng;
+      r.feeding_name='BEND POINT'; r.feeding_to='BEND POINT';
+      r.source_type='BEND POINT'; r.feeding_code='';
+      r.raw_index=Date.now()+i;
+      return r;
+    });
+    target.pole_number=prefix+'/'+endPart;
+    rows.splice(at,0,...added);
+    buildTopology(); populateFilters(); exitFeederEdit(); render();
+    toast('Spur geometry saved — pushing to Firebase…');
+    saveFirebase();
+    return;
+  }
   const list=_sgRowsForFeeder(key);
   if(!list.length){ toast('Feeder rows missing'); exitFeederEdit(); return; }
   const template=list[0];
@@ -5070,6 +5114,9 @@ function sgUnitsFromSSSourceRows(node,conns){
   return units;
 }
 function sgExtractUnits(node,conns){
+  // PTR/LV source mappings belong only to 33/11KV substations. Never run the
+  // SS lookup for an EHT node, even when both stations share a name (Madhapur).
+  if(!node || node.kind!=='ss33') return [];
   // Try the dedicated ssSourceRows index first — exact code match, no fuzz.
   try{
     const fast=sgUnitsFromSSSourceRows(node,conns);
@@ -5177,6 +5224,7 @@ function sgConnectedNote(node,conns){
   return `<div class="sg-lv-note"><b>Connected in Smart Grid:</b> ${feeders.slice(0,5).map(f=>sgHtmlEsc(clean(f.name))).join(', ')}${feeders.length>5?' +'+(feeders.length-5)+' more':''}</div>`;
 }
 function sgPopupHtml(node,conns){
+  if(node && node.kind==='eht') return sgEHTPopupHtml(node);
   const units=sgExtractUnits(node,conns||[]);
   const codes=sgCodesForNodeFromTopology(node,conns||[]);
   const title=clean(node.name)||'Substation';
@@ -5190,6 +5238,33 @@ function sgPopupHtml(node,conns){
     ${sgUnitPopupHtml(units)}
     ${sgConnectedNote(node,conns||[])}
     <div class="sg-lv-note">R = regular source, A = alternate source. Green ON = presently feeding/normal source. Alternate stays STANDBY unless master data active-source/status says it is ON.</div>
+  </div>`;
+}
+
+function sgEHTPopupHtml(node){
+  const cache=window._sgMasterCoordCache||sgMasterBuildCoordCache();
+  const code=compact(node.code||'');
+  const name=compact(node.name||'');
+  const hit=(cache.all||[]).find(x=>x.kind==='eht' &&
+    ((code&&compact(x.code)===code)||(!code&&name&&compact(x.name)===name)));
+  const d=(hit&&hit.data)||{};
+  const val=aliases=>sgMasterPick(d,aliases);
+  const title=(hit&&hit.name)||node.name||'EHT Substation';
+  const ehtCode=(hit&&hit.code)||node.code||'';
+  const ptrs=val(['PTRS','ptrs','PTR Details','ptr_details','transformers']);
+  const capacity=val(['TOTALPTRCAPACITY','total_ptr_capacity','Total PTR Capacity','capacity','MVA']);
+  const noLVs=val(['NOLVS','no_lvs','No. of LVs','lv_count']);
+  const noFeeders=val(['NO33KVFEEDERS','no_33kv_feeders','No. of 33KV Feeders','feeder_count']);
+  const row=(label,value)=>value!==''&&value!=null?`<tr><th>${sgHtmlEsc(label)}</th><td>${sgHtmlEsc(String(value))}</td></tr>`:'';
+  return `<div class="sg-lv-src-card">
+    <div class="sg-lv-head"><div><div class="sg-lv-title">${sgHtmlEsc(title)}</div>
+      <div class="sg-lv-code">EHT SS${ehtCode?' · EHT Code: '+sgHtmlEsc(ehtCode):''}</div></div></div>
+    <table class="popup-table">
+      ${row('Voltage level',(String(title).match(/(132|220|400)\s*K?V/i)||[])[0]||'EHT')}
+      ${row('PTRs',ptrs)}${row('Total PTR capacity',capacity?capacity+' MVA':'')}
+      ${row('No. of LVs',noLVs)}${row('No. of 33KV feeders',noFeeders)}
+      ${row('Latitude',hit&&hit.lat)}${row('Longitude',hit&&hit.lng)}
+    </table>
   </div>`;
 }
 
