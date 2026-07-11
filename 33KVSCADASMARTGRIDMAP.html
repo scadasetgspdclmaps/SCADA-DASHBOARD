@@ -2279,7 +2279,7 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
   </div>
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
     <label style="margin-bottom:0"><span>ENERGY FLOW ANIMATION</span>
-      <input type="checkbox" id="sgFlowToggle" checked onchange="setSGFlow(this.checked)" style="transform:translateY(2px)"></label>
+      <input type="checkbox" id="sgFlowToggle" onchange="setSGFlow(this.checked)" style="transform:translateY(2px)"></label>
   </div>
   <div class="gsp-row">
     <label style="margin-bottom:0"><span>FEEDER CODE LABELS</span>
@@ -3161,26 +3161,83 @@ const FIREBASE_SMARTGRID_PATH = "smartgrid";
 // This page now loads master data as read-only reference so future topology can prefer:
 // master data source → uploaded start/end coordinate master → uploaded smart-grid rows.
 let sgMasterData = {};
+// Fast SS-source index built from masterData/ssSourceRows:
+//   SG_SS_SRC.byCode[ssCode] → [LV rows]   SG_SS_SRC.byName[normName] → [LV rows]
+// Popup matching is CODE-FIRST (feeder_feeding_to_code === ssCode), so slight
+// SS-name mismatches don't matter. Name index is normalized fallback only.
+let SG_SS_SRC = {byCode:{}, byName:{}};
+
+function _sgNormSSName(s){
+  return compact(s).replace(/^3311KV/,'').replace(/^33KV/,'').replace(/SS$/,'');
+}
+// Parse the compound ssSourceRows key:
+//   ssCode_LVn_cap_regCode_regName_alt1Code_alt2Code__
+// Fills any fields the VALUE object is missing.
+function _sgParseSrcKey(key, existing){
+  const out = Object.assign({}, existing||{});
+  if(!key) return out;
+  const parts = String(key).split('_');
+  if(!out.ssCode && parts[0] && /^\d{9,12}$/.test(parts[0])) out.ssCode = parts[0];
+  const lvIdx = parts.findIndex(p=>/^LV\d+$/i.test(p));
+  if(lvIdx<0) return out;
+  if(!out.lvName) out.lvName = parts[lvIdx].toUpperCase();
+  const capP=[]; let ci=lvIdx+1;
+  while(ci<parts.length && capP.length<2){ if(/^\d{1,4}$/.test(parts[ci])){capP.push(parts[ci]);ci++;} else break; }
+  if(!out.ptrCapacity && capP.length) out.ptrCapacity = capP.join('.');
+  let ri=-1;
+  for(let i=ci;i<parts.length;i++){ if(/^\d{9,12}$/.test(parts[i])){ri=i;break;} }
+  if(ri>=0){
+    if(!out.regularFeederCode) out.regularFeederCode = parts[ri];
+    const nt=[];
+    for(let i=ri+1;i<parts.length;i++){ if(/^\d{9,12}$/.test(parts[i])||parts[i]==='')break; nt.push(parts[i]); }
+    if(!out.regularFeederName && nt.length) out.regularFeederName = nt.join(' ');
+    const ac=[];
+    for(let i=ri+1+nt.length;i<parts.length;i++){ if(/^\d{9,12}$/.test(parts[i])) ac.push(parts[i]); }
+    ac.forEach((c,i)=>{ if(!out['alt'+(i+1)+'Code']) out['alt'+(i+1)+'Code']=c; });
+  }
+  return out;
+}
+function _sgBuildSSSrcIndex(data){
+  SG_SS_SRC = {byCode:{}, byName:{}};
+  if(!data||typeof data!=='object') return;
+  Object.entries(data).forEach(([k,v])=>{
+    const rec=_sgParseSrcKey(k, (v&&typeof v==='object')?v:{});
+    const code=String(rec.ssCode||'').trim();
+    if(!code) return;
+    (SG_SS_SRC.byCode[code]=SG_SS_SRC.byCode[code]||[]).push(rec);
+  });
+  Object.values(SG_SS_SRC.byCode).forEach(arr=>arr.sort((a,b)=>
+    (parseInt(String(a.lvName||'').replace(/\D/g,''))||0)-(parseInt(String(b.lvName||'').replace(/\D/g,''))||0)));
+  Object.keys(SG_SS_SRC.byCode).forEach(code=>{
+    const nm=_sgNormSSName((SG_SS_SRC.byCode[code][0]||{}).ssName||'');
+    if(nm) SG_SS_SRC.byName[nm]=SG_SS_SRC.byCode[code];
+  });
+  console.log('[SmartGrid] ssSourceRows index:', Object.keys(SG_SS_SRC.byCode).length, 'SS codes');
+}
+
 async function loadSmartGridMasterData(){
   try{
+    // Targeted subpaths ONLY (08-Jul-2026): fetching the entire /masterData
+    // root pulled every node (ptrs + connectionMaster + ehtSources + coords +
+    // topology + ssSourceRows + …) and was the main cause of slow startup.
     const paths = [
-      'masterData',
+      'masterData/ssSourceRows',
+      'masterData/ptrs',
       'masterData/ssTopology',
+      'masterData/ssCoordinates',
       'substationSources',
       'smartgrid/masterData',
       'smartgrid/endStartPoints'
     ];
     const out = {};
-    for(const p of paths){
+    await Promise.all(paths.map(async p=>{
       try{
         const r = await fetch(`${FIREBASE_URL}/${p}.json`, {cache:'no-store'});
-        if(r.ok){
-          const j = await r.json();
-          if(j) out[p]=j;
-        }
+        if(r.ok){ const j = await r.json(); if(j) out[p]=j; }
       }catch(e){}
-    }
+    }));
     sgMasterData = out; window.sgMasterData = out; window._sgMasterCoordCache = null; sgMasterBuildCoordCache();
+    _sgBuildSSSrcIndex(out['masterData/ssSourceRows']);
     console.log('Smart Grid master data loaded', Object.keys(out), 'coord nodes:', (window._sgMasterCoordCache&&window._sgMasterCoordCache.all||[]).length); try{sgRefreshSubstationCounts();}catch(e){}
     return out;
   }catch(e){
@@ -3641,7 +3698,9 @@ function curve(a,b,i,total,ctype){
 // thickness honors the adjuster (window.sgLineWeight); (4) energy-flow
 // animation (EHT→SS moving dashes) when window.sgFlowOn.
 let sgLineWeight = window.sgLineWeight || 3;
-let sgFlowOn = (window.sgFlowOn !== false);
+// Flow animation state reads the checkbox directly (single source of truth,
+// per DeepSeek review 10-Jul-2026) — default OFF for fast initial load.
+let sgFlowOn = document.getElementById('sgFlowToggle')?.checked ?? false;
 
 
 /* Core colour helpers restored — required by render() */
@@ -4862,7 +4921,71 @@ function sgActiveSource(d,unitNo,label,val,kind){
   }
   return kind==='reg';
 }
+// Fast path (08-Jul-2026): build units straight from the ssSourceRows index.
+// The real master schema stores the unit in the VALUE of lvName ("LV1"),
+// sources in regularFeederName / alt1Code / alt2Code — the generic walker
+// below scans field KEYS for LV/PTR patterns and therefore never matched it.
+function sgUnitsFromSSSourceRows(node,conns){
+  const rows=(function(){
+    // 1. Code-first: node/topology codes ↔ ssCode (feeder_feeding_to_code === ssCode)
+    const codes=sgCodesForNodeFromTopology(node,conns||[]);
+    for(const c of codes){
+      // codes are compact()ed; byCode keys are raw digits — compact is identity for digits
+      if(SG_SS_SRC.byCode[c]) return SG_SS_SRC.byCode[c];
+    }
+    // 2. Name fallback (normalized — tolerates "33/11KV X SS" vs "X" mismatches)
+    const nm=_sgNormSSName(node?.name||'');
+    if(nm && SG_SS_SRC.byName[nm]) return SG_SS_SRC.byName[nm];
+    if(nm){
+      const hit=Object.keys(SG_SS_SRC.byName).find(k=>k===nm||k.includes(nm)||nm.includes(k));
+      if(hit) return SG_SS_SRC.byName[hit];
+    }
+    return null;
+  })();
+  if(!rows||!rows.length) return [];
+  const units=[];
+  rows.forEach(r=>{
+    const lvNo=parseInt(String(r.lvName||'').replace(/\D/g,''))||1;
+    const u={id:'PTR-'+lvNo,type:'PTR',no:String(lvNo),
+      capacity:String(r.ptrCapacity||'').trim()?String(r.ptrCapacity).trim()+' MVA':'',
+      sources:[]};
+    const regName=String(r.regularFeederName||'').trim()||String(r.regularFeederCode||'').trim();
+    // Active-source column support (DeepSeek review 10-Jul-2026): if master
+    // data says an alternate is presently feeding, show IT as ON, not the
+    // regular. No active column → regular defaults to ON.
+    const activeBlob=String(r.activeSource||r.sourceStatus||r.active_status||'').toUpperCase();
+    if(regName){
+      let isActive=false;
+      if(!activeBlob){ isActive=true; }
+      else {
+        const checks=[regName,r.regularFeederCode,'R1','REG'].filter(Boolean);
+        isActive=checks.some(s=>compact(activeBlob).includes(compact(s)));
+      }
+      u.sources.push({kind:'reg',index:1,label:'R1',name:regName,active:isActive});
+    }
+    for(let i=1;i<=5;i++){
+      const an=String(r['alt'+i+'Name']||'').trim();
+      const ac=String(r['alt'+i+'Code']||'').trim();
+      if(an||ac){
+        let isAltActive=false;
+        if(activeBlob){
+          const checks=[an,ac,'A'+i,'ALT'].filter(Boolean);
+          isAltActive=checks.some(s=>compact(activeBlob).includes(compact(s)));
+        }
+        u.sources.push({kind:'alt',index:i,label:'A'+i,name:an||ac,active:isAltActive});
+      }
+    }
+    if(u.capacity||u.sources.length) units.push(u);
+  });
+  units.sort((a,b)=>Number(a.no)-Number(b.no));
+  return units;
+}
 function sgExtractUnits(node,conns){
+  // Try the dedicated ssSourceRows index first — exact code match, no fuzz.
+  try{
+    const fast=sgUnitsFromSSSourceRows(node,conns);
+    if(fast.length) return fast;
+  }catch(e){ console.warn('[SmartGrid] fast unit extract failed:',e); }
   const recs=sgFindMasterBySSCode(node,conns);
   const dict=sgBuildSourceDictionary(recs);
   const units={}, seen={};
