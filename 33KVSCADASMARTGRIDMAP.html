@@ -3340,6 +3340,12 @@ function sgMasterBuildCoordCache(){
     let kind = '';
     if(/EHT|132\s*KV|220\s*KV|400\s*KV/.test(blob)) kind='eht';
     else if(/33\s*\/\s*11|33KV|33\s*KV|SUBSTATION|SS/.test(blob)) kind='ss33';
+    // EHT stations have exactly one authority.  Feeder rows, topology,
+    // endStartPoints and legacy smartgrid copies must never create EHT icons.
+    // They may still describe a feeder, but only the Master Data Manager's
+    // /masterData/substationsEHT registry is allowed into the EHT cache.
+    const canonicalEHTPath = /^masterData\/substationsEHT(?:\/|$)/i.test(r.path||'');
+    if(kind==='eht' && !canonicalEHTPath) return;
     const item={kind,name,code,lat,lng,path:r.path};
     cache.all.push(item);
     if(code){
@@ -3363,6 +3369,8 @@ function sgMasterCoordFor(kind, code, name){
   if(kind==='eht') wants.push('');
   function best(list){
     if(!list || !list.length) return null;
+    // Never let an EHT lookup fall through to a similarly-coded legacy/SS row.
+    if(kind==='eht') return list.find(x=>x.kind==='eht') || null;
     return list.find(x=>!kind || x.kind===kind) || list[0];
   }
   if(code){
@@ -3385,8 +3393,15 @@ function sgApplyMasterCoord(node){
     node.lat = hit.lat;
     node.lng = hit.lng;
     node.masterCoord = true;
-    if(!node.code && hit.code) node.code = hit.code;
-    if(!node.name && hit.name) node.name = hit.name;
+    // Canonicalise EHT identity as well as its coordinates. This makes all
+    // feeders pointing to the same Master EHT collapse to one map marker.
+    if(node.kind==='eht'){
+      if(hit.code) node.code = hit.code;
+      if(hit.name) node.name = hit.name;
+    }else{
+      if(!node.code && hit.code) node.code = hit.code;
+      if(!node.name && hit.name) node.name = hit.name;
+    }
   }
   return node;
 }
@@ -3404,7 +3419,10 @@ function sgAllMasterCoordNodes(){
       const blob=String((x.name||'')+' '+(x.code||'')+' '+(x.path||'')).toUpperCase();
       kind=/EHT|132\s*KV|220\s*KV|400\s*KV/.test(blob)?'eht':'ss33';
     }
-    const key=compact(kind+'|'+(x.code||x.name||x.path));
+    // One physical station only: code first, otherwise normalized name.
+    // Never use the Firebase record path as an EHT identity.
+    const key=compact(kind+'|'+(x.code||x.name));
+    if(!key || key===compact(kind+'|')) return;
     if(seen[key])return; seen[key]=1;
     out.push({kind,name:x.name||x.code||'',code:x.code||'',lat:x.lat,lng:x.lng,role:'master',masterOnly:true});
   });
@@ -3650,7 +3668,13 @@ function buildTopology(){
     const srcHit = sgMasterCoordFor(srcKind, first.eht_code, first.eht_name);
     const srcLat = srcHit ? srcHit.lat : first.eht_lat;
     const srcLng = srcHit ? srcHit.lng : first.eht_lng;
-    if(srcLat!=null&&srcLng!=null)seq.push(sgApplyMasterCoord({kind:srcKind,name:(srcHit&&srcHit.name)||first.eht_name||'EHT SOURCE',code:(srcHit&&srcHit.code)||first.eht_code||'',lat:srcLat,lng:srcLng,row:first,role:'source',poleNum:0}));
+    if(srcLat!=null&&srcLng!=null){
+      // A feeder row may retain an old/misspelled EHT reference. Keep its
+      // geometry usable, but do not turn it into an EHT icon unless it resolves
+      // to the canonical Master EHT registry.
+      const visibleKind=(srcKind==='eht'&&!srcHit)?'bend':srcKind;
+      seq.push(sgApplyMasterCoord({kind:visibleKind,name:(srcHit&&srcHit.name)||first.eht_name||'EHT SOURCE',code:(srcHit&&srcHit.code)||first.eht_code||'',lat:srcLat,lng:srcLng,row:first,role:'source',poleNum:0}));
+    }
     const mkNode=r=>{
       if(isCutOrBad(r.feeding_to)||isCutOrBad(r.feeding_name))return null;
       const kind=nodeType(r.feeding_to,r.feeding_name,r.source_type);
@@ -3885,7 +3909,7 @@ function render(){
     if(n.kind==='bend') return;
     if(!sgShowNodeKind(n.kind)) return;
     const named=(n.name&&!/^(AB Switch|DP Structure|Feeding Point)$/i.test(n.name))||n.code;
-    const key=n.kind+'|'+(named?(compact(n.name)+'|'+String(n.code||'')):((+n.lat).toFixed(6)+','+(+n.lng).toFixed(6)));
+    const key=n.kind+'|'+(n.code?('CODE|'+compact(n.code)):(named?('NAME|'+compact(n.name)):((+n.lat).toFixed(6)+','+(+n.lng).toFixed(6))));
     if(used[key])return; used[key]=true;
     try{
     const m=L.marker([n.lat,n.lng],{icon:iconFor(n.kind,n.name),riseOnHover:true})
