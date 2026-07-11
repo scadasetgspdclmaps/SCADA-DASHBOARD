@@ -3225,6 +3225,12 @@ async function loadSmartGridMasterData(){
       'masterData/ptrs',
       'masterData/ssTopology',
       'masterData/ssCoordinates',
+      // EHT + substation coordinate sources — REQUIRED for the coord cache
+      // so Master Data Manager coordinate updates reflect here (10-Jul-2026:
+      // these were dropped in the fetch trim and EHT coords stopped syncing).
+      'masterData/ehtSources',
+      'masterData/substations33',
+      'masterData/substationsEHT',
       'substationSources',
       'smartgrid/masterData',
       'smartgrid/endStartPoints'
@@ -3628,49 +3634,90 @@ function normalizeInputRows(raw){
 }
 function buildTopology(){
   topology=[];nodesByKey={};
-  const byF={};rows.forEach(r=>{const k=r.feeder_code||r.feeder_name;if(!byF[k])byF[k]=[];byF[k].push(r)});
+  // Super-group by feeder NAME (compact) so spur rows that carry a different
+  // feeder_code but the same feeder name (e.g. MADHAPUR-RAVINDRA trunk code
+  // …219 + spur row code …211) land in ONE group and can branch off the trunk.
+  const byF={};rows.forEach(r=>{const k=compact(r.feeder_name)||String(r.feeder_code||'');if(!byF[k])byF[k]=[];byF[k].push(r)});
   Object.values(byF).forEach(list=>{
     if(!list.length)return;
-    // Sort first so pole_number=1 (source row) is always list[0] after sort.
-    const sorted=[...list].sort((a,b)=>(parseFloat(a.pole_number)||0)-(parseFloat(b.pole_number)||0));
-    const first=sorted[0]; // use sorted[0] so source row is always correct
+    const isSpurPole=p=>/\//.test(String(p||'').trim());
+    const mains=list.filter(r=>!isSpurPole(r.pole_number));
+    const spurs=list.filter(r=>isSpurPole(r.pole_number));
+    const sorted=[...(mains.length?mains:list)].sort((a,b)=>(parseFloat(a.pole_number)||0)-(parseFloat(b.pole_number)||0));
+    const first=sorted[0];
     const ftype=normType(first.feeder_type);let seq=[];
     const srcKind = ftype==='link' ? 'ss33' : 'eht';
     const srcHit = sgMasterCoordFor(srcKind, first.eht_code, first.eht_name);
     const srcLat = srcHit ? srcHit.lat : first.eht_lat;
     const srcLng = srcHit ? srcHit.lng : first.eht_lng;
-    if(srcLat!=null&&srcLng!=null)seq.push(sgApplyMasterCoord({kind:srcKind,name:(srcHit&&srcHit.name)||first.eht_name||'EHT SOURCE',code:(srcHit&&srcHit.code)||first.eht_code||'',lat:srcLat,lng:srcLng,row:first,role:'source'}));
-    sorted.forEach(r=>{
-      if(isCutOrBad(r.feeding_to)||isCutOrBad(r.feeding_name))return;
-      // NOTE (fixed 04-Jul-2026): devices (AB/DP) are ALWAYS kept in the
-      // topology — they are geometric route waypoints. The AB/DP toggle
-      // only hides their ICONS at render time; removing them here was
-      // collapsing every feeder to a straight endpoint-to-endpoint line.
+    if(srcLat!=null&&srcLng!=null)seq.push(sgApplyMasterCoord({kind:srcKind,name:(srcHit&&srcHit.name)||first.eht_name||'EHT SOURCE',code:(srcHit&&srcHit.code)||first.eht_code||'',lat:srcLat,lng:srcLng,row:first,role:'source',poleNum:0}));
+    const mkNode=r=>{
+      if(isCutOrBad(r.feeding_to)||isCutOrBad(r.feeding_name))return null;
       const kind=nodeType(r.feeding_to,r.feeding_name,r.source_type);
       const nm=r.feeding_name || r.feeding_to || (kind==='ab'?'AB Switch':kind==='dp'?'DP Structure':'Feeding Point');
       const masterHit = ['ss33','eht','sws','ht'].includes(kind) ? sgMasterCoordFor(kind,r.feeding_code,nm) : null;
       const lat = masterHit ? masterHit.lat : r.feeding_lat;
       const lng = masterHit ? masterHit.lng : r.feeding_lng;
-      if(lat==null||lng==null)return;
-      seq.push(sgApplyMasterCoord({kind,name:(masterHit&&masterHit.name)||nm,code:(masterHit&&masterHit.code)||r.feeding_code||'',lat,lng,pole:r.pole_number,row:r,role:'feed'}));
-    });
-    // Dedup key includes coordinates for unnamed devices — ~203 AB switches
-    // all named "AB Switch" with no code were collapsing to ONE key before
-    // (that's why only 2 showed). Coordinates make each physical switch unique.
+      if(lat==null||lng==null)return null;
+      return sgApplyMasterCoord({kind,name:(masterHit&&masterHit.name)||nm,code:(masterHit&&masterHit.code)||r.feeding_code||'',lat,lng,pole:r.pole_number,poleNum:parseFloat(r.pole_number)||0,row:r,role:'feed'});
+    };
+    sorted.forEach(r=>{const n=mkNode(r);if(n)seq.push(n);});
     const nodeKey=n=>{
-      // Use feeder_feeding_to_code (stored in n.code) when available — it's
-      // the authoritative unique key in the new schema. Without it, fall back
-      // to coordinates so identically-named AB switches don't collapse.
       if(n.code && !/^(EDIT-|NEWF-)/.test(n.code)) return n.kind+'|'+n.code;
       const named=(n.name&&!/^(AB Switch|DP Structure|Feeding Point|Next Pole)$/i.test(n.name))||n.code;
       return n.kind+'|'+(named?(compact(n.name)+'|'+String(n.code||'')):((+n.lat).toFixed(6)+','+(+n.lng).toFixed(6)));
     };
     const seen={};seq=seq.filter(n=>{const k=nodeKey(n); if(seen[k])return false;seen[k]=1;return true});
+    // ── SPUR BRANCHING (10-Jul-2026, per Naresh sketch) ─────────────────────
+    // A pole like "41/A/1" is a spur off the trunk at pole 41. It must NOT get
+    // its own line from the EHT (that drew the duplicate fan). Instead:
+    //   • compute a junction point on the trunk at the spur's base pole number
+    //     (interpolated between the surrounding trunk nodes),
+    //   • splice that junction into the trunk seq (line passes through it),
+    //   • connect junction → spur node as a branch.
+    const spurConns=[];
+    if(spurs.length && seq.length>=1){
+      const spurGroups={};
+      spurs.forEach(r=>{
+        const p=String(r.pole_number).trim();
+        const key=p.slice(0,p.lastIndexOf('/'))||p;      // "41/A/1" → "41/A"
+        (spurGroups[key]=spurGroups[key]||[]).push(r);
+      });
+      Object.entries(spurGroups).forEach(([gk,grp])=>{
+        grp.sort((a,b)=>{
+          const la=parseFloat(String(a.pole_number).split('/').pop())||0;
+          const lb=parseFloat(String(b.pole_number).split('/').pop())||0;
+          return la-lb;
+        });
+        const base=parseFloat(gk)||0;                    // "41/A" → 41
+        // trunk nodes with numeric positions (source = 0)
+        const trunk=seq.map((n,i)=>({n,i,p:n.poleNum!=null?n.poleNum:(parseFloat(n.pole)||0)}));
+        let prev=null,next=null;
+        trunk.forEach(t=>{ if(t.p<=base&&(!prev||t.p>=prev.p))prev=t; if(t.p>base&&(!next||t.p<next.p))next=t; });
+        let anchor;
+        if(prev&&next&&next.p>prev.p){
+          const t=(base-prev.p)/(next.p-prev.p);
+          anchor={kind:'bend',name:'',code:'',lat:prev.n.lat+(next.n.lat-prev.n.lat)*t,lng:prev.n.lng+(next.n.lng-prev.n.lng)*t,pole:gk+'-J',poleNum:base,row:grp[0],role:'junction'};
+          seq.splice(next.i,0,anchor);                   // trunk line passes through junction
+        } else {
+          anchor=(prev&&prev.n)||(next&&next.n)||seq[0]; // beyond ends: branch from nearest trunk node
+        }
+        let from=anchor;
+        grp.forEach(r=>{
+          const n=mkNode(r);
+          if(!n)return;
+          const k=nodeKey(n); if(!nodesByKey[k]) nodesByKey[k]=n;
+          spurConns.push({feeder_code:r.feeder_code||first.feeder_code,feeder_name:r.feeder_name||first.feeder_name,feeder_type:r.feeder_type||first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,division:r.division||first.division,sub_division:r.sub_division||first.sub_division,section:r.section||first.section,from,to:n,type:ftype,spur:true});
+          from=n;
+        });
+      });
+    }
     for(let i=0;i<seq.length-1;i++){
       const a=seq[i], b=seq[i+1];
       if(a.lat==null||a.lng==null||b.lat==null||b.lng==null)continue;
       topology.push({feeder_code:first.feeder_code,feeder_name:first.feeder_name,feeder_type:first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,division:first.division,sub_division:first.sub_division,section:first.section,from:a,to:b,type:ftype});
     }
+    spurConns.forEach(c=>topology.push(c));
     seq.forEach(n=>{nodesByKey[nodeKey(n)]=n});
   });
 }
@@ -3726,9 +3773,21 @@ function iconFor(kind,name){
     return L.divIcon({className:'',iconSize:[40,28],iconAnchor:[20,14],html:
       `<div class="eht-wrap"><div class="eht-rect"></div><div class="eht-core"><span class="eht-power">⚡</span><span class="eht-kv">${kv==='EHT'?'EHT':kv}</span></div></div>`});
   }
-  if(kind==='ss33'||kind==='sws'){
+  if(kind==='ss33'){
     return L.divIcon({className:'',iconSize:[32,32],iconAnchor:[16,16],html:
       `<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>`});
+  }
+  if(kind==='sws'){
+    // Switching Station: yellow busbar grid box (matches route map, per Naresh)
+    return L.divIcon({className:'',iconSize:[28,18],iconAnchor:[14,9],html:
+      `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="18" viewBox="0 0 28 18">
+        <rect x="1" y="1" width="26" height="16" fill="#fde047" stroke="#1e40af" stroke-width="2" rx="1.5"/>
+        <line x1="7.7" y1="1" x2="7.7" y2="17" stroke="#1e40af" stroke-width="1.3"/>
+        <line x1="14" y1="1" x2="14" y2="17" stroke="#1e40af" stroke-width="1.3"/>
+        <line x1="20.3" y1="1" x2="20.3" y2="17" stroke="#1e40af" stroke-width="1.3"/>
+        <line x1="1" y1="6.5" x2="27" y2="6.5" stroke="#1e40af" stroke-width="1.3"/>
+        <line x1="1" y1="11.5" x2="27" y2="11.5" stroke="#1e40af" stroke-width="1.3"/>
+      </svg>`});
   }
   if(kind==='ab'){
     return L.divIcon({className:'',iconSize:[14,14],iconAnchor:[7,7],html:
@@ -3739,8 +3798,14 @@ function iconFor(kind,name){
       `<div class="dp-wrap"><div style="width:9px;height:9px;border-radius:50%;background:#8e24aa;border:1.6px solid #fff;box-shadow:0 0 4px rgba(142,36,170,.8)"></div></div>`});
   }
   if(kind==='ht'){
-    return L.divIcon({className:'',iconSize:[12,12],iconAnchor:[6,6],html:
-      `<div style="width:8px;height:8px;border-radius:50%;background:#00a88a;border:1.5px solid #fff"></div>`});
+    // HT Service: green hexagon with HT text (matches route map, per Naresh)
+    return L.divIcon({className:'',iconSize:[22,24],iconAnchor:[11,12],html:
+      `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="24" viewBox="0 0 22 24">
+        <polygon points="11,1 20.5,6.5 20.5,17.5 11,23 1.5,17.5 1.5,6.5"
+          fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+        <text x="11" y="15.5" text-anchor="middle" font-size="8" font-weight="800"
+          font-family="Arial" fill="#047857">HT</text>
+      </svg>`});
   }
   return L.divIcon({className:'',iconSize:[10,10],iconAnchor:[5,5],html:`<div style="width:7px;height:7px;border-radius:50%;background:#90a4ae;border:1px solid #fff"></div>`});
 }
