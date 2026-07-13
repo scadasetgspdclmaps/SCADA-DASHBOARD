@@ -2236,6 +2236,8 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
   <!-- DRILL-DOWN FILTER (route-map style) -->
   <div class="psec">
     <div style="font-family:var(--mono);font-size:10px;color:#1e3a5f;letter-spacing:2px;margin-bottom:9px;font-weight:700">DRILL-DOWN FILTER</div>
+    <div style="margin-bottom:6px"><div style="font-size:9px;color:#5a7a9a;letter-spacing:1px;margin-bottom:3px">CIRCLE</div>
+      <select class="hier-sel" id="fCircle" onchange="onFilterChange()" style="width:100%"><option value="">ALL CIRCLES</option></select></div>
     <div style="margin-bottom:6px"><div style="font-size:9px;color:#5a7a9a;letter-spacing:1px;margin-bottom:3px">DIVISION</div>
       <select class="hier-sel" id="fDiv" onchange="onFilterChange()" style="width:100%"><option value="">ALL DIVISIONS</option></select></div>
     <div style="margin-bottom:6px"><div style="font-size:9px;color:#5a7a9a;letter-spacing:1px;margin-bottom:3px">SUB DIVISION</div>
@@ -3490,7 +3492,7 @@ function sgEhtMatch(c, eht){
   return sgAnySame(eht,[c.eht_name,c.eht_code,c.from && c.from.name,c.from && c.from.code]);
 }
 function sgFilterSignature(){
-  const ids=['fDiv','fSub','fSec','fEHT','fFeeder','q'];
+  const ids=['fCircle','fDiv','fSub','fSec','fEHT','fFeeder','q'];
   return ids.map(id=>document.getElementById(id)?.value||'').join('|');
 }
 function sgShowNameForConnection(c){
@@ -3513,6 +3515,7 @@ function sgMaybeFitShown(bounds, shown){
 
 
 function matchesFilters(c){
+  const circle = document.getElementById('fCircle')?.value || '';
   const div = document.getElementById('fDiv')?.value || '';
   const sub = document.getElementById('fSub')?.value || '';
   const sec = document.getElementById('fSec')?.value || '';
@@ -3521,6 +3524,7 @@ function matchesFilters(c){
   const q = (document.getElementById('q')?.value || '').trim().toLowerCase();
 
   // Normalized matching: handles spaces / 132KV vs 132 KV / punctuation differences.
+  if(circle && !sgSame(c.circle, circle)) return false;
   if(div && !sgSame(c.division, div)) return false;
   if(sub && !sgSame(c.sub_division, sub)) return false;
   if(sec && !sgSame(c.section, sec)) return false;
@@ -3533,7 +3537,7 @@ function matchesFilters(c){
       c.eht_name, c.eht_code,
       c.from && c.from.name, c.from && c.from.code,
       c.to && c.to.name, c.to && c.to.code,
-      c.division, c.sub_division, c.section
+      c.circle, c.division, c.sub_division, c.section
     ].join(' ').toLowerCase();
     if(!hay.includes(q)) return false;
   }
@@ -3614,7 +3618,7 @@ function normalizeInputRows(raw){
       // New schema: division, sub_division, section (direct names)
       // Old schema: lines_division, lines_sub_division, lines_section
       area_code:    get(o,['area_code','Area Code']),
-      circle:       get(o,['operation_circle','Operation Circle']),
+      circle:       get(o,['circle','Circle','operation_circle','Operation Circle','Name of the Circle','lines_circle','Lines Circle']),
       division:     get(o,['division','lines_division','Lines Division','Division']),
       sub_division: get(o,['sub_division','lines_sub_division','Sub Division','SubDivision']),
       section:      get(o,['section','lines_section','Lines Section','Section']),
@@ -3764,7 +3768,7 @@ function buildTopology(){
           const n=mkNode(r);
           if(!n)return;
           const k=nodeKey(n); if(!nodesByKey[k]) nodesByKey[k]=n;
-          spurConns.push({feeder_code:r.feeder_code||first.feeder_code,feeder_name:r.feeder_name||first.feeder_name,feeder_type:r.feeder_type||first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,division:r.division||first.division,sub_division:r.sub_division||first.sub_division,section:r.section||first.section,from,to:n,type:ftype,spur:true});
+          spurConns.push({feeder_code:r.feeder_code||first.feeder_code,feeder_name:r.feeder_name||first.feeder_name,feeder_type:r.feeder_type||first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,circle:r.circle||first.circle,division:r.division||first.division,sub_division:r.sub_division||first.sub_division,section:r.section||first.section,from,to:n,type:ftype,spur:true});
           from=n;
         });
       });
@@ -3772,7 +3776,7 @@ function buildTopology(){
     for(let i=0;i<seq.length-1;i++){
       const a=seq[i], b=seq[i+1];
       if(a.lat==null||a.lng==null||b.lat==null||b.lng==null)continue;
-      topology.push({feeder_code:first.feeder_code,feeder_name:first.feeder_name,feeder_type:first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,division:first.division,sub_division:first.sub_division,section:first.section,from:a,to:b,type:ftype});
+      topology.push({feeder_code:first.feeder_code,feeder_name:first.feeder_name,feeder_type:first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,circle:first.circle,division:first.division,sub_division:first.sub_division,section:first.section,from:a,to:b,type:ftype});
     }
     spurConns.forEach(c=>topology.push(c));
     seq.forEach(n=>{nodesByKey[nodeKey(n)]=n});
@@ -3992,6 +3996,7 @@ function openFeederInRouteMap(code,name){
 }
 function populateFilters(){
   const current={
+    circle:document.getElementById('fCircle')?.value||'',
     div:document.getElementById('fDiv')?.value||'',
     sub:document.getElementById('fSub')?.value||'',
     sec:document.getElementById('fSec')?.value||'',
@@ -4006,10 +4011,14 @@ function populateFilters(){
     if(found)sel.value=found; else sel.value='';
   }
   const base=rows||[];
-  fill('fDiv',uniq(base.map(r=>r.division)),'All Divisions',current.div);
+  fill('fCircle',uniq(base.map(r=>r.circle)),'All Circles',current.circle);
+  const cir=document.getElementById('fCircle')?.value||'';
+
+  const divRows=base.filter(r=>!cir||sgSame(r.circle,cir));
+  fill('fDiv',uniq(divRows.map(r=>r.division)),'All Divisions',current.div);
   const d=document.getElementById('fDiv')?.value||'';
 
-  const subRows=base.filter(r=>!d||sgSame(r.division,d));
+  const subRows=divRows.filter(r=>!d||sgSame(r.division,d));
   fill('fSub',uniq(subRows.map(r=>r.sub_division)),'All Sub-Divisions',current.sub);
   const s=document.getElementById('fSub')?.value||'';
 
@@ -4046,7 +4055,7 @@ function onFilterChange(){
   populateFilters();window._sgLastFilterSig=null;render()
 }
 function resetFilters(){
-  ['fDiv','fSub','fSec','fEHT','fFeeder','q'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  ['fCircle','fDiv','fSub','fSec','fEHT','fFeeder','q'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
   if(window._sgLockedFeederKey){ window._sgLockedFeederKey=null; document.body.classList.remove('sg-editing-feeder'); }
   window._sgActiveFeederKey=null; populateFilters();window._sgLastFilterSig=null;render()
 }
@@ -4151,13 +4160,13 @@ async function loadFirebase(){
 }
 function downloadTopologyCsv(){
   if(!rows.length){toast('No uploaded data to download');return;}
-  const fallback=['division','sub_division','section','feeder_name','feeder_code','feeder_type','feeder_feeding_to','feeder_feeding_to_code','latitude','longitude','pole_number','pole_feeding_to','type_of_cable_point','type_of_feeder','type_of_pole'];
+  const fallback=['circle','division','sub_division','section','feeder_name','feeder_code','feeder_type','feeder_feeding_to','feeder_feeding_to_code','latitude','longitude','pole_number','pole_feeding_to','type_of_cable_point','type_of_feeder','type_of_pole'];
   const headers=(meta.originalHeaders&&meta.originalHeaders.length)?meta.originalHeaders:fallback;
   const findHeader=aliases=>headers.find(h=>aliases.some(a=>nkey(h)===nkey(a)));
   const put=(o,aliases,v)=>{const h=findHeader(aliases);if(h)o[h]=v??'';};
   const exportRows=rows.map(r=>{
     const o={...(r._raw||{})};headers.forEach(h=>{if(o[h]===undefined)o[h]='';});
-    put(o,['division','lines_division'],r.division);put(o,['sub_division','lines_sub_division'],r.sub_division);put(o,['section','lines_section'],r.section);
+    put(o,['circle','operation_circle','lines_circle','Name of the Circle'],r.circle);put(o,['division','lines_division'],r.division);put(o,['sub_division','lines_sub_division'],r.sub_division);put(o,['section','lines_section'],r.section);
     put(o,['feeder_name','name_of_33kv_feeder','name_of_33kv _feeder'],r.feeder_name);put(o,['feeder_code','33kv_feeder_code'],r.feeder_code);put(o,['feeder_type','type_of_feeder'],r.feeder_type);
     put(o,['latitude','feeding_end_latitude'],r.feeding_lat);put(o,['longitude','feeding_end_longitude'],r.feeding_lng);put(o,['pole_number','point_number','sequence'],r.pole_number);
     const isBend=/BEND POINT/i.test(String(r.source_type||'')+' '+String(r.feeding_name||''));
@@ -4655,6 +4664,7 @@ function nfBeginPlacing(){
       feeder_name:name,
       feeder_code:(document.getElementById('nfCode').value||'').trim(),
       feeder_type:document.getElementById('nfType').value,
+      circle:(document.getElementById('nfCircle').value||'').trim(),
       division:(document.getElementById('nfDiv').value||'').trim(),
       sub_division:(document.getElementById('nfSub').value||'').trim(),
       section:(document.getElementById('nfSec').value||'').trim()
@@ -4719,7 +4729,7 @@ function nfFinish(){
     else label = 'AB Switch';
     return {
       area_code:'', circle:'',
-      division:meta.division, sub_division:meta.sub_division, section:meta.section,
+      circle:meta.circle, division:meta.division, sub_division:meta.sub_division, section:meta.section,
       eht_code:srcCode, eht_name:srcName, eht_lat:src.lat, eht_lng:src.lng,
       feeder_type:meta.feeder_type, feeder_name:meta.feeder_name, feeder_code:meta.feeder_code||meta.feeder_name,
       pole_number:i+1, source_type:'',
@@ -4756,7 +4766,7 @@ function sgOpenPrintDialog(){
 
 function _sgPdfTitle(){
   const g=id=>document.getElementById(id)?.value||'';
-  const parts=[g('fDiv'),g('fSub'),g('fSec'),g('fEHT'),g('fFeeder')].filter(Boolean);
+  const parts=[g('fCircle'),g('fDiv'),g('fSub'),g('fSec'),g('fEHT'),g('fFeeder')].filter(Boolean);
   return parts.length?parts.join(' · '):'ALL DIVISIONS — FULL NETWORK';
 }
 
@@ -5528,6 +5538,7 @@ function sgEHTPopupHtml(node){
     <option value="Link Line">Link Line</option>
     <option value="HT Service">HT Service</option>
   </select>
+  <input id="nfCircle" placeholder="Circle" style="width:100%;margin-bottom:6px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px;box-sizing:border-box">
   <input id="nfDiv" placeholder="Division" style="width:100%;margin-bottom:6px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px;box-sizing:border-box">
   <input id="nfSub" placeholder="Sub-Division" style="width:100%;margin-bottom:6px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px;box-sizing:border-box">
   <input id="nfSec" placeholder="Section" style="width:100%;margin-bottom:10px;padding:7px 8px;border-radius:6px;border:1px solid #37475a;background:#0d1b2e;color:#fff;font-size:11.5px;box-sizing:border-box">
