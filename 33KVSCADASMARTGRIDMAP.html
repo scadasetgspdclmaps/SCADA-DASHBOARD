@@ -3250,6 +3250,9 @@ async function loadSmartGridMasterData(){
       }catch(e){}
     }));
     sgMasterData = out; window.sgMasterData = out; window._sgMasterCoordCache = null; sgMasterBuildCoordCache();
+    // The SS coordinate master owns Circle. Re-join it after the asynchronous
+    // master load so the Circle dropdown and feeder filtering are populated.
+    try{ sgApplyCircleFromMasterData(); }catch(e){ console.warn('Circle master join failed',e); }
     _sgBuildSSSrcIndex(out['masterData/ssSourceRows']);
     console.log('Smart Grid master data loaded', Object.keys(out), 'coord nodes:', (window._sgMasterCoordCache&&window._sgMasterCoordCache.all||[]).length); try{sgRefreshSubstationCounts();}catch(e){}
     return out;
@@ -3440,7 +3443,12 @@ function sgAllMasterCoordNodes(){
     const key=compact(kind+'|'+(x.code||x.name));
     if(!key || key===compact(kind+'|')) return;
     if(seen[key])return; seen[key]=1;
-    out.push({kind,name:x.name||x.code||'',code:x.code||'',lat:x.lat,lng:x.lng,role:'master',masterOnly:true});
+    const d=x.data||{};
+    out.push({kind,name:x.name||x.code||'',code:x.code||'',lat:x.lat,lng:x.lng,role:'master',masterOnly:true,
+      circle:String(sgMasterPick(d,['circle','Circle','operation_circle','Name of the Circle'])||''),
+      division:String(sgMasterPick(d,['division','Division','lines_division'])||''),
+      sub_division:String(sgMasterPick(d,['subdivision','sub_division','Sub Division','lines_sub_division'])||''),
+      section:String(sgMasterPick(d,['section','Section','lines_section'])||'')});
   });
   return out;
 }
@@ -3455,6 +3463,11 @@ function sgAddMasterStandaloneNodes(used){
   const all=sgAllMasterCoordNodes();
   all.forEach(n=>{
     if(!sgShowNodeKind(n.kind)) return;
+    const fv=id=>document.getElementById(id)?.value||'';
+    if(fv('fCircle')&&!sgSame(n.circle,fv('fCircle')))return;
+    if(fv('fDiv')&&!sgSame(n.division,fv('fDiv')))return;
+    if(fv('fSub')&&!sgSame(n.sub_division,fv('fSub')))return;
+    if(fv('fSec')&&!sgSame(n.section,fv('fSec')))return;
     const key1=n.kind+'|CODE|'+compact(n.code);
     const key2=n.kind+'|NAME|'+compact(n.name);
     const key3=n.kind+'|'+(compact(n.name)+'|'+String(n.code||''));
@@ -3602,6 +3615,75 @@ function nodeType(feedTo,name,type){
   if(t.includes('EHT')||t.includes('132KV')||t.includes('132 KV')||t.includes('220KV')||t.includes('220 KV')||t.includes('400KV')||t.includes('400 KV'))return 'eht';
   if(/\bHT\b/.test(t))return 'ht';
   return 'ss33';
+}
+
+/* Join the Circle hierarchy from the current SS Coordinates master table.
+   The uploaded feeder/topology sheet does not necessarily repeat Circle on
+   every waypoint, so resolve the destination 33/11KV SS by its current code
+   first and by name second, then apply that Circle to the complete feeder. */
+function sgApplyCircleFromMasterData(){
+  const master = (window.sgMasterData || sgMasterData || {})['masterData/ssCoordinates'];
+  if(!master || typeof master!=='object') return;
+
+  const byCode={}, byName={};
+  function addRecord(d){
+    if(!d || typeof d!=='object' || Array.isArray(d)) return;
+    const code=String(sgMasterPick(d,['sscode','ss_code','SSCODE','SS Code','code'])||'').trim();
+    const name=String(sgMasterPick(d,['ssname','ss_name','SSNAME','SS Name','name'])||'').trim();
+    const circle=String(sgMasterPick(d,['circle','Circle','operation_circle','Operation Circle','Name of the Circle','lines_circle'])||'').trim();
+    const division=String(sgMasterPick(d,['division','Division','lines_division','Lines Division'])||'').trim();
+    const sub_division=String(sgMasterPick(d,['subdivision','sub_division','Sub Division','SubDivision','lines_sub_division'])||'').trim();
+    const section=String(sgMasterPick(d,['section','Section','lines_section','Lines Section'])||'').trim();
+    if(!code&&!name) return;
+    const item={code,name,circle,division,sub_division,section};
+    if(code) byCode[compact(code)]=item;
+    if(name) byName[compact(name)]=item;
+  }
+  function walk(v){
+    if(!v || typeof v!=='object') return;
+    if(Array.isArray(v)){ v.forEach(walk); return; }
+    addRecord(v);
+    Object.values(v).forEach(x=>{ if(x && typeof x==='object') walk(x); });
+  }
+  walk(master);
+
+  // Keep every master SS hierarchy record so the dropdown is complete even
+  // when a substation currently has no connected feeder in the topology.
+  const masterRecords=[]; const seenMaster={};
+  Object.values(byCode).concat(Object.values(byName)).forEach(x=>{
+    const k=compact(x.code||x.name); if(!k||seenMaster[k])return;
+    seenMaster[k]=1; masterRecords.push(x);
+  });
+  window._sgMasterHierarchyRecords=masterRecords;
+
+  if(!Array.isArray(rows) || !rows.length) return;
+  const feederHierarchy={}, rowHierarchy=new Map();
+  rows.forEach(r=>{
+    const fk=compact(r.feeder_name)||compact(r.feeder_code);
+    if(!fk) return;
+    const code=compact(r.feeding_code);
+    const names=[r.feeding_name,r.feeding_to].map(compact).filter(Boolean);
+    const hit=(code&&byCode[code]) || names.map(n=>byName[n]).find(Boolean) || null;
+    if(hit){
+      rowHierarchy.set(r,hit);
+      // A main-route receiving SS is the default hierarchy for its trunk.
+      // A slash-numbered spur keeps the hierarchy of its own destination.
+      if(!String(r.pole_number||'').includes('/')) feederHierarchy[fk]=hit;
+    }
+  });
+  rows.forEach(r=>{
+    const fk=compact(r.feeder_name)||compact(r.feeder_code);
+    const hit=rowHierarchy.get(r)||(fk&&feederHierarchy[fk]);
+    if(!hit)return;
+    if(hit.circle)r.circle=hit.circle;
+    if(hit.division)r.division=hit.division;
+    if(hit.sub_division)r.sub_division=hit.sub_division;
+    if(hit.section)r.section=hit.section;
+  });
+  window._sgMasterCircleValues=[...new Set(masterRecords.map(x=>x.circle).filter(Boolean))]
+    .sort((a,b)=>String(a).localeCompare(String(b)));
+  console.log('[SmartGrid] Circle master join:', window._sgMasterCircleValues.length,
+    'circles,', Object.keys(feederHierarchy).length, 'feeders matched');
 }
 function sgEHTNameFromFeederName(name){
   const s=String(name||'').trim();
@@ -4011,19 +4093,23 @@ function populateFilters(){
     if(found)sel.value=found; else sel.value='';
   }
   const base=rows||[];
-  fill('fCircle',uniq(base.map(r=>r.circle)),'All Circles',current.circle);
+  const masterHierarchy=window._sgMasterHierarchyRecords||[];
+  fill('fCircle',uniq(masterHierarchy.map(r=>r.circle).concat(base.map(r=>r.circle))),'All Circles',current.circle);
   const cir=document.getElementById('fCircle')?.value||'';
 
   const divRows=base.filter(r=>!cir||sgSame(r.circle,cir));
-  fill('fDiv',uniq(divRows.map(r=>r.division)),'All Divisions',current.div);
+  const masterDivRows=masterHierarchy.filter(r=>!cir||sgSame(r.circle,cir));
+  fill('fDiv',uniq(masterDivRows.map(r=>r.division).concat(divRows.map(r=>r.division))),'All Divisions',current.div);
   const d=document.getElementById('fDiv')?.value||'';
 
   const subRows=divRows.filter(r=>!d||sgSame(r.division,d));
-  fill('fSub',uniq(subRows.map(r=>r.sub_division)),'All Sub-Divisions',current.sub);
+  const masterSubRows=masterDivRows.filter(r=>!d||sgSame(r.division,d));
+  fill('fSub',uniq(masterSubRows.map(r=>r.sub_division).concat(subRows.map(r=>r.sub_division))),'All Sub-Divisions',current.sub);
   const s=document.getElementById('fSub')?.value||'';
 
   const secRows=subRows.filter(r=>!s||sgSame(r.sub_division,s));
-  fill('fSec',uniq(secRows.map(r=>r.section)),'All Sections',current.sec);
+  const masterSecRows=masterSubRows.filter(r=>!s||sgSame(r.sub_division,s));
+  fill('fSec',uniq(masterSecRows.map(r=>r.section).concat(secRows.map(r=>r.section))),'All Sections',current.sec);
   const sec=document.getElementById('fSec')?.value||'';
 
   const ehtRows=secRows.filter(r=>!sec||sgSame(r.section,sec));
@@ -4072,6 +4158,9 @@ async function handleFile(file){
     raw=XLSX.utils.sheet_to_json(sh,{defval:''});
   }
   rows=normalizeInputRows(raw);
+  // If master data is already loaded, immediately enrich uploaded feeder rows
+  // with the destination SS Circle instead of waiting for a page reload.
+  try{ sgApplyCircleFromMasterData(); }catch(e){ console.warn('Circle master join failed',e); }
   meta={fileName:file.name,updatedAt:new Date().toISOString(),rowCount:rows.length,originalHeaders:Object.keys(raw[0]||{})};
   // Quick sanity check after normalize — helps diagnose column name mismatches
   const withEHTName=rows.filter(r=>r.eht_name).length;
@@ -4351,8 +4440,10 @@ function _sgRowsForFeeder(key){
 function enterFeederEdit(key){
   if(!window._sgEditModeOn) return;
   exitFeederEdit(false);
-  const list = _sgRowsForFeeder(key);
-  if(!list.length){ toast('No rows found for this feeder'); return; }
+  const allList = _sgRowsForFeeder(key);
+  const list = allList.filter(r=>!String(r.pole_number||'').includes('/'));
+  const existingSpurRows = allList.filter(r=>String(r.pole_number||'').includes('/'));
+  if(!list.length){ toast('No main-route rows found for this feeder'); return; }
   const first = list[0];
   document.body.classList.add('sg-editing-feeder');
   window._sgActiveFeederKey = key;
@@ -4376,7 +4467,7 @@ function enterFeederEdit(key){
   // never pollute the device list. (Per Naresh 05-Jul-2026: previous tool
   // was inventing AB switches that don't exist in the field.)
   _sgAutoDivideSegments(verts);
-  geomEdit = {feederKey:key, verts, selected:-1};
+  geomEdit = {feederKey:key, verts, selected:-1, existingSpurRows, spurDraft:null};
   sgDraft.history=[]; sgDraft.mode='move';
   _sgRenderEditHandles();
   sgShowStationCenters(true);
@@ -4447,6 +4538,17 @@ function _sgRenderEditHandles(){
   const verts = geomEdit.verts;
   if(verts.length<2) return;
   _sgGuideLine = L.polyline(verts.map(v=>[v.lat,v.lng]),{color:'#00e5ff',weight:3,dashArray:'6 5',opacity:.95,interactive:false}).addTo(gEditLayer);
+  if(geomEdit.spurDraft && geomEdit.spurDraft.points.length>=2){
+    L.polyline(geomEdit.spurDraft.points.map(v=>[v.lat,v.lng]),{
+      color:'#facc15',weight:4,dashArray:'8 5',opacity:1,interactive:false,pane:'editGripPane'
+    }).addTo(gEditLayer);
+    geomEdit.spurDraft.points.slice(1).forEach((v,i)=>{
+      L.marker([v.lat,v.lng],{icon:_sgVertIcon(false,false),draggable:true,zIndexOffset:6500,pane:'editGripPane'})
+        .bindTooltip(v.name?clean(v.name):'SPUR POINT',{direction:'top'})
+        .on('drag',e=>{const ll=e.target.getLatLng();v.lat=ll.lat;v.lng=ll.lng;})
+        .on('dragend',()=>_sgRenderEditHandles()).addTo(gEditLayer);
+    });
+  }
   // No midpoint insert markers. Use only existing green bend grips for AutoCAD-style shaping.
 
   verts.forEach((v,i)=>{
@@ -4585,7 +4687,9 @@ function saveFeederEdit(){
   }
   const list=_sgRowsForFeeder(key);
   if(!list.length){ toast('Feeder rows missing'); exitFeederEdit(); return; }
-  const template=list[0];
+  if(geomEdit.spurDraft && !geomEdit.spurDraft.completed){toast('Finish the spur by clicking a visible SS centre, or cancel the spur');return;}
+  const existingSpurRows=geomEdit.existingSpurRows||list.filter(r=>String(r.pole_number||'').includes('/'));
+  const template=list.find(r=>!String(r.pole_number||'').includes('/'))||list[0];
   const sourceTarget=geomEdit.sourceTarget||null;
   // Every vertex EXCEPT the synthetic EHT-source pseudo-vertex (row:null at
   // index 0) maps to a real data row — rebuild them fresh in their new order.
@@ -4594,6 +4698,30 @@ function saveFeederEdit(){
   // pile up junk rows.
   const feedVerts = geomEdit.verts.filter((v,i)=> !(i===0 && v.row===null))
     .filter(v => !(v.isBend && v.row===null && !v.moved && !v.makeAB));
+  const newSpurRows=[];
+  if(geomEdit.spurDraft&&geomEdit.spurDraft.completed){
+    const draft=geomEdit.spurDraft;
+    const sourceIndex=feedVerts.indexOf(draft.sourceVertex);
+    if(sourceIndex<0){toast('Spur junction was not retained on the trunk');return;}
+    const basePole=sourceIndex+1;
+    const used=new Set(existingSpurRows.map(r=>{
+      const m=String(r.pole_number||'').match(/^([^/]+)\/([^/]+)\//);return m&&String(m[1])===String(basePole)?m[2].toUpperCase():'';
+    }).filter(Boolean));
+    const branch='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').find(x=>!used.has(x))||('S'+Date.now().toString(36).slice(-3).toUpperCase());
+    draft.points.slice(1).forEach((p,i,arr)=>{
+      const isLast=i===arr.length-1;
+      const r={...template,_raw:{},raw_index:Date.now()+i};
+      r.pole_number=`${basePole}/${branch}/${i+1}`;
+      r.feeding_lat=+p.lat;r.feeding_lng=+p.lng;
+      r.feeding_name=isLast?(draft.endTarget.name||p.name||'33/11KV SS'):'BEND POINT';
+      r.feeding_to=r.feeding_name;
+      r.feeding_code=isLast?(draft.endTarget.code||''):`EDIT-SPUR-${Date.now().toString(36)}-${i+1}`;
+      r.source_type=isLast?(draft.endTarget.kind==='eht'?'EHT SS':'33/11 KV Sub-Station'):'BEND POINT';
+      const mh=(window._sgMasterHierarchyRecords||[]).find(x=>(r.feeding_code&&compact(x.code)===compact(r.feeding_code))||compact(x.name)===compact(r.feeding_name));
+      if(mh){r.circle=mh.circle||r.circle;r.division=mh.division||r.division;r.sub_division=mh.sub_division||r.sub_division;r.section=mh.section||r.section;}
+      newSpurRows.push(r);
+    });
+  }
   rows = rows.filter(r => (r.feeder_code||r.feeder_name)!==key);
   feedVerts.forEach((v,idx)=>{
     const base = v.row ? {...v.row} : {...template};
@@ -4630,8 +4758,9 @@ function saveFeederEdit(){
     if(!base.feeding_code){ base.feeding_code = `EDIT-${idx+1}-${Date.now().toString(36)}${Math.random().toString(36).slice(2,5)}`; }
     rows.push(base);
   });
+  rows.push(...existingSpurRows,...newSpurRows);
   buildTopology(); render();
-  toast('Feeder geometry saved — pushing to Firebase…');
+  toast((newSpurRows.length?'Spur and feeder':'Feeder geometry')+' saved — pushing to Firebase…');
   saveFirebase();
   exitFeederEdit(true);
   render();
@@ -5405,6 +5534,19 @@ function sgDraftExtend(){
   document.getElementById('sgeExtendBtn')?.classList.toggle('active',sgDraft.mode==='extend');
   toast(sgDraft.mode==='extend'?'EXTEND active — click the new feeder endpoint on the map':'EXTEND cancelled');
 }
+function sgDraftStartSpur(){
+  if(!geomEdit.feederKey)return;
+  const i=geomEdit.selected;
+  if(i<=0||i>=geomEdit.verts.length-1){toast('Select an existing BEND point between the feeder ends');return;}
+  const source=geomEdit.verts[i];
+  source.moved=true; // ensures a synthetic bend becomes a stored trunk point
+  geomEdit.spurDraft={sourceVertex:source,points:[{lat:source.lat,lng:source.lng,junction:true}],completed:false,endTarget:null};
+  sgDraft.mode='drawSpur';
+  ['sgeSourceBtn','sgeEndBtn','sgeExtendBtn'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  document.getElementById('sgeSpurBtn')?.classList.add('active');
+  sgShowStationCenters(true); _sgRenderEditHandles();
+  toast('DRAW SPUR active — click route bends, then click the visible SS centre target');
+}
 function sgDraftChooseEndpoint(which){
   if(!geomEdit.feederKey)return;
   if(which==='source'&&geomEdit.mode==='spur'){toast('A spur source is its trunk junction; change the main feeder source instead');return;}
@@ -5419,15 +5561,15 @@ function sgShowStationCenters(on){
   if(!on||!geomEdit.feederKey)return;
   sgAllMasterCoordNodes().forEach(n=>{
     const col=n.kind==='eht'?'#fb923c':'#22d3ee';
-    const target=L.circleMarker([n.lat,n.lng],{radius:8,color:col,weight:2,fillColor:'#111827',fillOpacity:.72,pane:'markerPane'});
+    const html=`<div class="sg-centre-snap ${n.kind==='eht'?'eht':'ss'}"><span></span></div>`;
+    const target=L.marker([n.lat,n.lng],{icon:L.divIcon({className:'',html,iconSize:[24,24],iconAnchor:[12,12]}),pane:'editGripPane',zIndexOffset:8000,interactive:true});
     target.bindTooltip('CENTER SNAP · '+clean(n.name),{direction:'top',className:'sg-node-label',opacity:.98});
     target.on('click',ev=>{L.DomEvent.stop(ev);sgDraftApplyStation(n);});
     target.addTo(gCadSnapTargets);
-    L.circleMarker([n.lat,n.lng],{radius:1.8,color:'#fff',weight:1,fillColor:'#fff',fillOpacity:1,interactive:false,pane:'markerPane'}).addTo(gCadSnapTargets);
   });
 }
 function sgDraftApplyStation(n){
-  if(!n||!['changeSource','changeEnd','extend'].includes(sgDraft.mode))return;
+  if(!n||!['changeSource','changeEnd','extend','drawSpur'].includes(sgDraft.mode))return;
   sgDraftSnapshot();
   if(sgDraft.mode==='changeSource'){
     const v=geomEdit.verts[0];
@@ -5437,14 +5579,19 @@ function sgDraftApplyStation(n){
     const v=geomEdit.verts[geomEdit.verts.length-1];
     v.lat=+n.lat;v.lng=+n.lng;v.label=n.name;v.overrideName=n.name;v.overrideCode=n.code||'';v.locked=true;v.moved=true;
     geomEdit.endTarget={...n};
-  }else{
+  }else if(sgDraft.mode==='extend'){
     const last=geomEdit.verts[geomEdit.verts.length-1];if(last)last.locked=false;
     geomEdit.verts.push({row:null,lat:+n.lat,lng:+n.lng,locked:true,label:n.name,overrideName:n.name,overrideCode:n.code||'',moved:true});
     geomEdit.endTarget={...n};
+  }else{
+    const draft=geomEdit.spurDraft;
+    if(!draft)return;
+    draft.points.push({lat:+n.lat,lng:+n.lng,name:n.name,code:n.code||'',kind:n.kind||'ss33',station:true});
+    draft.completed=true; draft.endTarget={...n};
   }
   geomEdit.selected=-1;sgDraft.mode='move';_sgRenderEditHandles();
-  ['sgeSourceBtn','sgeEndBtn','sgeExtendBtn'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
-  toast('Snapped exactly to '+clean(n.name)+' centre — Save to commit');
+  ['sgeSourceBtn','sgeEndBtn','sgeExtendBtn','sgeSpurBtn'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  toast((geomEdit.spurDraft&&geomEdit.spurDraft.completed?'Spur connected':'Snapped exactly')+' to '+clean(n.name)+' centre — Save to commit');
 }
 function sgDraftToggleSnap(k,on){sgDraft.snap[k]=!!on;}
 function sgDraftSnapPoint(ll){
@@ -5457,8 +5604,15 @@ function sgDraftSnapPoint(ll){
   return hit&&hit.d<=22?hit:{lat:ll.lat,lng:ll.lng,type:'free'};
 }
 map.on('click',e=>{
-  if(!window._sgEditModeOn||!geomEdit.feederKey||sgDraft.mode!=='extend')return;
+  if(!window._sgEditModeOn||!geomEdit.feederKey||!['extend','drawSpur'].includes(sgDraft.mode))return;
   L.DomEvent.stop(e); const p=sgDraftSnapPoint(e.latlng); sgDraftSnapshot();
+  if(sgDraft.mode==='drawSpur'){
+    if(!geomEdit.spurDraft)return;
+    geomEdit.spurDraft.points.push({lat:p.lat,lng:p.lng,name:'BEND POINT',code:'',kind:'bend'});
+    _sgRenderEditHandles();
+    toast('Spur bend added — add another bend or click an SS centre to finish');
+    return;
+  }
   const last=geomEdit.verts[geomEdit.verts.length-1]; if(last)last.locked=false;
   geomEdit.verts.push({row:null,lat:p.lat,lng:p.lng,locked:true,label:'EXTENDED ENDPOINT',overrideName:'BEND POINT',isBend:true,moved:true});
   geomEdit.selected=-1; _sgRenderEditHandles(); sgDraft.mode='move';
@@ -5504,6 +5658,7 @@ function sgEHTPopupHtml(node){
     <button id="sgeEndBtn" onclick="sgDraftChooseEndpoint('end')" class="sg-cad-btn">◎ Change End</button>
     <button onclick="sgDraftInsertPoint()" class="sg-cad-btn">⊕ Insert Point</button>
     <button id="sgeExtendBtn" onclick="sgDraftExtend()" class="sg-cad-btn">↗ Extend</button>
+    <button id="sgeSpurBtn" onclick="sgDraftStartSpur()" class="sg-cad-btn spur">⑂ Draw Spur</button>
     <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled class="sg-cad-btn danger">✕ Delete</button>
     <button onclick="sgDraftUndo()" class="sg-cad-btn">↶ Undo</button>
     <button onclick="sgDraftDeleteEndpoint('start')" class="sg-cad-btn danger">✕ Delete Start End</button>
@@ -5524,9 +5679,12 @@ function sgEHTPopupHtml(node){
     <div style="display:flex;gap:5px"><button onclick="applyVertexAttrs()" class="sg-cad-btn">Apply</button><button onclick="convertVertexToAB()" class="sg-cad-btn">Make AB</button></div>
   </span>
   <div style="display:flex;gap:6px;border-top:1px solid #4b5563;padding-top:8px"><button onclick="saveFeederEdit()" class="sg-cad-btn save">💾 Save</button><button onclick="exitFeederEdit()" class="sg-cad-btn">Cancel</button></div>
-  <div style="font-size:9px;color:#94a3b8;line-height:1.35">Drag blue grips to reshape. Select a grip before Insert/Delete. Extend, then click the new endpoint on the map.</div>
+  <div style="font-size:9px;color:#94a3b8;line-height:1.35">For a branch: select a bend grip → Draw Spur → click route bends → click the visible SS centre → Save.</div>
 </div>
-<style>.sg-cad-btn{background:#374151;color:#fff;border:1px solid #596273;border-radius:4px;padding:6px 7px;cursor:pointer;font-size:10px;font-weight:700}.sg-cad-btn:hover,.sg-cad-btn.active{background:#075985;border-color:#22d3ee}.sg-cad-btn.danger{background:#7f1d1d}.sg-cad-btn.save{background:#047857}.sg-cad-btn:disabled{opacity:.35;cursor:not-allowed}.sg-cad-input{width:100%;padding:6px;border-radius:4px;border:1px solid #4b5563;background:#111827;color:#fff;font-size:10px}</style>
+<style>
+.sg-cad-btn{background:#374151;color:#fff;border:1px solid #596273;border-radius:4px;padding:6px 7px;cursor:pointer;font-size:10px;font-weight:700}.sg-cad-btn:hover,.sg-cad-btn.active{background:#075985;border-color:#22d3ee}.sg-cad-btn.spur{background:#7c5a00;border-color:#facc15}.sg-cad-btn.spur.active{background:#a16207;box-shadow:0 0 0 2px rgba(250,204,21,.35)}.sg-cad-btn.danger{background:#7f1d1d}.sg-cad-btn.save{background:#047857}.sg-cad-btn:disabled{opacity:.35;cursor:not-allowed}.sg-cad-input{width:100%;padding:6px;border-radius:4px;border:1px solid #4b5563;background:#111827;color:#fff;font-size:10px}
+.sg-centre-snap{width:22px;height:22px;border-radius:50%;background:rgba(8,47,73,.9);border:3px solid #22d3ee;box-shadow:0 0 0 4px rgba(34,211,238,.28),0 0 14px #22d3ee;position:relative;box-sizing:border-box}.sg-centre-snap.eht{border-color:#fb923c;box-shadow:0 0 0 4px rgba(251,146,60,.28),0 0 14px #fb923c}.sg-centre-snap:before,.sg-centre-snap:after{content:"";position:absolute;background:#fff;left:50%;top:50%;transform:translate(-50%,-50%)}.sg-centre-snap:before{width:14px;height:2px}.sg-centre-snap:after{width:2px;height:14px}.sg-centre-snap span{position:absolute;width:4px;height:4px;border-radius:50%;background:#facc15;left:6px;top:6px}
+</style>
 
 <!-- ═══ New Feeder — identity form ═══ -->
 <div id="nfForm" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6000;background:#12233a;color:#fff;padding:14px 16px;border-radius:12px;box-shadow:0 8px 26px rgba(0,0,0,.45);font-family:var(--sans);font-size:12px;width:290px">
