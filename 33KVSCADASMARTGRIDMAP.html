@@ -3771,15 +3771,27 @@ function normalizeInputRows(raw){
 }
 function buildTopology(){
   topology=[];nodesByKey={};
-  // Super-group by feeder NAME (compact) so spur rows that carry a different
-  // feeder_code but the same feeder name (e.g. MADHAPUR-RAVINDRA trunk code
-  // …219 + spur row code …211) land in ONE group and can branch off the trunk.
-  const byF={};rows.forEach(r=>{const k=compact(r.feeder_name)||String(r.feeder_code||'');if(!byF[k])byF[k]=[];byF[k].push(r)});
+  // Group by feeder identity + source + hierarchy. Grouping only by feeder name
+  // was joining unrelated feeders that happened to have the same display name,
+  // producing long cross-map spider lines. Spur rows with a different code still
+  // remain with their trunk because they share feeder name, EHT source and division.
+  const byF={};
+  rows.forEach(r=>{
+    const feederId=compact(r.feeder_name)||compact(r.feeder_code)||'UNNAMED';
+    const sourceId=compact(r.eht_code)||compact(r.eht_name)||'NOSOURCE';
+    const areaId=compact(r.division)||compact(r.circle)||'NOAREA';
+    const k=feederId+'|'+sourceId+'|'+areaId;
+    if(!byF[k])byF[k]=[];
+    byF[k].push(r);
+  });
   Object.values(byF).forEach(list=>{
     if(!list.length)return;
     const isSpurPole=p=>/\//.test(String(p||'').trim());
     const mains=list.filter(r=>!isSpurPole(r.pole_number));
-    const spurs=list.filter(r=>isSpurPole(r.pole_number));
+    // Ignore legacy /0.x bend rows created automatically by the old spur
+    // editor. They were inserted at the start of a branch and are the main
+    // cause of the long doubling-back spider lines seen on the map.
+    const spurs=list.filter(r=>isSpurPole(r.pole_number)&&!_sgLegacyAutoSpurBend(r));
     const sorted=[...(mains.length?mains:list)].sort((a,b)=>(parseFloat(a.pole_number)||0)-(parseFloat(b.pole_number)||0));
     const first=sorted[0];
     const ftype=normType(first.feeder_type);let seq=[];
@@ -4477,26 +4489,86 @@ function enterFeederEdit(key){
 // Branch-specific editor. A spur can consist of only one stored row, so the
 // normal whole-feeder editor used to reject it as "too few points". Keep the
 // junction and destination fixed and provide draggable geometry grips between.
+function _sgSpurPrefix(pole){
+  const p=String(pole||'').trim();
+  const cut=p.lastIndexOf('/');
+  return cut>0?p.slice(0,cut):'';
+}
+function _sgSpurOrder(pole){
+  const p=String(pole||'').trim();
+  return parseFloat(p.slice(p.lastIndexOf('/')+1))||0;
+}
+function _sgSameFeederFamily(a,b){
+  if(!a||!b)return false;
+  const ac=compact(a.feeder_code),bc=compact(b.feeder_code);
+  if(ac&&bc&&ac===bc)return true;
+  const an=compact(a.feeder_name),bn=compact(b.feeder_name);
+  if(!an||an!==bn)return false;
+  const ae=compact(a.eht_code)||compact(a.eht_name);
+  const be=compact(b.eht_code)||compact(b.eht_name);
+  if(ae&&be&&ae!==be)return false;
+  const ad=compact(a.division)||compact(a.circle);
+  const bd=compact(b.division)||compact(b.circle);
+  if(ad&&bd&&ad!==bd)return false;
+  return true;
+}
+function _sgLegacyAutoSpurBend(r){
+  const order=_sgSpurOrder(r&&r.pole_number);
+  return order>0&&order<1&&/^EDIT-SPUR-/i.test(String((r&&r.feeding_code)||''))&&
+    /BEND POINT/i.test(String((r&&r.feeding_name)||(r&&r.feeding_to)||''));
+}
+function _sgAllRowsForSpur(target){
+  const prefix=_sgSpurPrefix(target&&target.pole_number);
+  if(!prefix)return [];
+  return rows.filter(r=>_sgSameFeederFamily(r,target)&&_sgSpurPrefix(r.pole_number)===prefix)
+    .sort((a,b)=>_sgSpurOrder(a.pole_number)-_sgSpurOrder(b.pole_number));
+}
+function _sgRowsForSpur(target){
+  return _sgAllRowsForSpur(target).filter(r=>!_sgLegacyAutoSpurBend(r));
+}
+
+// Edit the COMPLETE stored spur, not just the clicked segment. The previous
+// implementation invented two new bend rows every time a spur was opened and
+// saved them as /0.1 and /0.2. Those rows always sorted before the real branch
+// points, so repeated edits made the route double back and form spider lines.
 function enterSpurEdit(conn){
   if(!window._sgEditModeOn || !conn || !conn.spur) return;
   exitFeederEdit(false);
   const target=conn.to&&conn.to.row;
   if(!target){ toast('Spur data row not found'); return; }
+  const spurPrefix=_sgSpurPrefix(target.pole_number);
+  const allSpurRows=_sgAllRowsForSpur(target);
+  const activeSpurRows=allSpurRows.filter(r=>!_sgLegacyAutoSpurBend(r));
+  if(!spurPrefix||!activeSpurRows.length){ toast('Complete spur could not be resolved'); return; }
+
+  const branchConns=(topology||[]).filter(c=>c&&c.spur&&c.to&&c.to.row&&
+    _sgSameFeederFamily(c.to.row,target)&&_sgSpurPrefix(c.to.row.pole_number)===spurPrefix)
+    .sort((a,b)=>_sgSpurOrder(a.to.row.pole_number)-_sgSpurOrder(b.to.row.pole_number));
+  const anchor=(branchConns[0]&&branchConns[0].from)||conn.from;
+  if(!anchor){ toast('Spur junction could not be resolved'); return; }
+
   document.body.classList.add('sg-editing-feeder');
   window._sgActiveFeederKey=conn.feeder_code||conn.feeder_name;
-  const a=conn.from, b=conn.to;
-  const verts=[
-    {row:null,lat:+a.lat,lng:+a.lng,locked:true,label:'SPUR JUNCTION'},
-    {row:null,lat:a.lat+(b.lat-a.lat)/3,lng:a.lng+(b.lng-a.lng)/3,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true,moved:true},
-    {row:null,lat:a.lat+2*(b.lat-a.lat)/3,lng:a.lng+2*(b.lng-a.lng)/3,locked:false,label:'BEND POINT',overrideName:'BEND POINT',isBend:true,moved:true},
-    {row:target,lat:+b.lat,lng:+b.lng,locked:true,label:b.name||'SPUR DESTINATION'}
-  ];
-  geomEdit={feederKey:conn.feeder_code||conn.feeder_name,verts,selected:-1,mode:'spur',spurRow:target};
+  const verts=[{row:null,lat:+anchor.lat,lng:+anchor.lng,locked:true,label:'SPUR JUNCTION',junction:true}];
+  activeSpurRows.forEach(r=>{
+    const c=branchConns.find(x=>x.to&&x.to.row===r);
+    const n=(c&&c.to)||{};
+    const lat=n.lat!=null?+n.lat:+r.feeding_lat;
+    const lng=n.lng!=null?+n.lng:+r.feeding_lng;
+    if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+    const label=r.feeding_name||r.feeding_to||'SPUR POINT';
+    verts.push({row:r,lat,lng,locked:false,label,
+      isBend:/BEND POINT/i.test(String(label)+' '+String(r.source_type||''))});
+  });
+  if(verts.length<2){ toast('Spur has no valid destination point'); return; }
+  verts[verts.length-1].locked=true;
+  geomEdit={feederKey:conn.feeder_code||conn.feeder_name,verts,selected:-1,mode:'spur',
+    spurRows:allSpurRows,activeSpurRows,spurPrefix,spurTarget:target};
   sgDraft.history=[]; sgDraft.mode='move';
   _sgRenderEditHandles();
   sgShowStationCenters(true);
   _sgShowEditBar(true,(conn.feeder_name||'Feeder')+' — SPUR');
-  toast('Spur edit: drag the green bend points, then Save Feeder');
+  toast('Complete spur loaded — edit stored points, or use Delete Entire Spur');
 }
 
 function _sgSegLen(a,b){ return Math.hypot(b.lat-a.lat, b.lng-a.lng); }
@@ -4552,7 +4624,7 @@ function _sgRenderEditHandles(){
   // No midpoint insert markers. Use only existing green bend grips for AutoCAD-style shaping.
 
   verts.forEach((v,i)=>{
-    const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(false,i===geomEdit.selected),draggable:true,zIndexOffset:5000,pane:'editGripPane',interactive:true})
+    const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(!!v.locked,i===geomEdit.selected),draggable:!v.locked,zIndexOffset:5000,pane:'editGripPane',interactive:true})
       .bindTooltip(clean(v.label),{direction:'top',opacity:.95});
     marker.on('drag',e=>{
       const ll=e.target.getLatLng(); v.lat=ll.lat; v.lng=ll.lng; v.moved=true;
@@ -4604,7 +4676,8 @@ function convertVertexToAB(){
 function deleteSelectedVertex(){
   const i=geomEdit.selected;
   if(i<0) return;
-  if(geomEdit.verts.length<=2){ toast('A feeder needs at least 2 points'); return; }
+  if(geomEdit.mode==='spur'&&i===0){toast('The spur junction cannot be deleted here — use Delete Entire Spur');return;}
+  if(geomEdit.verts.length<=2){ toast(geomEdit.mode==='spur'?'Use Delete Entire Spur to remove the final branch segment':'A feeder needs at least 2 points'); return; }
   sgDraftSnapshot();
   geomEdit.verts.splice(i,1);
   // Deleting an end grip also deletes its final segment. The immediately
@@ -4623,7 +4696,8 @@ function deleteSelectedVertex(){
   toast('Point and adjoining end segment removed — Save to commit');
 }
 function sgDraftDeleteEndpoint(which){
-  if(!geomEdit.feederKey||geomEdit.verts.length<=2){toast('A feeder needs at least two remaining points');return;}
+  if(geomEdit.mode==='spur'&&which==='start'){toast('The spur junction cannot be deleted here — use Delete Entire Spur');return;}
+  if(!geomEdit.feederKey||geomEdit.verts.length<=2){toast(geomEdit.mode==='spur'?'Use Delete Entire Spur to remove the final branch segment':'A feeder needs at least two remaining points');return;}
   sgDraftSnapshot();
   if(which==='start'){
     geomEdit.verts.shift();
@@ -4637,6 +4711,26 @@ function sgDraftDeleteEndpoint(which){
   geomEdit.verts[0].locked=true;geomEdit.verts[geomEdit.verts.length-1].locked=true;
   geomEdit.selected=-1;_sgRenderEditHandles();
   toast((which==='start'?'Start':'End')+' endpoint and adjoining segment deleted — Save to commit');
+}
+
+function sgDeleteEntireSpur(){
+  if(geomEdit.mode!=='spur'){toast('Open a spur line first');return;}
+  const oldRows=geomEdit.spurRows||[];
+  if(!oldRows.length){toast('No stored spur rows found');return;}
+  const feederName=clean(oldRows[0].feeder_name||geomEdit.feederKey||'this feeder');
+  if(!window.confirm('Delete the complete spur from '+feederName+'? This removes every point in this branch.'))return;
+  const oldSet=new Set(oldRows);
+  rows=rows.filter(r=>!oldSet.has(r));
+  exitFeederEdit(true); buildTopology(); populateFilters(); render();
+  toast('Entire spur deleted — pushing the corrected topology to Firebase…');
+  saveFirebase();
+}
+function sgDraftCancelSpur(){
+  if(!geomEdit.spurDraft&&sgDraft.mode!=='drawSpur'){toast('No unsaved spur is active');return;}
+  geomEdit.spurDraft=null; sgDraft.mode='move';
+  document.getElementById('sgeSpurBtn')?.classList.remove('active');
+  _sgRenderEditHandles();
+  toast('Unsaved spur cancelled — no line was added');
 }
 
 function _sgShowEditBar(show,name){
@@ -4660,28 +4754,39 @@ function saveFeederEdit(){
   const key=geomEdit.feederKey;
   if(!key){ return; }
   if(geomEdit.mode==='spur'){
-    const target=geomEdit.spurRow;
-    const at=rows.indexOf(target);
-    if(at<0){ toast('Spur row missing'); exitFeederEdit(); return; }
-    const pole=String(target.pole_number||'1/A/1');
-    const cut=pole.lastIndexOf('/');
-    const prefix=cut>=0?pole.slice(0,cut):pole+'/A';
-    const endPart=cut>=0?pole.slice(cut+1):'1';
-    const bends=geomEdit.verts.slice(1,-1);
-    const added=bends.map((v,i)=>{
-      const r={...target};
-      r._raw={};
-      r.pole_number=prefix+'/0.'+(i+1);
-      r.feeding_lat=v.lat; r.feeding_lng=v.lng;
-      r.feeding_name='BEND POINT'; r.feeding_to='BEND POINT';
-      r.source_type='BEND POINT'; r.feeding_code='';
-      r.raw_index=Date.now()+i;
-      return r;
+    const oldRows=geomEdit.spurRows||[];
+    const prefix=geomEdit.spurPrefix||_sgSpurPrefix((geomEdit.spurTarget||{}).pole_number);
+    if(!oldRows.length||!prefix){ toast('Spur rows missing'); exitFeederEdit(); return; }
+    if(geomEdit.verts.length<2){ toast('A spur needs a junction and at least one destination'); return; }
+    const oldLast=oldRows[oldRows.length-1];
+    const template=oldLast||oldRows[0];
+    const points=geomEdit.verts.slice(1);
+    const replacement=points.map((v,i)=>{
+      const isLast=i===points.length-1;
+      const base=v.row?{...v.row}:{...template,_raw:{},raw_index:Date.now()+i};
+      base.pole_number=`${prefix}/${i+1}`;
+      base.feeding_lat=+v.lat; base.feeding_lng=+v.lng;
+      if(isLast){
+        base.feeding_name=v.overrideName||v.label||base.feeding_name||base.feeding_to||'33/11KV SS';
+        base.feeding_to=base.feeding_name;
+        if(v.overrideCode!=null)base.feeding_code=v.overrideCode;
+      }else if(!v.row){
+        base.feeding_name=v.overrideName||'BEND POINT';
+        base.feeding_to=base.feeding_name;
+        base.source_type=v.makeAB?'AB SWITCH':'BEND POINT';
+        base.feeding_code=v.overrideCode||`EDIT-SPUR-${Date.now().toString(36)}-${i+1}`;
+      }else{
+        if(v.overrideName){base.feeding_name=v.overrideName;base.feeding_to=v.overrideName;}
+        if(v.overrideCode)base.feeding_code=v.overrideCode;
+      }
+      if(v.makeAB){base.feeding_name='AB Switch';base.feeding_to='AB Switch';base.source_type='AB SWITCH';}
+      return base;
     });
-    target.pole_number=prefix+'/'+endPart;
-    rows.splice(at,0,...added);
+    const oldSet=new Set(oldRows);
+    rows=rows.filter(r=>!oldSet.has(r));
+    rows.push(...replacement);
     buildTopology(); populateFilters(); exitFeederEdit(); render();
-    toast('Spur geometry saved — pushing to Firebase…');
+    toast('Spur geometry saved without creating duplicate bend rows — pushing to Firebase…');
     saveFirebase();
     return;
   }
@@ -4701,6 +4806,11 @@ function saveFeederEdit(){
   const newSpurRows=[];
   if(geomEdit.spurDraft&&geomEdit.spurDraft.completed){
     const draft=geomEdit.spurDraft;
+    const jumps=draft.points.slice(1).map((p,i)=>_sgSegLen(draft.points[i],p));
+    const suspicious=draft.points.length>10||jumps.some(d=>d>0.03);
+    if(suspicious&&!window.confirm('This spur contains '+(draft.points.length-1)+' segments and one or more long jumps. Save it anyway?')){
+      toast('Spur not saved — use Undo or Cancel Spur to remove unwanted points'); return;
+    }
     const sourceIndex=feedVerts.indexOf(draft.sourceVertex);
     if(sourceIndex<0){toast('Spur junction was not retained on the trunk');return;}
     const basePole=sourceIndex+1;
@@ -5620,6 +5730,17 @@ map.on('click',e=>{
   toast('Feeder extended'+(p.type!=='free'?' — snapped to '+p.type:'')+'; Save Feeder to commit');
 });
 
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Escape'&&window._sgEditModeOn&&geomEdit.feederKey){
+    if(geomEdit.spurDraft||sgDraft.mode==='drawSpur')sgDraftCancelSpur();
+    else if(['extend','changeSource','changeEnd'].includes(sgDraft.mode)){
+      sgDraft.mode='move';
+      ['sgeSourceBtn','sgeEndBtn','sgeExtendBtn','sgeSpurBtn'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+      toast('Current drafting command cancelled');
+    }
+  }
+});
+
 function sgEHTPopupHtml(node){
   const cache=window._sgMasterCoordCache||sgMasterBuildCoordCache();
   const code=compact(node.code||'');
@@ -5659,7 +5780,9 @@ function sgEHTPopupHtml(node){
     <button onclick="sgDraftInsertPoint()" class="sg-cad-btn">⊕ Insert Point</button>
     <button id="sgeExtendBtn" onclick="sgDraftExtend()" class="sg-cad-btn">↗ Extend</button>
     <button id="sgeSpurBtn" onclick="sgDraftStartSpur()" class="sg-cad-btn spur">⑂ Draw Spur</button>
-    <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled class="sg-cad-btn danger">✕ Delete</button>
+    <button onclick="sgDraftCancelSpur()" class="sg-cad-btn">Cancel Spur</button>
+    <button id="sgeDelBtn" onclick="deleteSelectedVertex()" disabled class="sg-cad-btn danger">✕ Delete Point</button>
+    <button onclick="sgDeleteEntireSpur()" class="sg-cad-btn danger">✕ Delete Entire Spur</button>
     <button onclick="sgDraftUndo()" class="sg-cad-btn">↶ Undo</button>
     <button onclick="sgDraftDeleteEndpoint('start')" class="sg-cad-btn danger">✕ Delete Start End</button>
     <button onclick="sgDraftDeleteEndpoint('end')" class="sg-cad-btn danger">✕ Delete Final End</button>
