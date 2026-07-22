@@ -4526,6 +4526,53 @@ function _sgAllRowsForSpur(target){
 function _sgRowsForSpur(target){
   return _sgAllRowsForSpur(target).filter(r=>!_sgLegacyAutoSpurBend(r));
 }
+function _sgSpurPrefixParts(prefix){
+  const p=String(prefix||'').trim();
+  const cut=p.lastIndexOf('/');
+  return cut>0?{base:p.slice(0,cut),branch:p.slice(cut+1)}:{base:p,branch:'A'};
+}
+function _sgFormatSpurBase(n){
+  const x=+n;
+  if(!Number.isFinite(x))return '';
+  const rounded=Math.round(x*1000)/1000;
+  return String(rounded).replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1');
+}
+function _sgSpurTrunkSegments(conn,target){
+  const feederName=compact((conn&&conn.feeder_name)||(target&&target.feeder_name));
+  const source=compact((conn&&conn.eht_code)||(conn&&conn.eht_name)||(target&&target.eht_code)||(target&&target.eht_name));
+  const area=compact((conn&&conn.division)||(conn&&conn.circle)||(target&&target.division)||(target&&target.circle));
+  return (topology||[]).filter(c=>{
+    if(!c||c.spur||!c.from||!c.to)return false;
+    if(feederName&&compact(c.feeder_name)!==feederName)return false;
+    const cSource=compact(c.eht_code)||compact(c.eht_name);
+    if(source&&cSource&&cSource!==source)return false;
+    const cArea=compact(c.division)||compact(c.circle);
+    if(area&&cArea&&cArea!==area)return false;
+    const a=+c.from.poleNum,b=+c.to.poleNum;
+    return Number.isFinite(a)&&Number.isFinite(b)&&Number.isFinite(+c.from.lat)&&Number.isFinite(+c.from.lng)&&Number.isFinite(+c.to.lat)&&Number.isFinite(+c.to.lng);
+  });
+}
+function _sgSnapSpurJunction(latlng){
+  const segs=geomEdit.trunkSegments||[];
+  if(!segs.length)return null;
+  const p=map.latLngToLayerPoint(latlng);
+  let best=null;
+  segs.forEach(c=>{
+    const a=map.latLngToLayerPoint([+c.from.lat,+c.from.lng]);
+    const b=map.latLngToLayerPoint([+c.to.lat,+c.to.lng]);
+    const dx=b.x-a.x,dy=b.y-a.y,den=dx*dx+dy*dy;
+    if(!den)return;
+    let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/den;
+    t=Math.max(0,Math.min(1,t));
+    const q=L.point(a.x+t*dx,a.y+t*dy);
+    const dist=p.distanceTo(q);
+    if(!best||dist<best.dist){
+      const pa=+c.from.poleNum,pb=+c.to.poleNum;
+      best={dist,t,latlng:map.layerPointToLatLng(q),base:pa+(pb-pa)*t};
+    }
+  });
+  return best;
+}
 
 // Edit the COMPLETE stored spur, not just the clicked segment. The previous
 // implementation invented two new bend rows every time a spur was opened and
@@ -4549,7 +4596,9 @@ function enterSpurEdit(conn){
 
   document.body.classList.add('sg-editing-feeder');
   window._sgActiveFeederKey=conn.feeder_code||conn.feeder_name;
-  const verts=[{row:null,lat:+anchor.lat,lng:+anchor.lng,locked:true,label:'SPUR JUNCTION',junction:true}];
+  const prefixParts=_sgSpurPrefixParts(spurPrefix);
+  const initialBase=parseFloat(prefixParts.base);
+  const verts=[{row:null,lat:+anchor.lat,lng:+anchor.lng,locked:false,label:'SPUR JUNCTION — DRAG ALONG MAIN LINE',junction:true,movableJunction:true}];
   activeSpurRows.forEach(r=>{
     const c=branchConns.find(x=>x.to&&x.to.row===r);
     const n=(c&&c.to)||{};
@@ -4563,12 +4612,14 @@ function enterSpurEdit(conn){
   if(verts.length<2){ toast('Spur has no valid destination point'); return; }
   verts[verts.length-1].locked=true;
   geomEdit={feederKey:conn.feeder_code||conn.feeder_name,verts,selected:-1,mode:'spur',
-    spurRows:allSpurRows,activeSpurRows,spurPrefix,spurTarget:target};
+    spurRows:allSpurRows,activeSpurRows,spurPrefix,spurTarget:target,
+    spurBase:Number.isFinite(initialBase)?initialBase:(+anchor.poleNum||0),spurBranch:prefixParts.branch||'A',
+    trunkSegments:_sgSpurTrunkSegments(conn,target)};
   sgDraft.history=[]; sgDraft.mode='move';
   _sgRenderEditHandles();
   sgShowStationCenters(true);
   _sgShowEditBar(true,(conn.feeder_name||'Feeder')+' — SPUR');
-  toast('Complete spur loaded — edit stored points, or use Delete Entire Spur');
+  toast('Complete spur loaded — drag the first SPUR JUNCTION grip along the main line');
 }
 
 function _sgSegLen(a,b){ return Math.hypot(b.lat-a.lat, b.lng-a.lng); }
@@ -4627,12 +4678,23 @@ function _sgRenderEditHandles(){
     const marker=L.marker([v.lat,v.lng],{icon:_sgVertIcon(!!v.locked,i===geomEdit.selected),draggable:!v.locked,zIndexOffset:5000,pane:'editGripPane',interactive:true})
       .bindTooltip(clean(v.label),{direction:'top',opacity:.95});
     marker.on('drag',e=>{
-      const ll=e.target.getLatLng(); v.lat=ll.lat; v.lng=ll.lng; v.moved=true;
-      if(i===0)geomEdit.sourceTarget={kind:'eht',name:v.overrideName||v.label||'',code:v.overrideCode||'',lat:v.lat,lng:v.lng};
+      let ll=e.target.getLatLng();
+      if(geomEdit.mode==='spur'&&i===0&&v.junction){
+        const snap=_sgSnapSpurJunction(ll);
+        if(snap){
+          ll=snap.latlng; e.target.setLatLng(ll); geomEdit.spurBase=snap.base;
+          v.label='SPUR JUNCTION @ '+_sgFormatSpurBase(snap.base)+' — DRAG ALONG MAIN LINE';
+        }
+      }
+      v.lat=ll.lat; v.lng=ll.lng; v.moved=true;
+      if(i===0&&geomEdit.mode!=='spur')geomEdit.sourceTarget={kind:'eht',name:v.overrideName||v.label||'',code:v.overrideCode||'',lat:v.lat,lng:v.lng};
       if(i===geomEdit.verts.length-1)geomEdit.endTarget={kind:'ss33',name:v.overrideName||v.label||'',code:v.overrideCode||'',lat:v.lat,lng:v.lng};
       if(_sgGuideLine) _sgGuideLine.setLatLngs(geomEdit.verts.map(x=>[x.lat,x.lng]));
     });
-    marker.on('dragend',()=>_sgRenderEditHandles());
+    marker.on('dragend',()=>{
+      if(geomEdit.mode==='spur'&&i===0&&v.junction)toast('Spur junction moved to main-line position '+_sgFormatSpurBase(geomEdit.spurBase)+' — Save to commit');
+      _sgRenderEditHandles();
+    });
     marker.on('click',ev=>{ L.DomEvent.stop(ev); geomEdit.selected=(geomEdit.selected===i?-1:i); _sgRenderEditHandles(); });
     marker.addTo(gEditLayer);
   });
@@ -4683,7 +4745,8 @@ function deleteSelectedVertex(){
   // Deleting an end grip also deletes its final segment. The immediately
   // preceding/following bend automatically becomes the new editable endpoint.
   geomEdit.verts.forEach(v=>v.locked=false);
-  geomEdit.verts[0].locked=true;
+  // Existing spur junction remains movable but is constrained to the trunk.
+  geomEdit.verts[0].locked=geomEdit.mode!=='spur';
   geomEdit.verts[geomEdit.verts.length-1].locked=true;
   if(i===0){
     const s=geomEdit.verts[0];geomEdit.sourceTarget={kind:'eht',name:s.overrideName||s.label||'',code:s.overrideCode||'',lat:s.lat,lng:s.lng};
@@ -4708,7 +4771,7 @@ function sgDraftDeleteEndpoint(which){
     const e=geomEdit.verts[geomEdit.verts.length-1];e.moved=true;geomEdit.endTarget=null;
   }
   geomEdit.verts.forEach(v=>v.locked=false);
-  geomEdit.verts[0].locked=true;geomEdit.verts[geomEdit.verts.length-1].locked=true;
+  geomEdit.verts[0].locked=geomEdit.mode!=='spur';geomEdit.verts[geomEdit.verts.length-1].locked=true;
   geomEdit.selected=-1;_sgRenderEditHandles();
   toast((which==='start'?'Start':'End')+' endpoint and adjoining segment deleted — Save to commit');
 }
@@ -4755,7 +4818,10 @@ function saveFeederEdit(){
   if(!key){ return; }
   if(geomEdit.mode==='spur'){
     const oldRows=geomEdit.spurRows||[];
-    const prefix=geomEdit.spurPrefix||_sgSpurPrefix((geomEdit.spurTarget||{}).pole_number);
+    const oldPrefix=geomEdit.spurPrefix||_sgSpurPrefix((geomEdit.spurTarget||{}).pole_number);
+    const oldParts=_sgSpurPrefixParts(oldPrefix);
+    const movedBase=_sgFormatSpurBase(geomEdit.spurBase);
+    const prefix=(movedBase||oldParts.base)+'/'+(geomEdit.spurBranch||oldParts.branch||'A');
     if(!oldRows.length||!prefix){ toast('Spur rows missing'); exitFeederEdit(); return; }
     if(geomEdit.verts.length<2){ toast('A spur needs a junction and at least one destination'); return; }
     const oldLast=oldRows[oldRows.length-1];
@@ -4786,7 +4852,7 @@ function saveFeederEdit(){
     rows=rows.filter(r=>!oldSet.has(r));
     rows.push(...replacement);
     buildTopology(); populateFilters(); exitFeederEdit(); render();
-    toast('Spur geometry saved without creating duplicate bend rows — pushing to Firebase…');
+    toast('Spur geometry and movable main-line junction saved — pushing to Firebase…');
     saveFirebase();
     return;
   }
@@ -5802,7 +5868,7 @@ function sgEHTPopupHtml(node){
     <div style="display:flex;gap:5px"><button onclick="applyVertexAttrs()" class="sg-cad-btn">Apply</button><button onclick="convertVertexToAB()" class="sg-cad-btn">Make AB</button></div>
   </span>
   <div style="display:flex;gap:6px;border-top:1px solid #4b5563;padding-top:8px"><button onclick="saveFeederEdit()" class="sg-cad-btn save">💾 Save</button><button onclick="exitFeederEdit()" class="sg-cad-btn">Cancel</button></div>
-  <div style="font-size:9px;color:#94a3b8;line-height:1.35">For a branch: select a bend grip → Draw Spur → click route bends → click the visible SS centre → Save.</div>
+  <div style="font-size:9px;color:#94a3b8;line-height:1.35">For an existing branch: drag the first SPUR JUNCTION grip along the main line. Draw Spur creates a new branch; Save commits changes.</div>
 </div>
 <style>
 .sg-cad-btn{background:#374151;color:#fff;border:1px solid #596273;border-radius:4px;padding:6px 7px;cursor:pointer;font-size:10px;font-weight:700}.sg-cad-btn:hover,.sg-cad-btn.active{background:#075985;border-color:#22d3ee}.sg-cad-btn.spur{background:#7c5a00;border-color:#facc15}.sg-cad-btn.spur.active{background:#a16207;box-shadow:0 0 0 2px rgba(250,204,21,.35)}.sg-cad-btn.danger{background:#7f1d1d}.sg-cad-btn.save{background:#047857}.sg-cad-btn:disabled{opacity:.35;cursor:not-allowed}.sg-cad-input{width:100%;padding:6px;border-radius:4px;border:1px solid #4b5563;background:#111827;color:#fff;font-size:10px}
