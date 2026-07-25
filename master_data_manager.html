@@ -4,6 +4,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TGSPDCL — Master Data Manager · Source Reports</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.7/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f172a;--card:#1e293b;--card2:#111827;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--purple:#7c3aed;--purple2:#a855f7;--green:#16a34a;--red:#dc2626;--amber:#d97706;--blue:#38bdf8;--mono:Consolas,Monaco,monospace}
@@ -86,6 +87,28 @@ body.compact-rows .row-edit-btn,body.compact-rows .row-delete-btn{height:25px}
 @media(max-width:700px){.wrap{padding:0 8px 20px}.stats{grid-template-columns:repeat(2,1fr)}.toolbar{gap:7px}.search{min-width:100%;order:-2}.toolbar select{flex:1}.modal{border-radius:0}.modal-hd{border-radius:0}.right .chip:not(#fbChip){display:none}.topbar{padding:12px}.topbar h1{font-size:15px}.action-head,.action-cell{min-width:110px;width:110px}.row-edit-btn{min-width:60px}}
 
 </style>
+
+<style id="automatic-report-dashboard-style">
+/* ===== AUTOMATIC ANALYTICS & CHART REPORTS ===== */
+.report-shell{display:grid;gap:14px}
+.report-hero{position:relative;overflow:hidden;background:linear-gradient(120deg,rgba(109,40,217,.34),rgba(14,116,144,.24) 58%,rgba(15,23,42,.95));border:1px solid rgba(167,139,250,.35);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow)}
+.report-hero:after{content:"";position:absolute;right:-70px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(168,85,247,.32),transparent 66%);pointer-events:none}
+.report-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;position:relative;z-index:1}.report-hero h2{font-size:20px;letter-spacing:.4px;margin-bottom:6px}.report-hero p{color:#b9c6da;line-height:1.55;max-width:980px}.report-live{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(52,211,153,.38);background:rgba(16,185,129,.12);color:#a7f3d0;border-radius:999px;padding:7px 11px;font:900 9px var(--mono);letter-spacing:.8px;white-space:nowrap}.report-live i{width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 0 5px rgba(52,211,153,.12)}
+.report-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;position:relative;z-index:1}
+.report-kpis{display:grid;grid-template-columns:repeat(8,minmax(130px,1fr));gap:10px}.report-kpi{background:linear-gradient(145deg,rgba(28,41,64,.98),rgba(15,25,42,.98));border:1px solid var(--line);border-radius:12px;padding:13px 14px;min-height:90px;position:relative;overflow:hidden}.report-kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(#a855f7,#38bdf8)}.report-kpi .kv{font:900 22px var(--mono);color:#f5f3ff}.report-kpi .kl{font:800 9px var(--mono);letter-spacing:.6px;text-transform:uppercase;color:#94a3b8;margin-top:6px;line-height:1.35}.report-kpi .ks{font-size:9px;color:#64748b;margin-top:4px}
+.report-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.report-chart-card{background:linear-gradient(145deg,rgba(24,35,56,.99),rgba(13,22,38,.99));border:1px solid var(--line);border-radius:13px;padding:14px 15px;min-width:0;box-shadow:0 8px 22px rgba(0,0,0,.14)}.report-chart-card.wide{grid-column:1/-1}.report-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}.report-card-head h3{font-size:12px;color:#e9d5ff;letter-spacing:.35px}.report-card-head p{font-size:10px;color:#7f91ab;margin-top:3px;line-height:1.35}.chart-tools{display:flex;gap:5px;flex-shrink:0}.chart-tools button{border:1px solid var(--line);background:#0d1728;color:#aebbd0;border-radius:6px;padding:5px 7px;font-size:8px;font-weight:900;cursor:pointer}.chart-tools button:hover{border-color:#a855f7;color:#fff}.chart-box{height:300px;position:relative}.chart-box.short{height:265px}.chart-box.tall{height:355px}.chart-box canvas{width:100%!important;height:100%!important}
+.report-builder{background:rgba(20,31,50,.98);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}.report-builder-head{padding:14px 16px;background:linear-gradient(90deg,rgba(124,58,237,.14),rgba(14,116,144,.10));border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:15px;align-items:center}.report-builder-head h3{font-size:14px;color:#f3e8ff}.report-builder-head p{font-size:10px;color:#91a0b6;margin-top:4px}.report-controlbar{display:flex;gap:9px;flex-wrap:wrap;align-items:end;padding:13px 15px;border-bottom:1px solid var(--line);background:#111b2d}.report-control{min-width:190px}.report-control.grow{flex:1;min-width:330px}.report-control label{display:block;font:900 8px var(--mono);letter-spacing:.7px;text-transform:uppercase;color:#7f91ab;margin:0 0 5px 2px}.report-control select{width:100%;min-height:37px;background:#0b1424;border:1px solid #35455e;color:#e2e8f0;border-radius:8px;padding:8px 10px;font-size:11px}.report-control select:focus{outline:none;border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.13)}
+.report-detail{padding:15px}.report-detail-title{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:11px}.report-detail-title h3{font-size:15px;color:#fff}.report-detail-title p{font-size:10px;color:#94a3b8;margin-top:4px;line-height:1.5}.report-record-count{font:900 9px var(--mono);color:#c4b5fd;background:rgba(124,58,237,.13);border:1px solid rgba(167,139,250,.22);border-radius:999px;padding:6px 9px;white-space:nowrap}.report-detail-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:13px}.report-table-wrap{max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#0e1829}.report-table{font-size:10.3px}.report-table th{font-size:8.4px;padding:9px 8px}.report-table td{padding:8px}.report-table td.numv{text-align:right;font-family:var(--mono);font-weight:800;color:#e9d5ff}.report-table tr.total-row td{position:sticky;bottom:0;background:#17243a;color:#fff;font-weight:900;border-top:2px solid #7c3aed}.report-table .rank{color:#a78bfa;font-weight:900}.report-note{margin-top:10px;color:#7f91ab;font-size:9.5px;line-height:1.45}
+.report-catalog{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.report-catalog-card{background:#131f33;border:1px solid var(--line);border-radius:10px;padding:11px;cursor:pointer;transition:.18s}.report-catalog-card:hover{transform:translateY(-2px);border-color:#8b5cf6;background:#182640}.report-catalog-card b{display:block;font-size:10px;color:#e9d5ff;margin-bottom:4px}.report-catalog-card span{font-size:9px;color:#7f91ab;line-height:1.4}
+.report-empty{height:220px;display:flex;align-items:center;justify-content:center;text-align:center;color:#7f91ab;font-style:italic;padding:25px}
+@media(max-width:1450px){.report-kpis{grid-template-columns:repeat(4,1fr)}.report-catalog{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.report-chart-grid,.report-detail-charts{grid-template-columns:1fr}.report-chart-card.wide{grid-column:auto}.report-kpis{grid-template-columns:repeat(2,1fr)}.report-catalog{grid-template-columns:repeat(2,1fr)}.report-hero-top{flex-direction:column}.report-control,.report-control.grow{min-width:100%}}
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body{background:#fff!important;color:#111!important;font-size:9pt}.topbar,.tabs,.stats,.note,.report-actions,.report-controlbar,.chart-tools,#toast,.edit-tip{display:none!important}.wrap{padding:0!important;margin:0!important}.pane{display:none!important}#pane-reports{display:block!important}.report-shell{gap:8px}.report-hero,.report-kpi,.report-chart-card,.report-builder{box-shadow:none!important;break-inside:avoid;border-color:#b8c0cc!important}.report-hero,.report-kpi,.report-chart-card,.report-builder,.report-builder-head,.report-detail{background:#fff!important;color:#111!important}.report-hero h2,.report-builder h3,.report-chart-card h3,.report-kpi .kv{color:#111!important}.report-hero p,.report-card-head p,.report-kpi .kl,.report-kpi .ks,.report-detail-title p,.report-note{color:#555!important}.report-chart-grid,.report-detail-charts{grid-template-columns:repeat(2,1fr)}.chart-box{height:235px!important}.report-table-wrap{max-height:none;overflow:visible;border-color:#bbb}.report-table th{position:static;background:#e9edf3!important;color:#111!important}.report-table td{color:#111!important}.report-catalog{display:none}.report-live{color:#166534;border-color:#86efac;background:#ecfdf5}.report-detail{break-before:page}.report-builder{overflow:visible}
+}
+</style>
+
 </head><body>
 <div class="topbar">
   <h1>⚙️ MASTER DATA MANAGER</h1>
@@ -271,7 +294,11 @@ async function syncBundledData(){
     BUNDLED_PREVIEW=false;chip('live','☁ LIVE');toast('✓ Attached SS and EHT master data synced to Firebase');renderAll();updateBundledNotice();
   }catch(e){console.error(e);chip('err','⚠ FAILED');toast('Firebase sync failed: '+e.message,true)}
 }
-function switchTab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.pane===n));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+n))}
+function switchTab(n){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.pane===n));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+n));
+  if(n==='reports')setTimeout(renderAutoReports,60);
+}
 function buildPanes(){
   Object.keys(SCHEMA).forEach(type=>{
     const s=SCHEMA[type];
@@ -293,19 +320,11 @@ function buildPanes(){
         ${cleanupBtn}
       </div>
       <div class="card">
-        <div class="card-hd"><div class="card-hd-copy"><span class="title">${s.title}</span><span class="hint">${s.hint}</span><div class="edit-tip">✎ Every row now has a fixed Edit button. <kbd>Double-click</kbd> any row to open it.</div></div></div>
+        <div class="card-hd"><div class="card-hd-copy"><span class="title">${s.title}</span><span class="hint">${s.hint}</span><div class="edit-tip">✎ Every row has a fixed Edit button. <kbd>Double-click</kbd> any row to open it.</div></div></div>
         <div class="table-wrap"><table class="data-table"><thead><tr><th class="action-head">ROW ACTION</th>${s.cols.map(c=>`<th title="${escapeAttr(fieldLabel(c))}">${escapeHTML(fieldLabel(c))}</th>`).join('')}</tr></thead><tbody id="tb-${type}"></tbody></table></div>
       </div>`;
   });
-  $('pane-reports').innerHTML=`
-    <div class="toolbar">
-      <button class="btn btn-green" onclick="syncBundledData()">⚡ SYNC ATTACHED MASTER DATA</button>
-      <button class="btn btn-amber" onclick="downloadFullWorkbook()">⬇ DOWNLOAD FULL MASTER REPORT WORKBOOK</button>
-      <button class="btn btn-outline" onclick="renderAutoReports()">↻ REFRESH REPORT</button>
-    </div>
-    <div class="card"><div class="card-hd"><div class="card-hd-copy"><span class="title">📘 Master Data Coverage & Automatic Statistics</span><span class="hint">SS GPS/counts, Lines hierarchy, Operation hierarchy, EHT capacity/feeders and source report checks.</span></div></div>
-      <div class="table-wrap" id="autoReportBox"></div>
-    </div>`;
+  $('pane-reports').innerHTML=`<div id="reportDashboard" class="report-shell"><div class="report-empty">Preparing automatic report dashboard…</div></div>`;
 }
 function populateFilters(){
   Object.keys(SCHEMA).forEach(type=>{
@@ -410,30 +429,215 @@ function renderType(type){
     </tr>`;
   }).join('');
 }
+
+const REPORT_STATE={type:'ss-lines-circle',topN:15};
+let REPORT_CHARTS={};
+const REPORT_OPTIONS=[
+  ['executive','Executive Summary'],
+  ['ss-lines-circle','33/11 kV SS — Lines Circle-wise'],['ss-lines-division','33/11 kV SS — Lines Division-wise'],['ss-lines-subdivision','33/11 kV SS — Lines Sub-Division-wise'],['ss-lines-section','33/11 kV SS — Lines Section-wise'],
+  ['ss-operation-zone','33/11 kV SS — Region / Operation Zone-wise'],['ss-operation-circle','33/11 kV SS — Operation Circle-wise'],['ss-operation-division','33/11 kV SS — Operation Division-wise'],
+  ['ptr-capacity','PTR — Capacity Rating-wise'],['ptr-division','PTR — Division-wise'],['ptr-subdivision','PTR — Sub-Division-wise'],['ptr-section','PTR — Section-wise'],['ss-capacity-ranking','33/11 kV SS — Installed Capacity Ranking'],
+  ['eht-circle','EHT — Operation Circle-wise'],['eht-division','EHT — Operation Division-wise'],['eht-subdivision','EHT — Operation Sub-Division-wise'],['eht-section','EHT — Operation Section-wise'],['eht-capacity-ranking','EHT — Capacity Ranking'],
+  ['data-quality','Data Quality & Completeness']
+];
+const REPORT_SHEET_NAMES={
+  executive:'Executive', 'ss-lines-circle':'SS Lines Circle','ss-lines-division':'SS Lines Division','ss-lines-subdivision':'SS Lines SubDiv','ss-lines-section':'SS Lines Section',
+  'ss-operation-zone':'SS Operation Zone','ss-operation-circle':'SS Operation Circle','ss-operation-division':'SS Operation Div',
+  'ptr-capacity':'PTR Capacity','ptr-division':'PTR Division','ptr-subdivision':'PTR SubDivision','ptr-section':'PTR Section','ss-capacity-ranking':'SS Capacity Rank',
+  'eht-circle':'EHT Circle','eht-division':'EHT Division','eht-subdivision':'EHT SubDivision','eht-section':'EHT Section','eht-capacity-ranking':'EHT Capacity Rank','data-quality':'Data Quality'
+};
+function fmtNumber(v,d=0){const n=Number(v);return isFinite(n)?n.toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'}
+function pct(a,b){return b?Math.round(a/b*1000)/10:0}
+function rowIdentity(r,type='ss'){return safeKey(type==='eht'?(r.ehtCode||r.ehtName):(r.ssCode||r.ssName))}
+function buildAnalytics(){
+  const sourceRows=getValidSourceEntries().map(([k,r])=>r),sourceBySS={};
+  sourceRows.forEach(r=>{
+    const k=rowIdentity(r),x=sourceBySS[k]||(sourceBySS[k]={key:k,ssCode:r.ssCode,ssName:r.ssName,division:r.division,subDivision:r.subDivision,section:r.section,ptrCount:0,capacityMVA:0,ratings:{},sources:new Set(),rows:[]});
+    x.ptrCount++;x.capacityMVA+=Number(r.ptrCapacity)||0;x.rows.push(r);const rating=capacityKey(r.ptrCapacity);x.ratings[rating]=(x.ratings[rating]||0)+1;
+    [r.regularFeederCode||r.regularFeederName,r.alt1Code||r.alt1Name,r.alt2Code||r.alt2Name,r.alt3Code||r.alt3Name,r.alt4Code||r.alt4Name].filter(Boolean).forEach(v=>x.sources.add(safeKey(v)));
+  });
+  const masterBySS={};Object.values(DB.sscoords||{}).forEach(r=>masterBySS[rowIdentity(r)]=r);
+  const allKeys=new Set([...Object.keys(masterBySS),...Object.keys(sourceBySS)]),ssRecords=[];
+  allKeys.forEach(k=>{
+    const m=masterBySS[k]||{},p=sourceBySS[k]||{};
+    ssRecords.push({
+      key:k,ssCode:m.ssCode||p.ssCode||'',ssName:m.ssName||p.ssName||'',lat:m.lat,lng:m.lng,noLVs:Number(m.noLVs)||0,no11KVFeeders:Number(m.no11KVFeeders)||0,
+      linesCircle:m.linesCircle||m.circle||'',linesDivision:m.linesDivision||m.division||p.division||'',linesSubDivision:m.linesSubDivision||m.subDivision||p.subDivision||'',linesSection:m.linesSection||m.section||p.section||'',
+      operationZone:m.operationZone||'',operationCircle:m.operationCircle||'',operationDivision:m.operationDivision||'',
+      ptrCount:Number(p.ptrCount)||0,capacityMVA:Math.round((Number(p.capacityMVA)||0)*10)/10,sourceCount:p.sources?.size||0,hasMaster:!!masterBySS[k],hasSource:!!sourceBySS[k],hasGPS:validCoord(m),
+      linesComplete:!!(m.linesCircle&&m.linesDivision&&m.linesSubDivision&&m.linesSection),operationComplete:!!(m.operationZone&&m.operationCircle&&m.operationDivision)
+    });
+  });
+  const ehtRecords=Object.values(DB.eht||{}).map(r=>({
+    ...r,key:rowIdentity(r,'eht'),capacityMVA:Number(r.totalPtrCapacity)||0,noLVs:Number(r.noLVs)||0,no33KVFeeders:Number(r.no33KVFeeders)||0,hasGPS:validCoord(r),
+    operationComplete:!!(r.operationCircle&&r.operationDivision),capacityComplete:valuePresent(r.totalPtrCapacity)&&(r.ptrCapacities||r.ptrs)
+  }));
+  return {sourceRows,sourceBySS,ssRecords,ehtRecords};
+}
+function groupSSReport(field){
+  const a=buildAnalytics(),m={};a.ssRecords.filter(r=>r.hasMaster).forEach(r=>{const name=r[field]||'Not Available',x=m[name]||(m[name]={name,ssCount:0,ptrCount:0,capacityMVA:0,noLVs:0,feeders11:0,gpsComplete:0,sourceMapped:0});x.ssCount++;x.ptrCount+=r.ptrCount;x.capacityMVA+=r.capacityMVA;x.noLVs+=r.noLVs;x.feeders11+=r.no11KVFeeders;x.gpsComplete+=r.hasGPS?1:0;x.sourceMapped+=r.hasSource?1:0});return Object.values(m).map(r=>({...r,capacityMVA:Math.round(r.capacityMVA*10)/10,avgCapacity:r.ssCount?Math.round(r.capacityMVA/r.ssCount*10)/10:0,gpsPct:pct(r.gpsComplete,r.ssCount),sourcePct:pct(r.sourceMapped,r.ssCount)})).sort((a,b)=>b.capacityMVA-a.capacityMVA||b.ssCount-a.ssCount||a.name.localeCompare(b.name));
+}
+function groupPTRReport(field){
+  const rows=getValidSourceEntries().map(([k,r])=>r),m={};rows.forEach(r=>{const name=r[field]||'Not Available',x=m[name]||(m[name]={name,ptrCount:0,capacityMVA:0,ss:new Set(),regularSources:new Set()});x.ptrCount++;x.capacityMVA+=Number(r.ptrCapacity)||0;x.ss.add(rowIdentity(r));if(r.regularFeederCode||r.regularFeederName)x.regularSources.add(safeKey(r.regularFeederCode||r.regularFeederName))});return Object.values(m).map(r=>({name:r.name,ssCount:r.ss.size,ptrCount:r.ptrCount,capacityMVA:Math.round(r.capacityMVA*10)/10,avgPTR:r.ptrCount?Math.round(r.capacityMVA/r.ptrCount*10)/10:0,regularSources:r.regularSources.size})).sort((a,b)=>b.capacityMVA-a.capacityMVA||b.ptrCount-a.ptrCount||a.name.localeCompare(b.name));
+}
+function ptrCapacityReport(){
+  const rows=getValidSourceEntries().map(([k,r])=>r),m={},total=rows.length;rows.forEach(r=>{const name=capacityKey(r.ptrCapacity),x=m[name]||(m[name]={name,ptrCount:0,capacityMVA:0,ss:new Set()});x.ptrCount++;x.capacityMVA+=Number(r.ptrCapacity)||0;x.ss.add(rowIdentity(r))});return Object.values(m).map(r=>({name:r.name,ssCount:r.ss.size,ptrCount:r.ptrCount,capacityMVA:Math.round(r.capacityMVA*10)/10,sharePct:pct(r.ptrCount,total)})).sort((a,b)=>(parseFloat(b.name)||0)-(parseFloat(a.name)||0));
+}
+function groupEHTReport(field){
+  const a=buildAnalytics(),m={};a.ehtRecords.forEach(r=>{const name=r[field]||'Not Available',x=m[name]||(m[name]={name,ehtCount:0,capacityMVA:0,noLVs:0,feeders33:0,gpsComplete:0,capacityComplete:0});x.ehtCount++;x.capacityMVA+=r.capacityMVA;x.noLVs+=r.noLVs;x.feeders33+=r.no33KVFeeders;x.gpsComplete+=r.hasGPS?1:0;x.capacityComplete+=r.capacityComplete?1:0});return Object.values(m).map(r=>({...r,capacityMVA:Math.round(r.capacityMVA*10)/10,avgCapacity:r.ehtCount?Math.round(r.capacityMVA/r.ehtCount*10)/10:0,gpsPct:pct(r.gpsComplete,r.ehtCount),capacityPct:pct(r.capacityComplete,r.ehtCount)})).sort((a,b)=>b.capacityMVA-a.capacityMVA||b.ehtCount-a.ehtCount||a.name.localeCompare(b.name));
+}
+function ssCapacityRanking(){return buildAnalytics().ssRecords.filter(r=>r.capacityMVA||r.ptrCount).sort((a,b)=>b.capacityMVA-a.capacityMVA||b.ptrCount-a.ptrCount||String(a.ssName).localeCompare(String(b.ssName))).map((r,i)=>({rank:i+1,ssCode:r.ssCode,ssName:r.ssName,linesCircle:r.linesCircle||'Not Available',linesDivision:r.linesDivision||'Not Available',ptrCount:r.ptrCount,capacityMVA:r.capacityMVA,noLVs:r.noLVs,feeders11:r.no11KVFeeders,sourceCount:r.sourceCount}));}
+function ehtCapacityRanking(){return buildAnalytics().ehtRecords.sort((a,b)=>b.capacityMVA-a.capacityMVA||b.noLVs-a.noLVs||String(a.ehtName).localeCompare(String(b.ehtName))).map((r,i)=>({rank:i+1,ehtCode:r.ehtCode,ehtName:r.ehtName,operationCircle:r.operationCircle||'Not Available',operationDivision:r.operationDivision||'Not Available',ptrCapacities:r.ptrCapacities||r.ptrs||'',capacityMVA:r.capacityMVA,noLVs:r.noLVs,feeders33:r.no33KVFeeders}));}
+function dataQualityRows(){
+  const s=computeMasterStats(),a=buildAnalytics(),sourceMatched=a.ssRecords.filter(r=>r.hasMaster&&r.hasSource).length;
+  return [
+    {dataset:'33/11 kV SS',check:'GPS coordinates complete',complete:s.ssGps,total:s.ssCount,percent:pct(s.ssGps,s.ssCount),gaps:s.ssCount-s.ssGps},
+    {dataset:'33/11 kV SS',check:'Lines hierarchy complete',complete:s.ssLinesComplete,total:s.ssCount,percent:pct(s.ssLinesComplete,s.ssCount),gaps:s.ssCount-s.ssLinesComplete},
+    {dataset:'33/11 kV SS',check:'Operation hierarchy complete',complete:s.ssOperationComplete,total:s.ssCount,percent:pct(s.ssOperationComplete,s.ssCount),gaps:s.ssCount-s.ssOperationComplete},
+    {dataset:'33/11 kV SS',check:'Master matched with source/PTR rows',complete:sourceMatched,total:s.ssCount,percent:pct(sourceMatched,s.ssCount),gaps:s.ssCount-sourceMatched},
+    {dataset:'EHT',check:'GPS coordinates complete',complete:s.ehtGps,total:s.ehtCount,percent:pct(s.ehtGps,s.ehtCount),gaps:s.ehtCount-s.ehtGps},
+    {dataset:'EHT',check:'PTR capacity data complete',complete:a.ehtRecords.filter(r=>r.capacityComplete).length,total:s.ehtCount,percent:pct(a.ehtRecords.filter(r=>r.capacityComplete).length,s.ehtCount),gaps:s.ehtCount-a.ehtRecords.filter(r=>r.capacityComplete).length},
+    {dataset:'EHT',check:'Operation hierarchy complete',complete:a.ehtRecords.filter(r=>r.operationComplete).length,total:s.ehtCount,percent:pct(a.ehtRecords.filter(r=>r.operationComplete).length,s.ehtCount),gaps:s.ehtCount-a.ehtRecords.filter(r=>r.operationComplete).length}
+  ];
+}
+function executiveRows(){const s=computeMasterStats();return [
+  {metric:'33/11 kV SS master records',value:s.ssCount,unit:'Nos.'},{metric:'33/11 kV SS PTR/LV rows',value:s.src.ptrCount,unit:'Nos.'},{metric:'33/11 kV source PTR capacity',value:s.src.totalMVA,unit:'MVA'},{metric:'33/11 kV SS LVs',value:s.ssLVs,unit:'Nos.'},{metric:'11 kV feeders',value:s.ss11Feeders,unit:'Nos.'},
+  {metric:'EHT substations',value:s.ehtCount,unit:'Nos.'},{metric:'EHT PTR capacity',value:s.ehtMVA,unit:'MVA'},{metric:'EHT LVs/PTR units',value:s.ehtLVs,unit:'Nos.'},{metric:'EHT 33 kV feeders',value:s.eht33Feeders,unit:'Nos.'},{metric:'Master data gap records',value:s.gaps.length,unit:'Records'}
+];}
+function reportColumns(kind){
+  if(kind==='ss')return [{key:'name',label:'Hierarchy Unit'},{key:'ssCount',label:'No. of SS',num:1},{key:'ptrCount',label:'PTRs',num:1},{key:'capacityMVA',label:'PTR Capacity MVA',num:1,d:1},{key:'avgCapacity',label:'Avg MVA / SS',num:1,d:1},{key:'noLVs',label:'LVs',num:1},{key:'feeders11',label:'11 kV Feeders',num:1},{key:'gpsPct',label:'GPS Complete %',num:1,d:1},{key:'sourcePct',label:'Source Mapped %',num:1,d:1}];
+  if(kind==='ptr')return [{key:'name',label:'Hierarchy Unit'},{key:'ssCount',label:'No. of SS',num:1},{key:'ptrCount',label:'PTRs',num:1},{key:'capacityMVA',label:'Capacity MVA',num:1,d:1},{key:'avgPTR',label:'Avg PTR MVA',num:1,d:1},{key:'regularSources',label:'Regular Sources',num:1}];
+  if(kind==='ptrcap')return [{key:'name',label:'PTR Rating'},{key:'ssCount',label:'SS Count',num:1},{key:'ptrCount',label:'PTR Count',num:1},{key:'capacityMVA',label:'Total MVA',num:1,d:1},{key:'sharePct',label:'PTR Share %',num:1,d:1}];
+  if(kind==='eht')return [{key:'name',label:'Hierarchy Unit'},{key:'ehtCount',label:'No. of EHT SS',num:1},{key:'capacityMVA',label:'PTR Capacity MVA',num:1,d:1},{key:'avgCapacity',label:'Avg MVA / EHT',num:1,d:1},{key:'noLVs',label:'LVs / PTR Units',num:1},{key:'feeders33',label:'33 kV Feeders',num:1},{key:'gpsPct',label:'GPS Complete %',num:1,d:1},{key:'capacityPct',label:'Capacity Complete %',num:1,d:1}];
+  if(kind==='ssrank')return [{key:'rank',label:'#',num:1},{key:'ssCode',label:'SS Code'},{key:'ssName',label:'33/11 kV SS Name'},{key:'linesCircle',label:'Lines Circle'},{key:'linesDivision',label:'Lines Division'},{key:'ptrCount',label:'PTRs',num:1},{key:'capacityMVA',label:'Capacity MVA',num:1,d:1},{key:'noLVs',label:'LVs',num:1},{key:'feeders11',label:'11 kV Feeders',num:1},{key:'sourceCount',label:'Source Feeders',num:1}];
+  if(kind==='ehtrank')return [{key:'rank',label:'#',num:1},{key:'ehtCode',label:'EHT Code'},{key:'ehtName',label:'EHT SS Name'},{key:'operationCircle',label:'Operation Circle'},{key:'operationDivision',label:'Operation Division'},{key:'ptrCapacities',label:'PTR Capacities'},{key:'capacityMVA',label:'Total MVA',num:1,d:1},{key:'noLVs',label:'LVs / PTR Units',num:1},{key:'feeders33',label:'33 kV Feeders',num:1}];
+  if(kind==='quality')return [{key:'dataset',label:'Dataset'},{key:'check',label:'Completeness Check'},{key:'complete',label:'Complete',num:1},{key:'total',label:'Total',num:1},{key:'percent',label:'Complete %',num:1,d:1},{key:'gaps',label:'Gaps',num:1}];
+  return [{key:'metric',label:'Metric'},{key:'value',label:'Value',num:1,d:1},{key:'unit',label:'Unit'}];
+}
+function getReport(type=REPORT_STATE.type){
+  const defs={
+    executive:['Executive Summary','Complete live summary of 33/11 kV SS, PTRs, capacities, feeders, EHT assets and data quality.','executive',executiveRows],
+    'ss-lines-circle':['33/11 kV SS — Lines Circle-wise Report','Substations, PTR count, source PTR capacity, LVs and 11 kV feeders grouped by Lines Circle.','ss',()=>groupSSReport('linesCircle')],
+    'ss-lines-division':['33/11 kV SS — Lines Division-wise Report','Substations and capacity grouped by Lines Division.','ss',()=>groupSSReport('linesDivision')],
+    'ss-lines-subdivision':['33/11 kV SS — Lines Sub-Division-wise Report','Substations and capacity grouped by Lines Sub-Division.','ss',()=>groupSSReport('linesSubDivision')],
+    'ss-lines-section':['33/11 kV SS — Lines Section-wise Report','Substations and capacity grouped by Lines Section.','ss',()=>groupSSReport('linesSection')],
+    'ss-operation-zone':['33/11 kV SS — Region / Operation Zone-wise Report','Regional coverage using the Operation Zone field.','ss',()=>groupSSReport('operationZone')],
+    'ss-operation-circle':['33/11 kV SS — Operation Circle-wise Report','Substations and capacity grouped by Operation Circle.','ss',()=>groupSSReport('operationCircle')],
+    'ss-operation-division':['33/11 kV SS — Operation Division-wise Report','Substations and capacity grouped by Operation Division.','ss',()=>groupSSReport('operationDivision')],
+    'ptr-capacity':['PTR — Capacity Rating-wise Report','PTR population, associated substations, total MVA and rating share.','ptrcap',ptrCapacityReport],
+    'ptr-division':['PTR — Division-wise Report','PTRs and installed capacity from the exact SS source report grouped by Division.','ptr',()=>groupPTRReport('division')],
+    'ptr-subdivision':['PTR — Sub-Division-wise Report','PTRs and installed capacity grouped by Sub-Division.','ptr',()=>groupPTRReport('subDivision')],
+    'ptr-section':['PTR — Section-wise Report','PTRs and installed capacity grouped by Section.','ptr',()=>groupPTRReport('section')],
+    'ss-capacity-ranking':['33/11 kV SS — Installed Capacity Ranking','Substation-wise PTR count, installed source-report capacity, LVs, feeder count and sources.','ssrank',ssCapacityRanking],
+    'eht-circle':['EHT — Operation Circle-wise Report','EHT substations, PTR capacity, LVs and 33 kV feeders grouped by Operation Circle.','eht',()=>groupEHTReport('operationCircle')],
+    'eht-division':['EHT — Operation Division-wise Report','EHT assets and capacity grouped by Operation Division.','eht',()=>groupEHTReport('operationDivision')],
+    'eht-subdivision':['EHT — Operation Sub-Division-wise Report','EHT assets and capacity grouped by Operation Sub-Division.','eht',()=>groupEHTReport('operationSubDivision')],
+    'eht-section':['EHT — Operation Section-wise Report','EHT assets and capacity grouped by Operation Section.','eht',()=>groupEHTReport('operationSection')],
+    'eht-capacity-ranking':['EHT — Capacity Ranking','EHT-wise PTR capacity, PTR configuration, LVs and outgoing 33 kV feeders.','ehtrank',ehtCapacityRanking],
+    'data-quality':['Data Quality & Completeness','Live checks for GPS, hierarchy, capacity and source-report matching.','quality',dataQualityRows]
+  };
+  const d=defs[type]||defs.executive,rows=d[3]();return {type,title:d[0],subtitle:d[1],kind:d[2],rows,columns:reportColumns(d[2])};
+}
+function reportAOA(report){return [[report.title],[report.subtitle],['Generated',new Date().toLocaleString('en-IN')],[],report.columns.map(c=>c.label)].concat(report.rows.map(r=>report.columns.map(c=>r[c]??'')));}
+function destroyReportChart(name){if(REPORT_CHARTS[name]){REPORT_CHARTS[name].destroy();delete REPORT_CHARTS[name]}}
+function destroyReportCharts(){Object.keys(REPORT_CHARTS).forEach(destroyReportChart)}
+function chartColors(n,alpha=.78){const base=['124,58,237','14,165,233','16,185,129','245,158,11','236,72,153','99,102,241','20,184,166','249,115,22','168,85,247','59,130,246','132,204,22','244,63,94'];return Array.from({length:n},(_,i)=>`rgba(${base[i%base.length]},${alpha})`)}
+function chartBaseOptions(horizontal=false){return {responsive:true,maintainAspectRatio:false,indexAxis:horizontal?'y':'x',interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{boxWidth:11,usePointStyle:true,font:{size:10}}},tooltip:{backgroundColor:'#07101e',titleColor:'#fff',bodyColor:'#dbeafe',borderColor:'#334155',borderWidth:1}},scales:{x:{grid:{color:'rgba(148,163,184,.10)'},ticks:{font:{size:9},maxRotation:35,minRotation:0}},y:{beginAtZero:true,grid:{color:'rgba(148,163,184,.10)'},ticks:{font:{size:9}}}}}}
+function makeReportChart(name,id,config){destroyReportChart(name);const el=$(id);if(!el||typeof Chart==='undefined')return null;REPORT_CHARTS[name]=new Chart(el,config);return REPORT_CHARTS[name]}
+function renderOverviewCharts(){
+  if(!$('overviewCapacityChart'))return;const s=computeMasterStats(),a=buildAnalytics(),caps=ptrCapacityReport(),circles=groupSSReport('linesCircle').slice(0,15);
+  makeReportChart('overviewCapacity','overviewCapacityChart',{type:'bar',data:{labels:['33/11 kV Source PTRs','EHT PTRs'],datasets:[{label:'Installed Capacity (MVA)',data:[s.src.totalMVA,s.ehtMVA],backgroundColor:chartColors(2)}]},options:chartBaseOptions()});
+  makeReportChart('overviewAssets','overviewAssetChart',{type:'bar',data:{labels:['33/11 kV SS','EHT SS','SS PTR/LV Rows','SS LVs','11 kV Feeders','EHT LVs/PTRs','EHT 33 kV Feeders'],datasets:[{label:'Asset Count',data:[s.ssCount,s.ehtCount,s.src.ptrCount,s.ssLVs,s.ss11Feeders,s.ehtLVs,s.eht33Feeders],backgroundColor:chartColors(7)}]},options:chartBaseOptions()});
+  makeReportChart('ptrDistribution','ptrCapacityChart',{type:'doughnut',data:{labels:caps.map(r=>r.name),datasets:[{label:'PTR Count',data:caps.map(r=>r.ptrCount),backgroundColor:chartColors(caps.length,.82),borderColor:'#172033',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:9}}},tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} PTRs`}}}}});
+  makeReportChart('circleCoverage','circleCoverageChart',{type:'bar',data:{labels:circles.map(r=>r.name),datasets:[{label:'No. of SS',data:circles.map(r=>r.ssCount),backgroundColor:'rgba(14,165,233,.75)'},{label:'PTR Capacity MVA',data:circles.map(r=>r.capacityMVA),backgroundColor:'rgba(168,85,247,.72)'}]},options:chartBaseOptions(true)});
+}
+function selectedRowsForChart(report){return report.rows.slice(0,Math.max(5,Number(REPORT_STATE.topN)||15))}
+function renderReportDetail(){
+  const report=getReport(),title=$('selectedReportTitle'),sub=$('selectedReportSubtitle'),count=$('selectedReportCount'),table=$('selectedReportTable');if(!table)return;
+  if(title)title.textContent=report.title;if(sub)sub.textContent=report.subtitle;if(count)count.textContent=`${report.rows.length} report rows`;
+  table.innerHTML=reportTableHTML(report);renderSelectedReportCharts(report);
+}
+function renderSelectedReportCharts(report){
+  const rows=selectedRowsForChart(report),labels=rows.map(r=>r.name||r.ssName||r.ehtName||r.check||r.metric||'');
+  destroyReportChart('detailMain');destroyReportChart('detailSecondary');
+  if(!rows.length)return;
+  let main,second;
+  if(report.kind==='ss'){
+    main={type:'bar',data:{labels,datasets:[{label:'PTR Capacity MVA',data:rows.map(r=>r.capacityMVA),backgroundColor:'rgba(168,85,247,.76)'}]},options:chartBaseOptions(true)};
+    second={type:'bar',data:{labels,datasets:[{label:'SS Count',data:rows.map(r=>r.ssCount),backgroundColor:'rgba(14,165,233,.75)'},{label:'PTR Count',data:rows.map(r=>r.ptrCount),backgroundColor:'rgba(16,185,129,.70)'},{label:'11 kV Feeders',data:rows.map(r=>r.feeders11),backgroundColor:'rgba(245,158,11,.70)'}]},options:chartBaseOptions(true)};
+  }else if(report.kind==='ptr'||report.kind==='ptrcap'){
+    main={type:'bar',data:{labels,datasets:[{label:'Total Capacity MVA',data:rows.map(r=>r.capacityMVA),backgroundColor:'rgba(124,58,237,.78)'}]},options:chartBaseOptions(true)};
+    second={type:'bar',data:{labels,datasets:[{label:'PTR Count',data:rows.map(r=>r.ptrCount),backgroundColor:'rgba(14,165,233,.75)'},{label:'SS Count',data:rows.map(r=>r.ssCount),backgroundColor:'rgba(16,185,129,.72)'}]},options:chartBaseOptions(true)};
+  }else if(report.kind==='eht'){
+    main={type:'bar',data:{labels,datasets:[{label:'EHT PTR Capacity MVA',data:rows.map(r=>r.capacityMVA),backgroundColor:'rgba(168,85,247,.77)'}]},options:chartBaseOptions(true)};
+    second={type:'bar',data:{labels,datasets:[{label:'EHT SS Count',data:rows.map(r=>r.ehtCount),backgroundColor:'rgba(14,165,233,.75)'},{label:'33 kV Feeders',data:rows.map(r=>r.feeders33),backgroundColor:'rgba(245,158,11,.72)'},{label:'LVs / PTR Units',data:rows.map(r=>r.noLVs),backgroundColor:'rgba(16,185,129,.72)'}]},options:chartBaseOptions(true)};
+  }else if(report.kind==='ssrank'){
+    main={type:'bar',data:{labels,datasets:[{label:'Installed Capacity MVA',data:rows.map(r=>r.capacityMVA),backgroundColor:'rgba(168,85,247,.77)'}]},options:chartBaseOptions(true)};
+    second={type:'bar',data:{labels,datasets:[{label:'PTRs',data:rows.map(r=>r.ptrCount),backgroundColor:'rgba(14,165,233,.75)'},{label:'11 kV Feeders',data:rows.map(r=>r.feeders11),backgroundColor:'rgba(245,158,11,.72)'},{label:'Source Feeders',data:rows.map(r=>r.sourceCount),backgroundColor:'rgba(16,185,129,.72)'}]},options:chartBaseOptions(true)};
+  }else if(report.kind==='ehtrank'){
+    main={type:'bar',data:{labels,datasets:[{label:'Total PTR Capacity MVA',data:rows.map(r=>r.capacityMVA),backgroundColor:'rgba(168,85,247,.77)'}]},options:chartBaseOptions(true)};
+    second={type:'bar',data:{labels,datasets:[{label:'33 kV Feeders',data:rows.map(r=>r.feeders33),backgroundColor:'rgba(245,158,11,.72)'},{label:'LVs / PTR Units',data:rows.map(r=>r.noLVs),backgroundColor:'rgba(14,165,233,.75)'}]},options:chartBaseOptions(true)};
+  }else if(report.kind==='quality'){
+    main={type:'bar',data:{labels,datasets:[{label:'Completeness %',data:rows.map(r=>r.percent),backgroundColor:rows.map(r=>r.percent>=95?'rgba(16,185,129,.75)':r.percent>=75?'rgba(245,158,11,.75)':'rgba(239,68,68,.75)')}]},options:{...chartBaseOptions(true),scales:{x:{beginAtZero:true,max:100,grid:{color:'rgba(148,163,184,.10)'},ticks:{callback:v=>v+'%'}},y:{grid:{display:false},ticks:{font:{size:9}}}}}};
+    second={type:'doughnut',data:{labels:rows.map(r=>r.check),datasets:[{label:'Data Gaps',data:rows.map(r=>r.gaps),backgroundColor:chartColors(rows.length,.82),borderColor:'#172033',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:9,font:{size:8}}}}}};
+  }else{
+    main={type:'bar',data:{labels:['33/11 kV Source PTRs','EHT PTRs'],datasets:[{label:'Capacity MVA',data:[computeMasterStats().src.totalMVA,computeMasterStats().ehtMVA],backgroundColor:chartColors(2)}]},options:chartBaseOptions()};
+    second={type:'bar',data:{labels:rows.filter(r=>r.unit==='Nos.').map(r=>r.metric),datasets:[{label:'Count',data:rows.filter(r=>r.unit==='Nos.').map(r=>r.value),backgroundColor:chartColors(rows.filter(r=>r.unit==='Nos.').length)}]},options:chartBaseOptions(true)};
+  }
+  makeReportChart('detailMain','reportMainChart',main);makeReportChart('detailSecondary','reportSecondaryChart',second);
+}
+function reportTableHTML(report){
+  if(!report.rows.length)return `<div class="report-empty">No rows are available for this report.</div>`;
+  const totals={};report.columns.filter(c=>c.num&&c.key!=='rank'&&c.key!=='percent'&&c.key!=='gpsPct'&&c.key!=='sourcePct'&&c.key!=='capacityPct'&&c.key!=='sharePct'&&c.key!=='avgCapacity'&&c.key!=='avgPTR').forEach(c=>totals[c.key]=report.rows.reduce((s,r)=>s+(Number(r[c.key])||0),0));
+  const hasTotals=Object.keys(totals).length>0;
+  return `<table class="report-table"><thead><tr>${report.columns.map(c=>`<th>${escapeHTML(c.label)}</th>`).join('')}</tr></thead><tbody>${report.rows.map(r=>`<tr>${report.columns.map(c=>{const v=r[c.key];return `<td class="${c.num?'numv':''} ${c.key==='rank'?'rank':''}">${c.num?fmtNumber(v,c.d||0):escapeHTML(v??'')}</td>`}).join('')}</tr>`).join('')}${hasTotals?`<tr class="total-row">${report.columns.map((c,i)=>`<td class="${c.num?'numv':''}">${i===0?'TOTAL':(c.key in totals?fmtNumber(totals[c.key],c.d||0):'')}</td>`).join('')}</tr>`:''}</tbody></table>`;
+}
+function reportOptionsHTML(){return REPORT_OPTIONS.map(([v,l])=>`<option value="${v}" ${REPORT_STATE.type===v?'selected':''}>${l}</option>`).join('')}
+function catalogHTML(){const cards=[
+  ['ss-lines-circle','Circle-wise SS','SS, PTRs, MVA, LVs and 11 kV feeders'],['ss-lines-division','Division-wise SS','Lines Division coverage and capacity'],['ss-lines-subdivision','Sub-Division-wise SS','Detailed sub-division infrastructure'],['ss-lines-section','Section-wise SS','Section-level SS and feeder report'],
+  ['ptr-capacity','PTR Rating Report','PTR count and MVA by capacity rating'],['ss-capacity-ranking','SS Capacity Ranking','Highest installed capacities and feeder counts'],['eht-circle','EHT Circle Report','EHT capacity and outgoing 33 kV feeders'],['eht-capacity-ranking','EHT Capacity Ranking','EHT-wise PTR configuration and total MVA'],['data-quality','Data Quality','GPS, hierarchy, source matching and gaps']
+];return cards.map(([type,title,desc])=>`<div class="report-catalog-card" onclick="selectReportType('${type}')"><b>${title}</b><span>${desc}</span></div>`).join('')}
+function selectReportType(type){REPORT_STATE.type=type;const e=$('reportTypeSelect');if(e)e.value=type;renderReportDetail();document.querySelector('.report-builder')?.scrollIntoView({behavior:'smooth',block:'start'})}
+function renderAutoReports(){
+  const box=$('reportDashboard');if(!box)return;const s=computeMasterStats(),quality=dataQualityRows(),qualityAvg=quality.length?Math.round(quality.reduce((a,r)=>a+r.percent,0)/quality.length*10)/10:0;
+  box.innerHTML=`
+    <section class="report-hero">
+      <div class="report-hero-top"><div><h2>📊 Automatic Master Data Analytics & Reports</h2><p>Live report dashboard generated directly from the current Firebase master. Every edit, Excel upload, data merge or duplicate cleanup automatically recalculates all statistics, capacity totals, hierarchy reports, graphs and downloadable report sheets.</p></div><span class="report-live"><i></i>AUTO-UPDATED · ${new Date().toLocaleString('en-IN')}</span></div>
+      <div class="report-actions"><button class="btn btn-green" onclick="syncBundledData()">⚡ SYNC MASTER DATA</button><button class="btn btn-amber" onclick="downloadFullWorkbook()">⬇ ALL REPORTS — EXCEL</button><button class="btn btn-primary" onclick="printReportDashboard()">🖨 PRINT / SAVE PDF WITH CHARTS</button><button class="btn btn-outline" onclick="renderAutoReports()">↻ REFRESH NOW</button></div>
+    </section>
+    <section class="report-kpis">
+      ${[[s.ssCount,'33/11 kV SS','Master substations'],[s.src.ptrCount,'SS PTRs / LVs','Exact source rows'],[fmtNumber(s.src.totalMVA,1)+' MVA','SS PTR Capacity','Source-report installed capacity'],[s.ss11Feeders,'11 kV Feeders','From SS master'],[s.ehtCount,'EHT Substations','EHT master records'],[fmtNumber(s.ehtMVA,1)+' MVA','EHT PTR Capacity','Total EHT installed capacity'],[s.eht33Feeders,'EHT 33 kV Feeders','Outgoing feeders'],[fmtNumber(qualityAvg,1)+'%','Data Completeness','Average of key checks']].map(([v,l,sm])=>`<div class="report-kpi"><div class="kv">${v}</div><div class="kl">${l}</div><div class="ks">${sm}</div></div>`).join('')}
+    </section>
+    <section class="report-chart-grid">
+      <article class="report-chart-card"><div class="report-card-head"><div><h3>Installed Capacity Overview</h3><p>33/11 kV source PTR capacity versus EHT PTR capacity.</p></div><div class="chart-tools"><button onclick="downloadCanvas('overviewCapacityChart','Installed_Capacity_Overview.png')">PNG</button></div></div><div class="chart-box short"><canvas id="overviewCapacityChart"></canvas></div></article>
+      <article class="report-chart-card"><div class="report-card-head"><div><h3>Complete Asset Statistics</h3><p>Substations, PTR/LV rows and feeder population.</p></div><div class="chart-tools"><button onclick="downloadCanvas('overviewAssetChart','Asset_Statistics.png')">PNG</button></div></div><div class="chart-box short"><canvas id="overviewAssetChart"></canvas></div></article>
+      <article class="report-chart-card"><div class="report-card-head"><div><h3>PTR Capacity Rating Distribution</h3><p>PTR count split by installed MVA rating.</p></div><div class="chart-tools"><button onclick="downloadCanvas('ptrCapacityChart','PTR_Capacity_Distribution.png')">PNG</button></div></div><div class="chart-box"><canvas id="ptrCapacityChart"></canvas></div></article>
+      <article class="report-chart-card"><div class="report-card-head"><div><h3>Lines Circle Coverage</h3><p>Top circles by substation count and source PTR capacity.</p></div><div class="chart-tools"><button onclick="downloadCanvas('circleCoverageChart','Lines_Circle_Coverage.png')">PNG</button></div></div><div class="chart-box"><canvas id="circleCoverageChart"></canvas></div></article>
+    </section>
+    <section class="report-builder">
+      <div class="report-builder-head"><div><h3>🧾 Detailed Automatic Report Builder</h3><p>Select any report type. Its table and both charts are rebuilt from the latest live data.</p></div><span class="report-live"><i></i>19 REPORT TYPES</span></div>
+      <div class="report-controlbar">
+        <div class="report-control grow"><label>Report Type</label><select id="reportTypeSelect" onchange="REPORT_STATE.type=this.value;renderReportDetail()">${reportOptionsHTML()}</select></div>
+        <div class="report-control"><label>Top Rows Shown in Charts</label><select id="reportTopN" onchange="REPORT_STATE.topN=Number(this.value);renderReportDetail()">${[10,15,20,30,50].map(n=>`<option value="${n}" ${Number(REPORT_STATE.topN)===n?'selected':''}>Top ${n}</option>`).join('')}</select></div>
+        <button class="btn btn-amber" onclick="downloadSelectedReportExcel()">⬇ SELECTED REPORT XLSX</button><button class="btn btn-outline" onclick="downloadSelectedReportCSV()">CSV</button>
+      </div>
+      <div class="report-detail">
+        <div class="report-detail-title"><div><h3 id="selectedReportTitle"></h3><p id="selectedReportSubtitle"></p></div><span id="selectedReportCount" class="report-record-count"></span></div>
+        <div class="report-detail-charts"><article class="report-chart-card"><div class="report-card-head"><div><h3>Capacity / Primary Metric</h3></div><div class="chart-tools"><button onclick="downloadCanvas('reportMainChart','Selected_Report_Primary_Chart.png')">PNG</button></div></div><div class="chart-box tall"><canvas id="reportMainChart"></canvas></div></article><article class="report-chart-card"><div class="report-card-head"><div><h3>Asset Counts / Secondary Metric</h3></div><div class="chart-tools"><button onclick="downloadCanvas('reportSecondaryChart','Selected_Report_Secondary_Chart.png')">PNG</button></div></div><div class="chart-box tall"><canvas id="reportSecondaryChart"></canvas></div></article></div>
+        <div id="selectedReportTable" class="report-table-wrap"></div><div class="report-note">Capacity for 33/11 kV substations is calculated from the exact LV/PTR-wise SS Sources sheet and joined to the SS master by SS Code/name. EHT capacity is taken from the EHT master total PTR capacity field. “Not Available” groups identify records where the selected hierarchy field is blank.</div>
+      </div>
+    </section>
+    <section><div class="report-builder-head" style="border:1px solid var(--line);border-radius:12px;margin-bottom:9px"><div><h3>Available Automatic Reports</h3><p>Quick access to the most frequently required reports.</p></div></div><div class="report-catalog">${catalogHTML()}</div></section>`;
+  if(document.getElementById('pane-reports')?.classList.contains('active'))requestAnimationFrame(()=>{renderOverviewCharts();renderReportDetail()});
+}
+function downloadSelectedReportExcel(){const report=getReport(),wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(reportAOA(report));ws['!cols']=report.columns.map(c=>({wch:Math.max(12,Math.min(38,c.label.length+5))}));XLSX.utils.book_append_sheet(wb,ws,(REPORT_SHEET_NAMES[report.type]||'Selected Report').slice(0,31));XLSX.writeFile(wb,'TGSPDCL_'+safeKey(report.title).slice(0,80)+'.xlsx')}
+function downloadSelectedReportCSV(){const report=getReport(),rows=[report.columns.map(c=>c.label)].concat(report.rows.map(r=>report.columns.map(c=>r[c.key]??''))),csv=rows.map(row=>row.map(csvEsc).join(',')).join('\n');download('TGSPDCL_'+safeKey(report.title).slice(0,80)+'.csv',csv)}
+function downloadCanvas(id,filename){const canvas=$(id);if(!canvas){toast('Chart is not available',true);return}const a=document.createElement('a');a.download=filename;a.href=canvas.toDataURL('image/png',1);a.click()}
+function printReportDashboard(){switchTab('reports');setTimeout(()=>window.print(),450)}
+
 function metricTable(rows){return `<table><tbody><tr><th>Metric</th><th>Value</th></tr>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</tbody></table>`}
 function smallSummary(title,rows){return `<h3 style="padding:15px;color:#a855f7;font:900 12px var(--mono)">${title}</h3><table><thead><tr><th>Name</th><th>Record Count</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.name}</td><td>${r.count}</td></tr>`).join('')}</tbody></table>`}
-function renderAutoReports(){
-  const box=$('autoReportBox');if(!box)return;const s=computeMasterStats();
-  const top=metricTable([
-    ['SS Source rows — unchanged exact format',s.src.ptrCount],
-    ['33/11KV SS master records',s.ssCount],
-    ['SS GPS complete',`${s.ssGps} / ${s.ssCount}`],
-    ['Total SS LVs',s.ssLVs],
-    ['Total 11KV feeders',s.ss11Feeders],
-    ['SS complete Lines hierarchy',`${s.ssLinesComplete} / ${s.ssCount}`],
-    ['SS complete Operation hierarchy',`${s.ssOperationComplete} / ${s.ssCount}`],
-    ['EHT master records',s.ehtCount],
-    ['EHT GPS complete',`${s.ehtGps} / ${s.ehtCount}`],
-    ['EHT LVs / PTR units',s.ehtLVs],
-    ['EHT 33KV feeders',s.eht33Feeders],
-    ['EHT total PTR capacity',`${s.ehtMVA} MVA`],
-    ['Source SS missing from SS master',s.sourceMissingMaster.length],
-    ['SS master records missing source rows',s.masterMissingSource.length],
-    ['Master data gap records',s.gaps.length]
-  ]);
-  const gaps=`<h3 style="padding:15px;color:#a855f7;font:900 12px var(--mono)">Data Gaps — first 100</h3><table><thead><tr><th>Dataset</th><th>Code</th><th>Name</th><th>Gap</th></tr></thead><tbody>${s.gaps.slice(0,100).map(r=>`<tr><td>${r.dataset}</td><td class="code">${r.code||''}</td><td>${r.name||''}</td><td>${r.gap}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No data gaps</td></tr>'}</tbody></table>`;
-  box.innerHTML=top+smallSummary('33/11KV SS — Lines Circle',s.ssLinesCircles)+smallSummary('33/11KV SS — Operation Circle',s.ssOperationCircles)+smallSummary('EHT — Operation Circle',s.ehtOperationCircles)+gaps;
-}
+
 function readRows(file){
   return new Promise((resolve,reject)=>{
     const r=new FileReader();
@@ -617,25 +821,19 @@ function divisionStatsAOA(){const s=computeSourceStats();return [['Division','SS
 function multiSourceAOA(){const s=computeSourceStats();return [['SS Code','SS Name','Division','No. of Source Feeders','PTR/LV Rows']].concat(s.multiRows.map(r=>[r.ssCode,r.ssName,r.division,r.sourceCount,r.ptrs]))}
 function downloadFullWorkbook(){
   const s=computeMasterStats(),wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sourceStatsAOA()),'Summary');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sheetAOA('sssources')),'SS Source Rows');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sheetAOA('sscoords')),'SS Master');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sheetAOA('eht')),'EHT Master');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(circleAOA(s.ssLinesCircles)),'SS Lines Circles');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(circleAOA(s.ssOperationCircles)),'SS Operation Circles');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(circleAOA(s.ehtOperationCircles)),'EHT Operation Circles');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(gapsAOA()),'Data Gaps');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(capacityStatsAOA()),'Source PTR Capacity');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(divisionStatsAOA()),'Source Division Stats');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(multiSourceAOA()),'Multi Source SS');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([PTR_SUMMARY_COLS].concat(Object.values(DB.ptrs||{}).map(r=>PTR_SUMMARY_COLS.map(c=>r[c]??'')))),'PTR LV Summary');
-  XLSX.writeFile(wb,'TGSPDCL_Master_Data_Complete_Report.xlsx');
+  const add=(aoa,name,widths)=>{const ws=XLSX.utils.aoa_to_sheet(aoa);if(widths)ws['!cols']=widths;XLSX.utils.book_append_sheet(wb,ws,name.slice(0,31))};
+  add([['TGSPDCL MASTER DATA — AUTOMATIC REPORT WORKBOOK'],['Generated',new Date().toLocaleString('en-IN')],['Note','Interactive graphs and charts are available in the HTML Reports tab. Use Print / Save PDF to export the chart dashboard.'],[],...sourceStatsAOA()],'Summary',[{wch:42},{wch:24}]);
+  REPORT_OPTIONS.forEach(([type])=>{const report=getReport(type);add(reportAOA(report),REPORT_SHEET_NAMES[type]||type,report.columns.map(c=>({wch:Math.max(12,Math.min(38,c.label.length+5))})))});
+  add(sheetAOA('sssources'),'SS Source Rows');add(sheetAOA('sscoords'),'SS Master');add(sheetAOA('eht'),'EHT Master');
+  add(gapsAOA(),'Detailed Data Gaps');add(multiSourceAOA(),'Multi Source SS');
+  add([PTR_SUMMARY_COLS].concat(Object.values(DB.ptrs||{}).map(r=>PTR_SUMMARY_COLS.map(c=>r[c]??''))),'PTR LV Summary');
+  XLSX.writeFile(wb,'TGSPDCL_Master_Data_All_Automatic_Reports.xlsx');
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&$('modalBg').classList.contains('active')){e.preventDefault();saveCurrent()}});
 $('modalBg').addEventListener('click',e=>{if(e.target===$('modalBg'))closeModal()});
 if(localStorage.getItem('mdmRowDensity')==='compact')document.body.classList.add('compact-rows');
 boot();
-window.mdm={DB,PATHS,boot,syncBundledData,cleanupDuplicates,downloadFullWorkbook,DATA_VERSION};
+window.mdm={DB,PATHS,boot,syncBundledData,cleanupDuplicates,downloadFullWorkbook,downloadSelectedReportExcel,printReportDashboard,renderAutoReports,DATA_VERSION};
 </script>
 
 </body></html>
