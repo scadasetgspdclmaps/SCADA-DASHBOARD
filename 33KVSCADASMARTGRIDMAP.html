@@ -2115,6 +2115,15 @@ path.sg-feeder-line{cursor:pointer}
 /* 33/11KV SS restored to original blue circular icon. Substations are now their own layer. */
 .sg-ss33-tile{display:none!important}
 
+
+/* MASTER-DRIVEN SOURCE TOPOLOGY */
+#sgViewModeChip{cursor:pointer;user-select:none}
+#sgViewModeChip.all{color:#67e8f9;border-color:rgba(103,232,249,.48);background:rgba(8,145,178,.16)}
+.sg-role-regular{filter:drop-shadow(0 0 1px rgba(0,230,118,.45))}
+.sg-role-alternate{filter:drop-shadow(0 0 1px rgba(168,85,247,.35))}
+.sg-role-link{filter:drop-shadow(0 0 1px rgba(255,152,0,.40))}
+.sg-master-active{filter:drop-shadow(0 0 3px rgba(0,229,255,.75))}
+
 </style>
 </head>
 <body class="no-anim">
@@ -2199,7 +2208,7 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
   </div>
   <input type="file" id="dfFileInput" accept=".csv,.xlsx,.xls" onchange="handleFile(this.files[0])" style="display:none"/>
   <div class="fs-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</div>
-  <div class="chip chip-live">● LIVE</div>
+  <div id="sgViewModeChip" class="chip chip-live" onclick="sgToggleViewMode()" title="Click to switch between LIVE active sources and ALL master sources">● LIVE</div>
 </div>
 
 <div id="ptab" onclick="togglePanel()">◀</div>
@@ -2222,6 +2231,7 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <div class="sg-file-status" id="fileInfo">No file loaded yet.</div>
     <button class="sg-act save" onclick="saveFirebase()">☁ Save / Update Firebase</button>
     <button class="sg-act load" onclick="loadFirebase()">↻ Load Latest From Firebase</button>
+    <button class="sg-act save" id="btnMasterRebuild" onclick="sgRebuildFromMaster(true)" title="Rebuild Regular, Alternate and Link connections from Master Data while retaining editable bends">⟳ Rebuild All From Master Data</button>
     <button class="sg-act dl" onclick="restoreFromHistory()" style="background:#455a64;color:#fff">🕐 Restore Last History Snapshot</button>
     <button class="sg-act dl" onclick="downloadTopologyCsv()">⬇ Download Edited Upload</button>
     <button class="sg-act dl" onclick="sgOpenPrintDialog()" style="background:linear-gradient(135deg,#00695c,#00897b)">🖨 Print / PDF Export</button>
@@ -3231,6 +3241,8 @@ async function loadSmartGridMasterData(){
       'masterData/ssSourceRows',
       'masterData/ptrs',
       'masterData/ssTopology',
+      'masterData/connectionMaster',
+      'masterData/topology',
       'masterData/ssCoordinates',
       // EHT + substation coordinate sources — REQUIRED for the coord cache
       // so Master Data Manager coordinate updates reflect here (10-Jul-2026:
@@ -3254,6 +3266,7 @@ async function loadSmartGridMasterData(){
     // master load so the Circle dropdown and feeder filtering are populated.
     try{ sgApplyCircleFromMasterData(); }catch(e){ console.warn('Circle master join failed',e); }
     _sgBuildSSSrcIndex(out['masterData/ssSourceRows']);
+    try{ sgBuildMasterRelations(); }catch(e){ console.warn('[SmartGrid] master relation build failed',e); }
     console.log('Smart Grid master data loaded', Object.keys(out), 'coord nodes:', (window._sgMasterCoordCache&&window._sgMasterCoordCache.all||[]).length); try{sgRefreshSubstationCounts();}catch(e){}
     return out;
   }catch(e){
@@ -3498,7 +3511,7 @@ function sgSame(a,b){return !b || sgNorm(a)===sgNorm(b);}
 function sgAnySame(value, arr){const v=sgNorm(value); return !v || (arr||[]).some(x=>sgNorm(x)===v);}
 function sgFeederMatch(c, fdr){
   if(!fdr) return true;
-  return sgAnySame(fdr,[c.feeder_code,c.feeder_name]);
+  return sgAnySame(fdr,[c.feeder_code,c.master_feeder_code,c.feeder_name]);
 }
 function sgEhtMatch(c, eht){
   if(!eht) return true;
@@ -3543,10 +3556,11 @@ function matchesFilters(c){
   if(sec && !sgSame(c.section, sec)) return false;
   if(!sgEhtMatch(c, eht)) return false;
   if(!sgFeederMatch(c, fdr)) return false;
+  if(window.sgSourceViewMode==='live' && c.master_relation_id && !(c.active_source===true || String(c.active_source).toLowerCase()==='true')) return false;
 
   if(q){
     const hay = [
-      c.feeder_code, c.feeder_name, c.feeder_type,
+      c.feeder_code, c.master_feeder_code, c.feeder_name, c.feeder_type, c.source_role,
       c.eht_name, c.eht_code,
       c.from && c.from.name, c.from && c.from.code,
       c.to && c.to.name, c.to && c.to.code,
@@ -3769,6 +3783,254 @@ function normalizeInputRows(raw){
   });
   return out;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MASTER-DRIVEN AUTO REDRAW ENGINE
+   - masterData/ssSourceRows is authoritative for Regular / Alternate / Link
+   - masterData/ssCoordinates and masterData/ehtSources own locked coordinates
+   - current smartgrid rows are used only as editable geometry templates
+   - existing edits are preserved by master_relation_id
+   ═══════════════════════════════════════════════════════════════════════ */
+let SG_MASTER_RELATIONS=[];
+let SG_MASTER_RELATION_BY_ID={};
+let SG_MASTER_REBUILD_REPORT={relations:0,preserved:0,generated:0,unresolved:[]};
+window.sgSourceViewMode=window.sgSourceViewMode||'live';
+window._sgMasterAutoSyncTimer=window._sgMasterAutoSyncTimer||null;
+window._sgMasterFingerprint=window._sgMasterFingerprint||'';
+
+function sgHashText(text){
+  let h=2166136261; text=String(text||'');
+  for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}
+  return (h>>>0).toString(16);
+}
+function sgMasterDataFingerprint(){
+  const d=sgMasterData||{};
+  return sgHashText(JSON.stringify([
+    d['masterData/ssSourceRows']||{},d['masterData/ssCoordinates']||{},
+    d['masterData/ehtSources']||{},d['masterData/ssTopology']||{},
+    d['masterData/connectionMaster']||{},d['masterData/topology']||{}
+  ]));
+}
+function sgCleanMasterCode(code){
+  return String(code||'').split('@')[0].trim();
+}
+function sgMasterActualCode(row){
+  return String((row&&row.master_feeder_code)||(row&&sgCleanMasterCode(row.feeder_code))||'').trim();
+}
+function sgMasterRoleLabel(role,index){
+  if(role==='REGULAR')return 'REGULAR';
+  if(role==='LINK')return 'LINK';
+  return 'ALTERNATE-'+String(index||1);
+}
+function sgMasterActiveFor(rec,role,index,code,name){
+  const blob=String(rec.activeSource||rec.active_source||rec.sourceStatus||rec.source_status||rec.active_status||rec.liveSource||rec.live_source||'').toUpperCase();
+  if(!blob)return role==='REGULAR';
+  const checks=[code,name,sgMasterRoleLabel(role,index),role==='REGULAR'?'R1':'A'+index].filter(Boolean);
+  return checks.some(v=>compact(blob).includes(compact(v)));
+}
+function sgMasterInternalCode(rel){
+  const base=String(rel.feederCode||('AUTO-'+sgHashText(rel.feederName))).replace(/[^A-Za-z0-9_-]/g,'').slice(0,60)||'AUTO';
+  const ss=String(rel.ssCode||sgHashText(rel.ssName)).replace(/[^A-Za-z0-9_-]/g,'').slice(0,30);
+  return base+'@'+ss+'@'+String(rel.role||'SRC').replace(/[^A-Za-z0-9_-]/g,'');
+}
+function sgBuildMasterRelations(){
+  const root=(sgMasterData||{})['masterData/ssSourceRows']||{};
+  const byId={};
+  Object.entries(root).forEach(([key,value])=>{
+    const rec=_sgParseSrcKey(key,(value&&typeof value==='object')?value:{});
+    const ssCode=String(rec.ssCode||'').trim();
+    const ssName=String(rec.ssName||'').trim();
+    if(!ssCode&&!ssName)return;
+    const common={ssCode,ssName,
+      circle:String(rec.circle||rec.linesCircle||rec.operationCircle||'').trim(),
+      division:String(rec.division||rec.linesDivision||'').trim(),
+      subDivision:String(rec.subDivision||rec.sub_division||rec.linesSubDivision||'').trim(),
+      section:String(rec.section||rec.linesSection||'').trim()};
+    function add(role,index,code,type,name){
+      code=String(code||'').trim(); name=String(name||'').trim(); type=String(type||'').trim();
+      if(!code&&!name)return;
+      const isLink=role==='LINK'||/LINK\s*LINE|INTERLINK/i.test(type+' '+name);
+      const feederType=isLink?'LINK LINE':(/\bOH\b|OVERHEAD/i.test(type+' '+name)?'OH':(/\bUG\b|UNDERGROUND/i.test(type+' '+name)?'UG':'UG'));
+      const id=[ssCode||compact(ssName),role,index||1,compact(code||name)].join('|');
+      const rel={...common,id,role,index:index||1,roleLabel:sgMasterRoleLabel(role,index),
+        feederCode:code,feederName:name||code,sourceType:type,feederType,
+        active:sgMasterActiveFor(rec,role,index,code,name),ptrs:[String(rec.lvName||'').trim()].filter(Boolean)};
+      if(byId[id]){
+        byId[id].active=byId[id].active||rel.active;
+        rel.ptrs.forEach(x=>{if(!byId[id].ptrs.includes(x))byId[id].ptrs.push(x);});
+      }else byId[id]=rel;
+    }
+    add('REGULAR',1,rec.regularFeederCode,rec.regularSourceType,rec.regularFeederName);
+    for(let i=1;i<=5;i++)add('ALTERNATE',i,rec['alt'+i+'Code'],rec['alt'+i+'Type'],rec['alt'+i+'Name']);
+    let linkName=String(rec.linkLineName||'').trim();
+    const linkField=String(rec.linkLine||'').trim();
+    if(!linkName&&linkField&&!/^(YES|NO|Y|N|LINK|LINK LINE)$/i.test(linkField))linkName=linkField;
+    if(linkName)add('LINK',1,'',linkField||'LINK LINE',linkName);
+  });
+  SG_MASTER_RELATIONS=Object.values(byId);
+  SG_MASTER_RELATION_BY_ID=byId;
+  window.SG_MASTER_RELATIONS=SG_MASTER_RELATIONS;
+  return SG_MASTER_RELATIONS;
+}
+function sgRelationMatchesRow(rel,row){
+  const rc=compact(rel.feederCode),rn=compact(rel.feederName);
+  const c=compact(sgMasterActualCode(row)),n=compact(row.feeder_name);
+  return !!((rc&&c&&rc===c)||(rn&&n&&rn===n));
+}
+function sgFindRelationGeometry(rel,sourceRows){
+  let exact=sourceRows.filter(r=>String(r.master_relation_id||'')===rel.id);
+  if(exact.length)return exact.map(r=>({...r}));
+  const candidates=sourceRows.filter(r=>sgRelationMatchesRow(rel,r));
+  if(!candidates.length)return [];
+  const groups={};
+  candidates.forEach(r=>{
+    const k=String(r.master_relation_id||'')+'|'+(compact(r.eht_code)||compact(r.eht_name)||'NOSOURCE')+'|'+(compact(r.division)||compact(r.circle)||'NOAREA');
+    (groups[k]=groups[k]||[]).push(r);
+  });
+  const dc=compact(rel.ssCode),dn=_sgNormSSName(rel.ssName);
+  const hit=Object.values(groups).find(g=>g.some(r=>(dc&&compact(r.feeding_code)===dc)||(dn&&_sgNormSSName(r.feeding_name||r.feeding_to)===dn)));
+  return hit?hit.map(r=>({...r})):[];
+}
+function sgContainedMasterNode(kind,text,excludeCode){
+  const cache=window._sgMasterCoordCache||sgMasterBuildCoordCache();
+  const blob=compact(text); if(!blob)return null;
+  const hits=(cache.all||[]).filter(x=>x.kind===kind&&(!excludeCode||compact(x.code)!==compact(excludeCode))).filter(x=>{
+    const raw=String(x.name||'');
+    const nm=kind==='ss33'?_sgNormSSName(raw):compact(raw.replace(/\bSS\b$/i,'').replace(/^\s*(132|220|400)\s*K?V\s*/i,''));
+    const nmFull=kind==='eht'?compact(raw.replace(/\bSS\b$/i,'')):nm;
+    return (nm&&blob.includes(nm))||(nmFull&&blob.includes(nmFull));
+  }).sort((a,b)=>compact(b.name).length-compact(a.name).length);
+  return hits[0]||null;
+}
+function sgResolveRelationSource(rel,sourceRows,baseRows){
+  const physical=(baseRows&&baseRows.length)?baseRows:sourceRows.filter(r=>sgRelationMatchesRow(rel,r));
+  const first=physical[0]||{};
+  let kind=String(first.source_kind||'').trim();
+  let code=String(first.eht_code||'').trim(),name=String(first.eht_name||'').trim();
+  let hit=null;
+  if(code||name){
+    hit=sgMasterCoordFor('eht',code,name)||sgMasterCoordFor('ss33',code,name);
+    if(hit)kind=hit.kind;
+  }
+  if(!hit){
+    const inferred=sgEHTNameFromFeederName(rel.feederName);
+    if(inferred){hit=sgMasterCoordFor('eht','',inferred);if(hit){kind='eht';name=hit.name;code=hit.code;}}
+  }
+  if(!hit){
+    hit=sgContainedMasterNode('eht',rel.feederName,'');
+    if(hit){kind='eht';name=hit.name;code=hit.code;}
+  }
+  if(!hit&&(/LINK|SS|SUBSTATION/i.test(rel.sourceType+' '+rel.feederType))){
+    hit=sgContainedMasterNode('ss33',rel.feederName,rel.ssCode);
+    if(hit){kind='ss33';name=hit.name;code=hit.code;}
+  }
+  if(hit)return {kind:kind||hit.kind,name:hit.name||name,code:hit.code||code,lat:+hit.lat,lng:+hit.lng};
+  if(first.eht_lat!=null&&first.eht_lng!=null)return {kind:kind||(/LINK/i.test(rel.feederType)?'ss33':'eht'),name:name||'SOURCE',code,lat:+first.eht_lat,lng:+first.eht_lng};
+  return null;
+}
+function sgResolveRelationTarget(rel){
+  const hit=sgMasterCoordFor('ss33',rel.ssCode,rel.ssName);
+  return hit?{kind:'ss33',name:hit.name||rel.ssName,code:hit.code||rel.ssCode,lat:+hit.lat,lng:+hit.lng}:null;
+}
+function sgRelationCableType(rel,baseRows){
+  if(/LINK/i.test(rel.feederType+' '+rel.sourceType+' '+rel.feederName))return 'LINK LINE';
+  const old=String((baseRows[0]&&baseRows[0].feeder_type)||'');
+  if(old)return old;
+  if(/\bOH\b|OVERHEAD/i.test(rel.sourceType+' '+rel.feederName))return 'OH';
+  return 'UG';
+}
+function sgMaterializeRelation(rel,baseRows,source,target){
+  const internalCode=sgMasterInternalCode(rel);
+  const template=baseRows[0]||{};
+  let material=baseRows.length?baseRows.map(r=>({...r})):[{
+    area_code:'',circle:rel.circle,division:rel.division,sub_division:rel.subDivision,section:rel.section,
+    feeder_name:rel.feederName,feeder_code:internalCode,feeder_type:rel.feederType,
+    pole_number:'1',source_type:'33/11 KV Sub-Station',feeding_code:target.code,
+    feeding_to:target.name,feeding_name:target.name,feeding_lat:target.lat,feeding_lng:target.lng,
+    raw_index:Date.now()+Math.floor(Math.random()*100000),_raw:{}
+  }];
+  const destCode=compact(target.code),destName=_sgNormSSName(target.name);
+  let destFound=false;
+  material.forEach(r=>{
+    if((destCode&&compact(r.feeding_code)===destCode)||(destName&&_sgNormSSName(r.feeding_name||r.feeding_to)===destName)){
+      r.feeding_code=target.code;r.feeding_name=target.name;r.feeding_to=target.name;r.feeding_lat=target.lat;r.feeding_lng=target.lng;destFound=true;
+    }
+  });
+  if(!destFound){
+    const mains=material.filter(r=>!String(r.pole_number||'').includes('/')).sort((a,b)=>(parseFloat(a.pole_number)||0)-(parseFloat(b.pole_number)||0));
+    const last=mains[mains.length-1]||material[material.length-1];
+    last.feeding_code=target.code;last.feeding_name=target.name;last.feeding_to=target.name;last.feeding_lat=target.lat;last.feeding_lng=target.lng;last.source_type='33/11 KV Sub-Station';
+  }
+  const ftype=sgRelationCableType(rel,material);
+  material.forEach((r,i)=>{
+    r.master_relation_id=rel.id;r.master_feeder_code=rel.feederCode||'';
+    r.master_ss_code=target.code||rel.ssCode;r.master_ss_name=target.name||rel.ssName;
+    r.source_role=rel.roleLabel;r.active_source=!!rel.active;r.master_generated=true;
+    r.source_kind=source.kind;r.feeder_code=internalCode;r.feeder_name=rel.feederName||r.feeder_name||rel.feederCode;
+    r.feeder_type=ftype;r.eht_code=source.code||'';r.eht_name=source.name||'';r.eht_lat=source.lat;r.eht_lng=source.lng;
+    r.circle=rel.circle||r.circle||'';r.division=rel.division||r.division||'';r.sub_division=rel.subDivision||r.sub_division||'';r.section=rel.section||r.section||'';
+    if(!r._raw)r._raw={}; if(r.raw_index==null)r.raw_index=Date.now()+i;
+  });
+  return material;
+}
+function sgSetViewMode(mode,silent){
+  window.sgSourceViewMode=mode==='all'?'all':'live';
+  const chip=document.getElementById('sgViewModeChip');
+  if(chip){
+    chip.classList.toggle('all',window.sgSourceViewMode==='all');
+    chip.textContent=window.sgSourceViewMode==='all'?'◉ ALL SOURCES':'● LIVE';
+    chip.title=window.sgSourceViewMode==='all'?'All Regular, Alternate and Link sources are visible':'Only active source relations are visible';
+  }
+  try{render();}catch(e){}
+  if(!silent)toast(window.sgSourceViewMode==='all'?'All master sources visible — Regular, Alternate and Link':'LIVE mode — only active sources visible');
+}
+function sgToggleViewMode(){sgSetViewMode(window.sgSourceViewMode==='live'?'all':'live');}
+function sgRebuildFromMaster(userTriggered){
+  if(window._sgEditModeOn||geomEdit&&geomEdit.feederKey){toast('Finish or cancel the current geometry edit before rebuilding from Master Data');return false;}
+  const rels=sgBuildMasterRelations();
+  if(!rels.length){toast('No source relations found under /masterData/ssSourceRows');return false;}
+  if(userTriggered&&!window.confirm('Rebuild all Regular, Alternate and Link connections from Master Data? Existing relation-specific bends will be retained. Firebase is not overwritten until you click Save / Update Firebase.'))return false;
+  const sourceRows=rows.map(r=>({...r}));
+  const physicalCodeSet=new Set(rels.map(r=>compact(r.feederCode)).filter(Boolean));
+  const physicalNameSet=new Set(rels.map(r=>compact(r.feederName)).filter(Boolean));
+  const keep=sourceRows.filter(r=>{
+    if(normType(r.feeder_type)==='ht')return true;
+    const c=compact(sgMasterActualCode(r)),n=compact(r.feeder_name);
+    return !(r.master_relation_id||physicalCodeSet.has(c)||physicalNameSet.has(n));
+  });
+  const rebuilt=[];let preserved=0,generated=0;const unresolved=[];
+  rels.forEach(rel=>{
+    const base=sgFindRelationGeometry(rel,sourceRows);
+    const source=sgResolveRelationSource(rel,sourceRows,base);
+    const target=sgResolveRelationTarget(rel);
+    if(!source||!target){unresolved.push({relation:rel.id,feeder:rel.feederName||rel.feederCode,ss:rel.ssName||rel.ssCode,missing:!source?'SOURCE':'DESTINATION'});return;}
+    rebuilt.push(...sgMaterializeRelation(rel,base,source,target));
+    if(base.length)preserved++;else generated++;
+  });
+  rows=[...keep,...rebuilt];
+  meta={...meta,masterDriven:true,masterRebuiltAt:new Date().toISOString(),masterRelations:rels.length,masterUnresolved:unresolved.length};
+  SG_MASTER_REBUILD_REPORT={relations:rels.length,preserved,generated,unresolved};
+  window.SG_MASTER_REBUILD_REPORT=SG_MASTER_REBUILD_REPORT;
+  try{populateFilters();render();}catch(e){console.error('[SmartGrid] master redraw render failed',e);}
+  const msg='Master redraw: '+rels.length+' relations · '+preserved+' edited routes retained · '+generated+' automatic routes · '+unresolved.length+' unresolved';
+  console.log('[SmartGrid]',msg,unresolved);
+  toast((unresolved.length?'⚠ ':'✅ ')+msg+(userTriggered?' · Review, then Save / Update Firebase':'') );
+  return true;
+}
+async function sgRefreshMasterAndRebuild(){
+  if(window._sgEditModeOn||geomEdit&&geomEdit.feederKey)return;
+  const before=window._sgMasterFingerprint||sgMasterDataFingerprint();
+  await loadSmartGridMasterData();
+  const after=sgMasterDataFingerprint();
+  window._sgMasterFingerprint=after;
+  if(before&&after!==before){sgRebuildFromMaster(false);toast('Master Data changed — Smart Grid connections redrawn automatically');}
+}
+function sgStartMasterAutoSync(){
+  window._sgMasterFingerprint=sgMasterDataFingerprint();
+  if(window._sgMasterAutoSyncTimer)clearInterval(window._sgMasterAutoSyncTimer);
+  window._sgMasterAutoSyncTimer=setInterval(sgRefreshMasterAndRebuild,60000);
+}
+
 function buildTopology(){
   topology=[];nodesByKey={};
   // Group by feeder identity + source + hierarchy. Grouping only by feeder name
@@ -3777,7 +4039,7 @@ function buildTopology(){
   // remain with their trunk because they share feeder name, EHT source and division.
   const byF={};
   rows.forEach(r=>{
-    const feederId=compact(r.feeder_name)||compact(r.feeder_code)||'UNNAMED';
+    const feederId=compact(r.master_relation_id)||compact(r.feeder_code)||compact(r.feeder_name)||'UNNAMED';
     const sourceId=compact(r.eht_code)||compact(r.eht_name)||'NOSOURCE';
     const areaId=compact(r.division)||compact(r.circle)||'NOAREA';
     const k=feederId+'|'+sourceId+'|'+areaId;
@@ -3795,7 +4057,7 @@ function buildTopology(){
     const sorted=[...(mains.length?mains:list)].sort((a,b)=>(parseFloat(a.pole_number)||0)-(parseFloat(b.pole_number)||0));
     const first=sorted[0];
     const ftype=normType(first.feeder_type);let seq=[];
-    const srcKind = ftype==='link' ? 'ss33' : 'eht';
+    const srcKind = String(first.source_kind||'').trim() || (ftype==='link' ? 'ss33' : 'eht');
     const srcHit = sgMasterCoordFor(srcKind, first.eht_code, first.eht_name);
     const srcLat = srcHit ? srcHit.lat : first.eht_lat;
     const srcLng = srcHit ? srcHit.lng : first.eht_lng;
@@ -3862,7 +4124,7 @@ function buildTopology(){
           const n=mkNode(r);
           if(!n)return;
           const k=nodeKey(n); if(!nodesByKey[k]) nodesByKey[k]=n;
-          spurConns.push({feeder_code:r.feeder_code||first.feeder_code,feeder_name:r.feeder_name||first.feeder_name,feeder_type:r.feeder_type||first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,circle:r.circle||first.circle,division:r.division||first.division,sub_division:r.sub_division||first.sub_division,section:r.section||first.section,from,to:n,type:ftype,spur:true});
+          spurConns.push({feeder_code:r.feeder_code||first.feeder_code,master_feeder_code:r.master_feeder_code||first.master_feeder_code||'',master_relation_id:r.master_relation_id||first.master_relation_id||'',source_role:r.source_role||first.source_role||'',active_source:(r.active_source??first.active_source),feeder_name:r.feeder_name||first.feeder_name,feeder_type:r.feeder_type||first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,circle:r.circle||first.circle,division:r.division||first.division,sub_division:r.sub_division||first.sub_division,section:r.section||first.section,from,to:n,type:ftype,spur:true});
           from=n;
         });
       });
@@ -3870,7 +4132,7 @@ function buildTopology(){
     for(let i=0;i<seq.length-1;i++){
       const a=seq[i], b=seq[i+1];
       if(a.lat==null||a.lng==null||b.lat==null||b.lng==null)continue;
-      topology.push({feeder_code:first.feeder_code,feeder_name:first.feeder_name,feeder_type:first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,circle:first.circle,division:first.division,sub_division:first.sub_division,section:first.section,from:a,to:b,type:ftype});
+      topology.push({feeder_code:first.feeder_code,master_feeder_code:first.master_feeder_code||'',master_relation_id:first.master_relation_id||'',source_role:first.source_role||'',active_source:first.active_source,feeder_name:first.feeder_name,feeder_type:first.feeder_type,eht_name:first.eht_name,eht_code:first.eht_code,circle:first.circle,division:first.division,sub_division:first.sub_division,section:first.section,from:a,to:b,type:ftype});
     }
     spurConns.forEach(c=>topology.push(c));
     seq.forEach(n=>{nodesByKey[nodeKey(n)]=n});
@@ -3982,7 +4244,11 @@ function render(){
     const col=colorFor(c.type,c.feeder_type);
     const pts=curve(c.from,c.to,idx,pairCount[k],c.type);
     const w = c.type==='link' ? Math.max(.8,sgLineWeight*0.8) : sgLineWeight;
-    const line=L.polyline(pts,{color:col,weight:w,opacity:.9,dashArray:null,lineCap:'round',lineJoin:'round',className:'sg-feeder-line '+(c.type==='link'?'sg-link-line':'')});
+    const role=String(c.source_role||'').toUpperCase();
+    const isActive=(c.active_source===true||String(c.active_source).toLowerCase()==='true');
+    const roleClass=role.startsWith('REGULAR')?'sg-role-regular':(role.startsWith('ALTERNATE')?'sg-role-alternate':(role.startsWith('LINK')?'sg-role-link':''));
+    const roleOpacity=(window.sgSourceViewMode==='all'&&!isActive)?(role.startsWith('ALTERNATE')?.50:role.startsWith('LINK')?.62:.76):.94;
+    const line=L.polyline(pts,{color:col,weight:isActive?Math.max(w,w*1.2):w,opacity:roleOpacity,dashArray:null,lineCap:'round',lineJoin:'round',className:'sg-feeder-line '+(c.type==='link'?'sg-link-line ':'')+roleClass+(isActive?' sg-master-active':'')});
     // Feeder name appears ONLY on hover near the line, not as permanent map text.
     // No rectangular hover box. Feeder identity remains available from the
     // Feeder selector and drafting-panel title.
@@ -3991,13 +4257,13 @@ function render(){
     line.on('click',ev=>{
       L.DomEvent.stop(ev);
       if(window._sgEditModeOn){ c.spur ? enterSpurEdit(c) : enterFeederEdit(c.feeder_code||c.feeder_name); }
-      else { toast(clean(c.feeder_name)||c.feeder_code||'Feeder selected'); }
+      else { toast((clean(c.feeder_name)||c.master_feeder_code||c.feeder_code||'Feeder selected')+(c.source_role?' · '+c.source_role:'')); }
     });
     line.addTo(gLines);
 
     // Energy-flow animation: a second, animated dashed line on top (EHT→SS).
     // Only on 33KV feeders (not link/ht) and only when flow is ON.
-    if(sgFlowOn && c.type==='feeder'){
+    if(sgFlowOn && c.type==='feeder' && (!c.master_relation_id || isActive)){
       // Flow is drawn only in the connection direction produced by buildTopology():
       // first/source point → downstream endpoint. No reverse/back-to-EHT animation.
       L.polyline(pts,{color:'#67e8f9',weight:Math.max(2,w*1.15),opacity:.32,dashArray:'1 22',lineCap:'round',className:'sg-flow-halo'}).addTo(gLines);
@@ -4062,7 +4328,7 @@ function render(){
   const renderedHTCount=Object.keys(used).filter(k=>String(k).toLowerCase().startsWith('ht|')).length;
 
   if(stRows) stRows.textContent=rows.length;
-  if(stFeeders) stFeeders.textContent=new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size;
+  if(stFeeders) stFeeders.textContent=new Set(rows.map(r=>r.master_feeder_code||r.feeder_code||r.feeder_name)).size;
   if(stNodes) stNodes.textContent=Object.keys(used).length;
   if(stConns) stConns.textContent=shown.length;
   if(cntUG) cntUG.textContent=cnt.ug;
@@ -4177,7 +4443,7 @@ async function handleFile(file){
   // Quick sanity check after normalize — helps diagnose column name mismatches
   const withEHTName=rows.filter(r=>r.eht_name).length;
   const withFeedingLat=rows.filter(r=>r.feeding_lat!=null).length;
-  const feeders=new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size;
+  const feeders=new Set(rows.map(r=>r.master_feeder_code||r.feeder_code||r.feeder_name)).size;
   console.log('[SmartGrid] Upload:', raw.length, 'raw rows →', rows.length, 'normalized | feeders:', feeders, '| with eht_name:', withEHTName, '| with feeding_lat:', withFeedingLat);
   if(rows.length>0 && withEHTName===0){
     toast('⚠ Uploaded '+rows.length+' rows but no EHT SS name found — check column "name_of_the_EHT _SS" in your Excel. See console (F12) for details.');
@@ -4194,7 +4460,7 @@ async function handleFile(file){
 async function saveFirebase(){
   if(!rows.length){toast('Upload Excel first');return}
   buildTopology();
-  const payload={meta:{...meta,updatedAt:new Date().toISOString(),connections:topology.length,feeders:new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size},rows};
+  const payload={meta:{...meta,updatedAt:new Date().toISOString(),connections:topology.length,feeders:new Set(rows.map(r=>r.master_feeder_code||r.feeder_code||r.feeder_name)).size},rows};
   // Safety guard (05-Jul-2026): if what we're about to write is drastically
   // smaller than what's already live, stop and ask — this is exactly the
   // kind of write that silently wipes out good data.
@@ -4378,12 +4644,19 @@ document.addEventListener('click',e=>{
   setTimeout(dismissLoader, 4000); // safety net
 })();
 
+var geomEdit={feederKey:null,verts:[],selected:-1};
+
 (async()=>{
   await loadFirebase();
   await loadSmartGridMasterData();
   window._sgKeepFeederFilter=false;
   const ff=document.getElementById('fFeeder'); if(ff) ff.value='';
-  try{ populateFilters(); render(); }catch(e){ console.warn('Final master-data render failed',e); }
+  try{
+    sgRebuildFromMaster(false);
+    sgSetViewMode('live',true);
+    sgStartMasterAutoSync();
+    populateFilters(); render();
+  }catch(e){ console.warn('Final master-data redraw/render failed',e); }
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -4412,7 +4685,7 @@ let gCadSnapTargets = L.layerGroup().addTo(map);
 if(!map.getPane('editGripPane')){const p=map.createPane('editGripPane');p.style.zIndex='10000';p.style.pointerEvents='auto';}
 let gNewFeederLayer = L.layerGroup().addTo(map);
 window._sgEditModeOn = false;
-let geomEdit = {feederKey:null, verts:[], selected:-1};
+geomEdit = {feederKey:null, verts:[], selected:-1};
 let sgDraft={mode:'move',history:[],snap:{endpoint:true,midpoint:true,node:true,nearest:true}};
 window._sgLockedFeederKey = null;
 let _sgGuideLine = null;
@@ -4431,6 +4704,7 @@ function gpsGoTo(){
 
 function toggleGeomEditMode(){
   window._sgEditModeOn = !window._sgEditModeOn;
+  if(window._sgEditModeOn && typeof sgSetViewMode==='function') sgSetViewMode('all',true);
   const btn = document.getElementById('btnEditGeom');
   if(btn) btn.classList.toggle('on', window._sgEditModeOn);
   // STATIC MAP during editing (per Naresh 05-Jul-2026): the basemap,
