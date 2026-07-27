@@ -11,6 +11,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Isolated CesiumJS engine for the optional photorealistic 3D Digital Twin mode -->
+<script>window.CESIUM_BASE_URL="https://cdn.jsdelivr.net/npm/cesium@1.131.0/Build/Cesium/";</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.131.0/Build/Cesium/Widgets/widgets.css"/>
+<script src="https://cdn.jsdelivr.net/npm/cesium@1.131.0/Build/Cesium/Cesium.js"></script>
 <script>
 // Firebase Realtime Database — new project "scadagridmap" (per Naresh, 22 May 2026)
 // If you created the RTDB in a different region, change the URL accordingly:
@@ -1573,6 +1577,33 @@ body.gridzoom-out .tg-district-label{font-size:9px!important;opacity:.62!importa
 body.gridzoom-mid .tg-district-label{font-size:10px!important;opacity:.76!important}
 body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!important}
 
+
+/* ══ OPTIONAL PHOTOREALISTIC 3D DIGITAL TWIN — isolated from Leaflet ══ */
+#cesium3d{position:fixed;inset:52px 0 38px 0;z-index:2;display:none;background:#07111d}
+body.tg-3d-active #cesium3d{display:block}
+body.tg-3d-active #map{visibility:hidden;pointer-events:none}
+#cesium3d .cesium-viewer-bottom{left:8px!important;bottom:4px!important}
+#cesium3d .cesium-widget-credits{font-size:9px!important}
+.bm-tab.bm-3d{border:1px solid rgba(255,193,7,.45);color:#ffd45b}
+.bm-tab.bm-3d:hover{background:rgba(255,193,7,.14);color:#fff1a8}
+.bm-tab.bm-3d.active{background:rgba(255,193,7,.22);color:#ffe082;box-shadow:0 0 14px rgba(255,193,7,.22)}
+#tg3dTools{position:fixed;top:62px;right:292px;z-index:980;display:none;gap:6px;align-items:center;padding:6px 8px;border-radius:18px;background:rgba(7,17,29,.92);border:1px solid rgba(255,193,7,.35);backdrop-filter:blur(12px);box-shadow:0 3px 16px rgba(0,0,0,.35)}
+body.tg-3d-active #tg3dTools{display:flex}
+.tg3d-btn{border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#dbeafe;border-radius:14px;padding:5px 10px;font-family:var(--mono);font-size:9px;letter-spacing:.6px;cursor:pointer}
+.tg3d-btn:hover{background:rgba(255,193,7,.18);border-color:rgba(255,193,7,.5);color:#fff}
+#tg3dStatus{font-family:var(--mono);font-size:9px;color:#ffe082;padding:0 5px;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tg3dSetup{position:fixed;inset:0;z-index:5000;display:none;align-items:center;justify-content:center;background:rgba(2,8,16,.76);backdrop-filter:blur(8px)}
+#tg3dSetup.open{display:flex}
+.tg3d-setup-card{width:min(520px,calc(100vw - 28px));background:#fff;border-radius:14px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.45);font-family:Arial,sans-serif;color:#172033}
+.tg3d-setup-title{font-size:17px;font-weight:800;color:#9a6700;margin-bottom:7px}
+.tg3d-setup-copy{font-size:12px;line-height:1.55;color:#475569;margin-bottom:12px}
+.tg3d-token{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:10px 11px;font-family:var(--mono);font-size:11px;outline:none}
+.tg3d-token:focus{border-color:#d69e00;box-shadow:0 0 0 3px rgba(214,158,0,.15)}
+.tg3d-setup-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.tg3d-primary{background:#9a6700;color:#fff;border-color:#9a6700}
+.tg3d-note{font-size:10px;line-height:1.45;color:#64748b;margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0}
+@media(max-width:900px){#tg3dTools{right:8px;top:58px}#tg3dStatus{display:none}}
+
 </style>
 </head>
 <body class="no-anim">
@@ -1755,6 +1786,7 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
 </div>
 
 <div id="map"></div>
+<div id="cesium3d" aria-label="TGSPDCL photorealistic 3D digital twin"></div>
 
 <!-- Toast for transient status messages — restored 21 May 2026.
      Without this element, the toast() helper threw on every call, which
@@ -1859,6 +1891,28 @@ body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!importa
   <div class="bm-tab"        id="bm-street"    onclick="setBM('street')">🗺 STREET</div>
   <div class="bm-tab"        id="bm-google"    onclick="setBM('google')">📍 GOOGLE</div>
   <div class="bm-tab active" id="bm-grid_view" onclick="setBM('grid_view')" title="Pastel Hyderabad-region district boundary view">▧ GRID MAP VIEW</div>
+  <div class="bm-tab bm-3d" id="bm-photoreal3d" onclick="openTG3D()" title="True Cesium photorealistic 3D Digital Twin">🏙 3D DIGITAL TWIN</div>
+</div>
+
+<div id="tg3dTools">
+  <span id="tg3dStatus">3D ready</span>
+  <button class="tg3d-btn" onclick="syncTG3DData()">↻ SYNC DATA</button>
+  <button class="tg3d-btn" onclick="flyTG3DHome()">⌂ HYDERABAD</button>
+  <button class="tg3d-btn" onclick="openTG3DSetup()">⚙ TOKEN</button>
+  <button class="tg3d-btn" onclick="closeTG3D()">✕ EXIT 3D</button>
+</div>
+
+<div id="tg3dSetup">
+  <div class="tg3d-setup-card">
+    <div class="tg3d-setup-title">Enable Photorealistic 3D Buildings</div>
+    <div class="tg3d-setup-copy">Paste a Cesium ion access token that has access to Google Photorealistic 3D Tiles. The token stays only in this browser. Your feeder and substation data continue to come from the existing TGSPDCL map.</div>
+    <input id="tg3dTokenInput" class="tg3d-token" type="password" autocomplete="off" placeholder="Paste Cesium ion access token"/>
+    <div class="tg3d-setup-actions">
+      <button class="tg3d-btn" style="color:#334155;border-color:#cbd5e1" onclick="closeTG3DSetup()">CANCEL</button>
+      <button class="tg3d-btn tg3d-primary" onclick="saveTG3DToken()">SAVE & LOAD 3D</button>
+    </div>
+    <div class="tg3d-note">A Cesium/Google token and enabled billing may be required by the provider. Do not publish a unrestricted production token in a public GitHub repository; restrict it to your website domain.</div>
+  </div>
 </div>
 
 <div id="rpanel">
@@ -10575,6 +10629,217 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;padding:24px;col
   <div class="ai-text">${fmt}</div>
   <div class="footer">Generated by TGSPDCL AI Grid Assistant · Mistral-7B-Instruct-v0.3 · Hugging Face</div>
 </div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// TGSPDCL PHOTOREALISTIC 3D DIGITAL TWIN
+// Additive module only: it does not modify Leaflet layers, data,
+// Firebase paths, filters, reports, editing tools, or basemap code.
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  let viewer=null, googleTileset=null, initialized=false;
+  let lastLeafletView=null;
+  const DATA_SOURCE_NAME='TGSPDCL live network';
+
+  function status(msg){
+    const el=document.getElementById('tg3dStatus');
+    if(el) el.textContent=msg;
+  }
+  function token(){ return localStorage.getItem('tgspdcl_cesium_ion_token')||''; }
+  function setActive(active){
+    document.body.classList.toggle('tg-3d-active',active);
+    const tab=document.getElementById('bm-photoreal3d');
+    if(tab) tab.classList.toggle('active',active);
+    if(active){
+      document.querySelectorAll('#bm-tabs .bm-tab').forEach(x=>{ if(x!==tab)x.classList.remove('active'); });
+    }
+  }
+  function flattenLatLngs(value,out){
+    out=out||[];
+    if(!value)return out;
+    if(Array.isArray(value)){
+      value.forEach(v=>flattenLatLngs(v,out));
+    }else if(Number.isFinite(value.lat)&&Number.isFinite(value.lng)){
+      out.push(value);
+    }
+    return out;
+  }
+  function cableColor(item){
+    const type=String(item?.reg?.type||item?.cable||'').toLowerCase();
+    if(type.includes('ug')) return Cesium.Color.fromCssColorString('#2196f3');
+    if(type.includes('oh')) return Cesium.Color.fromCssColorString('#ff9800');
+    if(type.includes('tr')||type.includes('transition')) return Cesium.Color.fromCssColorString('#9c27b0');
+    return Cesium.Color.fromCssColorString('#00c8ff');
+  }
+  function makeViewer(){
+    if(viewer)return viewer;
+    if(!window.Cesium) throw new Error('CesiumJS library did not load. Check internet access.');
+    Cesium.Ion.defaultAccessToken=token();
+    viewer=new Cesium.Viewer('cesium3d',{
+      animation:false,timeline:false,baseLayerPicker:false,geocoder:false,
+      homeButton:false,sceneModePicker:false,navigationHelpButton:false,
+      fullscreenButton:false,infoBox:true,selectionIndicator:true,
+      baseLayer:false,terrainProvider:new Cesium.EllipsoidTerrainProvider(),
+      requestRenderMode:true,maximumRenderTimeChange:Infinity,
+    });
+    viewer.scene.globe.show=false;
+    viewer.scene.skyAtmosphere.show=true;
+    viewer.scene.fog.enabled=true;
+    viewer.scene.highDynamicRange=true;
+    viewer.scene.screenSpaceCameraController.minimumZoomDistance=8;
+    viewer.scene.screenSpaceCameraController.maximumZoomDistance=400000;
+    flyTG3DHome();
+    initialized=true;
+    return viewer;
+  }
+  async function loadPhotorealTiles(){
+    if(!token()){
+      openTG3DSetup();
+      status('Token required for photorealistic buildings');
+      return false;
+    }
+    makeViewer();
+    Cesium.Ion.defaultAccessToken=token();
+    if(googleTileset){ viewer.scene.primitives.remove(googleTileset); googleTileset=null; }
+    status('Loading photorealistic Hyderabad…');
+    try{
+      googleTileset=await Cesium.createGooglePhotorealistic3DTileset({
+        onlyUsingWithGoogleGeocoder:true
+      });
+      viewer.scene.primitives.add(googleTileset);
+      viewer.scene.requestRender();
+      status('Photorealistic 3D + TGSPDCL network');
+      return true;
+    }catch(err){
+      console.error('TGSPDCL 3D tiles error',err);
+      status('3D tiles failed — check token, billing and domain restriction');
+      openTG3DSetup();
+      return false;
+    }
+  }
+
+  window.syncTG3DData=function(){
+    if(!viewer)return;
+    const old=viewer.dataSources.getByName(DATA_SOURCE_NAME);
+    old.forEach(ds=>viewer.dataSources.remove(ds,true));
+    const ds=new Cesium.CustomDataSource(DATA_SOURCE_NAME);
+    let lineCount=0, ssCount=0, ehtCount=0;
+
+    // Reuse the actual Leaflet layer objects currently loaded by the app.
+    ((typeof allLayers!=='undefined'&&Array.isArray(allLayers))?allLayers:[]).forEach(item=>{
+      const layer=item&&item.layer;
+      if(!layer || typeof layer.getLatLngs!=='function')return;
+      if(window.L && layer instanceof L.Polygon)return;
+      const ll=flattenLatLngs(layer.getLatLngs());
+      if(ll.length<2)return;
+      const positions=ll.map(p=>Cesium.Cartesian3.fromDegrees(p.lng,p.lat,8));
+      const name=item.feederName||item.feeder||item.reg?.feeder||'33KV Feeder';
+      ds.entities.add({
+        name,
+        description:`<b>${name}</b><br>Source: live TGSPDCL Leaflet layer`,
+        polyline:{
+          positions,width:4,clampToGround:true,
+          material:new Cesium.PolylineGlowMaterialProperty({glowPower:.16,color:cableColor(item)}),
+          depthFailMaterial:cableColor(item).withAlpha(.7)
+        }
+      });
+      lineCount++;
+    });
+
+    ((typeof STATIC_SS33!=='undefined'&&Array.isArray(STATIC_SS33))?STATIC_SS33:[]).forEach(ss=>{
+      if(!Number.isFinite(+ss.lon)||!Number.isFinite(+ss.lat))return;
+      ds.entities.add({
+        name:ss.name||'33/11KV SS',
+        description:`<b>${ss.name||'33/11KV SS'}</b><br>Division: ${ss.division||'—'}<br>Sub-Division: ${ss.sub_div||'—'}<br>Section: ${ss.section||'—'}`,
+        position:Cesium.Cartesian3.fromDegrees(+ss.lon,+ss.lat,20),
+        point:{pixelSize:13,color:Cesium.Color.fromCssColorString('#2196f3'),outlineColor:Cesium.Color.WHITE,outlineWidth:2,disableDepthTestDistance:Number.POSITIVE_INFINITY},
+        label:{text:String(ss.name||'').replace(/^33\/11\s*KV\s*/i,'').replace(/\s+SS$/i,''),font:'11px Arial',fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK,outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-18),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,18000),disableDepthTestDistance:Number.POSITIVE_INFINITY}
+      }); ssCount++;
+    });
+
+    ((typeof STATIC_EHT!=='undefined'&&Array.isArray(STATIC_EHT))?STATIC_EHT:[]).forEach(ss=>{
+      if(!Number.isFinite(+ss.lon)||!Number.isFinite(+ss.lat))return;
+      ds.entities.add({
+        name:ss.name||'EHT SS',
+        description:`<b>${ss.name||'EHT SS'}</b><br>PTRs: ${ss.ptrs||'—'}<br>PTR Capacity: ${ss.ptr_cap||'—'} MVA<br>Max Load: ${ss.max_load||'—'} MVA`,
+        position:Cesium.Cartesian3.fromDegrees(+ss.lon,+ss.lat,28),
+        point:{pixelSize:16,color:Cesium.Color.fromCssColorString('#ff7a00'),outlineColor:Cesium.Color.WHITE,outlineWidth:2,disableDepthTestDistance:Number.POSITIVE_INFINITY},
+        label:{text:String(ss.name||'').replace(/^\d+\s*KV\s*/i,'').replace(/\s+SS$/i,''),font:'bold 12px Arial',fillColor:Cesium.Color.fromCssColorString('#ffd29a'),outlineColor:Cesium.Color.BLACK,outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(0,-21),distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,26000),disableDepthTestDistance:Number.POSITIVE_INFINITY}
+      }); ehtCount++;
+    });
+
+    viewer.dataSources.add(ds);
+    viewer.scene.requestRender();
+    status(`${lineCount} feeder segments • ${ssCount} SS • ${ehtCount} EHT`);
+  };
+
+  window.flyTG3DHome=function(){
+    if(!viewer)return;
+    viewer.camera.flyTo({
+      destination:Cesium.Cartesian3.fromDegrees(78.435,17.420,14500),
+      orientation:{heading:Cesium.Math.toRadians(8),pitch:Cesium.Math.toRadians(-48),roll:0},
+      duration:1.6
+    });
+  };
+
+  window.openTG3D=async function(){
+    try{
+      lastLeafletView=(typeof map!=='undefined')?{center:map.getCenter(),zoom:map.getZoom()}:null;
+      setActive(true);
+      makeViewer();
+      syncTG3DData();
+      setTimeout(()=>viewer&&viewer.resize(),50);
+      await loadPhotorealTiles();
+    }catch(err){
+      console.error(err); status(err.message||'Unable to start 3D'); openTG3DSetup();
+    }
+  };
+  window.closeTG3D=function(){
+    setActive(false);
+    if(typeof map!=='undefined'){
+      setTimeout(()=>{ map.invalidateSize(); if(lastLeafletView)map.setView(lastLeafletView.center,lastLeafletView.zoom,{animate:false}); },50);
+    }
+    // Restore visible active state to the current 2D basemap without invoking it.
+    const id=(typeof currentBM!=='undefined'?currentBM:'grid_view');
+    const tab=document.getElementById('bm-'+id);
+    if(tab)tab.classList.add('active'); else document.getElementById('bm-grid_view')?.classList.add('active');
+  };
+  window.openTG3DSetup=function(){
+    const modal=document.getElementById('tg3dSetup');
+    const input=document.getElementById('tg3dTokenInput');
+    if(input)input.value=token();
+    modal?.classList.add('open');
+    setTimeout(()=>input?.focus(),50);
+  };
+  window.closeTG3DSetup=function(){ document.getElementById('tg3dSetup')?.classList.remove('open'); };
+  window.saveTG3DToken=async function(){
+    const value=document.getElementById('tg3dTokenInput')?.value.trim()||'';
+    if(!value){status('Enter a valid Cesium ion token');return;}
+    localStorage.setItem('tgspdcl_cesium_ion_token',value);
+    closeTG3DSetup();
+    if(viewer)viewer.destroy();
+    viewer=null; googleTileset=null; initialized=false;
+    setActive(true); makeViewer(); syncTG3DData(); await loadPhotorealTiles();
+  };
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+      if(document.getElementById('tg3dSetup')?.classList.contains('open'))closeTG3DSetup();
+      else if(document.body.classList.contains('tg-3d-active'))closeTG3D();
+    }
+  });
+
+  // If any existing 2D basemap is chosen while 3D is open, leave 3D first.
+  const originalSetBM=window.setBM;
+  if(typeof originalSetBM==='function'){
+    window.setBM=function(name){
+      if(document.body.classList.contains('tg-3d-active'))closeTG3D();
+      return originalSetBM.apply(this,arguments);
+    };
+  }
+})();
+</script>
 
 </body></html>`;
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
