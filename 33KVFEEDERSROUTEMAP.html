@@ -1574,26 +1574,29 @@ body.gridzoom-mid .tg-district-label{font-size:10px!important;opacity:.76!import
 body.gridzoom-in .tg-district-label{font-size:12px!important;opacity:.92!important}
 
 
-/* ══ OPTIONAL GEOLIBRE GIS STUDIO — isolated from Leaflet ══ */
-#geoLibreStudio{position:fixed;inset:52px 0 38px 0;z-index:970;display:none;background:#07111d}
-body.tg-gis-active #geoLibreStudio{display:block}
-body.tg-gis-active #map{visibility:hidden;pointer-events:none}
-#geoLibreFrame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
-.bm-tab.bm-gis{border:1px solid rgba(34,197,94,.48);color:#86efac}
-.bm-tab.bm-gis:hover{background:rgba(34,197,94,.14);color:#dcfce7}
-.bm-tab.bm-gis.active{background:rgba(34,197,94,.22);color:#bbf7d0;box-shadow:0 0 14px rgba(34,197,94,.22)}
-#tgGISTools{position:fixed;top:62px;right:292px;z-index:990;display:none;gap:6px;align-items:center;padding:6px 8px;border-radius:18px;background:rgba(7,17,29,.94);border:1px solid rgba(34,197,94,.38);backdrop-filter:blur(12px);box-shadow:0 3px 16px rgba(0,0,0,.35)}
-body.tg-gis-active #tgGISTools{display:flex}
-.tggis-btn{border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#dbeafe;border-radius:14px;padding:5px 10px;font-family:var(--mono);font-size:9px;letter-spacing:.6px;cursor:pointer}
-.tggis-btn:hover{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.55);color:#fff}
-#tgGISStatus{font-family:var(--mono);font-size:9px;color:#bbf7d0;padding:0 5px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#geoLibreFallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(145deg,#07111d,#0f2236);z-index:2}
-#geoLibreFallback.show{display:flex}
-.geo-fallback-card{width:min(560px,calc(100vw - 28px));background:#fff;border-radius:14px;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.45);font-family:Arial,sans-serif;color:#172033;text-align:center}
-.geo-fallback-card h3{font-size:18px;color:#15803d;margin-bottom:9px}.geo-fallback-card p{font-size:12px;line-height:1.55;color:#475569;margin-bottom:14px}
-.geo-fallback-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.geo-fallback-actions button{padding:9px 14px;border-radius:8px;border:1px solid #bbf7d0;background:#dcfce7;color:#166534;font-weight:700;cursor:pointer}
-@media(max-width:900px){#tgGISTools{right:8px;top:58px}#tgGISStatus{display:none}}
+/* ══ OPTIONAL MAPLIBRE 3D CITY VIEW — isolated from Leaflet ══ */
+#tg3DStudio{position:fixed;inset:52px 0 38px 0;z-index:970;display:none;background:#07111d}
+body.tg-3d-active #tg3DStudio{display:block}
+body.tg-3d-active #map{visibility:hidden;pointer-events:none}
+#tg3DMap{position:absolute;inset:0;width:100%;height:100%;background:#07111d}
+.bm-tab.bm-3d{border:1px solid rgba(34,197,94,.48);color:#86efac}
+.bm-tab.bm-3d:hover{background:rgba(34,197,94,.14);color:#dcfce7}
+.bm-tab.bm-3d.active{background:rgba(34,197,94,.22);color:#bbf7d0;box-shadow:0 0 14px rgba(34,197,94,.22)}
+#tg3DTools{position:fixed;top:62px;right:292px;z-index:990;display:none;gap:6px;align-items:center;padding:6px 8px;border-radius:18px;background:rgba(7,17,29,.94);border:1px solid rgba(34,197,94,.38);backdrop-filter:blur(12px);box-shadow:0 3px 16px rgba(0,0,0,.35)}
+body.tg-3d-active #tg3DTools{display:flex}
+.tg3d-btn{border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#dbeafe;border-radius:14px;padding:5px 10px;font-family:var(--mono);font-size:9px;letter-spacing:.6px;cursor:pointer}
+.tg3d-btn:hover{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.55);color:#fff}
+#tg3DStatus{font-family:var(--mono);font-size:9px;color:#bbf7d0;padding:0 5px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tg3DError{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(145deg,#07111d,#0f2236);z-index:4}
+#tg3DError.show{display:flex}
+.tg3d-error-card{width:min(560px,calc(100vw - 28px));background:#fff;border-radius:14px;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.45);font-family:Arial,sans-serif;color:#172033;text-align:center}
+.tg3d-error-card h3{font-size:18px;color:#15803d;margin-bottom:9px}.tg3d-error-card p{font-size:12px;line-height:1.55;color:#475569;margin-bottom:14px}
+.tg3d-error-card button{padding:9px 14px;border-radius:8px;border:1px solid #bbf7d0;background:#dcfce7;color:#166534;font-weight:700;cursor:pointer}
+.maplibregl-popup-content{font:12px/1.45 Arial,sans-serif;border-radius:10px;min-width:190px}.maplibregl-popup-content b{color:#0f766e}
+@media(max-width:900px){#tg3DTools{right:8px;top:58px}#tg3DStatus{display:none}}
 </style>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 </head>
 <body class="no-anim">
 
@@ -1879,28 +1882,24 @@ body.tg-gis-active #tgGISTools{display:flex}
   <div class="bm-tab"        id="bm-street"    onclick="setBM('street')">🗺 STREET</div>
   <div class="bm-tab"        id="bm-google"    onclick="setBM('google')">📍 GOOGLE</div>
   <div class="bm-tab active" id="bm-grid_view" onclick="setBM('grid_view')" title="Pastel Hyderabad-region district boundary view">▧ GRID MAP VIEW</div>
-  <div class="bm-tab bm-gis" id="bm-geolibre" onclick="openTGGeoLibre()" title="Open-source GeoLibre GIS workspace">🧭 GIS STUDIO</div>
+  <div class="bm-tab bm-3d" id="bm-3d-city" onclick="openTG3D()" title="Open-source MapLibre 3D buildings with the live TGSPDCL grid">🏙 3D CITY</div>
 </div>
 
-<div id="tgGISTools">
-  <span id="tgGISStatus">GeoLibre ready</span>
-  <button class="tggis-btn" onclick="exportTGGridGeoJSON()">⬇ EXPORT GRID</button>
-  <button class="tggis-btn" onclick="openGeoLibreNewTab()">↗ OPEN FULL PAGE</button>
-  <button class="tggis-btn" onclick="reloadTGGeoLibre()">↻ RELOAD</button>
-  <button class="tggis-btn" onclick="closeTGGeoLibre()">✕ EXIT GIS</button>
+<div id="tg3DTools">
+  <span id="tg3DStatus">3D City ready</span>
+  <button class="tg3d-btn" onclick="syncTG3D()">↻ SYNC GRID</button>
+  <button class="tg3d-btn" onclick="tg3DTopView()">▣ TOP VIEW</button>
+  <button class="tg3d-btn" onclick="tg3DTiltView()">◩ TILT VIEW</button>
+  <button class="tg3d-btn" onclick="closeTG3D()">✕ EXIT 3D</button>
 </div>
 
-<div id="geoLibreStudio">
-  <iframe id="geoLibreFrame" title="GeoLibre GIS Studio" loading="lazy" allow="clipboard-read; clipboard-write; geolocation; fullscreen"></iframe>
-  <div id="geoLibreFallback">
-    <div class="geo-fallback-card">
-      <h3>GeoLibre GIS Studio</h3>
-      <p>The hosted GeoLibre site may prevent embedding in some browsers. Open it in a full page and import the TGSPDCL GeoJSON exported from this map.</p>
-      <div class="geo-fallback-actions">
-        <button onclick="exportTGGridGeoJSON()">Download TGSPDCL GeoJSON</button>
-        <button onclick="openGeoLibreNewTab()">Open GeoLibre</button>
-        <button onclick="closeTGGeoLibre()">Return to Smart Grid</button>
-      </div>
+<div id="tg3DStudio">
+  <div id="tg3DMap" aria-label="TGSPDCL MapLibre 3D city map"></div>
+  <div id="tg3DError">
+    <div class="tg3d-error-card">
+      <h3>3D City could not start</h3>
+      <p>MapLibre needs an internet connection, WebGL support, and access to OpenFreeMap vector tiles. Your normal Leaflet grid map remains available.</p>
+      <button onclick="closeTG3D()">Return to Smart Grid</button>
     </div>
   </div>
 </div>
@@ -12140,82 +12139,117 @@ setTimeout(function(){ if(typeof window.tgRunBoundaryDiagnostic==='function') wi
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-// TGSPDCL GEOLIBRE GIS STUDIO
-// Additive module only. Existing Leaflet layers, Firebase data,
+// TGSPDCL MAPLIBRE 3D CITY VIEW
+// Additive renderer only. Existing Leaflet layers, Firebase data,
 // filters, reports, editor and basemaps remain untouched.
 // ═══════════════════════════════════════════════════════════════
 (function(){
-  const GEOLIBRE_URL='https://geolibre.app/?welcome=0';
-  let lastLeafletView=null;
+  let tg3DMap=null, lastLeafletView=null, mapReady=false;
+  const STYLE_URL='https://tiles.openfreemap.org/styles/bright';
 
-  function status(msg){ const el=document.getElementById('tgGISStatus'); if(el)el.textContent=msg; }
+  function status(msg){const el=document.getElementById('tg3DStatus');if(el)el.textContent=msg;}
   function setActive(active){
-    document.body.classList.toggle('tg-gis-active',active);
-    const tab=document.getElementById('bm-geolibre');
+    document.body.classList.toggle('tg-3d-active',active);
+    const tab=document.getElementById('bm-3d-city');
     if(tab)tab.classList.toggle('active',active);
     if(active)document.querySelectorAll('#bm-tabs .bm-tab').forEach(x=>{if(x!==tab)x.classList.remove('active')});
   }
-  function flattenLatLngs(value,out){
-    out=out||[];
-    if(!value)return out;
-    if(Array.isArray(value))value.forEach(v=>flattenLatLngs(v,out));
-    else if(Number.isFinite(value.lat)&&Number.isFinite(value.lng))out.push(value);
-    return out;
-  }
-  function clean(v){ return v===undefined||v===null?'':String(v); }
-  function featureCollection(){
+  function flattenLatLngs(value,out){out=out||[];if(!value)return out;if(Array.isArray(value))value.forEach(v=>flattenLatLngs(v,out));else if(Number.isFinite(value.lat)&&Number.isFinite(value.lng))out.push(value);return out;}
+  function clean(v){return v===undefined||v===null?'':String(v);}
+  function gridFeatures(){
     const features=[];
     const layers=(typeof allLayers!=='undefined'&&Array.isArray(allLayers))?allLayers:[];
     layers.forEach((item,idx)=>{
       const layer=item&&item.layer;
       if(!layer||typeof layer.getLatLngs!=='function')return;
       if(window.L&&layer instanceof L.Polygon)return;
-      const ll=flattenLatLngs(layer.getLatLngs());
-      if(ll.length<2)return;
+      const ll=flattenLatLngs(layer.getLatLngs()); if(ll.length<2)return;
+      const cable=clean(item.reg?.type||item.cable||item.type||'').toUpperCase();
       features.push({type:'Feature',geometry:{type:'LineString',coordinates:ll.map(p=>[+p.lng,+p.lat])},properties:{
         asset_type:'33KV Feeder',feeder_name:clean(item.feederName||item.feeder||item.reg?.feeder||'33KV Feeder'),
-        cable_type:clean(item.reg?.type||item.cable||''),status:clean(item.status||item.reg?.status||''),source:'TGSPDCL Smart Grid Map',sequence:idx+1
+        cable_type:cable,status:clean(item.status||item.reg?.status||''),sequence:idx+1
       }});
     });
     const ss=(typeof STATIC_SS33!=='undefined'&&Array.isArray(STATIC_SS33))?STATIC_SS33:[];
-    ss.forEach(x=>{if(Number.isFinite(+x.lon)&&Number.isFinite(+x.lat))features.push({type:'Feature',geometry:{type:'Point',coordinates:[+x.lon,+x.lat]},properties:{asset_type:'33/11KV Substation',name:clean(x.name),division:clean(x.division),sub_division:clean(x.sub_div),section:clean(x.section),source:'TGSPDCL Smart Grid Map'}})});
+    ss.forEach(x=>{if(Number.isFinite(+x.lon)&&Number.isFinite(+x.lat))features.push({type:'Feature',geometry:{type:'Point',coordinates:[+x.lon,+x.lat]},properties:{asset_type:'33/11KV Substation',name:clean(x.name),division:clean(x.division),sub_division:clean(x.sub_div),section:clean(x.section)}})});
     const eht=(typeof STATIC_EHT!=='undefined'&&Array.isArray(STATIC_EHT))?STATIC_EHT:[];
-    eht.forEach(x=>{if(Number.isFinite(+x.lon)&&Number.isFinite(+x.lat))features.push({type:'Feature',geometry:{type:'Point',coordinates:[+x.lon,+x.lat]},properties:{asset_type:'EHT Substation',name:clean(x.name),ptrs:clean(x.ptrs),ptr_capacity_mva:clean(x.ptr_cap),max_load_mva:clean(x.max_load),source:'TGSPDCL Smart Grid Map'}})});
-    return {type:'FeatureCollection',name:'TGSPDCL_Current_Grid',generated_at:new Date().toISOString(),features};
+    eht.forEach(x=>{if(Number.isFinite(+x.lon)&&Number.isFinite(+x.lat))features.push({type:'Feature',geometry:{type:'Point',coordinates:[+x.lon,+x.lat]},properties:{asset_type:'EHT Substation',name:clean(x.name),ptrs:clean(x.ptrs),ptr_capacity_mva:clean(x.ptr_cap),max_load_mva:clean(x.max_load)}})});
+    return {type:'FeatureCollection',features};
   }
-  window.exportTGGridGeoJSON=function(){
-    const fc=featureCollection();
-    const blob=new Blob([JSON.stringify(fc,null,2)],{type:'application/geo+json'});
-    const url=URL.createObjectURL(blob); const a=document.createElement('a');
-    a.href=url;a.download='TGSPDCL_Current_Grid.geojson';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-    status(`${fc.features.length} live assets exported — import the file in GeoLibre`);
-    if(typeof toast==='function')toast(`GeoJSON exported: ${fc.features.length} assets`);
-  };
-  window.openGeoLibreNewTab=function(){ window.open(GEOLIBRE_URL,'_blank','noopener,noreferrer'); };
-  window.reloadTGGeoLibre=function(){ const f=document.getElementById('geoLibreFrame'); if(f){f.src='about:blank';setTimeout(()=>f.src=GEOLIBRE_URL,80)} status('Reloading GeoLibre…'); };
-  window.openTGGeoLibre=function(){
+  function add3DBuildings(){
+    if(tg3DMap.getLayer('tg-3d-buildings'))return;
+    let beforeId;
+    const styleLayers=tg3DMap.getStyle().layers||[];
+    for(const l of styleLayers){if(l.type==='symbol'&&l.layout&&l.layout['text-field']){beforeId=l.id;break;}}
+    if(!tg3DMap.getSource('tg-openfreemap'))tg3DMap.addSource('tg-openfreemap',{type:'vector',url:'https://tiles.openfreemap.org/planet'});
+    tg3DMap.addLayer({id:'tg-3d-buildings',source:'tg-openfreemap','source-layer':'building',type:'fill-extrusion',minzoom:14.5,filter:['!=',['get','hide_3d'],true],paint:{
+      'fill-extrusion-color':['interpolate',['linear'],['coalesce',['get','render_height'],8],0,'#d5d9df',50,'#aab5c4',150,'#8295ad'],
+      'fill-extrusion-height':['interpolate',['linear'],['zoom'],14.5,0,15.5,['coalesce',['get','render_height'],8]],
+      'fill-extrusion-base':['coalesce',['get','render_min_height'],0],
+      'fill-extrusion-opacity':0.82
+    }},beforeId);
+  }
+  function addGridLayers(){
+    const data=gridFeatures();
+    if(tg3DMap.getSource('tg-grid'))tg3DMap.getSource('tg-grid').setData(data); else tg3DMap.addSource('tg-grid',{type:'geojson',data});
+    if(!tg3DMap.getLayer('tg-feeders-shadow'))tg3DMap.addLayer({id:'tg-feeders-shadow',type:'line',source:'tg-grid',filter:['==',['get','asset_type'],'33KV Feeder'],paint:{'line-color':'#07111d','line-width':6,'line-opacity':0.78}});
+    if(!tg3DMap.getLayer('tg-feeders'))tg3DMap.addLayer({id:'tg-feeders',type:'line',source:'tg-grid',filter:['==',['get','asset_type'],'33KV Feeder'],layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':['case',['in','UG',['upcase',['coalesce',['get','cable_type'],'']]],'#20a4f3',['in','OH',['upcase',['coalesce',['get','cable_type'],'']]],'#f97316','#a855f7'],'line-width':3.4,'line-opacity':0.96}});
+    if(!tg3DMap.getLayer('tg-ss-points'))tg3DMap.addLayer({id:'tg-ss-points',type:'circle',source:'tg-grid',filter:['==',['get','asset_type'],'33/11KV Substation'],paint:{'circle-radius':['interpolate',['linear'],['zoom'],10,3,16,8],'circle-color':'#fde047','circle-stroke-color':'#111827','circle-stroke-width':2}});
+    if(!tg3DMap.getLayer('tg-eht-points'))tg3DMap.addLayer({id:'tg-eht-points',type:'circle',source:'tg-grid',filter:['==',['get','asset_type'],'EHT Substation'],paint:{'circle-radius':['interpolate',['linear'],['zoom'],10,4,16,10],'circle-color':'#ef4444','circle-stroke-color':'#ffffff','circle-stroke-width':2}});
+    if(!tg3DMap.getLayer('tg-ss-labels'))tg3DMap.addLayer({id:'tg-ss-labels',type:'symbol',source:'tg-grid',filter:['in',['get','asset_type'],['literal',['33/11KV Substation','EHT Substation']]],minzoom:12,layout:{'text-field':['coalesce',['get','name'],''],'text-size':11,'text-offset':[0,1.25],'text-anchor':'top','text-allow-overlap':false},paint:{'text-color':'#111827','text-halo-color':'#ffffff','text-halo-width':1.4}});
+    status(`${data.features.length} live grid assets shown in 3D`);
+  }
+  function fitGrid(){
+    const fc=gridFeatures(); const coords=[];
+    fc.features.forEach(f=>{if(f.geometry.type==='Point')coords.push(f.geometry.coordinates);else if(f.geometry.type==='LineString')coords.push(...f.geometry.coordinates)});
+    if(!coords.length)return;
+    const b=new maplibregl.LngLatBounds(coords[0],coords[0]);coords.forEach(c=>b.extend(c));
+    tg3DMap.fitBounds(b,{padding:70,pitch:58,bearing:-18,maxZoom:15.7,duration:900});
+  }
+  function popupHTML(p){
+    const title=p.feeder_name||p.name||p.asset_type||'TGSPDCL Asset';
+    let html=`<b>${clean(title)}</b><br>${clean(p.asset_type)}`;
+    if(p.cable_type)html+=`<br>Cable: ${clean(p.cable_type)}`;
+    if(p.division)html+=`<br>Division: ${clean(p.division)}`;
+    if(p.section)html+=`<br>Section: ${clean(p.section)}`;
+    if(p.ptr_capacity_mva)html+=`<br>PTR Capacity: ${clean(p.ptr_capacity_mva)} MVA`;
+    return html;
+  }
+  function wirePopups(){
+    ['tg-feeders','tg-ss-points','tg-eht-points'].forEach(id=>{
+      tg3DMap.on('click',id,e=>{const f=e.features&&e.features[0];if(!f)return;new maplibregl.Popup({closeButton:true,maxWidth:'300px'}).setLngLat(e.lngLat).setHTML(popupHTML(f.properties||{})).addTo(tg3DMap)});
+      tg3DMap.on('mouseenter',id,()=>tg3DMap.getCanvas().style.cursor='pointer');
+      tg3DMap.on('mouseleave',id,()=>tg3DMap.getCanvas().style.cursor='');
+    });
+  }
+  function createMap(){
+    if(tg3DMap)return;
+    if(!window.maplibregl||!maplibregl.supported()){document.getElementById('tg3DError')?.classList.add('show');status('WebGL is not available');return;}
+    try{
+      const c=(typeof map!=='undefined')?map.getCenter():{lng:78.4867,lat:17.3850};
+      const z=(typeof map!=='undefined')?Math.max(10,Math.min(16,map.getZoom())):11;
+      tg3DMap=new maplibregl.Map({container:'tg3DMap',style:STYLE_URL,center:[c.lng,c.lat],zoom:z,pitch:58,bearing:-18,canvasContextAttributes:{antialias:true}});
+      tg3DMap.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
+      tg3DMap.on('load',()=>{mapReady=true;add3DBuildings();addGridLayers();wirePopups();fitGrid();status('3D buildings and TGSPDCL grid loaded')});
+      tg3DMap.on('error',e=>{console.warn('TGSPDCL 3D map error',e&&e.error||e);status('3D tile or style loading issue')});
+    }catch(err){console.error(err);document.getElementById('tg3DError')?.classList.add('show');status('3D initialization failed');}
+  }
+  window.openTG3D=function(){
     lastLeafletView=(typeof map!=='undefined')?{center:map.getCenter(),zoom:map.getZoom()}:null;
-    setActive(true); status('GeoLibre GIS Studio — data stays local in your browser');
-    const frame=document.getElementById('geoLibreFrame');
-    const fallback=document.getElementById('geoLibreFallback');
-    if(frame&&!frame.src)frame.src=GEOLIBRE_URL;
-    if(frame&&frame.src==='about:blank')frame.src=GEOLIBRE_URL;
-    fallback?.classList.remove('show');
-    // Show a useful fallback only when the iframe does not complete loading.
-    let loaded=false;
-    const onload=()=>{loaded=true;status('GeoLibre loaded — use EXPORT GRID, then Add Data in GeoLibre');frame.removeEventListener('load',onload)};
-    frame?.addEventListener('load',onload);
-    setTimeout(()=>{if(!loaded&&document.body.classList.contains('tg-gis-active'))fallback?.classList.add('show')},8000);
+    setActive(true);document.getElementById('tg3DError')?.classList.remove('show');status('Starting open-source 3D City…');
+    createMap();setTimeout(()=>{if(tg3DMap){tg3DMap.resize();if(mapReady)addGridLayers();}},100);
   };
-  window.closeTGGeoLibre=function(){
-    setActive(false);document.getElementById('geoLibreFallback')?.classList.remove('show');
+  window.syncTG3D=function(){if(!tg3DMap||!mapReady){openTG3D();return;}addGridLayers();fitGrid();};
+  window.tg3DTopView=function(){if(tg3DMap)tg3DMap.easeTo({pitch:0,bearing:0,duration:700});};
+  window.tg3DTiltView=function(){if(tg3DMap)tg3DMap.easeTo({pitch:60,bearing:-18,duration:700});};
+  window.closeTG3D=function(){
+    setActive(false);document.getElementById('tg3DError')?.classList.remove('show');
     if(typeof map!=='undefined')setTimeout(()=>{map.invalidateSize();if(lastLeafletView)map.setView(lastLeafletView.center,lastLeafletView.zoom,{animate:false})},50);
-    const id=(typeof currentBM!=='undefined'?currentBM:'grid_view');
-    (document.getElementById('bm-'+id)||document.getElementById('bm-grid_view'))?.classList.add('active');
+    const id=(typeof currentBM!=='undefined'?currentBM:'grid_view');(document.getElementById('bm-'+id)||document.getElementById('bm-grid_view'))?.classList.add('active');
   };
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('tg-gis-active'))closeTGGeoLibre()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('tg-3d-active'))closeTG3D()});
   const originalSetBM=window.setBM;
-  if(typeof originalSetBM==='function')window.setBM=function(name){if(document.body.classList.contains('tg-gis-active'))closeTGGeoLibre();return originalSetBM.apply(this,arguments)};
+  if(typeof originalSetBM==='function')window.setBM=function(){if(document.body.classList.contains('tg-3d-active'))closeTG3D();return originalSetBM.apply(this,arguments)};
 })();
 </script>
 </body>
