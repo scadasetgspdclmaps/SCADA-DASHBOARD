@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>TGSPDCL — 33KV Smart Grid Map · SCADA Updated</title>
+<title>TGSPDCL — 33KV Smart Grid · Blank Manual Feeder Drawing</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js">
 /* Mandal / area names enhancement + future master-data path placeholders */
@@ -2210,20 +2210,21 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <div style="font-family:var(--mono);font-size:11px;color:#1565c0;letter-spacing:1px;font-weight:700;margin-bottom:8px">⚡ SMART GRID TOPOLOGY</div>
   </div>
 
-  <!-- DATA FILES (clean upload) -->
+  <!-- MANUAL DRAWING DATA — legacy Smart Grid topology is intentionally NOT auto-loaded -->
   <div class="psec">
-    <div style="font-family:var(--mono);font-size:10px;color:#1e3a5f;letter-spacing:2px;margin-bottom:9px;font-weight:700">DATA FILES</div>
+    <div style="font-family:var(--mono);font-size:10px;color:#1e3a5f;letter-spacing:2px;margin-bottom:9px;font-weight:700">MANUAL DRAWING DATA</div>
     <label class="sg-upload" id="sgUpload">
       <div class="sg-upload-ic">☁️</div>
-      <div class="sg-upload-main">Upload Smart Grid Excel / CSV</div>
-      <div class="sg-upload-sub">Drop file or click to browse</div>
+      <div class="sg-upload-main">Optional: Import Manual Drawing Backup</div>
+      <div class="sg-upload-sub">Only use this for a manual-drawing backup; otherwise start blank below</div>
       <input type="file" accept=".xlsx,.xls,.csv" onchange="handleFile(this.files[0])">
     </label>
-    <div class="sg-file-status" id="fileInfo">No file loaded yet.</div>
-    <button class="sg-act save" onclick="saveFirebase()">☁ Save / Update Firebase</button>
-    <button class="sg-act load" onclick="loadFirebase()">↻ Load Latest From Firebase</button>
-    <button class="sg-act dl" onclick="restoreFromHistory()" style="background:#455a64;color:#fff">🕐 Restore Last History Snapshot</button>
-    <button class="sg-act dl" onclick="downloadTopologyCsv()">⬇ Download Edited Upload</button>
+    <div class="sg-file-status" id="fileInfo">Blank manual workspace · Master EHT/SS coordinates only.</div>
+    <button class="sg-act save" onclick="saveFirebase()">☁ Save Manual Drawing</button>
+    <button class="sg-act load" onclick="loadFirebase()">↻ Load Saved Manual Drawing</button>
+    <button class="sg-act dl" onclick="restoreFromHistory()" style="background:#455a64;color:#fff">🕐 Restore Manual History</button>
+    <button class="sg-act dl" onclick="downloadTopologyCsv()">⬇ Download Manual Drawing</button>
+    <button class="sg-act dl" onclick="sgStartFreshManualDrawing()" style="background:#7c2d12;color:#fff">🧹 Start Fresh / Clear Manual Lines</button>
     <button class="sg-act dl" onclick="sgOpenPrintDialog()" style="background:linear-gradient(135deg,#00695c,#00897b)">🖨 Print / PDF Export</button>
     <button class="sg-act edit" id="btnEditGeom" onclick="toggleGeomEditMode()">✏️ Edit Feeder Geometry</button>
     <button class="sg-act newf" onclick="startNewFeederMode()">➕ New Feeder</button>
@@ -3161,7 +3162,7 @@ document.addEventListener('click',e=>{ const w=document.getElementById('srchWrap
 
 // ══ SMART GRID DATA ENGINE ══
 const FIREBASE_URL = "https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app";
-const FIREBASE_SMARTGRID_PATH = "smartgrid";
+const FIREBASE_SMARTGRID_PATH = "smartgrid/manualDrawing";
 
 // Master data source integration.
 // master_data_manager.html stores substation incoming 33KV source details in Firebase.
@@ -4213,7 +4214,7 @@ async function handleFile(file){
   toast(rows.length>0 ? ('✅ Loaded '+rows.length+' rows, '+feeders+' feeders, '+topology.length+' topology connections') : '⚠ File loaded but 0 rows — check column names');
 }
 async function saveFirebase(){
-  if(!rows.length){toast('Upload Excel first');return}
+  if(!rows.length){toast('No manual feeder has been drawn yet');return}
   buildTopology();
   const payload={meta:{...meta,updatedAt:new Date().toISOString(),connections:topology.length,feeders:new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size},rows};
   // Safety guard (05-Jul-2026): if what we're about to write is drastically
@@ -4224,7 +4225,7 @@ async function saveFirebase(){
     const curData=await cur.json();
     const curCount=curData&&curData.rows?curData.rows.length:0;
     if(curCount>20 && rows.length < curCount*0.5){
-      const ok=confirm(`⚠ Live Firebase data has ${curCount} rows; you're about to save only ${rows.length} (a big drop). Continue and overwrite?`);
+      const ok=confirm(`⚠ Saved MANUAL drawing currently has ${curCount} rows; you are about to save only ${rows.length}. Continue and replace the manual drawing?`);
       if(!ok){ toast('Save cancelled — nothing overwritten'); return; }
     }
   }catch(e){ console.warn('Pre-save safety check skipped (could not read current data):',e); }
@@ -4245,7 +4246,7 @@ async function saveFirebase(){
   try{
     await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/history.json`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   }catch(e){ console.warn('History snapshot POST failed (latest.json still saved fine):',e); }
-  toast(`✅ Saved to Firebase /smartgrid/latest · ${rows.length} rows`);
+  toast(`✅ Saved manual drawing · ${rows.length} rows`);
 }
 
 async function restoreFromHistory(){
@@ -4272,12 +4273,12 @@ async function loadFirebase(){
     const res=await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json?ts=${Date.now()}`);
     data=await res.json();
   }catch(e){ console.error('Firebase fetch error:',e); toast('Firebase load failed (network)'); return; }
-  if(!data||!data.rows){toast('No /smartgrid/latest data found');return}
+  if(!data||!data.rows){toast('No saved manual drawing found yet — workspace remains blank');return}
   rows=data.rows;meta=data.meta||{};
   try{
     populateFilters();render();
-    fileInfo.textContent=`Loaded Firebase latest · ${rows.length} rows · ${meta.updatedAt||''}`;
-    toast('Loaded Firebase /smartgrid/latest');
+    fileInfo.textContent=`Loaded saved manual drawing · ${rows.length} rows · ${meta.updatedAt||''}`;
+    toast('Loaded saved manual drawing');
   }catch(e){ console.error('Render error after load:',e); toast('Data loaded but render hit an error — see console (F12)'); }
 }
 function downloadTopologyCsv(){
@@ -4383,6 +4384,27 @@ document.addEventListener('click',e=>{
   });
 });
 
+
+// ── MANUAL-ONLY START MODE ─────────────────────────────────────────────
+// The legacy /smartgrid/latest topology is intentionally never loaded here.
+// Fixed EHT/33-11KV station coordinates still come from Master Data Manager.
+function sgStartFreshManualDrawing(silent=false){
+  if(!silent && rows.length){
+    const ok=confirm('Clear all CURRENT manual feeder lines from this browser workspace?\\n\\nThis does NOT delete the old legacy Smart Grid data and does NOT touch Firebase until you press Save Manual Drawing.');
+    if(!ok)return;
+  }
+  try{ if(window._sgEditModeOn) toggleGeomEditMode(); }catch(e){}
+  try{ if(window.sgNFCancel) window.sgNFCancel(); }catch(e){}
+  rows=[]; topology=[]; nodesByKey={};
+  meta={manualOnly:true,manualStartedAt:new Date().toISOString(),fileName:'TGSPDCL_manual_smartgrid.xlsx'};
+  window._sgLockedFeederKey=null; window._sgActiveFeederKey=null; window._sgFitDone=false; window._sgLastFilterSig=null;
+  try{ populateFilters(); render(); }catch(e){ console.warn('[SmartGrid] blank manual render failed',e); }
+  const fi=document.getElementById('fileInfo');
+  if(fi)fi.textContent='Blank manual workspace · Fixed Master EHT/SS coordinates only · 0 feeder lines.';
+  try{status('MANUAL DRAWING: <b>0</b> connection(s) · select <b>New Feeder</b> to begin');}catch(e){}
+  if(!silent)toast('Blank manual workspace ready — previous Smart Grid lines were NOT loaded');
+}
+
 // ── Loader dismiss (was missing — caused the permanent "Loading…" screen) ──
 // The route map dismisses its #loader after the feeder restore finishes.
 // The smart grid has no such restore gate, so dismiss as soon as the map
@@ -4400,11 +4422,13 @@ document.addEventListener('click',e=>{
 })();
 
 (async()=>{
-  await loadFirebase();
+  // IMPORTANT: start with ZERO feeder geometry. Do not import legacy smartgrid/latest.
   await loadSmartGridMasterData();
+  sgStartFreshManualDrawing(true);
   window._sgKeepFeederFilter=false;
   const ff=document.getElementById('fFeeder'); if(ff) ff.value='';
-  try{ populateFilters(); render(); }catch(e){ console.warn('Final master-data render failed',e); }
+  try{ populateFilters(); render(); }catch(e){ console.warn('Final blank master-data render failed',e); }
+  toast('Manual Smart Grid ready — fixed EHT/SS master points loaded; feeder lines start blank');
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════
