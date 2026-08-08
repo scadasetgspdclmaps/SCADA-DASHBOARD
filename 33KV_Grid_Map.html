@@ -4007,7 +4007,7 @@ function render(){
     line.on('click',ev=>{
       L.DomEvent.stop(ev);
       if(window._sgEditModeOn){ c.spur ? enterSpurEdit(c) : enterFeederEdit(c.feeder_code||c.feeder_name); }
-      else { toast(clean(c.feeder_name)||c.feeder_code||'Feeder selected'); }
+      else { if(window.sgShowFeederQuickCard) window.sgShowFeederQuickCard(c,ev.latlng); else toast(clean(c.feeder_name)||c.feeder_code||'Feeder selected'); }
     });
     line.addTo(gLines);
     if(sgElec && window.sgApplyConnectionElectricalStyle) window.sgApplyConnectionElectricalStyle(line,c,sgElec);
@@ -4283,14 +4283,14 @@ async function loadFirebase(){
 }
 function downloadTopologyCsv(){
   if(!rows.length){toast('No uploaded data to download');return;}
-  const fallback=['circle','division','sub_division','section','feeder_name','feeder_code','Feeder_Type','Type_of_feeder','connection_role','connection_arrangement','route_action','switch_position','ab_status','branch_id','destination_type','electrical_model','feeder_feeding_to','feeder_feeding_to_code','latitude','longitude','pole_number','pole_feeding_to','type_of_cable_point','type_of_pole'];
+  const fallback=['circle','division','sub_division','section','feeder_name','feeder_code','Feeder_Type','Type_of_feeder','connection_role','ptr_assignments','connection_arrangement','route_action','switch_position','ab_status','branch_id','destination_type','electrical_model','feeder_feeding_to','feeder_feeding_to_code','latitude','longitude','pole_number','pole_feeding_to','type_of_cable_point','type_of_pole'];
   const headers=(meta.originalHeaders&&meta.originalHeaders.length)?meta.originalHeaders:fallback;
   const findHeader=aliases=>headers.find(h=>aliases.some(a=>nkey(h)===nkey(a)));
   const put=(o,aliases,v)=>{const h=findHeader(aliases);if(h)o[h]=v??'';};
   const exportRows=rows.map(r=>{
     const o={...(r._raw||{})};headers.forEach(h=>{if(o[h]===undefined)o[h]='';});
     put(o,['circle','operation_circle','lines_circle','Name of the Circle'],r.circle);put(o,['division','lines_division'],r.division);put(o,['sub_division','lines_sub_division'],r.sub_division);put(o,['section','lines_section'],r.section);
-    put(o,['feeder_name','name_of_the _feeder','name_of_the_feeder','name_of_33kv_feeder','name_of_33kv _feeder'],r.feeder_name);put(o,['feeder_code','33kv_feeder_code'],r.feeder_code);put(o,['Feeder_Type','feeder_asset_type'],r.feeder_asset_type||'');put(o,['Type_of_feeder','construction_type','feeder_type'],r.construction_type||r.feeder_type);put(o,['connection_role'],r.connection_role||r.relationship_role||'');put(o,['connection_arrangement','connection_mode'],r.connection_arrangement||'');put(o,['route_action'],r.route_action||'');put(o,['switch_position','ab_position'],r.switch_position||'');put(o,['ab_status','switch_status'],r.ab_status||'');put(o,['branch_id'],r.branch_id||'');put(o,['destination_type'],r.destination_type||'');put(o,['electrical_model'],r.electrical_model||'');
+    put(o,['feeder_name','name_of_the _feeder','name_of_the_feeder','name_of_33kv_feeder','name_of_33kv _feeder'],r.feeder_name);put(o,['feeder_code','33kv_feeder_code'],r.feeder_code);put(o,['Feeder_Type','feeder_asset_type'],r.feeder_asset_type||'');put(o,['Type_of_feeder','construction_type','feeder_type'],r.construction_type||r.feeder_type);put(o,['connection_role'],r.connection_role||r.relationship_role||'');put(o,['ptr_assignments','PTR Assignments','ptr_sources'],typeof r.ptr_assignments==='string'?r.ptr_assignments:(r.ptr_assignments?JSON.stringify(r.ptr_assignments):''));put(o,['connection_arrangement','connection_mode'],r.connection_arrangement||'');put(o,['route_action'],r.route_action||'');put(o,['switch_position','ab_position'],r.switch_position||'');put(o,['ab_status','switch_status'],r.ab_status||'');put(o,['branch_id'],r.branch_id||'');put(o,['destination_type'],r.destination_type||'');put(o,['electrical_model'],r.electrical_model||'');
     put(o,['latitude','feeding_end_latitude'],r.feeding_lat);put(o,['longitude','feeding_end_longitude'],r.feeding_lng);put(o,['pole_number','point_number','sequence'],r.pole_number);
     const isBend=/BEND POINT/i.test(String(r.source_type||'')+' '+String(r.feeding_name||''));
     put(o,['feeder_feeding_to','feeding_end_name'],isBend?'':(r.feeding_name||r.feeding_to));put(o,['feeder_feeding_to_code','feeder_feeding_code'],isBend?'':r.feeding_code);
@@ -4422,13 +4422,29 @@ function sgStartFreshManualDrawing(silent=false){
 })();
 
 (async()=>{
-  // IMPORTANT: start with ZERO feeder geometry. Do not import legacy smartgrid/latest.
+  // MANUAL PROJECT STARTUP: never import legacy /smartgrid/latest.
+  // But DO restore our own manualDrawing/latest so edits survive refresh.
   await loadSmartGridMasterData();
-  sgStartFreshManualDrawing(true);
   window._sgKeepFeederFilter=false;
   const ff=document.getElementById('fFeeder'); if(ff) ff.value='';
-  try{ populateFilters(); render(); }catch(e){ console.warn('Final blank master-data render failed',e); }
-  toast('Manual Smart Grid ready — fixed EHT/SS master points loaded; feeder lines start blank');
+  let restored=false;
+  try{
+    const res=await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json?ts=${Date.now()}`,{cache:'no-store'});
+    const data=await res.json();
+    if(data && Array.isArray(data.rows) && data.rows.length){
+      rows=data.rows; meta=data.meta||{}; restored=true;
+      try{sgApplyCircleFromMasterData();}catch(e){}
+      try{populateFilters();buildTopology();render();}catch(e){console.warn('Manual drawing restore render failed',e);}
+      const fi=document.getElementById('fileInfo');
+      if(fi)fi.textContent=`Restored saved manual drawing · ${rows.length} rows · ${meta.updatedAt||''}`;
+      toast(`✅ Manual Smart Grid restored · ${new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size} feeder(s)`);
+    }
+  }catch(e){console.warn('Manual drawing auto-restore failed',e);}
+  if(!restored){
+    sgStartFreshManualDrawing(true);
+    try{populateFilters();render();}catch(e){console.warn('Final blank master-data render failed',e);}
+    toast('Manual Smart Grid ready — fixed EHT/SS master points loaded; feeder lines start blank');
+  }
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -6572,6 +6588,212 @@ console.log('[SmartGrid] Sectionalised feeder / tapping / AB switching model V2 
 </script>
 
 
+<style>
+/* PDF workflow V3 — PTR-wise source assignment */
+.nf-ptr-box{border:1px solid #cbd5df;background:#fff;margin:9px 0 12px}
+.nf-ptr-head{padding:7px 9px;background:#eef3f7;border-bottom:1px solid #d8e0e7;font-size:9px;letter-spacing:.08em;font-weight:800;color:#40566b;text-transform:uppercase}
+.nf-ptr-row{padding:9px;border-top:1px solid #edf1f4}.nf-ptr-row:first-of-type{border-top:0}
+.nf-ptr-row-top{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:5px}
+.nf-ptr-row-top b{font-size:11px;color:#1d2d3d}.nf-ptr-row-top span{font-size:9px;color:#718096}
+.nf-ptr-row small{display:block;margin-top:4px;font-size:9px;color:#718096;line-height:1.35}
+.nf-route-decision{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.nf-route-decision button{border:1px solid #5980a6;padding:10px 8px;font-size:10.5px;font-weight:800;cursor:pointer;background:#fff;color:#416180}
+.nf-route-decision button.finish{background:#1d2d3d;color:#fff;border-color:#1d2d3d}.nf-route-decision button.next{background:#5980a6;color:#fff}
+.nf-save-row.v3{grid-template-columns:1fr}.nf-save-row.v3 .publish{padding:11px}
+</style>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   MANUAL FEEDER ROUTE WORKFLOW V3 — based on "Feeder route" PDF
+   - Old legacy topology never loads.
+   - Saved manual project auto-restores after refresh.
+   - Feeder + EHT + construction + length come from Feeder/EHT masters.
+   - Destination SS comes from SS coordinate master.
+   - PTR-wise Regular/Alternate relationship comes from ssSourceRows.
+   - Finish / Next Point repeats for multi-SS feeders.
+   - AB open/close creation is intentionally removed for now.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+sgNF.ptrRows=[];
+sgNF.ptrAssignments={};
+
+function sgNFPtrRoman(n){return ['','I','II','III','IV','V','VI','VII','VIII'][n]||String(n);}
+function sgNFPtrNo(r,idx){
+  const m=String((r&&r.lvName)||'').match(/(\d+)/);return m?parseInt(m[1],10):(idx+1);
+}
+function sgNFPtrDisplay(r,idx){
+  const no=sgNFPtrNo(r,idx),cap=(r&&r.ptrCapacity)!=null&&String(r.ptrCapacity).trim()!==''?String(r.ptrCapacity).trim():'';
+  return `PTR-${sgNFPtrRoman(no)}${cap?' · '+cap+' MVA':''}`;
+}
+function sgNFPtrRoleOptions(){return ['Not Feeding','Regular Source-I','Alternate Source-I','Alternate Source-II','Alternate Source-III','Alternate Source-IV','Alternate Source-V','Link Line'];}
+function sgNFPtrMasterRoleForFeeder(r){
+  const f=sgNF.feeder;if(!f||!r)return 'Not Feeding';
+  if(sgNFFeederMatch(f,r.regularFeederCode,r.regularFeederName))return 'Regular Source-I';
+  for(let i=1;i<=5;i++)if(sgNFFeederMatch(f,r['alt'+i+'Code'],r['alt'+i+'Name']))return 'Alternate Source-'+sgNFPtrRoman(i);
+  if(sgNFFeederMatch(f,r.linkLineCode||'',r.linkLineName||r.linkLine||''))return 'Link Line';
+  return 'Not Feeding';
+}
+function sgNFPreparePtrAssignments(){
+  const arr=sgNF.dest?sgNFSourceRowsForSS(sgNF.dest):[];
+  sgNF.ptrRows=Array.isArray(arr)?arr:[];sgNF.ptrAssignments={};
+  sgNF.ptrRows.forEach((r,i)=>{sgNF.ptrAssignments[i]=sgNFPtrMasterRoleForFeeder(r);});
+}
+function sgNFSetPtrAssignment(i,v){sgNF.ptrAssignments[Number(i)]=String(v||'Not Feeding');}
+function sgNFPtrAssignmentsSnapshot(){
+  return (sgNF.ptrRows||[]).map((r,i)=>({
+    ptrNo:sgNFPtrNo(r,i),ptrName:`PTR-${sgNFPtrRoman(sgNFPtrNo(r,i))}`,lvName:r.lvName||'',ptrCapacity:r.ptrCapacity||'',
+    assignment:sgNF.ptrAssignments[i]||'Not Feeding',
+    masterDetected:sgNFPtrMasterRoleForFeeder(r),selectedFeederCode:sgNF.feeder?.feederCode||'',selectedFeederName:sgNF.feeder?.feederName||''
+  }));
+}
+function sgNFOverallRoleFromPtr(list){
+  const a=(list||[]).map(x=>String(x.assignment||'')).filter(x=>x&&x!=='Not Feeding');
+  if(!a.length)return 'Not Feeding';const u=[...new Set(a)];return u.length===1?u[0]:'PTR-wise Mixed Sources';
+}
+function sgNFPtrHtml(){
+  if(!sgNF.dest)return '';
+  if(!(sgNF.ptrRows||[]).length)return `<div class="nf-card warn"><b>No PTR/LV source rows found for this SS code.</b><p>The route can still be drawn, but PTR source assignment cannot be auto-filled until this SS is present in Master Data → SS Sources.</p></div>`;
+  const opts=sgNFPtrRoleOptions().map(x=>`<option value="${sgNFEsc(x)}"></option>`).join('');
+  const rowsHtml=sgNF.ptrRows.map((r,i)=>{
+    const master=sgNFPtrMasterRoleForFeeder(r),val=sgNF.ptrAssignments[i]||master;
+    return `<div class="nf-ptr-row"><div class="nf-ptr-row-top"><b>${sgNFEsc(sgNFPtrDisplay(r,i))}</b><span>${sgNFEsc(r.lvName||'')}</span></div><input class="nf-input" list="nfPtrRoleList" value="${sgNFEsc(val)}" oninput="sgNFSetPtrAssignment(${i},this.value)" placeholder="Search / select source relationship"><small>Master match for selected feeder: <b>${sgNFEsc(master)}</b></small></div>`;
+  }).join('');
+  return `<div class="nf-ptr-box"><div class="nf-ptr-head">Feeding to PTRs — source relationship</div><datalist id="nfPtrRoleList">${opts}</datalist>${rowsHtml}</div>`;
+}
+
+// Reset PTR assignment whenever destination context changes.
+sgNFSetDestType=function(v){
+  sgNF.destType=v;sgNF.dest=null;sgNF.destSearch='';sgNF.relationMatches=[];sgNF.ptrRows=[];sgNF.ptrAssignments={};
+  sgNF.role=v==='ss33'?'Not Feeding':v==='tap'?'Tap':v==='dead'?'Dead End':'—';sgNFRender();
+};
+sgNFSelectDestination=function(key){
+  key=decodeURIComponent(String(key||''));const n=sgNFDestCandidates().find(x=>sgNFAssetKey(x)===key);if(!n)return;
+  sgNF.dest=n;sgNF.destSearch=n.name||n.code||'';sgNF.relationMatches=sgNF.destType==='ss33'?sgNFRelationMatches(n,sgNF.feeder):[];
+  if(sgNF.destType==='ss33'){sgNFPreparePtrAssignments();sgNF.role=sgNFOverallRoleFromPtr(sgNFPtrAssignmentsSnapshot());}
+  else sgNF.role=sgNF.drawType==='LINK'?'Link':'—';
+  sgNFRender();
+};
+
+function sgNFAddDestinationPointV3(dest,action,ptrAssignments,roleOverride){
+  const p=sgNFPath();if(!p)return;
+  const arr=Array.isArray(ptrAssignments)?ptrAssignments:[];const role=roleOverride||sgNFOverallRoleFromPtr(arr);
+  p.points.push({kind:dest.kind||sgNF.destType,name:dest.name||'',code:dest.code||'',lat:+dest.lat,lng:+dest.lng,
+    role:role||'',routeAction:action==='end'?'end':'tap',connectionArrangement:action==='end'?'end':'through',
+    ptrAssignments:arr,switchPosition:'',abStatus:'',segType:sgNF.currentSeg,locked:true,masterRelation:[...(sgNF.relationMatches||[])]});
+  sgNF.selected={path:p.id,index:p.points.length-1};sgNF.dest=null;sgNF.destSearch='';sgNF.relationMatches=[];sgNF.ptrRows=[];sgNF.ptrAssignments={};
+  if(action==='end'||sgNF.drawType==='LINK'){sgNF.drawing=false;}else sgNF.drawing=true;
+  sgNFRedraw();sgNFRender();
+}
+function sgNFConnectSSDecision(mode){
+  if(!sgNF.dest)return toast('Select the 33/11 kV substation first');
+  const ptrs=sgNFPtrAssignmentsSnapshot();
+  const assigned=ptrs.filter(x=>x.assignment&&x.assignment!=='Not Feeding');
+  if(ptrs.length&&!assigned.length){
+    const ok=confirm('No PTR is assigned to this feeder at the selected SS. Continue as a physical through/end point without feeding a PTR?');
+    if(!ok)return;
+  }
+  const action=mode==='next'?'tap':'end';const d={...sgNF.dest,kind:'ss33'};
+  sgNFAddDestinationPointV3(d,action,ptrs,sgNFOverallRoleFromPtr(ptrs));
+  if(mode==='next')toast('SS saved as next point — continue drawing the SAME feeder to the next destination.');
+  else {toast('Final SS saved — opening review.');setTimeout(()=>sgNFFinishDrawing(),0);}
+}
+
+// Non-SS destinations remain available, but AB/switch creation is removed.
+sgNFConnectDestination=function(){
+  if(sgNF.destType==='ss33')return;
+  if(sgNF.destType==='tap'){sgNF.pendingTapPick=true;toast('Click the existing feeder line where this feeder should tap.');return;}
+  if(sgNF.destType==='dead'){sgNFUseCurrentPointAsDestination('dead');return;}
+  if(!sgNF.dest){toast('Select the destination first');return;}
+  const d={...sgNF.dest};sgNFAddDestinationPointV3(d,'end',[],sgNF.drawType==='LINK'?'Link':'—');
+};
+
+// Existing-feeder tap click should also use the V3 no-AB point model.
+const _sgNFMapClickV2=sgNFMapClick;
+sgNFMapClick=function(e){
+  if(!sgNF.open||sgNF.step!=='draw'||!sgNF.drawing)return;
+  if(sgNF.pendingTapPick){
+    const hit=sgNFNearestExistingFeederPoint(e.latlng);if(!hit){toast('No existing feeder line close enough — click nearer to a feeder');return;}
+    sgNFAddDestinationPointV3({kind:'tap',name:'Existing feeder tapping',code:'',lat:hit.lat,lng:hit.lng},'tap',[],'Tap');sgNF.pendingTapPick=false;return;
+  }
+  const p=sgNFPath();if(!p)return;const snap=sgNFNearestDraftSnap(e.latlng);
+  p.points.push({lat:snap.lat,lng:snap.lng,kind:'bend',name:'BEND POINT',code:'',segType:sgNF.currentSeg,locked:false});
+  sgNF.selected={path:p.id,index:p.points.length-1};sgNFRedraw();sgNFRender();
+};
+// Rebind map handler if builder was already open while this patch loaded.
+try{map.off('click',_sgNFMapClickV2);if(sgNF.open&&sgNF.drawing)map.on('click',sgNFMapClick);}catch(e){}
+
+sgNFDestinationHtml=function(){
+  const type=sgNF.destType;const tabs=[['ss33','33/11 kV SS'],['ht','HT Service'],['sws','Switching Station'],['tap','Existing Feeder Tap'],['dead','Dead End']];
+  let body='';
+  if(['ss33','ht','sws'].includes(type)){
+    body=`<div class="nf-field"><label>${type==='ss33'?'Feeding to 33/11 kV substation':type==='ht'?'HT service':'Switching station'}</label><input id="nfDestSearch" class="nf-input" placeholder="Search name / code…" value="${sgNFEsc(sgNF.destSearch)}" oninput="sgNFSetDestSearch(this.value)" autocomplete="off"><div id="nfDestResults" class="nf-results small"></div></div>`;
+    if(sgNF.dest)body+=`<div class="nf-card compact"><b>${sgNFEsc(sgNF.dest.name)}</b><span>${sgNFEsc(sgNF.dest.code||'')}</span>${type==='ss33'?`<p class="nf-master-rel">${sgNFEsc(sgNFRoleSummary(sgNF.relationMatches))}</p>`:''}</div>`;
+    if((type==='ht'||type==='sws')&&!sgNF.dest)body+=`<div class="nf-inline"><input id="nfManualDestName" class="nf-input" placeholder="Name if this point is new"><button onclick="sgNFUseCurrentPointAsDestination('${type}')">Use current route point</button></div>`;
+  }else if(type==='tap')body=`<div class="nf-card"><b>Existing feeder tapping</b><p>Pick the tapping location on an already drawn feeder. No AB switch is created at this stage.</p></div>`;
+  else body=`<div class="nf-card"><b>Dead end</b><p>Add the final route point on the map, then close the route there.</p><input id="nfManualDestName" class="nf-input" placeholder="Dead-end / location name (optional)"></div>`;
+
+  if(type==='ss33'){
+    body+=sgNF.dest?sgNFPtrHtml():'';
+    body+=`<div class="nf-route-decision"><button class="finish" ${sgNF.dest?'':'disabled'} onclick="sgNFConnectSSDecision('finish')">✓ Finish</button><button class="next" ${sgNF.dest?'':'disabled'} onclick="sgNFConnectSSDecision('next')">Next Point →</button></div><p class="nf-footnote">Next Point keeps the same physical feeder active. Draw the next route/bend points, select the next SS, and the same PTR workflow repeats.</p>`;
+  }else body+=`<button class="nf-primary" onclick="sgNFConnectDestination()">${type==='tap'?'Pick Tap on Map':type==='dead'?'Close at Current Point':'Connect Selected Destination'}</button>`;
+  return `<div class="nf-dest-tabs">${tabs.map(([k,l])=>`<button class="${type===k?'active':''}" onclick="sgNFSetDestType('${k}')">${l}</button>`).join('')}</div>${body}`;
+};
+
+// Simplified row schema: no AB/open/close fields in newly created manual topology.
+sgNFRowForPoint=function(point,meta,pole,pathId){
+  const cls=sgNFAssetClass(meta.feederAssetType),isBend=point.kind==='bend';let ftype;
+  if(cls==='LINK')ftype='Link Line';else if(cls==='HT')ftype='HT Service';else ftype=point.segType||meta.constructionType||'UG';
+  const ptrs=Array.isArray(point.ptrAssignments)?point.ptrAssignments:[];const role=point.kind==='ss33'?sgNFOverallRoleFromPtr(ptrs):(point.role||'');
+  const sourceType=isBend?'Route/Way Point':point.kind==='ss33'?`33/11KV SS${role&&role!=='Not Feeding'?' - '+role:''}`:point.kind==='ht'?'HT Service':point.kind==='sws'?'Switching Station':point.kind==='tap'?'Existing Feeder Tapping':point.kind==='dead'?'Dead End':'Feeding Point';
+  const feedName=isBend?'BEND POINT':point.name||sourceType;const feedCode=isBend?`NEWF-${Date.now().toString(36)}-${String(pole).replace(/\W/g,'')}-${Math.random().toString(36).slice(2,5)}`:(point.code||'');
+  const ptrJson=ptrs.length?JSON.stringify(ptrs):'';const arrangement=point.connectionArrangement||((point.routeAction==='end')?'end':(point.kind==='ss33'?'through':''));
+  const raw={feeder_name:meta.feederName,feeder_code:meta.feederCode,Feeder_Type:meta.feederAssetType,Type_of_feeder:point.segType||meta.constructionType,
+    name_of_the_EHT_SS:meta.sourceName,eht_code:meta.sourceCode,pole_number:pole,latitude:point.lat,longitude:point.lng,
+    feeder_feeding_to:isBend?'':feedName,feeder_feeding_to_code:isBend?'':feedCode,pole_feeding_to:isBend?'Next Pole / Cable Point':feedName,type_of_cable_point:sourceType,
+    connection_role:role,ptr_assignments:ptrJson,connection_arrangement:arrangement,route_action:point.routeAction||'',branch_id:pathId,destination_type:point.kind||'',electrical_model:'MANUAL_TOPOLOGY_V3'};
+  return {area_code:'',circle:meta.linesCircle||meta.operationCircle||'',division:meta.linesDivision||meta.operationDivision||'',sub_division:meta.linesSubDivision||meta.operationSubDivision||'',section:meta.linesSection||meta.operationSection||'',
+    eht_code:meta.sourceCode,eht_name:meta.sourceName,eht_lat:meta.sourceLat,eht_lng:meta.sourceLng,feeder_type:ftype,feeder_asset_type:meta.feederAssetType,construction_type:point.segType||meta.constructionType,
+    feeder_name:meta.feederName,feeder_code:meta.feederCode||meta.feederName,pole_number:pole,source_type:sourceType,feeding_code:feedCode,feeding_to:feedName,feeding_name:feedName,feeding_lat:+point.lat,feeding_lng:+point.lng,
+    connection_role:role,relationship_role:role,ptr_assignments:ptrJson,connection_arrangement:arrangement,route_action:point.routeAction||'',switch_position:'',ab_status:'',destination_type:point.kind||'',branch_id:pathId,electrical_model:'MANUAL_TOPOLOGY_V3',master_source_matches:point.masterRelation||[],raw_index:-1,_raw:raw};
+};
+
+sgNFReviewHtml=function(){
+  return Object.values(sgNF.paths).map(p=>{const items=p.points.slice(1).map((x,i)=>{
+    let detail=x.kind==='bend'?(x.segType||'UG'):[x.role,(x.connectionArrangement||x.routeAction)==='end'?'FINISH':'NEXT POINT'].filter(Boolean).join(' · ');
+    if(x.kind==='ss33'&&Array.isArray(x.ptrAssignments)&&x.ptrAssignments.length){detail=x.ptrAssignments.map(a=>`${a.ptrName}: ${a.assignment}`).join(' | ');}
+    return `<div class="nf-review-row"><span>${p.id==='MAIN'?String(i+1):p.basePole+'/'+p.id+'/'+(i+1)}</span><b>${sgNFEsc(x.name||'Bend')}</b><em title="${sgNFEsc(detail)}">${sgNFEsc(detail)}</em></div>`;
+  }).join('');return `<div class="nf-review-path"><h4>${p.id==='MAIN'?'Main route':'Branch '+p.id+' from main point '+p.basePole}</h4>${items||'<div class="nf-empty">No points</div>'}</div>`;}).join('');
+};
+
+// Saving from the builder always publishes to manualDrawing/latest so refresh never loses work.
+const _sgNFSaveV3Base=sgNFSave;
+sgNFSave=async function(){return _sgNFSaveV3Base(true);};
+window.sgNFSave=sgNFSave;
+
+// V3 renderer adjustments: no AB instructions, one persistent-save button.
+const _sgNFRenderV3Base=sgNFRender;
+sgNFRender=function(){
+  _sgNFRenderV3Base();if(!sgNF.open)return;
+  const body=document.getElementById('nfWBody');if(!body)return;
+  if(sgNF.step==='draw'){
+    const hint=body.querySelector('.nf-hint');if(hint)hint.innerHTML='<b>Draw one physical feeder continuously.</b> Click the map for bends. At each 33/11 kV SS, choose the PTR source relationship from Master Data, then press <b>Finish</b> or <b>Next Point</b>. No AB open/close is created now.';
+  }
+  if(sgNF.step==='review'){
+    const row=body.querySelector('.nf-save-row');if(row){row.classList.add('v3');row.innerHTML='<button class="publish" onclick="sgNFSave()">☁ Save Feeder & Update Firebase</button>';}
+    const note=body.querySelector('.nf-footnote');if(note)note.textContent='This feeder is saved to the MANUAL drawing branch. On refresh, the saved manual drawing is restored automatically. Legacy Smart Grid lines are never loaded.';
+  }
+  setTimeout(()=>{try{sgNFRenderFeederResults();sgNFRenderDestResults();}catch(e){}},0);
+};
+window.sgNFRender=sgNFRender;
+
+// New feeder state should start clean of old switch fields.
+const _sgNFStartDrawingV3=sgNFStartDrawing;
+sgNFStartDrawing=function(){sgNF.ptrRows=[];sgNF.ptrAssignments={};sgNF.abStatus='';sgNF.switchPosition='';return _sgNFStartDrawingV3();};
+window.sgNFStartDrawing=sgNFStartDrawing;
+
+console.log('[SmartGrid] Manual Route PDF Workflow V3 loaded — PTR-wise source assignment, Finish/Next Point, no AB creation, auto-restore enabled');
+</script>
+
+
 <!-- ═══ Print / PDF Export dialog ═══ -->
 <div id="pdfDlg" style="display:none;position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:6500;background:#12233a;color:#fff;padding:16px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.5);font-family:var(--sans);font-size:12px;width:300px">
   <div style="font-weight:800;font-size:13.5px;margin-bottom:10px">🖨 Print / PDF Export</div>
@@ -6616,5 +6838,435 @@ console.log('[SmartGrid] Sectionalised feeder / tapping / AB switching model V2 
   <div id="pdfProg" style="display:none;margin-top:10px;font-size:10.5px;color:#7fd8c8">Rendering…</div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     CAD MANUAL TOPOLOGY V4 — physical graph + PTR-wise source mapping
+     Physical feeder connectivity is saved independently from live load feasibility.
+     One feeder may physically reach many SSs; simultaneous energisation is NEVER
+     assumed. Live transfer/occupancy logic can evaluate the saved graph later.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── CAD-level drafting workspace ─────────────────────────────────────── */
+body.sg-cad-active #map{cursor:crosshair!important}
+body.sg-cad-active #nfWizardPanel{background:#14181e;color:#d8dee9;border-color:#3b4552;box-shadow:0 18px 48px rgba(0,0,0,.55)}
+body.sg-cad-active .nf-w-head{background:#10141a;border-color:#374151}
+body.sg-cad-active .nf-w-title{color:#e5e7eb}body.sg-cad-active .nf-w-step{color:#7dd3fc}
+body.sg-cad-active #nfWSteps{background:#11161c;border-color:#303842}body.sg-cad-active #nfWSteps i{background:#374151}body.sg-cad-active #nfWSteps .active i{background:#22d3ee}body.sg-cad-active #nfWSteps span{color:#778596}body.sg-cad-active #nfWSteps .active span{color:#67e8f9}
+body.sg-cad-active #nfWBody{background:#171c23}body.sg-cad-active .nf-w-foot{background:#10141a;border-color:#303842}body.sg-cad-active .nf-w-foot button{background:#1f2937;color:#d1d5db;border-color:#4b5563}
+body.sg-cad-active .nf-card,body.sg-cad-active .nf-ptr-box,body.sg-cad-active .nf-kpis>div,body.sg-cad-active .nf-review-path{background:#11161c!important;border-color:#39434e!important;color:#d9e1ea!important}
+body.sg-cad-active .nf-field>label,body.sg-cad-active .nf-card>label,body.sg-cad-active .nf-ptr-head{color:#8da2b5!important}
+body.sg-cad-active .nf-input{background:#0c1117!important;color:#e5e7eb!important;border-color:#46515d!important}
+body.sg-cad-active .nf-input:focus{border-color:#22d3ee!important;box-shadow:0 0 0 1px #22d3ee!important}
+body.sg-cad-active .nf-hint,body.sg-cad-active .nf-footnote,body.sg-cad-active .nf-field small{color:#92a0af!important}
+body.sg-cad-active .nf-master-rel{color:#67e8f9!important}
+body.sg-cad-active .nf-ptr-row{border-color:#28313a}.nf-ptr-row.master-hit{box-shadow:inset 3px 0 #22d3ee}.nf-ptr-row.not-on{opacity:.72}
+
+#sgCadRibbon{display:none;position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:6250;background:#161b22;border:1px solid #3e4854;box-shadow:0 8px 28px rgba(0,0,0,.5);color:#d8dee9;font-family:Arial,sans-serif;min-width:760px;max-width:calc(100vw - 850px);height:58px;padding:5px 7px;gap:8px;align-items:stretch}
+body.sg-cad-active #sgCadRibbon{display:flex}
+.sg-cad-group{display:flex;gap:4px;align-items:center;padding-right:8px;border-right:1px solid #303842}.sg-cad-group:last-child{border-right:0;padding-right:0}.sg-cad-group-title{writing-mode:vertical-rl;transform:rotate(180deg);font-size:7px;letter-spacing:.12em;color:#64748b;text-transform:uppercase;padding:2px 0}
+.sg-cad-tool{height:42px;min-width:54px;border:1px solid #3f4a56;background:#20262e;color:#cbd5e1;cursor:pointer;font-size:9px;font-weight:700;padding:3px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.sg-cad-tool b{font-size:14px;font-weight:500}.sg-cad-tool:hover{background:#28333e;border-color:#64748b}.sg-cad-tool.on{background:#0c4a6e;border-color:#22d3ee;color:#cffafe}.sg-cad-tool.danger:hover{background:#5f1b1b;border-color:#ef4444}.sg-cad-tool:disabled{opacity:.35;cursor:not-allowed}
+.sg-cad-layer{display:flex;flex-direction:column;gap:3px;min-width:86px}.sg-cad-layer label{font-size:7px;color:#64748b;letter-spacing:.08em}.sg-cad-layer select{height:25px;background:#0d1117;color:#d8dee9;border:1px solid #46515d;font-size:9px;padding:2px 5px}
+.sg-cad-stat{min-width:120px;display:flex;flex-direction:column;justify-content:center}.sg-cad-stat small{font-size:7px;color:#64748b;text-transform:uppercase;letter-spacing:.08em}.sg-cad-stat b{font-size:9px;color:#67e8f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sg-cad-stat span{font-size:8px;color:#9aa8b5;margin-top:2px}
+
+#sgCadCommand{display:none;position:fixed;bottom:38px;left:320px;right:0;height:54px;z-index:6240;background:#0d1117;border-top:1px solid #334155;color:#d1d5db;font-family:Consolas,'Courier New',monospace;box-shadow:0 -5px 18px rgba(0,0,0,.25)}body.sg-cad-active #sgCadCommand{display:flex;flex-direction:column}
+.sg-cmd-main{display:flex;align-items:center;gap:8px;height:31px;padding:4px 10px}.sg-cmd-prompt{color:#67e8f9;font-weight:700}.sg-cmd-text{flex:1;color:#e5e7eb;font-size:11px}.sg-cmd-coord{color:#a7f3d0;font-size:9px}.sg-cmd-status{height:23px;display:flex;align-items:center;gap:13px;padding:0 10px;background:#121820;border-top:1px solid #222c36;font-size:8px;color:#83909d}.sg-cmd-status button{border:0;background:none;color:#83909d;font:inherit;cursor:pointer;padding:0}.sg-cmd-status button.on{color:#67e8f9;font-weight:800}.sg-cmd-status .path{margin-left:auto;color:#cbd5e1}
+
+.sg-cad-cross{width:22px;height:22px;position:relative;pointer-events:none}.sg-cad-cross:before,.sg-cad-cross:after{content:"";position:absolute;background:#67e8f9}.sg-cad-cross:before{left:10px;top:0;width:1px;height:22px}.sg-cad-cross:after{top:10px;left:0;height:1px;width:22px}.sg-cad-cross.snap:before,.sg-cad-cross.snap:after{background:#facc15}.sg-cad-cross i{position:absolute;inset:6px;border:1px solid #facc15;display:none}.sg-cad-cross.snap i{display:block}
+.sg-cad-grip{width:9px;height:9px;background:#2563eb;border:1px solid #bfdbfe;box-sizing:border-box}.sg-cad-grip.hot{background:#ef4444;border-color:#fecaca}.sg-cad-grip.lock{background:#111827;border:2px solid #f59e0b;width:11px;height:11px}.sg-cad-grip.junction{background:#06b6d4;border-color:#cffafe;transform:rotate(45deg);width:11px;height:11px}.sg-cad-mid{width:8px;height:8px;background:#22c55e;border:1px solid #dcfce7;transform:rotate(45deg);opacity:.9}.sg-cad-node-label{background:#0d1117!important;color:#e5e7eb!important;border:1px solid #475569!important;font:9px Consolas,monospace!important;box-shadow:0 2px 8px rgba(0,0,0,.35)!important}
+.sg-cad-section-label{background:rgba(13,17,23,.88)!important;color:#67e8f9!important;border:1px solid #334155!important;font:8px Consolas,monospace!important;padding:1px 4px!important}
+
+.nf-topology-callout{margin:10px 0;border:1px solid #3b4855;background:#0e141b;padding:10px}.nf-topology-callout h4{font-size:9px;color:#67e8f9;text-transform:uppercase;letter-spacing:.09em;margin:0 0 6px}.nf-topology-callout p{font-size:9.5px;color:#9aa8b5;line-height:1.45;margin:0}.nf-topology-callout strong{color:#e5e7eb}.nf-topology-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:7px}.nf-topology-grid>div{border:1px solid #29333d;background:#111820;padding:6px}.nf-topology-grid span{display:block;color:#64748b;font-size:7px;text-transform:uppercase}.nf-topology-grid b{display:block;color:#dbeafe;font-size:9px;margin-top:2px}
+.nf-ptr-source-chip{font-size:8px;padding:2px 5px;border:1px solid #475569;color:#cbd5e1;background:#151b22}.nf-ptr-source-chip.hit{border-color:#22d3ee;color:#67e8f9;background:#0c3445}
+
+/* Existing saved-feeder editor upgraded to CAD palette appearance */
+#sgeBar{width:310px!important;background:#11161c!important;border:1px solid #46515d!important;border-radius:2px!important;box-shadow:0 14px 42px rgba(0,0,0,.62)!important;font-family:Consolas,Arial,sans-serif!important}
+#sgeBar:before{content:'PROPERTIES / MODIFY';display:block;color:#64748b;font-size:8px;letter-spacing:.12em;border-bottom:1px solid #29323c;padding-bottom:5px;margin-bottom:1px}
+.sg-cad-btn{border-radius:1px!important;background:#20262e!important;border-color:#46515d!important}.sg-cad-btn:hover,.sg-cad-btn.active{background:#0c4a6e!important;border-color:#22d3ee!important}.sg-cad-btn.danger{background:#4b1919!important}.sg-cad-btn.save{background:#065f46!important;border-color:#10b981!important}
+</style>
+
+<script>
+(function(){
+'use strict';
+if(!window.sgNF || !window.map) return;
+
+/* ── V4 state ───────────────────────────────────────────────────────── */
+sgNF.cad = sgNF.cad || {
+  ortho:false, polar:false, polarStep:45, osnap:true,
+  snaps:{endpoint:true,midpoint:true,node:true,center:true,nearest:true},
+  history:[], future:[], lastSnap:null, lastCoord:null, selectedSegment:null,
+  command:'PLINE', message:'Specify next point or choose a destination', guide:null, hoverMarker:null
+};
+sgNF.topologyModel='PHYSICAL_GRAPH_LOAD_GATED_V4';
+
+function sgNFCadEnsureUI(){
+  if(!document.getElementById('sgCadRibbon')){
+    const d=document.createElement('div');d.id='sgCadRibbon';d.innerHTML=`
+      <div class="sg-cad-group"><div class="sg-cad-group-title">DRAW</div>
+        <button class="sg-cad-tool" onclick="sgNFCadCommand('PLINE')"><b>⌁</b>Polyline</button>
+        <button class="sg-cad-tool" onclick="sgNFStartBranch()"><b>⑂</b>Branch</button>
+        <button class="sg-cad-tool" onclick="sgNFInsertPoint()"><b>⊕</b>Insert</button>
+      </div>
+      <div class="sg-cad-group"><div class="sg-cad-group-title">MODIFY</div>
+        <button class="sg-cad-tool" onclick="sgNFTrimAfter()"><b>✂</b>Trim</button>
+        <button class="sg-cad-tool danger" onclick="sgNFDeleteSelected()"><b>×</b>Delete</button>
+        <button class="sg-cad-tool" onclick="sgNFCadUndo()"><b>↶</b>Undo</button>
+        <button class="sg-cad-tool" onclick="sgNFCadRedo()"><b>↷</b>Redo</button>
+      </div>
+      <div class="sg-cad-group"><div class="sg-cad-group-title">AIDS</div>
+        <button id="sgCadOsnapBtn" class="sg-cad-tool on" onclick="sgNFCadToggle('osnap')"><b>□</b>OSNAP</button>
+        <button id="sgCadOrthoBtn" class="sg-cad-tool" onclick="sgNFCadToggle('ortho')"><b>└</b>ORTHO</button>
+        <button id="sgCadPolarBtn" class="sg-cad-tool" onclick="sgNFCadToggle('polar')"><b>⌁</b>POLAR</button>
+      </div>
+      <div class="sg-cad-group"><div class="sg-cad-group-title">LAYER</div><div class="sg-cad-layer"><label>SEGMENT</label><select id="sgCadLayerSel" onchange="sgNFSetSegment(this.value)"><option>UG</option><option>OH</option></select><label id="sgCadMasterType">MASTER: —</label></div></div>
+      <div class="sg-cad-group"><div class="sg-cad-group-title">PROPS</div><div class="sg-cad-stat"><small>Selection</small><b id="sgCadSelection">No selection</b><span id="sgCadSelection2">—</span></div></div>`;
+    document.body.appendChild(d);
+  }
+  if(!document.getElementById('sgCadCommand')){
+    const d=document.createElement('div');d.id='sgCadCommand';d.innerHTML=`<div class="sg-cmd-main"><span class="sg-cmd-prompt">Command:</span><span id="sgCadCmdText" class="sg-cmd-text">PLINE — Specify next point</span><span id="sgCadCoord" class="sg-cmd-coord">—</span></div><div class="sg-cmd-status"><button id="sgCadF3" class="on" onclick="sgNFCadToggle('osnap')">F3 OSNAP</button><button id="sgCadF8" onclick="sgNFCadToggle('ortho')">F8 ORTHO</button><button id="sgCadF10" onclick="sgNFCadToggle('polar')">F10 POLAR 45°</button><span>GRIPS: blue=editable · orange=fixed · cyan=junction · green=midpoint</span><span id="sgCadPath" class="path">MAIN</span></div>`;document.body.appendChild(d);
+  }
+}
+
+function sgNFCadSetMessage(msg,cmd){sgNF.cad.message=msg||'';if(cmd)sgNF.cad.command=cmd;sgNFCadUpdateUI();}
+window.sgNFCadCommand=function(cmd){sgNF.cad.command=cmd||'PLINE';sgNF.drawing=true;sgNFCadSetMessage('Specify next point or [Destination/Branch/Undo]');};
+window.sgNFCadToggle=function(k){
+  if(k==='osnap')sgNF.cad.osnap=!sgNF.cad.osnap;
+  if(k==='ortho'){sgNF.cad.ortho=!sgNF.cad.ortho;if(sgNF.cad.ortho)sgNF.cad.polar=false;}
+  if(k==='polar'){sgNF.cad.polar=!sgNF.cad.polar;if(sgNF.cad.polar)sgNF.cad.ortho=false;}
+  sgNFCadUpdateUI();
+};
+function sgNFCadUpdateUI(){
+  sgNFCadEnsureUI();const active=!!(sgNF.open&&sgNF.step==='draw');document.body.classList.toggle('sg-cad-active',active);if(!active)return;
+  const c=sgNF.cad,p=sgNFPath(),s=sgNF.selected,pt=s&&sgNF.paths[s.path]?.points[s.index];
+  const set=(id,on)=>document.getElementById(id)?.classList.toggle('on',!!on);set('sgCadOsnapBtn',c.osnap);set('sgCadOrthoBtn',c.ortho);set('sgCadPolarBtn',c.polar);set('sgCadF3',c.osnap);set('sgCadF8',c.ortho);set('sgCadF10',c.polar);
+  const ls=document.getElementById('sgCadLayerSel');if(ls)ls.value=sgNF.currentSeg||'UG';const mt=document.getElementById('sgCadMasterType');if(mt)mt.textContent='MASTER: '+(sgNF.feeder?.constructionType||'—');
+  const a=document.getElementById('sgCadSelection'),b=document.getElementById('sgCadSelection2');if(a)a.textContent=pt?`${s.path}:${s.index} · ${pt.name||pt.kind||'POINT'}`:'No selection';if(b)b.textContent=pt?`${(+pt.lat).toFixed(6)}, ${(+pt.lng).toFixed(6)}${pt.locked?' · FIXED':''}`:'Select a grip/segment';
+  const t=document.getElementById('sgCadCmdText');if(t)t.textContent=`${c.command||'PLINE'} — ${c.message||'Specify next point'}`;const co=document.getElementById('sgCadCoord');if(co)co.textContent=c.lastCoord?`${c.lastCoord.lat.toFixed(6)}, ${c.lastCoord.lng.toFixed(6)}${c.lastSnap?' · '+c.lastSnap:''}`:'—';const path=document.getElementById('sgCadPath');if(path)path.textContent=`ROUTE: ${p?.id||'MAIN'} · ${Object.keys(sgNF.paths||{}).length} path(s)`;
+}
+
+/* ── History ─────────────────────────────────────────────────────────── */
+function sgNFCadState(){return JSON.parse(JSON.stringify({paths:sgNF.paths,activePath:sgNF.activePath,selected:sgNF.selected,currentSeg:sgNF.currentSeg,nextBranch:sgNF.nextBranch,drawing:sgNF.drawing,destType:sgNF.destType}));}
+function sgNFCadPush(label){if(!sgNF.open||sgNF.step!=='draw')return;sgNF.cad.history.push({label:label||'Edit',state:sgNFCadState()});if(sgNF.cad.history.length>80)sgNF.cad.history.shift();sgNF.cad.future=[];}
+function sgNFCadApply(st){if(!st)return;sgNF.paths=st.paths;sgNF.activePath=st.activePath;sgNF.selected=st.selected;sgNF.currentSeg=st.currentSeg;sgNF.nextBranch=st.nextBranch;sgNF.drawing=st.drawing;sgNF.destType=st.destType;sgNFCadSyncAnchors();sgNFRedraw();sgNFRender();}
+window.sgNFCadUndo=function(){const h=sgNF.cad.history.pop();if(!h)return toast('Nothing to undo');sgNF.cad.future.push({label:h.label,state:sgNFCadState()});sgNFCadApply(h.state);sgNFCadSetMessage('Undo: '+h.label,'UNDO');};
+window.sgNFCadRedo=function(){const h=sgNF.cad.future.pop();if(!h)return toast('Nothing to redo');sgNF.cad.history.push({label:h.label,state:sgNFCadState()});sgNFCadApply(h.state);sgNFCadSetMessage('Redo: '+h.label,'REDO');};
+
+/* ── Geometry constraints / OSNAP ───────────────────────────────────── */
+function sgNFCadConstrain(ll){const last=sgNFLastPoint();if(!last)return L.latLng(ll);if(!sgNF.cad.ortho&&!sgNF.cad.polar)return L.latLng(ll);const a=map.latLngToContainerPoint([last.lat,last.lng]),q=map.latLngToContainerPoint(ll);let dx=q.x-a.x,dy=q.y-a.y,r=Math.hypot(dx,dy);if(r<1)return L.latLng(ll);let ang=Math.atan2(dy,dx);const step=(sgNF.cad.ortho?90:sgNF.cad.polarStep)*Math.PI/180;ang=Math.round(ang/step)*step;return map.containerPointToLatLng(L.point(a.x+r*Math.cos(ang),a.y+r*Math.sin(ang)));}
+function sgNFCadCandidates(){const out=[];if(sgNF.cad.snaps.center){try{const c=window._sgMasterCoordCache||sgMasterBuildCoordCache();(c.all||[]).forEach(n=>out.push({lat:+n.lat,lng:+n.lng,kind:'CENTER',label:n.name||n.code||'Station centre'}));}catch(e){}}
+  Object.values(sgNF.paths||{}).forEach(path=>{(path.points||[]).forEach((p,i)=>{if(sgNF.cad.snaps.endpoint)out.push({lat:+p.lat,lng:+p.lng,kind:'ENDPOINT',label:`${path.id}:${i} ${p.name||p.kind||''}`});if(sgNF.cad.snaps.midpoint&&i>0){const a=path.points[i-1];out.push({lat:(+a.lat+ +p.lat)/2,lng:(+a.lng+ +p.lng)/2,kind:'MIDPOINT',label:`${path.id} midpoint ${i}`});}});});
+  if(sgNF.cad.snaps.node)Object.values(nodesByKey||{}).forEach(n=>{if(n&&n.lat!=null&&n.lng!=null)out.push({lat:+n.lat,lng:+n.lng,kind:'NODE',label:n.name||n.code||n.kind||'Node'});});return out;}
+function sgNFCadResolve(ll){let q=sgNFCadConstrain(ll),best=null,bestD=Infinity;if(sgNF.cad.osnap){const qp=map.latLngToContainerPoint(q);sgNFCadCandidates().forEach(x=>{const d=map.latLngToContainerPoint([x.lat,x.lng]).distanceTo(qp);if(d<bestD){bestD=d;best=x;}});if(best&&bestD<=16){sgNF.cad.lastSnap=best.kind;return {lat:best.lat,lng:best.lng,snap:best};}
+    if(sgNF.cad.snaps.nearest){const hit=sgNFNearestExistingFeederPoint(q);if(hit){sgNF.cad.lastSnap='NEAREST';return {lat:hit.lat,lng:hit.lng,snap:{kind:'NEAREST',label:'Existing feeder'}};}}
+  }sgNF.cad.lastSnap=null;return {lat:q.lat,lng:q.lng,snap:null};}
+
+window.gCadGuideLayer=window.gCadGuideLayer||L.layerGroup().addTo(map);
+function sgNFCadMouseMove(e){if(!(sgNF.open&&sgNF.step==='draw'&&sgNF.drawing))return;const p=sgNFPath(),last=sgNFLastPoint();if(!p||!last)return;const r=sgNFCadResolve(e.latlng);sgNF.cad.lastCoord={lat:r.lat,lng:r.lng};gCadGuideLayer.clearLayers();L.polyline([[last.lat,last.lng],[r.lat,r.lng]],{color:'#67e8f9',weight:1,dashArray:'5 4',opacity:.85,interactive:false}).addTo(gCadGuideLayer);L.marker([r.lat,r.lng],{interactive:false,icon:L.divIcon({className:'',html:`<div class="sg-cad-cross ${r.snap?'snap':''}"><i></i></div>`,iconSize:[22,22],iconAnchor:[11,11]})}).addTo(gCadGuideLayer);sgNFCadUpdateUI();}
+map.on('mousemove',sgNFCadMouseMove);
+
+/* ── Branch dependency: branch anchor stays welded to parent route ──── */
+function sgNFCadSyncAnchors(){Object.values(sgNF.paths||{}).forEach(p=>{if(!p.branch||!p.points?.length)return;const parent=sgNF.paths[p.parentPath||'MAIN'];const idx=Number.isFinite(+p.parentIndex)?+p.parentIndex:+p.basePole;if(parent&&parent.points[idx]){const a=parent.points[idx];Object.assign(p.points[0],{lat:+a.lat,lng:+a.lng,name:a.name||'JUNCTION',code:a.code||'',kind:a.kind||'bend',locked:true,branchAnchor:true,parentPath:p.parentPath||'MAIN',parentIndex:idx});}});}
+function sgNFCadHasChild(pathId,index){return Object.values(sgNF.paths||{}).some(p=>p.branch&&(p.parentPath||'MAIN')===pathId&&(+p.parentIndex===+index||(+p.basePole===+index&&!(p.parentPath))));}
+window.sgNFStartBranch=function(){const s=sgNF.selected;if(!s)return toast('Select the EHT, a bend/junction, or a substation point first');const parent=sgNF.paths[s.path];const anchor=parent&&parent.points[s.index];if(!anchor)return;sgNFCadPush('Create branch');const id='B'+(++sgNF.nextBranch);sgNF.paths[id]={id,branch:true,parentPath:s.path,parentIndex:s.index,basePole:s.index,baseName:anchor.name||'',points:[{...anchor,branchAnchor:true,source:false,locked:true,parentPath:s.path,parentIndex:s.index}]};sgNF.activePath=id;sgNF.selected={path:id,index:0};sgNF.drawing=true;sgNF.dest=null;sgNF.destSearch='';sgNFCadSyncAnchors();sgNFRedraw();sgNFRender();sgNFCadSetMessage(`Branch ${id} from ${s.path}:${s.index} — specify next point`,'BRANCH');toast(`Branch ${id} started from ${anchor.name||'selected point'}`);};
+window.sgNFCadParentRoute=function(){const p=sgNFPath();if(!p?.branch)return;const parent=p.parentPath||'MAIN';sgNF.activePath=parent;sgNF.selected={path:parent,index:p.parentIndex??p.basePole??0};sgNF.drawing=true;sgNFRedraw();sgNFRender();};
+
+/* ── CAD redraw: draggable grips, midpoint grips, selectable sections ─ */
+window.sgNFRedraw=function(){
+  if(!window.gNewFeederLayer)return;sgNFCadSyncAnchors();gNewFeederLayer.clearLayers();
+  Object.values(sgNF.paths||{}).forEach(path=>{const pts=path.points||[];
+    for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],sec=`${sgNF.feeder?.feederCode||'FDR'}:${path.id}:S${i}`,sel=sgNF.cad.selectedSegment&&sgNF.cad.selectedSegment.path===path.id&&sgNF.cad.selectedSegment.index===i;const line=L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:sgNFSegmentColor(b.segType||sgNF.currentSeg),weight:sel?7:(path.branch?4:5),opacity:sel?1:.96,lineCap:'round',lineJoin:'round',interactive:true});line.on('click',ev=>{L.DomEvent.stop(ev);sgNF.cad.selectedSegment={path:path.id,index:i};sgNF.selected={path:path.id,index:i};sgNFRedraw();sgNFRender();sgNFCadSetMessage(`Selected ${sec}`,'SELECT');});line.bindTooltip(`${sec} · ${b.segType||sgNF.currentSeg}`,{sticky:true,className:'sg-cad-section-label'}).addTo(gNewFeederLayer);
+      if(sgNF.open&&sgNF.step==='draw'){const mid=[(a.lat+b.lat)/2,(a.lng+b.lng)/2];const mm=L.marker(mid,{icon:L.divIcon({className:'',html:'<div class="sg-cad-mid"></div>',iconSize:[10,10],iconAnchor:[5,5]}),interactive:true});mm.on('click',ev=>{L.DomEvent.stop(ev);sgNFCadPush('Insert midpoint');path.points.splice(i,0,{lat:mid[0],lng:mid[1],kind:'bend',name:'BEND POINT',code:'',segType:b.segType||sgNF.currentSeg,locked:false});sgNF.selected={path:path.id,index:i};sgNFRedraw();sgNFRender();});mm.bindTooltip('MIDPOINT — click to insert grip',{direction:'top',className:'sg-cad-node-label'}).addTo(gNewFeederLayer);}
+    }
+    pts.forEach((p,i)=>{const selected=sgNF.selected&&sgNF.selected.path===path.id&&sgNF.selected.index===i;let inner;if(p.source)inner=`<div class="nf-map-source ${p.kind==='eht'?'eht':''}">⚡</div>`;else if(p.kind==='ss33')inner=`<div class="nf-map-dest ${String(p.role||'').includes('Alternate')?'alt':'reg'}">SS</div>`;else if(p.kind==='ht')inner='<div class="nf-map-ht">HT</div>';else if(p.kind==='sws')inner='<div class="nf-map-sws">S</div>';else if(p.kind==='dead')inner='<div class="nf-map-dead">×</div>';else inner='';
+      const grip=p.branchAnchor?'junction':p.locked?'lock':selected?'hot':'';const canDrag=!p.locked&&!p.branchAnchor&&!p.source;const html=`<div class="nf-map-wrap ${selected?'sel':''}">${inner||`<div class="sg-cad-grip ${grip}"></div>`}${p.branchAnchor?'<div class="sg-cad-grip junction"></div>':''}</div>`;const m=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html,iconSize:[26,26],iconAnchor:[13,13]}),interactive:true,draggable:canDrag});m.on('click',ev=>{L.DomEvent.stop(ev);sgNF.selected={path:path.id,index:i};sgNF.cad.selectedSegment=i>0?{path:path.id,index:i}:null;sgNFRedraw();sgNFRender();sgNFCadSetMessage(`Grip selected ${path.id}:${i}`,'GRIP');});if(canDrag){m.on('dragstart',()=>sgNFCadPush('Move grip'));m.on('drag',ev=>{const ll=ev.target.getLatLng();p.lat=ll.lat;p.lng=ll.lng;sgNFCadSyncAnchors();});m.on('dragend',ev=>{const ll=sgNFCadResolve(ev.target.getLatLng());p.lat=ll.lat;p.lng=ll.lng;sgNFCadSyncAnchors();sgNFRedraw();sgNFRender();sgNFCadSetMessage('Grip moved','MOVE');});}if(p.name)m.bindTooltip(`${p.name}${p.role?' · '+p.role:''}${p.locked?' · FIXED':''}`,{direction:'top',className:'sg-cad-node-label'});m.addTo(gNewFeederLayer);
+    });
+  });sgNFCadUpdateUI();
+};
+
+/* ── CAD map click replaces simple point placement ──────────────────── */
+const sgNFMapClickV3Ref=window.sgNFMapClick||sgNFMapClick;
+window.sgNFMapClick=sgNFMapClick=function(e){if(!sgNF.open||sgNF.step!=='draw'||!sgNF.drawing)return;if(sgNF.pendingTapPick){const hit=sgNFNearestExistingFeederPoint(e.latlng);if(!hit)return toast('No existing feeder close enough — click nearer to the line');sgNFCadPush('Existing feeder tap');sgNFAddDestinationPointV3({kind:'tap',name:'Existing feeder tapping',code:'',lat:hit.lat,lng:hit.lng},'tap',[],'Tap');sgNF.pendingTapPick=false;return;}const p=sgNFPath();if(!p)return;sgNFCadPush('Add route point');const r=sgNFCadResolve(e.latlng);p.points.push({lat:r.lat,lng:r.lng,kind:'bend',name:'BEND POINT',code:'',segType:sgNF.currentSeg,locked:false,snapKind:r.snap?.kind||''});sgNF.selected={path:p.id,index:p.points.length-1};sgNF.cad.selectedSegment={path:p.id,index:p.points.length-1};sgNFRedraw();sgNFRender();sgNFCadSetMessage(r.snap?`Point added · OSNAP ${r.snap.kind}`:'Point added — specify next point','PLINE');};
+try{map.off('click',sgNFMapClickV3Ref);if(sgNF.open&&sgNF.drawing)map.on('click',sgNFMapClick);}catch(e){}
+
+/* ── Wrap core modify commands with CAD history / safety ───────────── */
+const sgNFDeleteSelectedV3=window.sgNFDeleteSelected||sgNFDeleteSelected;window.sgNFDeleteSelected=sgNFDeleteSelected=function(){const s=sgNF.selected;if(s&&sgNFCadHasChild(s.path,s.index))return toast('This grip is a branch junction. Delete the branch first or move the junction.');sgNFCadPush('Delete point');return sgNFDeleteSelectedV3();};
+const sgNFInsertPointV3=window.sgNFInsertPoint||sgNFInsertPoint;window.sgNFInsertPoint=sgNFInsertPoint=function(){sgNFCadPush('Insert point');return sgNFInsertPointV3();};
+const sgNFTrimAfterV3=window.sgNFTrimAfter||sgNFTrimAfter;window.sgNFTrimAfter=sgNFTrimAfter=function(){sgNFCadPush('Trim after');return sgNFTrimAfterV3();};
+window.sgNFUndo=function(){sgNFCadUndo();};
+const sgNFSetSegmentV3=window.sgNFSetSegment||sgNFSetSegment;window.sgNFSetSegment=sgNFSetSegment=function(v){sgNFCadPush('Change segment layer');const s=sgNF.selected;if(s&&s.index>0){const p=sgNF.paths[s.path];if(p?.points[s.index])p.points[s.index].segType=v;}sgNF.currentSeg=v;sgNFSetSegmentV3(v);sgNFRedraw();sgNFCadUpdateUI();};
+
+/* ── PTR mapping: one SS may have multiple simultaneous REGULAR feeds ─ */
+window.sgNFPtrRoleOptions=function(){return ['Not on this feeder','Regular Source','Alternate Source-I','Alternate Source-II','Alternate Source-III','Alternate Source-IV','Alternate Source-V','Link Line'];};
+window.sgNFPtrMasterRoleForFeeder=function(r){const f=sgNF.feeder;if(!f||!r)return 'Not on this feeder';if(sgNFFeederMatch(f,r.regularFeederCode,r.regularFeederName))return 'Regular Source';for(let i=1;i<=5;i++)if(sgNFFeederMatch(f,r['alt'+i+'Code'],r['alt'+i+'Name']))return 'Alternate Source-'+sgNFPtrRoman(i);if(sgNFFeederMatch(f,r.linkLineCode||'',r.linkLineName||r.linkLine||''))return 'Link Line';return 'Not on this feeder';};
+window.sgNFSetPtrAssignment=function(i,v){sgNF.ptrAssignments[Number(i)]=String(v||'Not on this feeder');};
+window.sgNFPtrAssignmentsSnapshot=function(){return (sgNF.ptrRows||[]).map((r,i)=>({ptrNo:sgNFPtrNo(r,i),ptrName:`PTR-${sgNFPtrRoman(sgNFPtrNo(r,i))}`,lvName:r.lvName||'',ptrCapacity:r.ptrCapacity||'',assignment:sgNF.ptrAssignments[i]||sgNFPtrMasterRoleForFeeder(r),masterDetected:sgNFPtrMasterRoleForFeeder(r),selectedFeederCode:sgNF.feeder?.feederCode||'',selectedFeederName:sgNF.feeder?.feederName||'',regularFeederCode:r.regularFeederCode||'',regularFeederName:r.regularFeederName||''}));};
+window.sgNFOverallRoleFromPtr=function(list){const a=(list||[]).map(x=>String(x.assignment||'')).filter(x=>x&&x!=='Not on this feeder'&&x!=='Not Feeding');if(!a.length)return 'Physical Through Only';const u=[...new Set(a)];return u.length===1?u[0]:'PTR-wise Mixed Sources';};
+window.sgNFPreparePtrAssignments=function(){const arr=sgNF.dest?sgNFSourceRowsForSS(sgNF.dest):[];sgNF.ptrRows=Array.isArray(arr)?arr:[];sgNF.ptrAssignments={};sgNF.ptrRows.forEach((r,i)=>sgNF.ptrAssignments[i]=sgNFPtrMasterRoleForFeeder(r));};
+window.sgNFPtrHtml=function(){if(!sgNF.dest)return '';if(!(sgNF.ptrRows||[]).length)return `<div class="nf-card warn"><b>No PTR source rows found for this SS code.</b><p>The physical route may be drawn, but source assignment should be corrected in Master Data first.</p></div>`;const opts=sgNFPtrRoleOptions().map(x=>`<option value="${sgNFEsc(x)}"></option>`).join('');const rowsHtml=sgNF.ptrRows.map((r,i)=>{const master=sgNFPtrMasterRoleForFeeder(r),val=sgNF.ptrAssignments[i]||master,hit=master!=='Not on this feeder';return `<div class="nf-ptr-row ${hit?'master-hit':'not-on'}"><div class="nf-ptr-row-top"><b>${sgNFEsc(sgNFPtrDisplay(r,i))}</b><span class="nf-ptr-source-chip ${hit?'hit':''}">${hit?sgNFEsc(master):'OTHER SOURCE'}</span></div><input class="nf-input" list="nfPtrRoleListV4" value="${sgNFEsc(val)}" oninput="sgNFSetPtrAssignment(${i},this.value)" placeholder="Source role on this feeder"><small>${hit?`Master confirms this feeder as <b>${sgNFEsc(master)}</b> for this PTR.`:`This PTR is supplied by another regular/alternate feeder in the master. It is <b>not un-fed</b>.`}</small></div>`;}).join('');return `<div class="nf-ptr-box"><div class="nf-ptr-head">PTR-WISE CONNECTION ON THE CURRENT PHYSICAL FEEDER</div><datalist id="nfPtrRoleListV4">${opts}</datalist>${rowsHtml}</div>`;};
+
+/* Revalidate SS decision using "not on this feeder", not "no feeding". */
+window.sgNFConnectSSDecision=function(mode){if(!sgNF.dest)return toast('Select the 33/11 kV substation first');const ptrs=sgNFPtrAssignmentsSnapshot();const assigned=ptrs.filter(x=>x.assignment&&x.assignment!=='Not on this feeder'&&x.assignment!=='Not Feeding');if(ptrs.length&&!assigned.length&&!confirm('The current feeder is not mapped to any PTR of this SS in Master Data. Save only as a physical through/end point?'))return;const pathBefore=sgNFPath(),wasBranch=!!pathBefore?.branch,parentPath=pathBefore?.parentPath||'MAIN',parentIndex=pathBefore?.parentIndex??pathBefore?.basePole??0;sgNFCadPush(mode==='next'?'Connect SS and continue':(wasBranch?'Close branch at SS':'Connect final SS'));const action=mode==='next'?'tap':'end',d={...sgNF.dest,kind:'ss33'};sgNFAddDestinationPointV3(d,action,ptrs,sgNFOverallRoleFromPtr(ptrs));if(mode==='next'){sgNFCadSetMessage('SS connected as THROUGH point — continue same feeder','PLINE');toast('SS connected. Continue the SAME physical feeder to the next SS, or start a branch from any selected junction.');}else if(wasBranch){sgNF.activePath=parentPath;sgNF.selected={path:parentPath,index:parentIndex};sgNF.drawing=true;sgNFCadSyncAnchors();sgNFRedraw();sgNFRender();sgNFCadSetMessage('Branch closed — returned to parent feeder. Continue drawing or review.','PLINE');toast('Branch endpoint saved. Returned to the parent feeder; continue the main route or another branch.');}else{toast('Final main-route SS saved — opening review.');setTimeout(()=>sgNFFinishDrawing(),0);}};
+
+/* ── Physical graph metadata for later live load/occupancy engine ───── */
+const sgNFRowForPointV3=window.sgNFRowForPoint||sgNFRowForPoint;window.sgNFRowForPoint=sgNFRowForPoint=function(point,meta,pole,pathId){const r=sgNFRowForPointV3(point,meta,pole,pathId);const path=sgNF.paths[pathId]||{};const sectionId=`${meta.feederCode||meta.feederName||'FDR'}:${pathId}:S${String(pole).split('/').pop()}`;const extra={physical_feeder_group:meta.feederCode||meta.feederName,topology_path_id:pathId,parent_path_id:path.parentPath||'',junction_parent_index:path.parentIndex??'',section_id:sectionId,simultaneous_supply_assumed:false,live_feasibility_rule:'CHECK_PTR_LOAD_AND_FEEDER_HEADROOM',transfer_engine_ready:true,electrical_model:'MANUAL_PHYSICAL_GRAPH_V4'};Object.assign(r,extra);if(r._raw)Object.assign(r._raw,extra);return r;};
+
+function sgNFCadDestinationPoints(){const a=[];Object.values(sgNF.paths||{}).forEach(p=>(p.points||[]).forEach((x,i)=>{if(x.kind==='ss33'&&!x.branchAnchor)a.push({path:p.id,index:i,name:x.name,code:x.code,ptrs:x.ptrAssignments||[],role:x.role});}));return a;}
+function sgNFCadTopologySummary(){const ss=sgNFCadDestinationPoints(),branches=Object.values(sgNF.paths||{}).filter(p=>p.branch).length,sections=Object.values(sgNF.paths||{}).reduce((n,p)=>n+Math.max(0,(p.points?.length||0)-1),0);return `<div class="nf-topology-callout"><h4>Physical topology / live operating model</h4><p><strong>${ss.length} substation connection(s)</strong> are physically reachable on this feeder. The map does <strong>not</strong> assume they can all carry load simultaneously. Live mode will later evaluate each transfer using PTR load, existing regular duty and feeder headroom.</p><div class="nf-topology-grid"><div><span>SS Connections</span><b>${ss.length}</b></div><div><span>Branches</span><b>${branches}</b></div><div><span>Sections</span><b>${sections}</b></div></div>${ss.length?`<p style="margin-top:7px">${ss.map(x=>`<b>${sgNFEsc(x.name)}</b> (${sgNFEsc(x.path)})`).join(' · ')}</p>`:''}</div>`;}
+
+/* ── Render additions / CAD deck lifecycle ──────────────────────────── */
+const sgNFRenderV4Base=window.sgNFRender||sgNFRender;window.sgNFRender=sgNFRender=function(){sgNFRenderV4Base();sgNFCadEnsureUI();sgNFCadUpdateUI();if(!sgNF.open)return;const body=document.getElementById('nfWBody');if(!body)return;if(sgNF.step==='draw'){const tools=body.querySelector('.nf-tools');if(tools&&!tools.querySelector('[data-v4-parent]')&&sgNFPath()?.branch)tools.insertAdjacentHTML('beforeend','<button data-v4-parent onclick="sgNFCadParentRoute()">↰ Parent Route</button>');const hint=body.querySelector('.nf-hint');if(hint)hint.innerHTML='<b>CAD MANUAL TOPOLOGY.</b> Draw the physical route only. One feeder may pass through several substations and may branch from the EHT/junction. <b>Physical reachability does not mean simultaneous load capability.</b> Use PTR mapping at each SS; live capacity/occupancy is evaluated later.';}if(sgNF.step==='review'){const rev=body.querySelector('.nf-review');if(rev&&!rev.querySelector('.nf-topology-callout'))rev.insertAdjacentHTML('beforebegin',sgNFCadTopologySummary());}setTimeout(()=>{try{sgNFRenderFeederResults();sgNFRenderDestResults();}catch(e){}},0);};
+
+const sgNFStartDrawingV4Base=window.sgNFStartDrawing||sgNFStartDrawing;window.sgNFStartDrawing=sgNFStartDrawing=function(){sgNF.cad.history=[];sgNF.cad.future=[];sgNF.cad.selectedSegment=null;const r=sgNFStartDrawingV4Base();document.body.classList.add('sg-cad-active');sgNFCadSetMessage('Specify next point or select a fixed destination','PLINE');try{map.off('click',sgNFMapClickV3Ref);map.off('click',sgNFMapClick);map.on('click',sgNFMapClick);}catch(e){}return r;};
+const sgNFCloseV4Base=window.sgNFClose||sgNFClose;window.sgNFClose=sgNFClose=function(){document.body.classList.remove('sg-cad-active');try{gCadGuideLayer.clearLayers();}catch(e){}return sgNFCloseV4Base();};
+
+/* Keyboard drafting shortcuts. Capture phase prevents the older ESC handler. */
+document.addEventListener('keydown',function(e){if(!(sgNF.open&&sgNF.step==='draw'))return;if(e.key==='F3'){e.preventDefault();e.stopImmediatePropagation();sgNFCadToggle('osnap');return;}if(e.key==='F8'){e.preventDefault();e.stopImmediatePropagation();sgNFCadToggle('ortho');return;}if(e.key==='F10'){e.preventDefault();e.stopImmediatePropagation();sgNFCadToggle('polar');return;}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.stopImmediatePropagation();sgNFCadUndo();return;}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();e.stopImmediatePropagation();sgNFCadRedo();return;}if(e.key==='Delete'){e.preventDefault();e.stopImmediatePropagation();sgNFDeleteSelected();return;}if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();sgNF.pendingTapPick=false;sgNF.cad.command='PLINE';sgNFCadSetMessage('Command cancelled — specify next point');return;}},true);
+
+/* Saved geometry editor also gets shortcut status through body class while active. */
+const oldToggleGeom=window.toggleGeomEditMode;if(typeof oldToggleGeom==='function')window.toggleGeomEditMode=function(){const r=oldToggleGeom.apply(this,arguments);setTimeout(()=>{const on=!!window._sgEditModeOn;document.body.classList.toggle('sg-existing-cad-edit',on);},0);return r;};
+
+sgNFCadEnsureUI();sgNFCadUpdateUI();
+console.log('[SmartGrid] CAD Manual Topology V4 loaded — multi-SS physical graph, EHT branching, PTR-wise multi-regular support, load-gated live model ready.');
+})();
+</script>
+
+
+<style id="sg-v5-style">
+/* ═══ V5: CAD asset activation + compact operation popups ═══ */
+.sg-v5-active-dot{width:18px;height:18px;border-radius:50%;background:#071c2d;border:3px solid #22d3ee;box-shadow:0 0 0 5px rgba(34,211,238,.18),0 0 18px rgba(34,211,238,.95);position:relative;box-sizing:border-box}
+.sg-v5-active-dot.eht{border-color:#fb923c;box-shadow:0 0 0 5px rgba(251,146,60,.18),0 0 18px rgba(251,146,60,.95)}
+.sg-v5-active-dot.ht{border-color:#10b981;box-shadow:0 0 0 5px rgba(16,185,129,.16),0 0 18px rgba(16,185,129,.9)}
+.sg-v5-active-dot.primary{width:24px;height:24px;border-width:4px;animation:sgV5Pulse 1.15s ease-in-out infinite}
+@keyframes sgV5Pulse{0%,100%{transform:scale(.92)}50%{transform:scale(1.15)}}
+.sg-v5-active-label{background:#071c2ded!important;border:1px solid #22d3ee!important;color:#e6fbff!important;font:700 9px/1.25 Arial!important;padding:3px 6px!important;border-radius:4px!important;box-shadow:0 2px 8px rgba(0,0,0,.28)!important}
+.sg-v5-active-label:before{display:none!important}
+
+/* Compact SS card: deliberately narrow so it does not cover the operating map. */
+.leaflet-popup.sg-v5-ss-popup .leaflet-popup-content-wrapper{padding:0!important;border-radius:8px!important;overflow:hidden!important;box-shadow:0 8px 28px rgba(0,0,0,.28)!important}
+.leaflet-popup.sg-v5-ss-popup .leaflet-popup-content{margin:0!important;min-width:310px!important;max-width:350px!important}
+.sg-v5-ss{width:326px;max-width:326px;background:#fff;color:#17212b;font:10px/1.3 Arial,sans-serif}
+.sg-v5-ss-head{background:#102a43;color:#fff;padding:8px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.sg-v5-ss-head b{font-size:11px;display:block;line-height:1.25}.sg-v5-ss-head small{display:block;color:#b9d5e8;margin-top:2px;font-size:8.7px}.sg-v5-ss-badge{background:#eaf6ff;color:#075985;border-radius:999px;padding:3px 7px;font-weight:800;white-space:nowrap;font-size:8.5px}
+.sg-v5-kpi{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #e7edf2}.sg-v5-kpi>div{padding:6px 7px;border-right:1px solid #edf1f4}.sg-v5-kpi>div:last-child{border-right:0}.sg-v5-kpi span{display:block;color:#778794;font-size:7.8px;text-transform:uppercase;letter-spacing:.05em}.sg-v5-kpi b{display:block;color:#17324d;font-size:10px;margin-top:1px}
+.sg-v5-ptr-scroll{max-height:230px;overflow:auto}.sg-v5-ptr{border-bottom:1px solid #edf1f4;padding:7px 8px}.sg-v5-ptr:last-child{border-bottom:0}.sg-v5-ptr-top{display:flex;align-items:center;gap:6px;margin-bottom:5px}.sg-v5-ptr-tag{background:#edf4fa;color:#17324d;border:1px solid #c9d8e4;border-radius:4px;padding:2px 5px;font-weight:800;font-size:8.5px}.sg-v5-cap{color:#516575;font-weight:700;font-size:8.7px}
+.sg-v5-src{display:grid;grid-template-columns:28px minmax(0,1fr) 62px;align-items:center;gap:5px;padding:2px 0}.sg-v5-src-code{font:800 8px/1 monospace;color:#516575}.sg-v5-src-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9.2px;color:#243746}.sg-v5-status{justify-self:end;border-radius:999px;padding:2px 5px;font-size:7.3px;font-weight:900;white-space:nowrap;border:1px solid}.sg-v5-status.on{color:#047857;background:#ecfdf5;border-color:#a7f3d0}.sg-v5-status.yes{color:#047857;background:#ecfdf5;border-color:#a7f3d0}.sg-v5-status.no{color:#b91c1c;background:#fef2f2;border-color:#fecaca}.sg-v5-status.unknown{color:#64748b;background:#f8fafc;border-color:#e2e8f0}
+.sg-v5-foot{padding:5px 8px;background:#f8fafc;border-top:1px solid #e8edf2;color:#778794;font-size:7.8px}
+
+.leaflet-popup.sg-v5-feeder-popup .leaflet-popup-content{margin:0!important;min-width:280px!important;max-width:340px!important}.leaflet-popup.sg-v5-feeder-popup .leaflet-popup-content-wrapper{padding:0!important;overflow:hidden!important}
+.sg-v5-fq{width:310px;background:#fff;font:9.5px/1.35 Arial;color:#263849}.sg-v5-fq-h{background:#0f2236;color:#fff;padding:8px 10px}.sg-v5-fq-h b{display:block;font-size:11px}.sg-v5-fq-h span{color:#a8c7da;font-size:8.5px}.sg-v5-fq-grid{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #e7edf2}.sg-v5-fq-grid div{padding:6px 8px;border-right:1px solid #edf1f4}.sg-v5-fq-grid span{display:block;color:#7b8b98;font-size:7.7px;text-transform:uppercase}.sg-v5-fq-grid b{display:block;margin-top:1px}.sg-v5-fq-list{max-height:150px;overflow:auto;padding:5px 8px}.sg-v5-fq-dest{display:flex;gap:6px;padding:4px 0;border-bottom:1px solid #f0f3f5}.sg-v5-fq-dest:last-child{border-bottom:0}.sg-v5-fq-dest i{font-style:normal;background:#eef4f8;color:#38546b;border-radius:3px;padding:1px 4px;height:max-content;font-size:7.5px}.sg-v5-fq-dest b{font-size:9px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sg-v5-fq-note{padding:5px 8px;background:#f8fafc;color:#6d7e8b;font-size:7.8px}
+
+/* V5 type selector — intentionally only the two project-level creation modes. */
+.nf-v5-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.nf-v5-type-grid button{border:1px solid #aebdca;background:#fff;color:#253b4f;padding:16px 12px;text-align:left;cursor:pointer;min-height:92px}.nf-v5-type-grid button:hover{border-color:#5980a6;background:#f3f7fa;box-shadow:0 3px 12px rgba(35,68,96,.12)}.nf-v5-type-grid b{display:block;font-size:12px;margin-bottom:5px}.nf-v5-type-grid span{display:block;color:#6d7e8c;font-size:9.5px;line-height:1.4}
+.nf-v5-activation-note{background:#e8f7ff;border-left:3px solid #0ea5e9;padding:7px 9px;color:#335268;font-size:9.2px;line-height:1.4;margin:8px 0}
+</style>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   TGSPDCL SMART GRID — CAD PERSISTENT TOPOLOGY V5
+   - Project creation modes: 33KV Feeder / Link Line only
+   - Context-sensitive activation of EHT / 33-11KV SS / future HT master points
+   - Stable topology persistence independent from frontend HTML revisions
+   - Compact PTR/source popup + one-click feeder connectivity card
+   - Double-click feeder route map remains unchanged
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+const SG_V5_PERSIST_ROOT='smartgrid/manualTopologyV1';
+const SG_V5_SCHEMA='TGSPDCL_MANUAL_TOPOLOGY_V1';
+const SG_V5_LOCAL='TGSPDCL_MANUAL_TOPOLOGY_V1_LOCAL';
+let SG_V5_HT_MASTER=[];
+let gNFActiveAssets=null;
+
+function sgV5EnsureActivationLayer(){
+  if(!gNFActiveAssets) gNFActiveAssets=L.layerGroup().addTo(map);
+  return gNFActiveAssets;
+}
+function sgV5Num(v){const n=Number(String(v==null?'':v).replace(/,/g,'').replace(/[^0-9.+-]/g,''));return Number.isFinite(n)?n:null;}
+function sgV5Flat(root){const out=[];function walk(v){if(!v||typeof v!=='object')return;if(Array.isArray(v)){v.forEach(walk);return;}out.push(v);Object.values(v).forEach(x=>{if(x&&typeof x==='object')walk(x);});}walk(root);return out;}
+function sgV5Pick(o,keys){try{return sgNFVal(o,keys);}catch(e){return '';}}
+function sgV5NormalizeHT(root){
+  const out=[],seen=new Set();
+  sgV5Flat(root).forEach(d=>{
+    const name=String(sgV5Pick(d,['htName','ht_name','HT Service Name','HT Service','service_name','consumer_name','name'])||'').trim();
+    const code=String(sgV5Pick(d,['htCode','ht_code','HT Code','service_code','consumer_code','code'])||'').trim();
+    const lat=sgV5Num(sgV5Pick(d,['latitude','lat','ht_latitude','ht_lat','Latitude']));
+    const lng=sgV5Num(sgV5Pick(d,['longitude','lng','lon','long','ht_longitude','ht_lng','Longitude']));
+    if((!name&&!code)||lat==null||lng==null||lat<5||lat>40||lng<60||lng>100)return;
+    const k=compact(code||name)||lat.toFixed(6)+','+lng.toFixed(6);if(seen.has(k))return;seen.add(k);
+    out.push({kind:'ht',name:name||code,code,lat,lng,_master:d});
+  });
+  return out.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+}
+async function sgNFLoadHTMaster(){
+  const paths=['masterData/htServices','masterData/htServiceCoordinates'];let root=null;
+  for(const p of paths){try{const r=await fetch(`${FIREBASE_URL}/${p}.json?ts=${Date.now()}`,{cache:'no-store'});if(r.ok){const j=await r.json();if(j){root=j;(window.sgMasterData||sgMasterData)[p]=j;break;}}}catch(e){}}
+  SG_V5_HT_MASTER=sgV5NormalizeHT(root);window.SG_V5_HT_MASTER=SG_V5_HT_MASTER;
+  if(sgNF.open){sgNFRender();}
+  return SG_V5_HT_MASTER;
+}
+window.sgNFLoadHTMaster=sgNFLoadHTMaster;
+
+/* Future HT master coordinates merge with any HT points already present in the topology. */
+const sgV5OtherNodesBase=window.sgNFOtherNodes||sgNFOtherNodes;
+window.sgNFOtherNodes=sgNFOtherNodes=function(kind){
+  const base=sgV5OtherNodesBase(kind)||[];if(kind!=='ht')return base;
+  const all=[...base,...SG_V5_HT_MASTER],out=[],seen=new Set();
+  all.forEach(n=>{const k=compact(n.code||n.name)||(+n.lat).toFixed(6)+','+(+n.lng).toFixed(6);if(!k||seen.has(k))return;seen.add(k);out.push(n);});
+  return out.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+};
+
+/* A Link Line deliberately starts only at a fixed 33/11KV SS. */
+window.sgNFAllLinkAssets=sgNFAllLinkAssets=function(){return sgNFSSNodes();};
+function sgV5EligibleSS(){
+  if(!sgNF.feeder)return [];
+  return sgNFSSNodes().map(n=>({n,rel:sgNFRelationMatches(n,sgNF.feeder)})).filter(x=>x.rel.length).map(x=>x.n);
+}
+function sgV5ActiveIcon(kind,primary){return L.divIcon({className:'',html:`<div class="sg-v5-active-dot ${kind==='eht'?'eht':kind==='ht'?'ht':''} ${primary?'primary':''}"></div>`,iconSize:[primary?24:18,primary?24:18],iconAnchor:[primary?12:9,primary?12:9]});}
+function sgV5AddActive(n,primary,onPick,label){
+  if(!n||n.lat==null||n.lng==null)return;const lyr=sgV5EnsureActivationLayer();
+  const m=L.marker([+n.lat,+n.lng],{icon:sgV5ActiveIcon(n.kind,primary),zIndexOffset:2400,riseOnHover:true,interactive:true});
+  m.bindTooltip(label||n.name||n.code||'Selectable point',{direction:'top',className:'sg-v5-active-label',opacity:1});
+  m.on('click',ev=>{L.DomEvent.stop(ev);onPick&&onPick(n);});m.addTo(lyr);
+}
+function sgNFRefreshAssetActivation(){
+  const lyr=sgV5EnsureActivationLayer();lyr.clearLayers();if(!sgNF.open)return;
+  if(sgNF.step==='source'){
+    if(sgNF.drawType==='33KV'){
+      const src=sgNF.source;
+      sgNFEHTNodes().forEach(n=>sgV5AddActive(n,!!src&&sgNFAssetKey(n)===sgNFAssetKey(src),x=>{sgNF.source=x;sgNFRender();},'EHT source · '+(n.name||n.code)));
+      sgV5EligibleSS().forEach(n=>sgV5AddActive(n,false,()=>{},'Master destination · '+(n.name||n.code)));
+    }else if(sgNF.drawType==='LINK'){
+      sgNFSSNodes().forEach(n=>sgV5AddActive(n,!!sgNF.source&&sgNFAssetKey(n)===sgNFAssetKey(sgNF.source),x=>{sgNF.source=x;sgNFRender();},'Link source SS · '+(n.name||n.code)));
+    }
+    return;
+  }
+  if(sgNF.step!=='draw')return;
+  if(sgNF.drawType==='LINK'){
+    sgNFSSNodes().forEach(n=>sgV5AddActive(n,!!sgNF.dest&&sgNFAssetKey(n)===sgNFAssetKey(sgNF.dest),x=>sgNFSelectDestination(sgNFAssetKey(x)),'Link destination SS · '+(n.name||n.code)));
+  }else if(sgNF.destType==='ss33'){
+    const eligible=sgV5EligibleSS();const arr=eligible.length?eligible:sgNFSSNodes();
+    arr.forEach(n=>sgV5AddActive(n,!!sgNF.dest&&sgNFAssetKey(n)===sgNFAssetKey(sgNF.dest),x=>sgNFSelectDestination(sgNFAssetKey(x)),(eligible.length?'Master-matched SS · ':'33/11KV SS · ')+(n.name||n.code)));
+  }else if(sgNF.destType==='ht'){
+    sgNFOtherNodes('ht').forEach(n=>sgV5AddActive(n,!!sgNF.dest&&sgNFAssetKey(n)===sgNFAssetKey(sgNF.dest),x=>sgNFSelectDestination(sgNFAssetKey(x)),'HT Service · '+(n.name||n.code)));
+  }else if(sgNF.destType==='sws'){
+    sgNFOtherNodes('sws').forEach(n=>sgV5AddActive(n,!!sgNF.dest&&sgNFAssetKey(n)===sgNFAssetKey(sgNF.dest),x=>sgNFSelectDestination(sgNFAssetKey(x)),'Switching Station · '+(n.name||n.code)));
+  }
+}
+window.sgNFRefreshAssetActivation=sgNFRefreshAssetActivation;
+
+/* Only two top-level drawing modes. HT Service is a destination of an existing 33KV feeder. */
+const sgV5RenderBase=window.sgNFRender||sgNFRender;
+window.sgNFRender=sgNFRender=function(){
+  sgV5RenderBase();if(!sgNF.open)return;const body=document.getElementById('nfWBody');if(!body)return;
+  if(sgNF.step==='type'){
+    body.innerHTML=`<p class="nf-lead">Choose the physical network object to create.</p><div class="nf-v5-type-grid"><button onclick="sgNFChooseType('33KV')"><b>＋ NEW 33 kV FEEDER</b><span>Select feeder from Master → EHT source is activated and locked → draw manually → connect one or more 33/11 kV SS → optionally continue to an HT Service later.</span></button><button onclick="sgNFChooseType('LINK')"><b>⇄ NEW LINK LINE</b><span>33/11 kV SS points are activated. Choose the first fixed SS, draw the link manually, and connect to the second fixed SS.</span></button></div><div class="nf-master-status" id="nfMasterStatus">${sgNF.liveFeeders.length||321} feeder records · ${sgNFEsc(sgNF.feederSource||'loading master…')}</div>`;
+  }
+  if(sgNF.step==='source'){
+    const note=document.createElement('div');note.className='nf-v5-activation-note';
+    note.innerHTML=sgNF.drawType==='LINK'?'<b>ACTIVE ASSETS:</b> 33/11 kV substations are highlighted on the map. Click a highlighted SS to set the Link Line source.':'<b>ACTIVE ASSETS:</b> EHT points are highlighted. The matched EHT source pulses; substations related to this feeder in SS Source Master are also indicated.';
+    const btn=body.querySelector('.nf-primary');if(btn)body.insertBefore(note,btn);
+  }
+  if(sgNF.step==='draw'){
+    const note=document.createElement('div');note.className='nf-v5-activation-note';
+    if(sgNF.drawType==='LINK') note.innerHTML='<b>LINK MODE:</b> only 33/11 kV SS points are active destinations.';
+    else if(sgNF.destType==='ht') note.innerHTML=`<b>HT MODE:</b> ${SG_V5_HT_MASTER.length?'HT Service master coordinates are loaded and active.':'No HT Service master coordinates are loaded yet. When /masterData/htServices is added later, these points will activate automatically without changing existing feeder geometry.'}`;
+    else note.innerHTML='<b>SS MODE:</b> master-matched 33/11 kV substations are active. Click an active SS or use the searchable destination list.';
+    const div=body.querySelector('.nf-divider');if(div)body.insertBefore(note,div);
+  }
+  setTimeout(sgNFRefreshAssetActivation,0);
+};
+
+/* Link Line destination is SS-to-SS. 33KV feeder can later continue to HT master points. */
+window.sgNFDestinationHtml=sgNFDestinationHtml=function(){
+  const type=sgNF.destType;
+  const tabs=sgNF.drawType==='LINK'?[['ss33','33/11 kV SS']]:[['ss33','33/11 kV SS'],['ht','HT Service'],['sws','Switching Station'],['tap','Existing Feeder Tap'],['dead','Dead End']];
+  let body='';
+  if(['ss33','ht','sws'].includes(type)){
+    const nm=type==='ss33'?'Feeding to 33/11 kV substation':type==='ht'?'Feeding to HT service':'Feeding to switching station';
+    body=`<div class="nf-field"><label>${nm}</label><input id="nfDestSearch" class="nf-input" placeholder="Search name / code…" value="${sgNFEsc(sgNF.destSearch)}" oninput="sgNFSetDestSearch(this.value)" autocomplete="off"><div id="nfDestResults" class="nf-results small"></div></div>`;
+    if(sgNF.dest)body+=`<div class="nf-card compact"><b>${sgNFEsc(sgNF.dest.name)}</b><span>${sgNFEsc(sgNF.dest.code||'')}</span>${type==='ss33'?`<p class="nf-master-rel">${sgNFEsc(sgNFRoleSummary(sgNF.relationMatches))}</p>`:''}</div>`;
+    if(type==='ht'&&!sgNF.dest&&!SG_V5_HT_MASTER.length)body+=`<div class="nf-card warn"><b>HT master not loaded yet</b><p>Create <code>/masterData/htServices</code> later with HT name/code/latitude/longitude. Existing feeder drawings stay unchanged; the same feeder can then be extended to the fixed HT point.</p></div>`;
+    if((type==='ht'||type==='sws')&&!sgNF.dest)body+=`<div class="nf-inline"><input id="nfManualDestName" class="nf-input" placeholder="Temporary name if coordinate master is not ready"><button onclick="sgNFUseCurrentPointAsDestination('${type}')">Use current route point</button></div>`;
+  }else if(type==='tap') body=`<div class="nf-card"><b>Existing feeder tapping</b><p>Pick the exact tapping point on an already drawn feeder. Switching-device state will be added later.</p></div>`;
+  else body=`<div class="nf-card"><b>Dead end</b><p>Add the final route point, then close the physical route.</p><input id="nfManualDestName" class="nf-input" placeholder="Location name (optional)"></div>`;
+  if(type==='ss33'){
+    body+=sgNF.dest?sgNFPtrHtml():'';
+    body+=`<div class="nf-route-decision"><button class="finish" ${sgNF.dest?'':'disabled'} onclick="sgNFConnectSSDecision('finish')">✓ Finish</button><button class="next" ${sgNF.dest?'':'disabled'} onclick="sgNFConnectSSDecision('next')">Next Point →</button></div><p class="nf-footnote">Next Point keeps the same physical feeder active. The same feeder can continue to another SS and, later, to a fixed HT Service point.</p>`;
+  }else body+=`<button class="nf-primary" onclick="sgNFConnectDestination()">${type==='tap'?'Pick Tap on Map':type==='dead'?'Close at Current Point':'Connect Selected Destination'}</button>`;
+  return `<div class="nf-dest-tabs">${tabs.map(([k,l])=>`<button class="${type===k?'active':''}" onclick="sgNFSetDestType('${k}')">${l}</button>`).join('')}</div>${body}`;
+};
+
+/* Make all state transitions refresh active CAD assets. */
+['sgNFSetDestType','sgNFSelectFeederByKey','sgNFSelectDestination','sgNFStartDrawing'].forEach(fn=>{
+  const old=window[fn];if(typeof old!=='function')return;window[fn]=function(){const r=old.apply(this,arguments);setTimeout(sgNFRefreshAssetActivation,0);return r;};
+});
+const sgV5CloseBase=window.sgNFClose||sgNFClose;window.sgNFClose=sgNFClose=function(){try{sgV5EnsureActivationLayer().clearLayers();}catch(e){}return sgV5CloseBase.apply(this,arguments);};
+const sgV5OpenBase=window.startNewFeederMode;window.startNewFeederMode=function(){const r=sgV5OpenBase.apply(this,arguments);sgNFLoadHTMaster();setTimeout(sgNFRefreshAssetActivation,0);return r;};
+
+/* ─────────────────────────────────────────────────────────────────────
+   Permanent topology store. It is data, not frontend code. New HTML builds
+   read the same schema; a frontend rollback does not delete it.
+   ───────────────────────────────────────────────────────────────────── */
+function sgV5Payload(){
+  buildTopology();return {schema:SG_V5_SCHEMA,schemaVersion:1,project:'TGSPDCL 33KV Manual Smart Grid',meta:{...meta,updatedAt:new Date().toISOString(),frontendVersion:'CAD-PERSISTENT-V5',rowCount:rows.length,connections:topology.length,feeders:new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size},rows};
+}
+async function sgV5PersistTopology(){
+  if(!rows.length)return false;const payload=sgV5Payload();
+  try{localStorage.setItem(SG_V5_LOCAL,JSON.stringify(payload));}catch(e){}
+  try{
+    const r=await fetch(`${FIREBASE_URL}/${SG_V5_PERSIST_ROOT}/current.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!r.ok)throw new Error('HTTP '+r.status);
+    fetch(`${FIREBASE_URL}/${SG_V5_PERSIST_ROOT}/history.json`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});
+    return true;
+  }catch(e){console.warn('[V5] persistent topology checkpoint failed',e);return false;}
+}
+const sgV5SaveBase=window.saveFirebase||saveFirebase;
+window.saveFirebase=saveFirebase=async function(){const r=await sgV5SaveBase.apply(this,arguments);const ok=await sgV5PersistTopology();if(ok)toast('✓ Permanent topology checkpoint updated');return r;};
+async function sgV5RestorePersistent(){
+  let data=null;
+  try{const r=await fetch(`${FIREBASE_URL}/${SG_V5_PERSIST_ROOT}/current.json?ts=${Date.now()}`,{cache:'no-store'});if(r.ok)data=await r.json();}catch(e){}
+  if(!data){try{data=JSON.parse(localStorage.getItem(SG_V5_LOCAL)||'null');}catch(e){}}
+  if(data&&Array.isArray(data.rows)&&data.rows.length){
+    const newT=Date.parse(data.meta?.updatedAt||0)||0,curT=Date.parse(meta?.updatedAt||0)||0;
+    if(!rows.length||newT>curT){rows=data.rows;meta={...(data.meta||{}),schema:SG_V5_SCHEMA};try{sgApplyCircleFromMasterData();}catch(e){}populateFilters();buildTopology();render();const fi=document.getElementById('fileInfo');if(fi)fi.textContent=`Permanent topology restored · ${rows.length} rows · ${data.meta?.updatedAt||''}`;toast('✓ Permanent manual topology restored');}
+  }else if(rows.length){await sgV5PersistTopology();}
+}
+setTimeout(sgV5RestorePersistent,1500);
+setTimeout(sgNFLoadHTMaster,1100);
+
+/* ── One-click feeder card; double-click route-map handler is untouched. ── */
+function sgV5SameFeeder(r,c){return (compact(c.feeder_code)&&compact(r.feeder_code)===compact(c.feeder_code))||compact(r.feeder_name)===compact(c.feeder_name);}
+window.sgShowFeederQuickCard=function(c,ll){
+  const rr=(rows||[]).filter(r=>sgV5SameFeeder(r,c));const first=rr[0]||{};const seen=new Set(),dests=[];
+  rr.forEach(r=>{const kind=String(r.destination_type||r.source_type||'').toLowerCase();const nm=clean(r.feeding_name||r.feeding_to||'');if(!nm||/bend point|route\/way point|next pole/i.test(nm+' '+kind))return;const k=compact(r.feeding_code||nm);if(!k||seen.has(k))return;seen.add(k);dests.push({name:nm,kind:r.destination_type||r.source_type||'Destination',role:r.connection_role||r.relationship_role||''});});
+  const fm=(sgNF.liveFeeders||[]).find(f=>(compact(f.feederCode)&&compact(f.feederCode)===compact(c.feeder_code))||compact(f.feederName)===compact(c.feeder_name));
+  const html=`<div class="sg-v5-fq"><div class="sg-v5-fq-h"><b>${sgHtmlEsc(clean(c.feeder_name)||c.feeder_code||'33KV Feeder')}</b><span>${sgHtmlEsc(c.feeder_code||'')} · single click connectivity</span></div><div class="sg-v5-fq-grid"><div><span>Starts from</span><b>${sgHtmlEsc(first.eht_name||c.eht_name||'—')}</b></div><div><span>Construction / length</span><b>${sgHtmlEsc(fm?.constructionType||first.construction_type||first.feeder_type||'—')}${fm?.totalKm!=null?' · '+sgHtmlEsc(fm.totalKm)+' km':''}</b></div></div><div class="sg-v5-fq-list">${dests.length?dests.map(x=>`<div class="sg-v5-fq-dest"><i>${sgHtmlEsc(String(x.kind).replace('ss33','SS'))}</i><b>${sgHtmlEsc(x.name)}${x.role?' · '+sgHtmlEsc(x.role):''}</b></div>`).join(''):'<div class="sg-v5-fq-dest"><b>No saved destination rows yet</b></div>'}</div><div class="sg-v5-fq-note">Double-click this feeder to open the full Feeder Route Map.</div></div>`;
+  L.popup({className:'sg-v5-feeder-popup',maxWidth:350,closeButton:true,autoPan:true}).setLatLng(ll||[c.from.lat,c.from.lng]).setContent(html).openOn(map);
+};
+
+/* ── Compact substation popup based on the supplied CAD-style sketch. ── */
+function sgV5Availability(rec,src){
+  if(src.active)return {cls:'on',txt:'IN USE'};if(src.kind!=='alt')return {cls:'unknown',txt:'STANDBY'};
+  const i=src.index||1;const raw=String(sgV5Pick(rec,[`alt${i}Available`,`alt${i}_available`,`alternate${i}Available`,`alternate_${i}_availability`,`alt${i}Status`,`alternate${i}Status`])||'').trim().toUpperCase();
+  if(/NOT\s*AVAILABLE|UNAVAILABLE|OCCUPIED|FULL|NO\b|BLOCK/.test(raw))return {cls:'no',txt:'NOT AVAIL'};
+  if(/AVAILABLE|YES\b|SPARE|READY/.test(raw))return {cls:'yes',txt:'AVAILABLE'};
+  return {cls:'unknown',txt:'CHECK'};
+}
+function sgV5PtrLoad(rec){return sgV5Num(sgV5Pick(rec,['ptrLoadMVA','ptr_load_mva','PTR Loading MVA','loading_mva','present_load_mva','actual_load_mva','load_mva']));}
+function sgV5CompactSSPopup(node,conns){
+  const units=sgExtractUnits(node,conns||[]),srcRows=sgNFSourceRowsForSS(node)||[];let totalCap=0,totalLoad=0,hasLoad=false;
+  units.forEach(u=>{const v=sgV5Num(u.capacity);if(v!=null)totalCap+=v;});srcRows.forEach(r=>{const v=sgV5PtrLoad(r);if(v!=null){totalLoad+=v;hasLoad=true;}});
+  const code=(sgCodesForNodeFromTopology(node,conns||[])[0]||node.code||'');
+  const ptrHtml=units.map((u,idx)=>{const rec=srcRows[idx]||{};return `<div class="sg-v5-ptr"><div class="sg-v5-ptr-top"><span class="sg-v5-ptr-tag">PTR-${roman(Number(u.no)||idx+1)}</span><span class="sg-v5-cap">${sgHtmlEsc(u.capacity||'Capacity —')}</span></div>${u.sources.map(src=>{const st=sgV5Availability(rec,src);return `<div class="sg-v5-src"><span class="sg-v5-src-code">${sgHtmlEsc(src.label)}</span><span class="sg-v5-src-name" title="${sgHtmlEsc(src.name)}">${sgHtmlEsc(src.name)}</span><span class="sg-v5-status ${st.cls}">${st.txt}</span></div>`;}).join('')}</div>`;}).join('');
+  return `<div class="sg-v5-ss"><div class="sg-v5-ss-head"><div><b>${sgHtmlEsc(clean(node.name)||'33/11KV Substation')}</b><small>${code?'SS Code · '+sgHtmlEsc(code):'33/11KV SS'}</small></div><span class="sg-v5-ss-badge">${units.length} PTR</span></div><div class="sg-v5-kpi"><div><span>Total PTR</span><b>${units.length}</b></div><div><span>Installed</span><b>${totalCap?totalCap.toFixed(totalCap%1?1:0)+' MVA':'—'}</b></div><div><span>SS Loading</span><b>${hasLoad?totalLoad.toFixed(2)+' MVA':'—'}</b></div></div><div class="sg-v5-ptr-scroll">${ptrHtml||'<div class="sg-v5-ptr">No PTR-wise source rows found in Master Data.</div>'}</div><div class="sg-v5-foot">Green/red availability is shown only when an explicit availability/status field exists. “CHECK” means capacity/occupancy must be evaluated by the future live transfer engine.</div></div>`;
+}
+const sgV5PopupBase=window.sgPopupHtml||sgPopupHtml;
+window.sgPopupHtml=sgPopupHtml=function(node,conns){if(node&&node.kind==='ss33')return sgV5CompactSSPopup(node,conns||[]);return sgV5PopupBase(node,conns||[]);};
+
+/* Change SS popup class to the compact V5 class after each render. */
+const sgV5RenderMapBase=window.render||render;
+window.render=render=function(){const r=sgV5RenderMapBase.apply(this,arguments);try{gNodes.eachLayer(m=>{if(!m||!m._events||!m._events.click)return;});}catch(e){}return r;};
+/* Leaflet popup class is supplied by existing click handler; CSS also applies through content width. */
+
+console.log('[SmartGrid] CAD Persistent Topology V5 loaded — 33KV/Link creation modes, active assets, future HT master, persistent geometry, compact SS/feeder cards.');
+})();
+</script>
 </body>
 </html>
