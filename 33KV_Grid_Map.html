@@ -3251,12 +3251,18 @@ async function loadSmartGridMasterData(){
         if(r.ok){ const j = await r.json(); if(j) out[p]=j; }
       }catch(e){}
     }));
-    sgMasterData = out; window.sgMasterData = out; window._sgMasterCoordCache = null; sgMasterBuildCoordCache();
+    sgMasterData = out; window.sgMasterData = out; window._sgMasterCoordCache = null; sgMasterBuildCoordCache(); sgEnsureCanonicalMasterPoints();
     // The SS coordinate master owns Circle. Re-join it after the asynchronous
     // master load so the Circle dropdown and feeder filtering are populated.
     try{ sgApplyCircleFromMasterData(); }catch(e){ console.warn('Circle master join failed',e); }
     _sgBuildSSSrcIndex(out['masterData/ssSourceRows']);
-    console.log('Smart Grid master data loaded', Object.keys(out), 'coord nodes:', (window._sgMasterCoordCache&&window._sgMasterCoordCache.all||[]).length); try{sgRefreshSubstationCounts();}catch(e){}
+    console.log('Smart Grid master data loaded', Object.keys(out), 'coord nodes:', (window._sgMasterCoordCache&&window._sgMasterCoordCache.all||[]).length);
+    try{
+      sgRefreshSubstationCounts();
+      const mc=window._sgMasterCoordCache||{all:[]};
+      const ssN=(mc.all||[]).filter(x=>x.kind==='ss33').length, ehtN=(mc.all||[]).filter(x=>x.kind==='eht').length;
+      window._sgMasterAssetCounts={ss33:ssN,eht:ehtN};
+    }catch(e){}
     return out;
   }catch(e){
     console.warn('Smart Grid master data load failed', e);
@@ -3284,6 +3290,8 @@ let rows=[], topology=[], nodesByKey={}, meta={};
 
 
 let gLines=L.layerGroup().addTo(map), gNodes=L.layerGroup().addTo(map), gLabels=L.layerGroup().addTo(map);
+// Fixed Master assets are a separate map layer. Clearing/rebuilding manual feeder geometry must never remove EHT/33/11KV master points.
+let gMasterAssets=L.layerGroup().addTo(map);
 
 function swB(){}
 
@@ -3341,8 +3349,8 @@ function sgMasterBuildCoordCache(){
   const hasCurrentEHT = recs.some(r=>/^masterData\/ehtSources(?:\/|$)/i.test(r.path||''));
   const latKeys = ['latitude','lat','ss_lat','ss latitude','substation_latitude','substation lat','eht_lat','eht latitude','latitude_eht','latitude_ss','Latitude'];
   const lngKeys = ['longitude','lng','long','lon','ss_lng','ss_long','ss longitude','substation_longitude','substation long','eht_lng','eht_long','eht longitude','longitude_eht','longitude_ss','Longitude'];
-  const nameKeys = ['ss_name','ssName','name_of_the_ss','name of the ss','substation_name','substation','name','eht_name','name_of_the_eht_ss','name_of_the_EHT _SS','Name'];
-  const codeKeys = ['ss_code','ssCode','SS Code','code','substation_code','substationCode','eht_code','EHT Code','feeding_code','feeder_feeding_to_code'];
+  const nameKeys = ['ss_name','ssName','SSNAME','ss_name_of_substation','name_of_the_ss','name of the ss','substation_name','substation','name','eht_name','ehtName','EHTNAME','eht_ss_name','name_of_the_eht_ss','name_of_the_EHT _SS','Name'];
+  const codeKeys = ['ss_code','ssCode','SSCODE','SS Code','code','substation_code','substationCode','eht_code','ehtCode','EHTCODE','eht_ss_code','EHT Code','feeding_code','feeder_feeding_to_code'];
   recs.forEach(r=>{
     const d=r.data||{};
     let lat = sgMasterNumber(sgMasterPick(d, latKeys));
@@ -3383,6 +3391,30 @@ function sgMasterBuildCoordCache(){
   window._sgMasterCoordCache = cache;
   return cache;
 }
+
+// V7 fallback: build canonical master point records directly from the two authoritative Firebase branches.
+// This protects fixed station rendering from field-name/schema changes and from manual-topology clears.
+function sgEnsureCanonicalMasterPoints(){
+  const cache=window._sgMasterCoordCache||{byCode:{},byName:{},all:[]};
+  const add=(kind,d,path,key)=>{
+    if(!d||typeof d!=='object'||Array.isArray(d))return;
+    const lat=sgMasterNumber(sgMasterPick(d,['lat','latitude','eht_latitude','ss_latitude']));
+    const lng=sgMasterNumber(sgMasterPick(d,['lng','longitude','long','lon','eht_longitude','ss_longitude']));
+    if(lat==null||lng==null||lat<5||lat>40||lng<60||lng>100)return;
+    const name=String(kind==='eht'?sgMasterPick(d,['ehtName','eht_name','eht_ss_name','name','Name']):sgMasterPick(d,['ssName','ss_name','name','Name'])||'').trim();
+    const code=String(kind==='eht'?sgMasterPick(d,['ehtCode','eht_code','eht_ss_code','code']):sgMasterPick(d,['ssCode','ss_code','code'])||key||'').trim();
+    const id=compact(kind+'|'+(code||name)); if(!id)return;
+    if((cache.all||[]).some(x=>compact(x.kind+'|'+(x.code||x.name))===id))return;
+    const item={kind,name,code,lat,lng,path,data:d};cache.all.push(item);
+    if(code){const k=compact(code);(cache.byCode[k]=cache.byCode[k]||[]).push(item);}
+    if(name){const k=compact(name);(cache.byName[k]=cache.byName[k]||[]).push(item);}
+  };
+  const walk=(root,kind,path)=>{if(!root||typeof root!=='object')return;Object.entries(root).forEach(([k,v])=>{if(v&&typeof v==='object'&&!Array.isArray(v)){add(kind,v,path+'/'+k,k);}});};
+  walk((sgMasterData||{})['masterData/ehtSources'],'eht','masterData/ehtSources');
+  walk((sgMasterData||{})['masterData/ssCoordinates'],'ss33','masterData/ssCoordinates');
+  window._sgMasterCoordCache=cache;return cache;
+}
+
 function sgMasterCoordFor(kind, code, name){
   const cache = window._sgMasterCoordCache || sgMasterBuildCoordCache();
   const wants = [kind||''];
@@ -3447,10 +3479,10 @@ function sgAllMasterCoordNodes(){
     if(seen[key])return; seen[key]=1;
     const d=x.data||{};
     out.push({kind,name:x.name||x.code||'',code:x.code||'',lat:x.lat,lng:x.lng,role:'master',masterOnly:true,
-      circle:String(sgMasterPick(d,['circle','Circle','operation_circle','Name of the Circle'])||''),
-      division:String(sgMasterPick(d,['division','Division','lines_division'])||''),
-      sub_division:String(sgMasterPick(d,['subdivision','sub_division','Sub Division','lines_sub_division'])||''),
-      section:String(sgMasterPick(d,['section','Section','lines_section'])||'')});
+      circle:String(sgMasterPick(d,['circle','Circle','linesCircle','lines_circle','operationCircle','operation_circle','Name of the Circle'])||''),
+      division:String(sgMasterPick(d,['division','Division','linesDivision','lines_division','operationDivision','operation_division'])||''),
+      sub_division:String(sgMasterPick(d,['subDivision','subdivision','sub_division','Sub Division','linesSubDivision','lines_sub_division','operationSubDivision','operation_sub_division'])||''),
+      section:String(sgMasterPick(d,['section','Section','linesSection','lines_section','operationSection','operation_section'])||'')});
   });
   return out;
 }
@@ -3478,7 +3510,7 @@ function sgAddMasterStandaloneNodes(used){
     const m=L.marker([n.lat,n.lng],{icon:iconFor(n.kind,n.name),riseOnHover:true});
     m.bindTooltip(clean(n.name)||clean(n.code)||'Substation',{direction:'right',offset:[16,0],className:'sg-node-label',opacity:.96});
     m.on('click',()=>{L.popup({className:'ss-popup',maxWidth:520}).setLatLng([n.lat,n.lng]).setContent(sgPopupHtml(n,[])).openOn(map);});
-    m.addTo(gNodes);
+    m.addTo(gMasterAssets);
   });
 }
 function sgRefreshSubstationCounts(){
@@ -3982,6 +4014,8 @@ function render(){
 
   buildTopology();
   gLines.clearLayers(); gNodes.clearLayers(); gLabels.clearLayers();
+  // Re-render fixed master assets independently of manual topology.
+  if(gMasterAssets) gMasterAssets.clearLayers();
   const shown=topology.filter(matchesFilters);
   // Sectionalised feeder simulation: physical lines remain visible, while the
   // animated energy flow obeys TAP / BEFORE / AFTER AB-switch positions.
@@ -4400,7 +4434,7 @@ function sgStartFreshManualDrawing(silent=false){
   window._sgLockedFeederKey=null; window._sgActiveFeederKey=null; window._sgFitDone=false; window._sgLastFilterSig=null;
   try{ populateFilters(); render(); }catch(e){ console.warn('[SmartGrid] blank manual render failed',e); }
   const fi=document.getElementById('fileInfo');
-  if(fi)fi.textContent='Blank manual workspace · Fixed Master EHT/SS coordinates only · 0 feeder lines.';
+  if(fi){const c=window._sgMasterAssetCounts||{};fi.textContent=`Blank manual workspace · Fixed Master assets: ${c.eht||0} EHT + ${c.ss33||0} SS · 0 feeder lines.`;}
   try{status('MANUAL DRAWING: <b>0</b> connection(s) · select <b>New Feeder</b> to begin');}catch(e){}
   if(!silent)toast('Blank manual workspace ready — previous Smart Grid lines were NOT loaded');
 }
