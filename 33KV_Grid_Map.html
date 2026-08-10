@@ -7268,5 +7268,180 @@ window.render=render=function(){const r=sgV5RenderMapBase.apply(this,arguments);
 console.log('[SmartGrid] CAD Persistent Topology V5 loaded — 33KV/Link creation modes, active assets, future HT master, persistent geometry, compact SS/feeder cards.');
 })();
 </script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     V6 — CLEAN MANUAL TOPOLOGY + MASTER FEEDER STATS + WHITE/BLUE CAD UI
+     - removes legacy AB-switch rows/markers from the manual drawing dataset
+     - feeder display colour comes ONLY from Feeder Master Type_of_feeder:
+         UG = blue · OH = orange · OH+UG = black
+     - feeder length / OH / UG / percentages shown from feeder master
+     - white/blue professional drafting palette
+     ═══════════════════════════════════════════════════════════════════════ -->
+<style id="sgV6WhiteCadStyle">
+:root{--sg-v6-blue:#2563eb;--sg-v6-blue2:#1d4ed8;--sg-v6-sky:#eaf4ff;--sg-v6-line:#d8e5f2;--sg-v6-text:#18324b;--sg-v6-muted:#6b8196;--sg-v6-orange:#f59e0b;--sg-v6-mixed:#111827}
+/* Drafting workspace — white/blue, compact and professional */
+body.sg-cad-active #nfWizardPanel{background:#fff!important;color:var(--sg-v6-text)!important;border:1px solid #cbdceb!important;box-shadow:0 16px 42px rgba(29,78,216,.14)!important}
+body.sg-cad-active .nf-w-head{background:linear-gradient(180deg,#f8fbff,#eef6ff)!important;border-color:#cbdceb!important}
+body.sg-cad-active .nf-w-title{color:#17324d!important}body.sg-cad-active .nf-w-step{color:#2563eb!important}
+body.sg-cad-active #nfWSteps{background:#f8fbff!important;border-color:#d8e5f2!important}
+body.sg-cad-active #nfWSteps i{background:#cbd5e1!important}body.sg-cad-active #nfWSteps .active i{background:#2563eb!important}
+body.sg-cad-active #nfWSteps span{color:#7890a6!important}body.sg-cad-active #nfWSteps .active span{color:#1d4ed8!important}
+body.sg-cad-active #nfWBody{background:#fff!important;color:#17324d!important}
+body.sg-cad-active .nf-w-foot{background:#f8fbff!important;border-color:#d8e5f2!important}
+body.sg-cad-active .nf-w-foot button{background:#fff!important;color:#27445f!important;border-color:#bfd2e3!important;border-radius:7px!important}
+body.sg-cad-active .nf-w-foot button:hover{background:#eaf4ff!important;border-color:#60a5fa!important}
+body.sg-cad-active .nf-card,body.sg-cad-active .nf-ptr-box,body.sg-cad-active .nf-kpis>div,body.sg-cad-active .nf-review-path{background:#f8fbff!important;border:1px solid #d8e5f2!important;color:#18324b!important;border-radius:8px!important}
+body.sg-cad-active .nf-field>label,body.sg-cad-active .nf-card>label,body.sg-cad-active .nf-ptr-head{color:#526d84!important}
+body.sg-cad-active .nf-input{background:#fff!important;color:#17324d!important;border:1px solid #bfd2e3!important;border-radius:7px!important}
+body.sg-cad-active .nf-input:focus{border-color:#3b82f6!important;box-shadow:0 0 0 3px rgba(59,130,246,.12)!important}
+body.sg-cad-active .nf-hint{background:#eff7ff!important;border-left:3px solid #3b82f6!important;color:#49657d!important}
+body.sg-cad-active .nf-footnote,body.sg-cad-active .nf-field small{color:#71879a!important}
+body.sg-cad-active .nf-master-rel{color:#1d4ed8!important}
+body.sg-cad-active .nf-ptr-row{border-color:#e1eaf2!important;background:#fff!important}.nf-ptr-row.master-hit{box-shadow:inset 3px 0 #2563eb!important}.nf-ptr-row.not-on{opacity:.72}
+.nf-primary{background:#2563eb!important;border-color:#2563eb!important}.nf-primary:hover{background:#1d4ed8!important}.nf-primary.secondary{background:#eef6ff!important;color:#1d4ed8!important;border:1px solid #93c5fd!important}
+.nf-choice-row button.on,.nf-dest-tabs button.active{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}
+.nf-result:hover{background:#eef6ff!important}.nf-result b{color:#18324b!important}.nf-result span{color:#6b8196!important}
+
+#sgCadRibbon{background:#fff!important;border:1px solid #c9d9e8!important;box-shadow:0 8px 25px rgba(30,64,175,.14)!important;color:#17324d!important;border-radius:10px!important;height:62px!important;padding:7px 9px!important}
+.sg-cad-group{border-right-color:#dbe7f1!important}.sg-cad-group-title{color:#7a91a5!important}
+.sg-cad-tool{height:44px!important;border:1px solid #c5d6e5!important;background:#f8fbff!important;color:#294963!important;border-radius:7px!important}
+.sg-cad-tool b{color:#2563eb!important}.sg-cad-tool:hover{background:#eaf4ff!important;border-color:#60a5fa!important}.sg-cad-tool.on{background:#dbeafe!important;border-color:#3b82f6!important;color:#1d4ed8!important}.sg-cad-tool.danger:hover{background:#fff1f2!important;border-color:#fb7185!important;color:#be123c!important}
+.sg-cad-layer label{color:#71879a!important}.sg-cad-layer select{background:#fff!important;color:#17324d!important;border:1px solid #bfd2e3!important;border-radius:5px!important}.sg-cad-stat small{color:#71879a!important}.sg-cad-stat b{color:#1d4ed8!important}.sg-cad-stat span{color:#6b8196!important}
+#sgCadCommand{background:#f8fbff!important;border-top:1px solid #cbdceb!important;color:#294963!important;box-shadow:0 -4px 16px rgba(30,64,175,.08)!important}.sg-cmd-prompt{color:#1d4ed8!important}.sg-cmd-text{color:#294963!important}.sg-cmd-coord{color:#047857!important}.sg-cmd-status{background:#eef6ff!important;border-color:#d8e5f2!important;color:#71879a!important}.sg-cmd-status button{color:#71879a!important}.sg-cmd-status button.on{color:#1d4ed8!important}.sg-cmd-status .path{color:#294963!important}
+.sg-cad-cross:before,.sg-cad-cross:after{background:#2563eb!important}.sg-cad-cross.snap:before,.sg-cad-cross.snap:after{background:#f59e0b!important}
+.sg-cad-node-label{background:#fff!important;color:#17324d!important;border:1px solid #93b5d3!important;box-shadow:0 2px 8px rgba(29,78,216,.12)!important}.sg-cad-section-label{background:rgba(255,255,255,.94)!important;color:#1d4ed8!important;border:1px solid #bfd2e3!important}
+.nf-topology-callout{border-color:#d8e5f2!important;background:#f8fbff!important;border-radius:8px!important}.nf-topology-callout h4{color:#1d4ed8!important}.nf-topology-callout p{color:#667f94!important}.nf-topology-callout strong{color:#17324d!important}.nf-topology-grid>div{border-color:#d8e5f2!important;background:#fff!important;border-radius:6px!important}.nf-topology-grid span{color:#7890a6!important}.nf-topology-grid b{color:#17324d!important}.nf-ptr-source-chip{border-color:#bfd2e3!important;color:#49657d!important;background:#fff!important}.nf-ptr-source-chip.hit{border-color:#3b82f6!important;color:#1d4ed8!important;background:#eef6ff!important}
+#sgeBar{background:#fff!important;color:#17324d!important;border:1px solid #bfd2e3!important;border-radius:10px!important;box-shadow:0 14px 38px rgba(29,78,216,.14)!important;font-family:Arial,sans-serif!important}
+#sgeBar:before{color:#6b8196!important;border-color:#d8e5f2!important}.sg-cad-btn{border-radius:6px!important;background:#f8fbff!important;color:#294963!important;border-color:#bfd2e3!important}.sg-cad-btn:hover,.sg-cad-btn.active{background:#dbeafe!important;color:#1d4ed8!important;border-color:#3b82f6!important}.sg-cad-btn.danger{background:#fff1f2!important;color:#be123c!important;border-color:#fecdd3!important}.sg-cad-btn.save{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}
+
+/* Feeder-master statistics */
+.sg-v6-statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.sg-v6-stat{background:#f8fbff;border:1px solid #d8e5f2;border-radius:7px;padding:6px 7px}.sg-v6-stat span{display:block;font-size:7.5px;letter-spacing:.05em;text-transform:uppercase;color:#7890a6}.sg-v6-stat b{display:block;margin-top:2px;font-size:10.5px;color:#17324d}.sg-v6-type{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:800;padding:4px 7px;border-radius:999px;border:1px solid #d8e5f2;background:#fff}.sg-v6-dot{width:8px;height:8px;border-radius:50%;display:inline-block}.sg-v6-master-note{font-size:8.5px;color:#6b8196;margin-top:5px}
+.sg-v6-fq-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:8px 10px;background:#f8fbff;border-top:1px solid #e1eaf2;border-bottom:1px solid #e1eaf2}.sg-v6-fq-stats div span{display:block;font-size:7px;text-transform:uppercase;color:#7a91a5}.sg-v6-fq-stats div b{display:block;font-size:9px;color:#17324d;margin-top:2px}
+#lyr-mixed .lswatch{background:#111827!important}.sg-v6-master-chip{display:flex;align-items:center;gap:6px;height:27px;padding:0 8px;border:1px solid #bfd2e3;background:#fff;border-radius:5px;font-size:9px;font-weight:800;color:#17324d;white-space:nowrap}
+/* Remove AB controls from this manual-topology phase */
+#lyr-dev{display:none!important}
+</style>
+<script id="sgV6MasterStatsLogic">
+(function(){
+'use strict';
+if(!window.map) return;
+const V6_COLORS={UG:'#2563eb',OH:'#f59e0b','OH+UG':'#111827'};
+function v6normType(v){
+  const s=String(v||'').toUpperCase().replace(/\s+/g,'');
+  if(s.includes('OH+UG')||s.includes('UG+OH')||s.includes('MIXED'))return 'OH+UG';
+  if(s==='OH'||(s.includes('OH')&&!s.includes('UG')))return 'OH';
+  return 'UG';
+}
+function v6num(v){const n=Number(String(v??'').replace(/,/g,'').trim());return Number.isFinite(n)?n:null;}
+function v6masterList(){
+  try{if(window.sgNF&&Array.isArray(sgNF.liveFeeders)&&sgNF.liveFeeders.length)return sgNF.liveFeeders;}catch(e){}
+  try{if(typeof SG_NF_BUNDLED_FEEDERS!=='undefined'&&Array.isArray(SG_NF_BUNDLED_FEEDERS))return SG_NF_BUNDLED_FEEDERS;}catch(e){}
+  return [];
+}
+function v6masterFor(code,name){
+  const list=v6masterList(),cc=compact(code||''),nn=compact(name||'');
+  let hit=null;
+  if(cc&&cc!=='LINKLINE')hit=list.find(f=>compact(f.feederCode||'')===cc);
+  if(!hit&&nn)hit=list.find(f=>compact(f.feederName||'')===nn);
+  if(!hit&&nn)hit=list.find(f=>compact(f.feederName||'').includes(nn)||nn.includes(compact(f.feederName||'')));
+  return hit||null;
+}
+window.sgV6FeederMasterFor=v6masterFor;
+window.sgV6FeederDisplayType=function(code,name,fallback){const f=v6masterFor(code,name);return v6normType(f?.constructionType||fallback);};
+window.sgV6FeederColor=function(code,name,fallback){return V6_COLORS[window.sgV6FeederDisplayType(code,name,fallback)]||V6_COLORS.UG;};
+
+/* Master controls the visual feeder construction type. Geometry remains untouched. */
+const oldBuild=window.buildTopology||buildTopology;
+window.buildTopology=buildTopology=function(){
+  const r=oldBuild.apply(this,arguments);
+  try{(topology||[]).forEach(c=>{const fm=v6masterFor(c.feeder_code,c.feeder_name);if(fm){c.master_feeder_stats=fm;c.master_construction_type=v6normType(fm.constructionType);c.feeder_type=c.master_construction_type;c.construction_type=c.master_construction_type;}});}catch(e){console.warn('[V6] master style join',e);}
+  return r;
+};
+/* Exact requested colours: UG blue, OH orange, mixed black. */
+window.colorFor=colorFor=function(t,ftype){
+  if(t==='ht'&&!ftype)return '#0f9f87';
+  return V6_COLORS[v6normType(ftype)]||V6_COLORS.UG;
+};
+
+/* Remove all legacy AB-switch rows from the manual project and clear stale switch fields. */
+function v6isLegacyAB(r){
+  const blob=[r?.source_type,r?.feeding_name,r?.feeding_to,r?.destination_type,r?._raw?.type_of_cable_point,r?._raw?.pole_feeding_to].join(' ').toUpperCase();
+  return /\bAB\s*SWITCH\b|\bLINE\s*AB\b/.test(blob);
+}
+function v6sanitizeRows(persist){
+  if(!Array.isArray(window.rows||rows))return false;
+  const before=rows.length;const cleanRows=[];
+  rows.forEach(r=>{if(v6isLegacyAB(r))return;const x={...r,switch_position:'',ab_status:''};if(x._raw&&typeof x._raw==='object')x._raw={...x._raw,switch_position:'',ab_status:'',ab_position:'',switch_status:''};cleanRows.push(x);});
+  const changed=cleanRows.length!==before||rows.some(r=>r.switch_position||r.ab_status);
+  if(changed){rows=cleanRows;window.rows=rows;try{buildTopology();render();}catch(e){};if(persist&&typeof sgV5PersistTopology==='function')sgV5PersistTopology().catch(()=>{});console.log('[V6] legacy AB rows removed:',before-cleanRows.length);}
+  return changed;
+}
+window.sgV6SanitizeLegacyAB=v6sanitizeRows;
+window.sgRenderConnectionSwitchMarker=function(){};
+window.sgApplyConnectionElectricalStyle=function(){};
+window.sgElectricalFlowPoints=function(c,pts){return pts;};
+window.convertVertexToAB=function(){toast('AB / switch devices will be added only after the manual physical topology is completed.');};
+function v6hideABControls(){
+  document.querySelectorAll('button').forEach(b=>{const txt=(b.textContent||'').toUpperCase(),oc=b.getAttribute('onclick')||'';if(/MAKE\s*AB|AB\s*OPEN|AB\s*CLOSED/.test(txt)||/convertVertexToAB/.test(oc))b.style.display='none';});
+  const dev=document.getElementById('lyr-dev');if(dev)dev.style.display='none';
+}
+
+/* Feeder statistics card used in wizard. */
+window.sgNFStatsHtml=function(f){
+  if(!f)return '';
+  const typ=v6normType(f.constructionType),col=V6_COLORS[typ];
+  const fmt=v=>v==null||v===''?'—':Number(v).toFixed(Number(v)%1?3:0).replace(/\.000$/,'');
+  const pct=v=>v==null||v===''?'—':Number(v).toFixed(2).replace(/\.00$/,'')+'%';
+  return `<div style="margin:8px 0"><span class="sg-v6-type"><i class="sg-v6-dot" style="background:${col}"></i>${typ}</span><div class="sg-v6-statgrid"><div class="sg-v6-stat"><span>Feeder code</span><b>${sgNFEsc(f.feederCode||'—')}</b></div><div class="sg-v6-stat"><span>Total length</span><b>${fmt(f.totalKm)} km</b></div><div class="sg-v6-stat"><span>Construction</span><b>${typ}</b></div><div class="sg-v6-stat"><span>UG length</span><b>${fmt(f.ugKm)} km</b></div><div class="sg-v6-stat"><span>OH length</span><b>${fmt(f.ohKm)} km</b></div><div class="sg-v6-stat"><span>UG / OH</span><b>${pct(f.ugPct)} / ${pct(f.ohPct)}</b></div></div><div class="sg-v6-master-note">Values are automatically read from Feeder Master. Line colour is locked to the master construction type.</div></div>`;
+};
+
+/* Replace CAD segment selector by read-only master type chip. */
+function v6updateCadMasterChip(){
+  const sel=document.getElementById('sgCadLayerSel');if(!sel)return;
+  const f=window.sgNF?.feeder;const typ=v6normType(f?.constructionType||sel.value);const col=V6_COLORS[typ];
+  sel.style.display='none';
+  let chip=document.getElementById('sgV6MasterTypeChip');if(!chip){chip=document.createElement('div');chip.id='sgV6MasterTypeChip';chip.className='sg-v6-master-chip';sel.parentNode.insertBefore(chip,sel.nextSibling);}
+  chip.innerHTML=`<i class="sg-v6-dot" style="background:${col}"></i>${typ} · MASTER`;
+  const mt=document.getElementById('sgCadMasterType');if(mt)mt.textContent='AUTO COLOUR';
+}
+
+/* Add mixed layer key to legend. */
+function v6ensureLayerLegend(){
+  const oh=document.getElementById('lyr-oh');if(oh&&!document.getElementById('lyr-mixed')){const d=document.createElement('div');d.className='lrow';d.id='lyr-mixed';d.innerHTML='<div class="lswatch" style="background:#111827"></div><div class="lname">OH+UG Lines</div><div class="lcnt" id="cntMixed">—</div><div class="tog" style="visibility:hidden"></div>';oh.insertAdjacentElement('afterend',d);}
+  const link=document.querySelector('#lyr-link .lname');if(link)link.textContent='Link Lines (master colour)';
+  const ht=document.querySelector('#lyr-ht .lname');if(ht)ht.textContent='HT Services (master colour)';
+  const dev=document.getElementById('lyr-dev');if(dev)dev.style.display='none';
+}
+function v6updateLegendCounts(){
+  try{let ug=0,oh=0,mx=0;(topology||[]).forEach(c=>{if(c.type!=='feeder'&&c.type!=='link'&&c.type!=='ht')return;const t=v6normType(c.master_construction_type||c.feeder_type||c.construction_type);if(t==='OH')oh++;else if(t==='OH+UG')mx++;else ug++;});
+    const a=document.getElementById('cntUG'),b=document.getElementById('cntOH'),m=document.getElementById('cntMixed');if(a)a.textContent=ug;if(b)b.textContent=oh;if(m)m.textContent=mx;
+  }catch(e){}
+}
+
+/* Rich single-click card with feeder-master lengths and percentages. */
+const oldQuick=window.sgShowFeederQuickCard;
+window.sgShowFeederQuickCard=function(c,ll){
+  const fm=v6masterFor(c.feeder_code,c.feeder_name);if(!fm)return oldQuick?oldQuick(c,ll):null;
+  const rr=(rows||[]).filter(r=>(compact(c.feeder_code)&&compact(r.feeder_code)===compact(c.feeder_code))||compact(r.feeder_name)===compact(c.feeder_name));const first=rr[0]||{};const seen=new Set(),dests=[];
+  rr.forEach(r=>{const nm=clean(r.feeding_name||r.feeding_to||'');if(!nm||/bend point|route\/way point|next pole/i.test(nm))return;const k=compact(r.feeding_code||nm);if(!k||seen.has(k))return;seen.add(k);dests.push({name:nm,role:r.connection_role||r.relationship_role||''});});
+  const typ=v6normType(fm.constructionType),col=V6_COLORS[typ];const f=n=>n==null?'—':Number(n).toFixed(3).replace(/0+$/,'').replace(/\.$/,'');const p=n=>n==null?'—':Number(n).toFixed(2).replace(/\.00$/,'')+'%';
+  const html=`<div class="sg-v5-fq"><div class="sg-v5-fq-h"><b>${sgHtmlEsc(clean(c.feeder_name)||fm.feederName||'33KV Feeder')}</b><span>${sgHtmlEsc(c.feeder_code||fm.feederCode||'')} · <i class="sg-v6-dot" style="background:${col};vertical-align:-1px"></i> ${typ}</span></div><div class="sg-v6-fq-stats"><div><span>Total</span><b>${f(fm.totalKm)} km</b></div><div><span>UG</span><b>${f(fm.ugKm)} km · ${p(fm.ugPct)}</b></div><div><span>OH</span><b>${f(fm.ohKm)} km · ${p(fm.ohPct)}</b></div></div><div class="sg-v5-fq-grid"><div><span>Starts from</span><b>${sgHtmlEsc(first.eht_name||c.eht_name||'—')}</b></div><div><span>Master construction</span><b style="color:${col}">${typ}</b></div></div><div class="sg-v5-fq-list">${dests.length?dests.map(x=>`<div class="sg-v5-fq-dest"><i>SS / DEST</i><b>${sgHtmlEsc(x.name)}${x.role?' · '+sgHtmlEsc(x.role):''}</b></div>`).join(''):'<div class="sg-v5-fq-dest"><b>No saved destination rows yet</b></div>'}</div><div class="sg-v5-fq-note">Master stats: Total ${f(fm.totalKm)} km · UG ${p(fm.ugPct)} · OH ${p(fm.ohPct)}. Double-click opens the full Feeder Route Map.</div></div>`;
+  L.popup({className:'sg-v5-feeder-popup',maxWidth:390,closeButton:true,autoPan:true}).setLatLng(ll||[c.from.lat,c.from.lng]).setContent(html).openOn(map);
+};
+
+/* Run after every render/open without altering saved geometry. */
+const oldRenderV6=window.render||render;
+window.render=render=function(){const r=oldRenderV6.apply(this,arguments);setTimeout(()=>{v6ensureLayerLegend();v6updateLegendCounts();v6hideABControls();v6updateCadMasterChip();},0);return r;};
+const oldNFRenderV6=window.sgNFRender;
+if(typeof oldNFRenderV6==='function')window.sgNFRender=function(){const r=oldNFRenderV6.apply(this,arguments);setTimeout(()=>{v6updateCadMasterChip();v6hideABControls();},0);return r;};
+
+/* Sanitize after persistent/manual restore has completed, then checkpoint the clean topology. */
+setTimeout(()=>v6sanitizeRows(true),2400);
+setTimeout(()=>{v6ensureLayerLegend();v6updateLegendCounts();v6hideABControls();v6updateCadMasterChip();},2800);
+console.log('[SmartGrid] V6 loaded — master feeder colours/stats, legacy AB removed, white/blue CAD UI.');
+})();
+</script>
+
 </body>
 </html>
