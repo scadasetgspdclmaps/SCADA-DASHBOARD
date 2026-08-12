@@ -175,8 +175,9 @@
       <div class="grid">
         <div class="field col-span-2">
           <label>Name of the 33KV Feeder <span class="req">*</span></label>
-          <input type="text" id="log_feeder_search" list="log_feeder_list" placeholder="Type to search 33KV feeder…" oninput="onLogFeederChange()">
+          <input type="text" id="log_feeder_search" list="log_feeder_list" placeholder="Type/search a feeder created in Smart Grid…" oninput="onLogFeederChange()">
           <datalist id="log_feeder_list"></datalist>
+          <div id="log_created_note" style="margin-top:6px;font-size:10px;font-weight:700;color:#64748b">Only feeders already created in the Smart Grid map can be operated.</div>
         </div>
         <div class="field">
           <label>Feeder Code <span class="num">(auto)</span></label>
@@ -209,9 +210,10 @@
     <div class="section-bd">
       <div class="grid">
         <div class="field col-span-2">
-          <label>Name of the Substation <span class="req">*</span></label>
-          <input type="text" id="log_ss_search" list="log_ss_list" placeholder="Type to search 33/11KV substation…" oninput="onLogSSChange()">
+          <label>Connected Substation <span class="num">(from Smart Grid topology)</span></label>
+          <input type="text" id="log_ss_search" list="log_ss_list" placeholder="Select feeder first…" oninput="onLogSSChange()" disabled>
           <datalist id="log_ss_list"></datalist>
+          <div id="log_ss_note" style="margin-top:6px;font-size:10px;color:#64748b">Substations are filtered to the selected created feeder.</div>
         </div>
         <div class="field">
           <label>SS Code <span class="num">(auto)</span></label>
@@ -238,7 +240,7 @@
   </div>
 
   <div class="actions">
-    <button class="btn btn-success" onclick="saveLogEntry()">✓ SAVE LOG ENTRY</button>
+    <button class="btn btn-success" id="saveLogBtn" onclick="saveLogEntry()">✓ SAVE OPERATING STATUS</button>
     <button class="btn btn-outline" onclick="clearPane('log')">✕ CLEAR</button>
     <div style="margin-left:auto;color:var(--muted);font-size:11px" id="log_status_msg"></div>
   </div>
@@ -780,106 +782,90 @@ function switchTab(name){
 }
 
 // ─── Populate the feeder + SS datalists from SOURCES_MAP and SS_DATA ───
+function createdFeederIndex(){
+  const m=new Map();
+  (MANUAL_ROWS||[]).forEach(r=>{
+    if(!r||typeof r!=='object')return;
+    const name=String(r.feeder_name||r.name_of_the_feeder||'').trim();
+    const code=String(r.feeder_code||'').trim();
+    const key=compactTopo(code||normalizeFeederName(name)); if(!key)return;
+    if(!m.has(key))m.set(key,{name:name||code,code,eht:String(r.eht_name||r.name_of_the_EHT_SS||extractEhtFromFeederName(name)||''),ss:new Map()});
+    const f=m.get(key); if(!f.name&&name)f.name=name;if(!f.code&&code)f.code=code;if(!f.eht)f.eht=String(r.eht_name||r.name_of_the_EHT_SS||extractEhtFromFeederName(name)||'');
+  });
+  // Enrich with the SS index, which already excludes bend/waypoint rows.
+  (MANUAL_SS_INDEX||[]).forEach(ss=>[...ss.feeders.values()].forEach(f=>{
+    const key=compactTopo(f.code||normalizeFeederName(f.name));if(!key)return;
+    if(!m.has(key))m.set(key,{name:f.name||f.code,code:f.code||'',eht:f.eht||'',ss:new Map()});
+    m.get(key).ss.set(compactTopo(ss.code||ss.name),{code:ss.code,name:ss.name,role:f.role||'',ptrAssignments:f.ptrAssignments||[]});
+  }));
+  return m;
+}
+function findCreatedFeeder(value){
+  const q=compactTopo(value);if(!q)return null;
+  const idx=createdFeederIndex();
+  for(const f of idx.values()) if(compactTopo(f.code)===q||compactTopo(f.name)===q)return f;
+  // Resolve master name -> master code, then test that code against created topology.
+  const t=lookupTopo(value);if(t&&t.feederCode){const fc=compactTopo(t.feederCode);for(const f of idx.values())if(compactTopo(f.code)===fc)return f;}
+  return null;
+}
+function createdFeederByCodeOrMaster(value){return findCreatedFeeder(value)}
+function connectedSSForCreated(f){return f?[...f.ss.values()].sort((a,b)=>a.name.localeCompare(b.name)):[]}
+window.createdFeederIndex=createdFeederIndex; window.findCreatedFeeder=findCreatedFeeder;
+
 function populateDatalists(){
-  // Collect every feeder name encountered (with all spelling variants)
-  const allFeeders = [];
-  Object.values(SOURCES_MAP).forEach(src => {
-    Object.values(src).forEach(f => { if (f) allFeeders.push(f); });
-  });
-  Object.values(MASTER_TOPO).forEach(t => { if (t.feederName) allFeeders.push(t.feederName); });
-
-  // DEDUPE by normalized key — keep the cleanest representative for each canonical feeder
-  // "Cleanest" = longest non-empty name (richest info: usually has the "FEEDER" suffix or fewer abbreviations).
-  // If multiple variants normalize to the same key, we display only one.
-  const bestPerKey = {};
-  allFeeders.forEach(name => {
-    const nk = normalKey(name);
-    if (!nk) return;
-    const existing = bestPerKey[nk];
-    // Prefer the variant that exists in MASTER_TOPO (has live data), else longer name
-    const inTopo = !!_feederNormIndex[nk] && _feederNormIndex[nk].feederName === name;
-    if (!existing){
-      bestPerKey[nk] = { name, inTopo, len: name.length };
-    } else if (inTopo && !existing.inTopo){
-      bestPerKey[nk] = { name, inTopo: true, len: name.length };
-    } else if (existing.inTopo === inTopo && name.length > existing.len){
-      bestPerKey[nk] = { name, inTopo, len: name.length };
-    }
-  });
-  const uniqueFeeders = Object.values(bestPerKey).map(x => x.name).sort();
-  console.log(`[BD] Feeder datalist — collected ${allFeeders.length} raw entries → deduped to ${uniqueFeeders.length} unique`);
-
-  const list1 = $('log_feeder_list');
-  const list2 = $('fail_feeder_list');
-  const list3 = $('fail_alt_list');
-  const opts = uniqueFeeders.map(f => `<option value="${f.replace(/"/g,'&quot;')}">`).join('');
-  if (list1) list1.innerHTML = opts;
-  // Breakdown list is intentionally NOT populated with all feeders. It is rebuilt
-  // after the affected substation is selected from the saved manual topology.
-  if (list2) list2.innerHTML = '';
-  if (list3) list3.innerHTML = '';
+  const created=[...createdFeederIndex().values()].sort((a,b)=>a.name.localeCompare(b.name));
+  const list1=$('log_feeder_list'); if(list1)list1.innerHTML=created.map(f=>`<option value="${htmlEsc(f.name)}">${htmlEsc(f.code||'')} · CREATED</option>`).join('');
+  const list2=$('fail_feeder_list');if(list2)list2.innerHTML='';
+  const list3=$('fail_alt_list');if(list3)list3.innerHTML='';
+  const ssList=$('log_ss_list');if(ssList)ssList.innerHTML='';
   renderFailureSSList();
-
-  // SS list — also dedupe by name (different SS_DATA rows can share names)
-  const ssNames = new Set();
-  const ssOpts = SS_DATA
-    .filter(s => { if (ssNames.has(s.ss_name.toUpperCase())) return false; ssNames.add(s.ss_name.toUpperCase()); return true; })
-    .map(s => `<option value="${s.ss_name.replace(/"/g,'&quot;')}" data-code="${s.ss_code}">`).join('');
-  const ssList = $('log_ss_list'); if (ssList) ssList.innerHTML = ssOpts;
+  const note=$('log_created_note');if(note)note.innerHTML=`<span style="color:#047857">● ${created.length} feeder${created.length===1?'':'s'} created in Smart Grid</span> — only these can be set LIVE/IDLE or logged under breakdown.`;
 }
 
 // ─── LOG ENTRY (tab 1) auto-fill ───
 function onLogFeederChange(){
-  const fn = $('log_feeder_search').value.trim();
-  const clearAll = () => ['log_feeder_code','log_eht','log_div','log_subdiv','log_section'].forEach(id => { if($(id)) $(id).value = ''; });
-  if (!fn){ clearAll(); return; }
-  // 1. Try normalized topology lookup (handles "132 KV" vs "132KV" spelling)
-  const t = lookupTopo(fn);
-  if (t){
-    $('log_feeder_code').value = t.feederCode || '';
-    $('log_eht').value         = t.ehtSource  || '';
-    $('log_div').value         = t.division   || '';
-    $('log_subdiv').value      = t.sub_division || '';
-    $('log_section').value     = t.section    || '';
-    return;
+  const raw=$('log_feeder_search').value.trim();
+  const clearMeta=()=>['log_feeder_code','log_eht','log_div','log_subdiv','log_section'].forEach(id=>{if($(id))$(id).value=''});
+  const ssInp=$('log_ss_search'),ssList=$('log_ss_list'),note=$('log_created_note'),save=$('saveLogBtn');
+  if(!raw){clearMeta();if(ssInp){ssInp.value='';ssInp.disabled=true}if(ssList)ssList.innerHTML='';if(save)save.disabled=false;return;}
+  const master=lookupTopo(raw)||{};
+  // Fill metadata even for a master feeder that is NOT yet drawn, so the user sees the exact reason.
+  if($('log_feeder_code'))$('log_feeder_code').value=master.feederCode||'';
+  if($('log_eht'))$('log_eht').value=master.ehtSource||extractEhtFromFeederName(raw)||'';
+  if($('log_div'))$('log_div').value=master.division||'';
+  if($('log_subdiv'))$('log_subdiv').value=master.sub_division||'';
+  if($('log_section'))$('log_section').value=master.section||'';
+  const created=findCreatedFeeder(master.feederCode||raw);
+  if(!created){
+    if(note)note.innerHTML='<span style="color:#dc2626">● FEEDER NOT CREATED IN SMART GRID MAP</span> — draw/save this feeder first. Matching is checked by feeder code when available.';
+    if(ssInp){ssInp.value='';ssInp.disabled=true;ssInp.placeholder='Feeder not created in Smart Grid'}
+    if(ssList)ssList.innerHTML='';if(save)save.disabled=true;$('log_ptr_card').style.display='none';return;
   }
-  // 2. Fallback: extract EHT from the feeder name pattern, then use SS_DATA reverse-lookup
-  clearAll();
-  const eht = extractEhtFromFeederName(fn);
-  if (eht) $('log_eht').value = eht;
-  const ss = reverseLookupSS(fn);
-  if (ss){
-    $('log_div').value    = ss.lines_division || '';
-    $('log_subdiv').value = ss.sub_division   || '';
-    $('log_section').value = ss.section       || '';
-  }
+  if($('log_feeder_search').value!==created.name)$('log_feeder_search').value=created.name;
+  if($('log_feeder_code'))$('log_feeder_code').value=created.code||master.feederCode||'';
+  if($('log_eht'))$('log_eht').value=created.eht||master.ehtSource||'';
+  if(note)note.innerHTML=`<span style="color:#16a34a">● CREATED IN SMART GRID</span> · ${htmlEsc(created.code||'no code')} · ${connectedSSForCreated(created).length} connected SS`;
+  const connected=connectedSSForCreated(created);
+  if(ssInp){ssInp.disabled=false;ssInp.placeholder=connected.length?'Select a connected substation…':'No 33/11KV SS destination saved';}
+  if(ssList)ssList.innerHTML=connected.map(s=>`<option value="${htmlEsc(s.name)}">${htmlEsc(s.code||'')}${s.role?' · '+htmlEsc(s.role):''}</option>`).join('');
+  if(ssInp){const current=connected.find(s=>compactTopo(s.name)===compactTopo(ssInp.value)||compactTopo(s.code)===compactTopo(ssInp.value));if(!current)ssInp.value=connected.length===1?connected[0].name:'';}
+  if(save)save.disabled=false;if(ssInp?.value)onLogSSChange();else $('log_ptr_card').style.display='none';
 }
 
 function onLogSSChange(){
-  const ssName = $('log_ss_search').value.trim();
-  if (!ssName){ $('log_ss_code').value = ''; $('log_ptr_card').style.display = 'none'; return; }
-  // Find SS
-  const ss = SS_DATA.find(s => s.ss_name === ssName) ||
-             SS_DATA.find(s => s.ss_name.toUpperCase() === ssName.toUpperCase());
-  if (!ss){ $('log_ss_code').value = ''; $('log_ptr_card').style.display = 'none'; return; }
-  $('log_ss_code').value = ss.ss_code;
-
-  // Find PTR info
-  const ptr = MASTER_PTRS[safeFbKey(ss.ss_code)]
-           || Object.values(MASTER_PTRS).find(p => p.ssCode === ss.ss_code)
-           || Object.values(MASTER_PTRS).find(p => (p.ssName||'').toUpperCase() === ssName.toUpperCase());
-  if (ptr && Array.isArray(ptr.ptrCapacities) && ptr.ptrCapacities.length){
-    $('log_ptr_card').style.display = 'block';
-    $('log_ptr_list').innerHTML = ptr.ptrCapacities.map((cap, i) => {
-      const num = ['I','II','III','IV','V','VI','VII','VIII','IX','X'][i] || (i+1);
-      return `<label class="ptr-chip" onclick="event.preventDefault();this.classList.toggle('selected');this.querySelector('input').checked=this.classList.contains('selected');updatePTRTotal()">
-        <input type="checkbox" data-cap="${cap}"> PTR-${num} — ${cap} MVA
-      </label>`;
-    }).join('');
-    $('log_ptr_total').textContent = `Total installed: ${ptr.totalCapacityMVA || 0} MVA across ${ptr.ptrCount || 0} PTR(s)`;
-  } else {
-    $('log_ptr_card').style.display = 'none';
-  }
+  const rawF=$('log_feeder_search').value.trim(),created=findCreatedFeeder($('log_feeder_code').value||rawF),ssName=$('log_ss_search').value.trim();
+  const note=$('log_ss_note');
+  if(!created){$('log_ss_code').value='';$('log_ptr_card').style.display='none';return;}
+  if(!ssName){$('log_ss_code').value='';$('log_ptr_card').style.display='none';if(note)note.textContent='Substation is optional for feeder status; select one only when recording the active PTR load connection.';return;}
+  const conn=connectedSSForCreated(created).find(s=>compactTopo(s.name)===compactTopo(ssName)||compactTopo(s.code)===compactTopo(ssName));
+  if(!conn){$('log_ss_code').value='';$('log_ptr_card').style.display='none';if(note)note.innerHTML='<span style="color:#dc2626;font-weight:700">This SS is not physically connected to the selected feeder in Smart Grid.</span>';return;}
+  $('log_ss_search').value=conn.name;$('log_ss_code').value=conn.code||'';if(note)note.innerHTML='<span style="color:#047857;font-weight:700">Connected in Smart Grid topology</span>'+(conn.role?' · '+htmlEsc(conn.role):'');
+  const ptr = MASTER_PTRS[safeFbKey(conn.code)] || Object.values(MASTER_PTRS).find(p=>String(p.ssCode||'')===String(conn.code)) || Object.values(MASTER_PTRS).find(p=>compactTopo(p.ssName)===compactTopo(conn.name));
+  if(ptr&&Array.isArray(ptr.ptrCapacities)&&ptr.ptrCapacities.length){
+    $('log_ptr_card').style.display='block';
+    $('log_ptr_list').innerHTML=ptr.ptrCapacities.map((cap,i)=>{const num=['I','II','III','IV','V','VI','VII','VIII','IX','X'][i]||(i+1);return `<label class="ptr-chip" onclick="event.preventDefault();this.classList.toggle('selected');this.querySelector('input').checked=this.classList.contains('selected');updatePTRTotal()"><input type="checkbox" data-cap="${cap}"> PTR-${num} — ${cap} MVA</label>`}).join('');
+    $('log_ptr_total').textContent=`Total installed: ${ptr.totalCapacityMVA||0} MVA across ${ptr.ptrCount||0} PTR(s)`;
+  }else $('log_ptr_card').style.display='none';
 }
 
 function updatePTRTotal(){
@@ -891,27 +877,23 @@ function updatePTRTotal(){
 }
 
 async function saveLogEntry(){
-  const fn = $('log_feeder_search').value.trim();
-  const ssName = $('log_ss_search').value.trim();
-  const status = getPillValue('log_status_group') || 'live';
-  if (!fn){ toast('Pick a 33KV Feeder', true); return; }
-  if (!ssName){ toast('Pick a Substation', true); return; }
-  const selPTRs = [...$('log_ptr_list').querySelectorAll('input:checked')].map(cb => parseFloat(cb.dataset.cap));
-  const fbk = safeFbKey(fn);
-  const now = nowISO();
-  try {
-    await fetch(`${FIREBASE_URL}/feeders/${fbk}.json`, {
-      method:'PATCH', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        feederName: fn, status, lastUpdated: now,
-        feedsToSS: ssName, ptrsConnected: selPTRs
-      })
-    });
-    toast(`✓ Saved log entry — ${fn.substring(0,40)}…`);
-    $('log_status_msg').textContent = `Last saved: ${new Date().toLocaleString()}`;
-  } catch (err){
-    toast('Save failed: ' + err.message, true);
-  }
+  const typed=$('log_feeder_search').value.trim(),created=findCreatedFeeder($('log_feeder_code').value||typed),status=getPillValue('log_status_group')||'live';
+  if(!typed){toast('Pick a 33KV Feeder',true);return;}
+  if(!created){toast('FEEDER NOT CREATED IN SMART GRID MAP — draw/save it first',true);return;}
+  const ssName=$('log_ss_search').value.trim();let ssConn=null;
+  if(ssName){ssConn=connectedSSForCreated(created).find(s=>compactTopo(s.name)===compactTopo(ssName)||compactTopo(s.code)===compactTopo(ssName));if(!ssConn){toast('Selected SS is not connected to this feeder in Smart Grid',true);return;}}
+  const selPTRs=[...$('log_ptr_list').querySelectorAll('input:checked')].map(cb=>parseFloat(cb.dataset.cap));
+  const code=created.code||$('log_feeder_code').value||'',name=created.name||typed,eht=created.eht||$('log_eht').value||'',now=nowISO();
+  const payload={feederName:name,feederCode:code,ehtSource:eht,status,lastUpdated:now,effectiveDateTime:now,feedsToSS:ssConn?.name||'',feedsToSSCode:ssConn?.code||'',ptrsConnected:selPTRs,createdInSmartGrid:true,source:'nmc-dashboard-v3'};
+  const canonicalKey=safeFbKey(code||name),legacyKey=safeFbKey(name);
+  try{
+    const [a,b]=await Promise.all([
+      fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${canonicalKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+      fetch(`${FIREBASE_URL}/feeders/${legacyKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    ]);
+    if(!a.ok||!b.ok)throw new Error('Firebase write failed');
+    FEEDER_STATUS[legacyKey]=status;toast(status==='live'?`⚡ LIVE saved — ${name.substring(0,42)}`:`⏸ IDLE saved — ${name.substring(0,42)}`);$('log_status_msg').textContent=`Saved to Smart Grid runtime: ${new Date().toLocaleString()}`;flashSync();
+  }catch(err){toast('Save failed: '+err.message,true);}
 }
 
 function clearPane(name){
@@ -1051,17 +1033,14 @@ async function logFailure(){
   };
 
   try {
-    await fetch(`${FIREBASE_URL}/breakdowns/${id}.json`, {
-      method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
-    });
-    await fetch(`${FIREBASE_URL}/feeders/${fbk}.json`, {
-      method:'PATCH', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        status: 'breakdown', lastUpdated: now,
-        lastBreakdownId: id, feederName: connected.name, feederCode: connected.code || '', breakdownSS: ss.name, breakdownSSCode: ss.code
-      })
-    });
+    const runtimePayload={status:'breakdown',lastUpdated:now,lastBreakdownId:id,feederName:connected.name,feederCode:connected.code||'',ehtSource:$('fail_eht').value||connected.eht||'',breakdownSS:ss.name,breakdownSSCode:ss.code,createdInSmartGrid:true,source:'nmc-dashboard-v3'};
+    const runtimeKey=safeFbKey((connected.code||'')||connected.name);
+    const [bdw,canon,legacy]=await Promise.all([
+      fetch(`${FIREBASE_URL}/breakdowns/${id}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+      fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${runtimeKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(runtimePayload)}),
+      fetch(`${FIREBASE_URL}/feeders/${fbk}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(runtimePayload)})
+    ]);
+    if(!bdw.ok||!canon.ok||!legacy.ok)throw new Error('Firebase write failed');
     toast(`⚡ Breakdown logged: ${id}`);
     $('fail_status_msg').textContent = `Logged ${id} at ${new Date().toLocaleString()}`;
     flashSync();
@@ -1165,10 +1144,12 @@ async function saveRectification(){
       method:'PATCH', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(patch)
     });
-    await fetch(`${FIREBASE_URL}/feeders/${safeFbKey(b.feederName)}.json`, {
-      method:'PATCH', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ status:'live', lastUpdated: now })
-    });
+    const restoreCode=String(b.feederCode||'').trim(), restoreName=String(b.feederName||'').trim();
+    const restorePayload={status:'live',lastUpdated:now,feederName:restoreName,feederCode:restoreCode,lastBreakdownId:'',createdInSmartGrid:!!findCreatedFeeder(restoreCode||restoreName),source:'nmc-dashboard-v3-rectification'};
+    await Promise.all([
+      fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${safeFbKey(restoreCode||restoreName)}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(restorePayload)}),
+      fetch(`${FIREBASE_URL}/feeders/${safeFbKey(restoreName)}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(restorePayload)})
+    ]);
     Object.assign(BREAKDOWNS[CURRENT_RECT_ID], patch);
     toast(`✓ Rectification saved — ${b.feederName.substring(0,30)}…`);
     flashSync();
@@ -1400,4 +1381,27 @@ bootstrap();
 // Expose for debugging
 window.bdDash = { bootstrap, BREAKDOWNS:()=>BREAKDOWNS, FEEDER_STATUS:()=>FEEDER_STATUS, MASTER_PTRS:()=>MASTER_PTRS, MASTER_TOPO:()=>MASTER_TOPO, MASTER_SS_TOPO:()=>MASTER_SS_TOPO, MANUAL_ROWS:()=>MANUAL_ROWS, MANUAL_SS_INDEX:()=>MANUAL_SS_INDEX };
 </script>
+
+<style id="nmcV3Style">
+#saveLogBtn:disabled{background:#94a3b8!important;cursor:not-allowed!important;transform:none!important;box-shadow:none!important}
+.created-state-ok{color:#047857;font-weight:800}.created-state-bad{color:#dc2626;font-weight:800}
+</style>
+<script id="nmcV3Tail">
+(function(){
+'use strict';
+const oldFailChange=window.onFailFeederChange;
+window.onFailFeederChange=function(){
+  if(typeof oldFailChange==='function')oldFailChange();
+  const val=document.getElementById('fail_feeder_search')?.value?.trim()||'';if(!val)return;
+  const code=document.getElementById('fail_feeder_code')?.value||val;
+  if(typeof findCreatedFeeder==='function'&&!findCreatedFeeder(code)){
+    const n=document.getElementById('fail_feeder_note');if(n)n.innerHTML='<span class="created-state-bad">FEEDER NOT CREATED IN SMART GRID MAP</span> — breakdown cannot be entered.';
+  }
+};
+// Keep the LIVE feeder list synchronized whenever manual topology is edited in another page.
+let sig='';setInterval(()=>{try{const next=JSON.stringify((MANUAL_ROWS||[]).map(r=>[r.feeder_code,r.feeder_name,r.feeding_code,r.feeding_name]));if(next!==sig){sig=next;populateDatalists();if(document.getElementById('log_feeder_search')?.value)onLogFeederChange();}}catch(e){}},2500);
+console.log('[NMC] V3 — only Smart-Grid-created feeder codes can receive LIVE/IDLE/BREAKDOWN runtime status. Canonical runtime path: /smartgrid/runtime/feeders/{feederCode}.');
+})();
+</script>
+
 </body></html>
