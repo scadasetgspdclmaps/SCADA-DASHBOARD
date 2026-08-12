@@ -7680,8 +7680,10 @@ window.sgV9RuntimeMatch=function(c){const s=sgV9StatusForConnection(c).status,v=
 
 async function refreshRuntime(silent=true){
   try{
-    const [fr,br]=await Promise.all([fetch(`${SGV9_FB}/feeders.json`,{cache:'no-store'}),fetch(`${SGV9_FB}/breakdowns.json`,{cache:'no-store'})]);
-    rt.feeders=fr.ok?(await fr.json()||{}):{};rt.breakdowns=br.ok?(await br.json()||{}):{};rt.loaded=true;rt.lastFetch=Date.now();
+    const [cr,fr,br]=await Promise.all([fetch(`${SGV9_FB}/smartgrid/runtime/feeders.json`,{cache:'no-store'}),fetch(`${SGV9_FB}/feeders.json`,{cache:'no-store'}),fetch(`${SGV9_FB}/breakdowns.json`,{cache:'no-store'})]);
+    const canonical=cr.ok?(await cr.json()||{}):{}, legacy=fr.ok?(await fr.json()||{}):{};
+    // Merge by record value. Canonical code-keyed records take precedence while legacy records remain readable.
+    rt.feeders=Object.assign({},legacy,canonical);rt.breakdowns=br.ok?(await br.json()||{}):{};rt.loaded=true;rt.lastFetch=Date.now();
     updateRuntimeCounts();try{render();}catch(e){}if(!silent)toast('Operating status refreshed');
   }catch(e){console.warn('[V9] status refresh failed',e);if(!silent)toast('Could not refresh operating status');}
 }
@@ -7692,7 +7694,7 @@ window.sgV9SetView=function(v){rt.view=v||'all';const lab=document.getElementByI
 
 function installTopTools(){
   const top=document.getElementById('topbar');if(!top||document.getElementById('sgV9RuntimeTools'))return false;
-  const host=document.createElement('div');host.id='sgV9RuntimeTools';host.innerHTML=`<button class="sg-v9-topbtn" onclick="sgV9OpenLive()">⚡ LIVE ENTRY</button><button class="sg-v9-topbtn alert" onclick="sgV9OpenBreakdown()">⚠ BREAKDOWN</button><select id="sgV9ViewSel" class="sg-v9-view-select" onchange="sgV9SetView(this.value)" title="Operating visibility"><option value="all">VIEW · ALL</option><option value="energized">VIEW · LIVE + BD</option><option value="live">VIEW · LIVE</option><option value="breakdown">VIEW · BREAKDOWN</option><option value="idle">VIEW · IDLE</option></select>`;
+  const host=document.createElement('div');host.id='sgV9RuntimeTools';host.innerHTML=`<select id="sgV9ViewSel" class="sg-v9-view-select" onchange="sgV9SetView(this.value)" title="Operating visibility — status is updated only from NMC Breakdown Entry"><option value="all">VIEW · ALL CREATED</option><option value="energized">VIEW · LIVE + BD</option><option value="live">VIEW · LIVE</option><option value="breakdown">VIEW · BREAKDOWN</option><option value="idle">VIEW · IDLE</option></select><button class="sg-v9-topbtn" onclick="sgV9RefreshRuntime(false)" title="Refresh statuses from NMC dashboard">↻ STATUS</button>`;
   const search=document.getElementById('srchWrap');if(search&&search.parentNode===top)top.insertBefore(host,search);else top.appendChild(host);return true;
 }
 function dataListHtml(id){return `<datalist id="${id}">${allFeederChoices().map(f=>`<option value="${esc(f.name)}">${esc(f.code||'')}</option>`).join('')}</datalist>`}
@@ -7721,7 +7723,7 @@ const oldSpurV9=window.enterSpurEdit||enterSpurEdit;window.enterSpurEdit=enterSp
 
 /* Quick access from a feeder popup: status reflects operational data. */
 const oldQuickV9=window.sgShowFeederQuickCard;
-window.sgShowFeederQuickCard=function(c,ll){if(!oldQuickV9)return;oldQuickV9(c,ll);setTimeout(()=>{try{const pop=document.querySelector('.leaflet-popup-content .sg-v5-fq');if(!pop)return;const s=sgV9StatusForConnection(c).status;const strip=document.createElement('div');strip.style.cssText='display:flex;gap:6px;margin-top:8px;align-items:center';strip.innerHTML=`<span class="sg-v9-stat ${s==='breakdown'?'bd':s==='live'?'live':'idle'}">${s.toUpperCase()}</span><button class="sg-v9-action" style="padding:4px 7px" onclick="sgV9OpenLive('${esc(String(c.feeder_name||'').replace(/'/g,"\\'"))}')">OPERATE</button><button class="sg-v9-action danger" style="padding:4px 7px" onclick="sgV9OpenBreakdown('${esc(String(c.feeder_name||'').replace(/'/g,"\\'"))}')">BREAKDOWN</button>`;pop.appendChild(strip)}catch(e){}},30)};
+window.sgShowFeederQuickCard=function(c,ll){if(!oldQuickV9)return;oldQuickV9(c,ll);setTimeout(()=>{try{const pop=document.querySelector('.leaflet-popup-content .sg-v5-fq');if(!pop)return;const s=sgV9StatusForConnection(c).status;const strip=document.createElement('div');strip.style.cssText='display:flex;gap:6px;margin-top:8px;align-items:center';strip.innerHTML=`<span class="sg-v9-stat ${s==='breakdown'?'bd':s==='live'?'live':'idle'}">${s.toUpperCase()}</span><span style="font-size:9px;color:#64748b;font-weight:700">Status managed from NMC Breakdown Entry</span>`;pop.appendChild(strip)}catch(e){}},30)};
 
 function boot(){installTopTools();refreshRuntime(true);setInterval(()=>refreshRuntime(true),15000);setTimeout(updateRuntimeCounts,1200)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
@@ -7855,6 +7857,48 @@ window.sgV9SaveBreakdown=async function(){
 };
 
 console.log('[SmartGrid] V10 loaded — breakdown feeder list is filtered by selected connected substation.');
+})();
+</script>
+
+
+<style id="sgV11Style">
+#sgV9ModalBg{display:none!important}
+.sg-v11-runtime-note{font-size:9px;color:#64748b;font-weight:700;white-space:nowrap;padding:0 4px}
+</style>
+<script id="sgV11Script">
+(function(){
+'use strict';
+const FB=(typeof FIREBASE_URL!=='undefined'?FIREBASE_URL:'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app');
+function n(v){try{return compact(v||'')}catch(e){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'')}}
+function createdRows(){try{return window.rows||rows||[]}catch(e){return []}}
+function createdFeeders(){
+  const m=new Map();
+  createdRows().forEach(r=>{const code=String(r.feeder_code||'').trim(),name=String(r.feeder_name||'').trim();const k=n(code||name);if(!k)return;
+    if(!m.has(k))m.set(k,{feederCode:code,feederName:name||code});
+  });
+  return [...m.values()];
+}
+window.sgV11CreatedFeeders=createdFeeders;
+// Entry is deliberately disabled on the map. NMC dashboard is the single writer.
+window.sgV9OpenLive=function(){try{toast('Update LIVE / IDLE status from Breakdown Entry dashboard')}catch(e){}};
+window.sgV9OpenBreakdown=function(){try{toast('Log breakdown from Breakdown Entry dashboard')}catch(e){}};
+window.sgV9SaveLive=function(){try{toast('Operating status is read-only on Smart Grid map')}catch(e){}};
+window.sgV9SaveBreakdown=function(){try{toast('Breakdown entry is read-only on Smart Grid map')}catch(e){}};
+window.sgV9CloseModal=function(){const x=document.getElementById('sgV9ModalBg');if(x)x.style.display='none'};
+function cleanRuntimeUi(){
+  const host=document.getElementById('sgV9RuntimeTools');
+  if(host){
+    [...host.querySelectorAll('button')].forEach(b=>{if(/LIVE ENTRY|BREAKDOWN/i.test(b.textContent||''))b.remove()});
+    if(!host.querySelector('.sg-v11-runtime-note')){const sp=document.createElement('span');sp.className='sg-v11-runtime-note';sp.textContent='STATUS FROM NMC';host.appendChild(sp)}
+  }
+  const modal=document.getElementById('sgV9ModalBg');if(modal)modal.style.display='none';
+}
+setInterval(cleanRuntimeUi,1200);setTimeout(cleanRuntimeUi,300);
+// Real-time canonical runtime listener. It triggers the existing refresh routine and therefore redraws flow/blink states.
+if('EventSource' in window){
+  try{const es=new EventSource(`${FB}/smartgrid/runtime/feeders.json`);const h=()=>{try{window.sgV9RefreshRuntime?.(true)}catch(e){}};es.addEventListener('put',h);es.addEventListener('patch',h);}catch(e){}
+}
+console.log('[SmartGrid] V11 runtime is READ-ONLY; operating status comes from NMC dashboard and is matched primarily by feeder code.');
 })();
 </script>
 
