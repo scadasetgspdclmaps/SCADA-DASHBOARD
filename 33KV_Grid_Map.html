@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>TGSPDCL — 33KV Smart Grid · Blank Manual Feeder Drawing</title>
+<title>TGSPDCL — 33KV Smart Grid · Persistent Recovery V13</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js">
 /* Mandal / area names enhancement + future master-data path placeholders */
@@ -7976,6 +7976,28 @@ function addButton(){
 }
 setTimeout(addButton,600);setInterval(addButton,2500);
 console.log('[SmartGrid] V12 safe persistent restore loaded. No startup clear is performed.');
+})();
+</script>
+
+<style id="sgV13TransferStyle">
+.sg-v13-transfer{background:#4338ca!important;color:#fff!important;border-color:#4338ca!important}.sg-v13-file{display:none!important}
+</style>
+<script id="sgV13TransferScript">
+(function(){
+'use strict';
+const SCHEMA='tgspdcl.smartgrid.portable.v1';
+function currentRows(){try{return window.rows||rows||[]}catch(e){return []}}
+function currentMeta(){try{return window.meta||meta||{}}catch(e){return {}}}
+function runtime(){return window.SG_V9_RUNTIME?.feeders||{}}
+function pkg(){const rr=currentRows();return {schema:SCHEMA,schemaVersion:1,exportedAt:new Date().toISOString(),project:'TGSPDCL 33KV Manual Smart Grid',manualTopology:{schema:'tgspdcl.smartgrid.manualTopology.v1',meta:{...currentMeta(),exportedAt:new Date().toISOString(),rowCount:rr.length,feederCount:new Set(rr.map(r=>r.feeder_code||r.feeder_name).filter(Boolean)).size},rows:rr},operatingStatusSnapshot:runtime(),notes:'Operating status is a snapshot. Manual topology rows contain geometry, branches, source relationships, PTR assignments and construction overrides.'}}
+function download(blob,name){const a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
+window.sgV13ExportJSON=function(){const p=pkg();download(new Blob([JSON.stringify(p,null,2)],{type:'application/json'}),`TGSPDCL_SmartGrid_Complete_${new Date().toISOString().slice(0,10)}.json`);toast('Complete topology JSON exported')};
+window.sgV13ExportXLSX=function(){if(typeof XLSX==='undefined'){toast('Excel library unavailable — exporting CSV instead');return downloadTopologyCsv()}const p=pkg(),wb=XLSX.utils.book_new(),flat=p.manualTopology.rows.map((r,i)=>({Row:i+1,Feeder_Name:r.feeder_name||'',Feeder_Code:r.feeder_code||'',EHT_Name:r.eht_name||'',EHT_Code:r.eht_code||'',Destination:r.feeding_name||r.feeding_to||'',Destination_Code:r.feeding_code||'',Relationship:r.connection_role||r.relationship_role||'',PTR_Assignments:typeof r.ptr_assignments==='string'?r.ptr_assignments:JSON.stringify(r.ptr_assignments||''),Construction:r.construction_type||r.feeder_type||'',Branch_ID:r.branch_id||'',Route_Action:r.route_action||'',Point_Number:r.pole_number??'',Latitude:r.feeding_lat??r.latitude??'',Longitude:r.feeding_lng??r.longitude??'',Raw_Row_JSON:JSON.stringify(r)}));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(flat),'Topology');XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Portable package JSON'],[JSON.stringify(p)]]),'PortablePackage');const rt=Object.entries(p.operatingStatusSnapshot).map(([key,v])=>({Key:key,...v}));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rt),'StatusSnapshot');XLSX.writeFile(wb,`TGSPDCL_SmartGrid_Complete_${new Date().toISOString().slice(0,10)}.xlsx`);toast('Complete Excel package exported')};
+async function persistImported(p){const topo=p.manualTopology||p;if(!topo||!Array.isArray(topo.rows)||!topo.rows.length)throw new Error('No topology rows found');const old={schema:SCHEMA,manualTopology:{meta:currentMeta(),rows:currentRows()}};try{localStorage.setItem('TGSPDCL_MANUAL_TOPOLOGY_BEFORE_IMPORT',JSON.stringify(old));}catch(e){}const payload={schema:'tgspdcl.smartgrid.manualTopology.v1',schemaVersion:1,meta:{...(topo.meta||{}),updatedAt:new Date().toISOString(),importedAt:new Date().toISOString(),importSource:'portable-file'},rows:topo.rows};const body=JSON.stringify(payload);const [a,b]=await Promise.all([fetch(`${FIREBASE_URL}/smartgrid/manualTopologyV1/current.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body}),fetch(`${FIREBASE_URL}/smartgrid/manualDrawing/latest.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body})]);if(!a.ok||!b.ok)throw new Error(`Firebase import rejected (${a.status}/${b.status})`);try{localStorage.setItem('TGSPDCL_MANUAL_TOPOLOGY_V1_LOCAL',body)}catch(e){}rows=payload.rows;meta=payload.meta;window.rows=rows;window.meta=meta;populateFilters();buildTopology();render();toast(`Imported ${rows.length} topology rows — drawing restored`);}
+window.sgV13ImportFile=async function(input){const file=input.files?.[0];input.value='';if(!file)return;try{let p;if(/\.json$/i.test(file.name)){p=JSON.parse(await file.text())}else if(/\.xlsx?$/i.test(file.name)){if(typeof XLSX==='undefined')throw new Error('Excel library unavailable');const wb=XLSX.read(await file.arrayBuffer(),{type:'array'}),ws=wb.Sheets.PortablePackage;if(ws?.A2?.v)p=JSON.parse(ws.A2.v);else{const data=XLSX.utils.sheet_to_json(wb.Sheets.Topology||wb.Sheets[wb.SheetNames[0]],{defval:''});const rr=data.map(x=>{try{return x.Raw_Row_JSON?JSON.parse(x.Raw_Row_JSON):x}catch(e){return x}});p={manualTopology:{rows:rr,meta:{fileName:file.name}}}}}else throw new Error('Choose the exported JSON or XLSX package');const count=(p.manualTopology||p)?.rows?.length||0;if(!count)throw new Error('No topology rows found');if(!confirm(`Import ${count} topology rows? Your current drawing will be backed up in this browser before replacement.`))return;await persistImported(p);}catch(e){toast('Import failed: '+e.message);console.error(e)}};
+function install(){if(document.getElementById('sgV13ExportJson'))return;const target=[...document.querySelectorAll('button')].find(b=>/Load Saved Manual Drawing/i.test(b.textContent||''))||document.getElementById('sgV12RecoverBtn');if(!target)return;const box=document.createElement('div');box.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px';box.innerHTML='<button id="sgV13ExportJson" class="sg-v13-transfer" onclick="sgV13ExportJSON()">⬇ Complete JSON</button><button class="sg-v13-transfer" onclick="sgV13ExportXLSX()">⬇ Complete XLSX</button><button class="sg-v13-transfer" style="grid-column:1/-1" onclick="document.getElementById(\'sgV13ImportInput\').click()">⬆ Import Complete Topology</button><input id="sgV13ImportInput" class="sg-v13-file" type="file" accept=".json,.xlsx,.xls" onchange="sgV13ImportFile(this)">';target.insertAdjacentElement('afterend',box)}
+setTimeout(install,800);setInterval(install,2500);
+console.log('[SmartGrid] V13 portable JSON/XLSX topology transfer loaded; runtime remains read-only.');
 })();
 </script>
 
