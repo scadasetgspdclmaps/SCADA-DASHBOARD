@@ -4459,28 +4459,69 @@ function sgStartFreshManualDrawing(silent=false){
 })();
 
 (async()=>{
-  // MANUAL PROJECT STARTUP: never import legacy /smartgrid/latest.
-  // But DO restore our own manualDrawing/latest so edits survive refresh.
-  await loadSmartGridMasterData();
+  // V12 SAFE STARTUP: topology data is independent from frontend HTML.
+  // Restore in this order: permanent topology -> manualDrawing/latest -> local persistent backup.
+  // Never auto-import the old legacy /smartgrid/latest branch and never clear saved geometry on startup.
+  async function fetchJson(path){
+    try{const r=await fetch(`${FIREBASE_URL}/${path}.json?ts=${Date.now()}`,{cache:'no-store'});return r.ok?(await r.json()):null;}catch(e){return null;}
+  }
+  function validPayload(x){return x&&Array.isArray(x.rows)&&x.rows.length>0;}
+  function payloadTime(x){return Date.parse(x?.meta?.updatedAt||x?.updatedAt||0)||0;}
+  async function loadMasterWithRetry(){
+    let md={};
+    for(let i=0;i<3;i++){
+      try{md=await loadSmartGridMasterData();}catch(e){}
+      const c=window._sgMasterCoordCache;
+      if(c&&Array.isArray(c.all)&&c.all.length)break;
+      await new Promise(r=>setTimeout(r,450*(i+1)));
+    }
+    return md;
+  }
+  await loadMasterWithRetry();
   window._sgKeepFeederFilter=false;
   const ff=document.getElementById('fFeeder'); if(ff) ff.value='';
-  let restored=false;
-  try{
-    const res=await fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json?ts=${Date.now()}`,{cache:'no-store'});
-    const data=await res.json();
-    if(data && Array.isArray(data.rows) && data.rows.length){
-      rows=data.rows; meta=data.meta||{}; restored=true;
-      try{sgApplyCircleFromMasterData();}catch(e){}
-      try{populateFilters();buildTopology();render();}catch(e){console.warn('Manual drawing restore render failed',e);}
-      const fi=document.getElementById('fileInfo');
-      if(fi)fi.textContent=`Restored saved manual drawing · ${rows.length} rows · ${meta.updatedAt||''}`;
-      toast(`✅ Manual Smart Grid restored · ${new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size} feeder(s)`);
-    }
-  }catch(e){console.warn('Manual drawing auto-restore failed',e);}
-  if(!restored){
-    sgStartFreshManualDrawing(true);
-    try{populateFilters();render();}catch(e){console.warn('Final blank master-data render failed',e);}
-    toast('Manual Smart Grid ready — fixed EHT/SS master points loaded; feeder lines start blank');
+
+  const [permanent,manualLatest]=await Promise.all([
+    fetchJson('smartgrid/manualTopologyV1/current'),
+    fetchJson(`${FIREBASE_SMARTGRID_PATH}/latest`)
+  ]);
+  let local=null;
+  try{local=JSON.parse(localStorage.getItem('TGSPDCL_MANUAL_TOPOLOGY_V1_LOCAL')||'null');}catch(e){}
+  const candidates=[
+    validPayload(permanent)?{src:'PERMANENT',data:permanent}:null,
+    validPayload(manualLatest)?{src:'MANUAL',data:manualLatest}:null,
+    validPayload(local)?{src:'LOCAL',data:local}:null
+  ].filter(Boolean);
+  // Prefer newest timestamp; on a tie prefer PERMANENT, then MANUAL, then LOCAL.
+  const priority={PERMANENT:3,MANUAL:2,LOCAL:1};
+  candidates.sort((a,b)=>(payloadTime(b.data)-payloadTime(a.data))||((priority[b.src]||0)-(priority[a.src]||0)));
+  const chosen=candidates[0]||null;
+
+  if(chosen){
+    rows=chosen.data.rows;
+    meta={...(chosen.data.meta||{}),restoredFrom:chosen.src};
+    try{sgApplyCircleFromMasterData();}catch(e){}
+    try{populateFilters();buildTopology();render();}catch(e){console.warn('[V12] topology render failed',e);}
+    const fi=document.getElementById('fileInfo');
+    if(fi)fi.textContent=`${chosen.src} topology restored · ${rows.length} rows · ${meta.updatedAt||''}`;
+    try{status(`SMARTGRID: <b>${topology.length}</b> connection(s) · topology source: <b>${chosen.src}</b>`);}catch(e){}
+    toast(`✓ Restored ${new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size} created feeder(s) from ${chosen.src}`);
+    // Self-heal both current stores so future frontend versions read the same topology.
+    const heal={schema:'TGSPDCL_MANUAL_TOPOLOGY_V1',schemaVersion:1,project:'TGSPDCL 33KV Manual Smart Grid',meta:{...meta,updatedAt:meta.updatedAt||new Date().toISOString(),recoveredBy:'V12'},rows};
+    try{localStorage.setItem('TGSPDCL_MANUAL_TOPOLOGY_V1_LOCAL',JSON.stringify(heal));}catch(e){}
+    Promise.allSettled([
+      fetch(`${FIREBASE_URL}/smartgrid/manualTopologyV1/current.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(heal)}),
+      fetch(`${FIREBASE_URL}/${FIREBASE_SMARTGRID_PATH}/latest.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(heal)})
+    ]).catch(()=>{});
+  }else{
+    // No saved topology was found. Keep master EHT/SS assets visible, but DO NOT delete anything.
+    rows=[];topology=[];nodesByKey={};
+    meta={manualOnly:true,emptyWorkspace:true,checkedAt:new Date().toISOString()};
+    try{populateFilters();buildTopology();render();}catch(e){console.warn('[V12] master-only render failed',e);}
+    const fi=document.getElementById('fileInfo');
+    const c=window._sgMasterAssetCounts||{};
+    if(fi)fi.textContent=`No saved manual topology found · Master assets ${c.eht||0} EHT + ${c.ss33||0} SS`;
+    toast('No saved manual topology found in permanent/manual/local stores — master assets remain visible');
   }
 })();
 
@@ -7899,6 +7940,42 @@ if('EventSource' in window){
   try{const es=new EventSource(`${FB}/smartgrid/runtime/feeders.json`);const h=()=>{try{window.sgV9RefreshRuntime?.(true)}catch(e){}};es.addEventListener('put',h);es.addEventListener('patch',h);}catch(e){}
 }
 console.log('[SmartGrid] V11 runtime is READ-ONLY; operating status comes from NMC dashboard and is matched primarily by feeder code.');
+})();
+</script>
+
+
+<style id="sgV12Style">
+.sg-v12-recover{background:#0f766e!important;color:#fff!important;border-color:#0f766e!important}
+.sg-v12-source-chip{font-size:9px;font-weight:800;letter-spacing:.4px;color:#0f766e;border:1px solid #99f6e4;background:#f0fdfa;border-radius:10px;padding:3px 8px;white-space:nowrap}
+</style>
+<script id="sgV12RecoveryScript">
+(function(){
+'use strict';
+const FB12=(typeof FIREBASE_URL!=='undefined'?FIREBASE_URL:'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app');
+function ptime12(x){return Date.parse(x?.meta?.updatedAt||x?.updatedAt||0)||0}
+function valid12(x){return x&&Array.isArray(x.rows)&&x.rows.length>0}
+async function j12(path){try{const r=await fetch(`${FB12}/${path}.json?ts=${Date.now()}`,{cache:'no-store'});return r.ok?await r.json():null}catch(e){return null}}
+window.sgV12RecoverSavedTopology=async function(){
+  try{toast('Checking permanent/manual topology stores…')}catch(e){}
+  try{await loadSmartGridMasterData()}catch(e){}
+  const [p,m]=await Promise.all([j12('smartgrid/manualTopologyV1/current'),j12('smartgrid/manualDrawing/latest')]);
+  let l=null;try{l=JSON.parse(localStorage.getItem('TGSPDCL_MANUAL_TOPOLOGY_V1_LOCAL')||'null')}catch(e){}
+  const a=[];if(valid12(p))a.push({s:'PERMANENT',d:p});if(valid12(m))a.push({s:'MANUAL',d:m});if(valid12(l))a.push({s:'LOCAL',d:l});
+  a.sort((x,y)=>ptime12(y.d)-ptime12(x.d));const x=a[0];
+  if(!x){try{populateFilters();render()}catch(e){};toast('No saved manual topology found. Master EHT/SS points were reloaded.');return}
+  rows=x.d.rows;meta={...(x.d.meta||{}),restoredFrom:x.s};try{sgApplyCircleFromMasterData()}catch(e){};populateFilters();buildTopology();render();
+  const fi=document.getElementById('fileInfo');if(fi)fi.textContent=`Recovered ${x.s} topology · ${rows.length} rows · ${meta.updatedAt||''}`;
+  toast(`✓ Recovered ${new Set(rows.map(r=>r.feeder_code||r.feeder_name)).size} feeder(s) from ${x.s}`);
+};
+function addButton(){
+  const left=document.querySelector('.sidebar,.left-panel,#sidebar,.controls-left')||document.body;
+  if(document.getElementById('sgV12RecoverBtn'))return;
+  const target=[...document.querySelectorAll('button')].find(b=>/Load Saved Manual Drawing/i.test(b.textContent||''));
+  if(target){const b=document.createElement('button');b.id='sgV12RecoverBtn';b.className=target.className+' sg-v12-recover';b.textContent='↻ Recover Saved Topology';b.onclick=()=>sgV12RecoverSavedTopology();target.insertAdjacentElement('afterend',b)}
+  const tools=document.getElementById('sgV9RuntimeTools');if(tools&&!tools.querySelector('.sg-v12-source-chip')){const c=document.createElement('span');c.className='sg-v12-source-chip';c.textContent='TOPOLOGY PERSISTENT';tools.appendChild(c)}
+}
+setTimeout(addButton,600);setInterval(addButton,2500);
+console.log('[SmartGrid] V12 safe persistent restore loaded. No startup clear is performed.');
 })();
 </script>
 
