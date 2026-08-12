@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TGSPDCL — NMC Failure Entry Dashboard</title>
+<title>TGSPDCL — NMC Failure Entry Dashboard · SS Connected V2</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -249,33 +249,53 @@
      ═══════════════════════════════════════════════════════════════ -->
 <div id="pane-failure" class="pane">
   <div class="section">
-    <div class="section-hd"><span class="step">1</span><span class="title">FAILED FEEDER</span></div>
+    <div class="section-hd"><span class="step">1</span><span class="title">AFFECTED SUBSTATION & FAILED FEEDER</span></div>
     <div class="section-bd">
       <div class="grid">
         <div class="field col-span-2">
-          <label>Name of the 33KV Feeder <span class="req">*</span></label>
-          <input type="text" id="fail_feeder_search" list="fail_feeder_list" placeholder="Type to search…" oninput="onFailFeederChange()">
+          <label>Affected 33/11KV Substation <span class="req">*</span></label>
+          <input type="text" id="fail_ss_search" list="fail_ss_list" placeholder="Type to search a connected 33/11KV substation…" oninput="onFailSSChange()">
+          <datalist id="fail_ss_list"></datalist>
+          <div id="fail_ss_note" style="margin-top:6px;font-size:10px;color:var(--muted)">Select the affected SS first. Feeder list will contain only feeders physically connected in the saved Smart Grid topology.</div>
+        </div>
+        <div class="field">
+          <label>SS Code <span class="num">(auto)</span></label>
+          <input type="text" id="fail_ss_code" class="auto-fill" readonly>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:14px">
+        <div class="field col-span-2">
+          <label>Name of Failed 33KV Feeder <span class="req">*</span></label>
+          <input type="text" id="fail_feeder_search" list="fail_feeder_list" placeholder="Select substation first…" oninput="onFailFeederChange()" disabled>
           <datalist id="fail_feeder_list"></datalist>
+          <div id="fail_feeder_note" style="margin-top:6px;font-size:10px;color:var(--muted)"></div>
         </div>
         <div class="field">
           <label>Failure Date & Time <span class="req">*</span></label>
           <input type="datetime-local" id="fail_time">
         </div>
       </div>
+
       <div class="grid" style="margin-top:14px">
+        <div class="field">
+          <label>Feeder Code <span class="num">(auto)</span></label>
+          <input type="text" id="fail_feeder_code" class="auto-fill" readonly>
+        </div>
         <div class="field">
           <label>Name of EHT Source <span class="num">(auto)</span></label>
           <input type="text" id="fail_eht" class="auto-fill" readonly>
         </div>
-        <div class="field col-span-2">
-          <label>Feeding to 33/11KV Substation(s) <span class="num">(auto)</span></label>
-          <input type="text" id="fail_feeds_to" class="auto-fill" readonly>
+        <div class="field">
+          <label>Connection Role at Selected SS <span class="num">(auto)</span></label>
+          <input type="text" id="fail_connection_role" class="auto-fill" readonly>
         </div>
       </div>
+      <input type="hidden" id="fail_feeds_to">
 
-      <!-- LIVE ALTERNATES PANEL — shows in real time which alternates are available -->
+      <!-- LIVE ALTERNATES PANEL — only other physically connected feeders at this SS -->
       <div class="alt-panel" id="failAltPanel" style="display:none">
-        <h3>🔀 Alternate 33KV Source Feeders Available
+        <h3>🔀 Other Connected / Alternate 33KV Sources
           <span id="alt_count_chip" style="background:#fbbf24;color:#7c2d12;font-size:9px;padding:2px 8px;border-radius:9px;font-weight:800">0</span>
         </h3>
         <div id="failAltList"></div>
@@ -284,7 +304,7 @@
       <div class="grid" style="margin-top:14px">
         <div class="field col-span-2">
           <label>Name of Alternate 33KV Feeder (Selected) <span class="num">(optional)</span></label>
-          <input type="text" id="fail_alt" list="fail_alt_list" placeholder="Pick an alternate from the panel above, or type…">
+          <input type="text" id="fail_alt" list="fail_alt_list" placeholder="Pick a LIVE connected alternate from the panel above…">
           <datalist id="fail_alt_list"></datalist>
         </div>
         <div class="field">
@@ -537,6 +557,9 @@ let MASTER_TOPO    = {};   // by feeder safekey → {feedsTo, ehtSource, ...}
 let MASTER_SS_TOPO = {};   // by SS safekey → {sourceFeeders: [...]}
 let FEEDER_STATUS  = {};   // by feeder safekey → "live"|"breakdown"|"idle"
 let BREAKDOWNS     = {};   // by id → record
+let MANUAL_TOPOLOGY = null; // persistent Smart Grid manual topology payload
+let MANUAL_ROWS     = [];   // rows from /smartgrid/manualTopologyV1/current
+let MANUAL_SS_INDEX = [];   // [{code,name,feeders:Map}] built only from physical saved connections
 let CURRENT_RECT_ID = null;   // currently rectifying breakdown id
 
 // ─── helpers ───
@@ -620,6 +643,91 @@ function reverseLookupSS(feederName){
     }
   }
   return null;
+}
+
+
+// ─── MANUAL SMART GRID TOPOLOGY → SS/FEEDER INDEX ───
+// This is the source of truth for the BREAKDOWN feeder dropdown.  It uses only
+// physically drawn SS destination rows from /smartgrid/manualTopologyV1/current.
+function compactTopo(v){ return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+function htmlEsc(v){ return String(v??'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m])); }
+function canonicalSSByCodeOrName(code,name){
+  const c=compactTopo(code), n=compactTopo(name);
+  return SS_DATA.find(s=>c && compactTopo(s.ss_code)===c)
+      || SS_DATA.find(s=>n && compactTopo(s.ss_name)===n)
+      || null;
+}
+function buildManualSSIndex(){
+  const map=new Map();
+  const add=(ss)=>{
+    const key=compactTopo(ss.ss_code||ss.ss_name); if(!key) return null;
+    if(!map.has(key)) map.set(key,{key,code:String(ss.ss_code||''),name:String(ss.ss_name||ss.ss_code||''),feeders:new Map()});
+    return map.get(key);
+  };
+  (MANUAL_ROWS||[]).forEach(r=>{
+    if(!r || typeof r!=='object') return;
+    const destName=String(r.feeding_name||r.feeding_to||r.feeder_feeding_to||r.destination_name||'').trim();
+    const destCode=String(r.feeding_code||r.feeder_feeding_to_code||r.destination_code||'').trim();
+    const blob=[r.destination_type,r.source_type,r.connection_type,r._raw?.type_of_cable_point,destName].join(' ').toUpperCase();
+    if(!destName && !destCode) return;
+    if(/BEND POINT|ROUTE\/WAY POINT|NEXT POLE|CABLE POINT/.test(blob)) return;
+    let ss=canonicalSSByCodeOrName(destCode,destName);
+    if(!ss){
+      if(!/SS33|33\/11|SUBSTATION/.test(blob)) return;
+      ss={ss_code:destCode,ss_name:destName,lines_division:'',sub_division:'',section:''};
+    }
+    const bucket=add(ss); if(!bucket) return;
+    const fn=String(r.feeder_name||r.name_of_the_feeder||'').trim();
+    const fc=String(r.feeder_code||'').trim();
+    if(!fn && !fc) return;
+    const fk=compactTopo(fc||normalizeFeederName(fn)); if(!fk) return;
+    if(!bucket.feeders.has(fk)){
+      bucket.feeders.set(fk,{
+        name:fn||fc, code:fc,
+        eht:String(r.eht_name||r.name_of_the_EHT_SS||extractEhtFromFeederName(fn)||''),
+        role:String(r.connection_role||r.relationship_role||r.source_role||''),
+        feederType:String(r.feeder_asset_type||r.Feeder_Type||r.feeder_type||''),
+        ptrAssignments:Array.isArray(r.ptrAssignments)?r.ptrAssignments:[]
+      });
+    } else {
+      const f=bucket.feeders.get(fk);
+      if(!f.role) f.role=String(r.connection_role||r.relationship_role||r.source_role||'');
+      if(!f.eht) f.eht=String(r.eht_name||r.name_of_the_EHT_SS||extractEhtFromFeederName(fn)||'');
+    }
+  });
+  MANUAL_SS_INDEX=[...map.values()].filter(s=>s.feeders.size).sort((a,b)=>a.name.localeCompare(b.name));
+  console.log(`[BD] Manual Smart Grid index: ${MANUAL_SS_INDEX.length} connected substations, ${MANUAL_SS_INDEX.reduce((n,s)=>n+s.feeders.size,0)} SS-feeder relationships`);
+}
+function findManualSS(value){
+  const q=compactTopo(value); if(!q) return null;
+  return MANUAL_SS_INDEX.find(s=>compactTopo(s.name)===q||compactTopo(s.code)===q)||null;
+}
+function feederForManualSS(ssValue, feederValue){
+  const ss=findManualSS(ssValue); if(!ss) return null;
+  const q=compactTopo(feederValue); if(!q) return null;
+  return [...ss.feeders.values()].find(f=>compactTopo(f.name)===q||compactTopo(f.code)===q)||null;
+}
+function renderFailureSSList(){
+  const dl=$('fail_ss_list'); if(!dl) return;
+  dl.innerHTML=MANUAL_SS_INDEX.map(s=>`<option value="${htmlEsc(s.name)}">${htmlEsc(s.code)} · ${s.feeders.size} connected feeder${s.feeders.size===1?'':'s'}</option>`).join('');
+}
+function renderFailureFeederList(ss){
+  const dl=$('fail_feeder_list'), inp=$('fail_feeder_search'); if(!dl||!inp) return [];
+  const feeders=ss?[...ss.feeders.values()].sort((a,b)=>a.name.localeCompare(b.name)):[];
+  dl.innerHTML=feeders.map(f=>`<option value="${htmlEsc(f.name)}">${htmlEsc(f.code||'')}${f.role?' · '+htmlEsc(f.role):''}</option>`).join('');
+  inp.disabled=!ss; inp.placeholder=ss?'Type/select one of the connected feeders…':'Select substation first…';
+  return feeders;
+}
+async function loadManualTopology(){
+  let data=null;
+  const paths=['smartgrid/manualTopologyV1/current','smartgrid/manualDrawing/latest'];
+  for(const p of paths){
+    try{ const r=await fetch(`${FIREBASE_URL}/${p}.json?ts=${Date.now()}`,{cache:'no-store'}); if(r.ok){const d=await r.json(); if(d&&Array.isArray(d.rows)&&d.rows.length){data=d;break;}} }catch(e){}
+  }
+  MANUAL_TOPOLOGY=data;
+  MANUAL_ROWS=(data&&Array.isArray(data.rows))?data.rows:[];
+  buildManualSSIndex(); renderFailureSSList();
+  return data;
 }
 
 const nowISO = () => new Date().toISOString();
@@ -706,8 +814,11 @@ function populateDatalists(){
   const list3 = $('fail_alt_list');
   const opts = uniqueFeeders.map(f => `<option value="${f.replace(/"/g,'&quot;')}">`).join('');
   if (list1) list1.innerHTML = opts;
-  if (list2) list2.innerHTML = opts;
-  if (list3) list3.innerHTML = opts;
+  // Breakdown list is intentionally NOT populated with all feeders. It is rebuilt
+  // after the affected substation is selected from the saved manual topology.
+  if (list2) list2.innerHTML = '';
+  if (list3) list3.innerHTML = '';
+  renderFailureSSList();
 
   // SS list — also dedupe by name (different SS_DATA rows can share names)
   const ssNames = new Set();
@@ -809,111 +920,116 @@ function clearPane(name){
     $('log_ptr_card').style.display = 'none';
     document.querySelectorAll('#log_status_group .pill.selected').forEach(p => p.classList.remove('selected'));
   } else if (name === 'failure'){
-    ['fail_feeder_search','fail_time','fail_eht','fail_feeds_to','fail_alt','fail_alt_eht','fail_outage_type','fail_op_type','fail_relay','fail_fault','fail_weather','fail_current','fail_person','fail_phone','fail_fpi','fail_remarks'].forEach(id => { if($(id)) $(id).value = ''; });
+    ['fail_ss_search','fail_ss_code','fail_feeder_search','fail_feeder_code','fail_connection_role','fail_time','fail_eht','fail_feeds_to','fail_alt','fail_alt_eht','fail_outage_type','fail_op_type','fail_relay','fail_fault','fail_weather','fail_current','fail_person','fail_phone','fail_fpi','fail_remarks'].forEach(id => { if($(id)) $(id).value = ''; });
+    if($('fail_feeder_search')){ $('fail_feeder_search').disabled=true; $('fail_feeder_search').placeholder='Select substation first…'; }
+    if($('fail_feeder_list')) $('fail_feeder_list').innerHTML='';
+    if($('fail_feeder_note')) $('fail_feeder_note').textContent='';
+    if($('fail_ss_note')) $('fail_ss_note').textContent='Select the affected SS first. Feeder list will contain only feeders physically connected in the saved Smart Grid topology.';
     $('failAltPanel').style.display = 'none';
     document.querySelectorAll('#fail_agency_group .pill.selected, #fail_nature_group .pill.selected').forEach(p => p.classList.remove('selected'));
   }
 }
 
-// ─── FAILURE ENTRY (tab 2) ───
-function onFailFeederChange(){
-  const fn = $('fail_feeder_search').value.trim();
-  if (!fn){ ['fail_eht','fail_feeds_to'].forEach(id => $(id).value = ''); $('failAltPanel').style.display = 'none'; return; }
-  // Use the normalized lookup that handles spelling variants
-  const t = lookupTopo(fn);
-  if (t){
-    $('fail_eht').value      = t.ehtSource || '';
-    $('fail_feeds_to').value = (t.feedsTo || []).join(', ');
+// ─── FAILURE ENTRY (tab 2) — SS FIRST / CONNECTED FEEDERS ONLY ───
+function onFailSSChange(){
+  const raw=$('fail_ss_search').value.trim();
+  const ss=findManualSS(raw);
+  $('fail_ss_code').value=ss?ss.code:'';
+  $('fail_feeds_to').value=ss?ss.name:'';
+  $('fail_feeder_search').value=''; $('fail_feeder_code').value=''; $('fail_eht').value=''; $('fail_connection_role').value='';
+  $('fail_alt').value=''; $('fail_alt_eht').value=''; $('failAltPanel').style.display='none';
+  const feeders=renderFailureFeederList(ss);
+  if(ss){
+    $('fail_ss_note').innerHTML=`<b style="color:var(--blue)">${feeders.length}</b> physically connected feeder${feeders.length===1?'':'s'} found in the saved Smart Grid topology.`;
+    $('fail_feeder_note').textContent=feeders.length===1?'Only one feeder is connected to this SS. It has been selected automatically.':'Choose the failed feeder from this SS only.';
+    if(feeders.length===1){ $('fail_feeder_search').value=feeders[0].name; onFailFeederChange(); }
   } else {
-    // Fallback: extract EHT from feeder name itself
-    $('fail_eht').value      = extractEhtFromFeederName(fn);
-    const ss = reverseLookupSS(fn);
-    $('fail_feeds_to').value = ss ? ss.ss_name : '';
+    $('fail_ss_note').innerHTML=raw?'<span style="color:var(--red);font-weight:700">Select an exact substation from the saved Smart Grid topology.</span>':'Select the affected SS first.';
+    $('fail_feeder_note').textContent='';
   }
+}
+
+function onFailFeederChange(){
+  const ss=findManualSS($('fail_ss_search').value.trim());
+  const fn=$('fail_feeder_search').value.trim();
+  if(!ss){ $('fail_feeder_search').value=''; $('fail_feeder_code').value=''; $('fail_eht').value=''; $('fail_connection_role').value=''; $('failAltPanel').style.display='none'; return; }
+  if(!fn){ $('fail_feeder_code').value=''; $('fail_eht').value=''; $('fail_connection_role').value=''; $('failAltPanel').style.display='none'; return; }
+  const f=feederForManualSS(ss.name,fn);
+  if(!f){
+    $('fail_feeder_code').value=''; $('fail_eht').value=''; $('fail_connection_role').value='';
+    $('fail_feeder_note').innerHTML='<span style="color:var(--red);font-weight:700">This feeder is not physically connected to the selected SS in the saved manual topology.</span>';
+    $('failAltPanel').style.display='none'; return;
+  }
+  $('fail_feeder_search').value=f.name;
+  $('fail_feeder_code').value=f.code||'';
+  $('fail_eht').value=f.eht||extractEhtFromFeederName(f.name)||'';
+  $('fail_connection_role').value=f.role||'Connected';
+  $('fail_feeds_to').value=ss.name;
+  $('fail_feeder_note').innerHTML=`Connected to <b>${htmlEsc(ss.name)}</b>${f.role?' · '+htmlEsc(f.role):''}.`;
   refreshFailAlternates();
 }
 
 function refreshFailAlternates(){
-  // For each SS this feeder feeds to, list other source feeders + their statuses
-  const fn = $('fail_feeder_search').value.trim();
-  if (!fn){ $('failAltPanel').style.display = 'none'; return; }
-  // Use normalized lookup so alternates show even when the typed name has a different spelling
-  const t = lookupTopo(fn);
-  if (!t || !t.feedsTo || !t.feedsTo.length){ $('failAltPanel').style.display = 'none'; return; }
-
-  // Collect alternate feeders that feed any of the SSes this feeder feeds
-  const altMap = new Map();   // feederName → ehtSource
-  t.feedsTo.forEach(ssName => {
-    const ssRec = MASTER_SS_TOPO[safeFbKey(ssName)];
-    if (!ssRec || !ssRec.sourceFeeders) return;
-    ssRec.sourceFeeders.forEach(s => {
-      if (s.feederName !== fn) altMap.set(s.feederName, s.ehtSource || '');
-    });
-  });
-
-  if (altMap.size === 0){
-    $('failAltPanel').style.display = 'block';
-    $('failAltList').innerHTML = `<div style="color:#94a3b8;padding:10px;font-style:italic;font-size:11px">No alternate feeders found in master topology for this SS. Either no alternates exist, or the SS isn't yet in /masterData/ssTopology.</div>`;
-    $('alt_count_chip').textContent = '0';
-    return;
+  const ss=findManualSS($('fail_ss_search').value.trim());
+  const failed=feederForManualSS(ss?.name||'',$('fail_feeder_search').value.trim());
+  if(!ss||!failed){ $('failAltPanel').style.display='none'; return; }
+  const alts=[...ss.feeders.values()].filter(f=>compactTopo(f.code||f.name)!==compactTopo(failed.code||failed.name));
+  const altList=$('fail_alt_list');
+  if(altList) altList.innerHTML=alts.map(f=>`<option value="${htmlEsc(f.name)}">${htmlEsc(f.code||'')}${f.role?' · '+htmlEsc(f.role):''}</option>`).join('');
+  $('failAltPanel').style.display='block'; $('alt_count_chip').textContent=alts.length;
+  if(!alts.length){
+    $('failAltList').innerHTML='<div style="color:#94a3b8;padding:10px;font-style:italic;font-size:11px">No other physically connected feeder is saved for this substation.</div>'; return;
   }
-
-  $('failAltPanel').style.display = 'block';
-  $('alt_count_chip').textContent = altMap.size;
-
-  const rows = [...altMap.entries()].map(([feederName, eht], i) => {
-    const stSk = safeFbKey(feederName);
-    const st = FEEDER_STATUS[stSk] || 'live';
-    const canPick = (st === 'live');
-    return `<div class="alt-row">
-      <span class="alt-num">#${i+1}</span>
-      <span class="alt-name" title="EHT: ${eht || 'unknown'}">${feederName}</span>
-      <span class="alt-tag">ALT</span>
-      <span class="alt-status ${st}">${st}</span>
-      <button class="alt-action" ${canPick?'':'disabled'} onclick="pickAlternate('${feederName.replace(/'/g,"\\'")}','${eht.replace(/'/g,"\\'")}')">${canPick?'USE':'—'}</button>
-    </div>`;
+  $('failAltList').innerHTML=alts.map((f,i)=>{
+    const st=FEEDER_STATUS[safeFbKey(f.name)]||FEEDER_STATUS[safeFbKey(f.code)]||'idle';
+    const canPick=st==='live';
+    const role=f.role||'CONNECTED';
+    return `<div class="alt-row"><span class="alt-num">#${i+1}</span><span class="alt-name" title="EHT: ${htmlEsc(f.eht||'unknown')}">${htmlEsc(f.name)}</span><span class="alt-tag ${/REGULAR/i.test(role)?'regular':''}">${htmlEsc(role)}</span><span class="alt-status ${htmlEsc(st)}">${htmlEsc(st)}</span><button class="alt-action" ${canPick?'':'disabled'} onclick="pickAlternate('${String(f.name).replace(/'/g,"\\'")}','${String(f.eht||'').replace(/'/g,"\\'")}')">${canPick?'USE':'—'}</button></div>`;
   }).join('');
-  $('failAltList').innerHTML = rows;
 }
 
-window.pickAlternate = function(feederName, eht){
-  $('fail_alt').value = feederName;
-  $('fail_alt_eht').value = eht || '';
-  toast(`Selected alternate: ${feederName.substring(0,40)}…`);
+window.pickAlternate=function(feederName,eht){
+  const ss=findManualSS($('fail_ss_search').value.trim());
+  if(!ss||!feederForManualSS(ss.name,feederName)){ toast('Alternate feeder is not connected to the selected SS',true); return; }
+  $('fail_alt').value=feederName; $('fail_alt_eht').value=eht||''; toast(`Selected alternate: ${feederName.substring(0,40)}…`);
 };
 
 async function logFailure(){
-  const fn = $('fail_feeder_search').value.trim();
-  if (!fn){ toast('Pick the failed 33KV Feeder', true); return; }
-  const failTime = $('fail_time').value;
-  if (!failTime){ toast('Set the Failure Date & Time', true); return; }
-  const agency = getPillValue('fail_agency_group');
-  const outage = $('fail_outage_type').value;
-  if (!agency){ toast('Select the Agency', true); return; }
-  if (!outage){ toast('Select the Type of Outage', true); return; }
+  const ss=findManualSS($('fail_ss_search').value.trim());
+  if(!ss){ toast('Select the affected 33/11KV Substation from the saved Smart Grid topology',true); return; }
+  const fn=$('fail_feeder_search').value.trim();
+  const connected=feederForManualSS(ss.name,fn);
+  if(!fn||!connected){ toast('Select a failed feeder physically connected to '+ss.name,true); return; }
+  const failTime=$('fail_time').value;
+  if(!failTime){ toast('Set the Failure Date & Time',true); return; }
+  const agency=getPillValue('fail_agency_group');
+  const outage=$('fail_outage_type').value;
+  if(!agency){ toast('Select the Agency',true); return; }
+  if(!outage){ toast('Select the Type of Outage',true); return; }
 
-  const id = 'BD_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
-  const now = nowISO();
-  const fbk = safeFbKey(fn);
-  // Use normalized lookup so we still get topology metadata even when spelling differs
-  const topo = lookupTopo(fn) || {};
-  const ssTarget = $('fail_feeds_to').value;
-  const ssArr = ssTarget ? ssTarget.split(',').map(s => s.trim()).filter(Boolean) : [];
-  const primarySS = ssArr[0] || '';
-  const ss = primarySS ? (SS_DATA.find(s => s.ss_name === primarySS)
-                       || SS_DATA.find(s => s.ss_name.toUpperCase() === primarySS.toUpperCase())) : null;
+  // If an alternate was selected, it too must be physically connected to this SS.
+  const altName=$('fail_alt').value.trim();
+  if(altName && !feederForManualSS(ss.name,altName)){ toast('Selected alternate is not connected to '+ss.name,true); return; }
 
+  const id='BD_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+  const now=nowISO();
+  const fbk=safeFbKey(connected.name);
+  const topo=lookupTopo(connected.name)||{};
+  const ssRec=SS_DATA.find(s=>String(s.ss_code)===String(ss.code))||SS_DATA.find(s=>compactTopo(s.ss_name)===compactTopo(ss.name))||{};
+  const ssArr=[ss.name];
+  const primarySS=ss.name;
   const payload = {
     id,
-    feederName: fn,
-    feederCode: topo.feederCode || '',
+    feederName: connected.name,
+    feederCode: connected.code || topo.feederCode || '',
     substationName: primarySS,
-    substationCode: ss ? ss.ss_code : '',
-    division:     ss ? ss.lines_division : (topo.division     || ''),
-    sub_division: ss ? ss.sub_division   : (topo.sub_division || ''),
-    section:      ss ? ss.section        : (topo.section      || ''),
+    substationCode: ss.code || ssRec.ss_code || '',
+    connectionRole: connected.role || '',
+    division:     ssRec.lines_division || topo.division || '',
+    sub_division: ssRec.sub_division || topo.sub_division || '',
+    section:      ssRec.section || topo.section || '',
     ehtSource:    $('fail_eht').value,
-    alternativeSource: $('fail_alt').value,
+    alternativeSource: altName,
     alternativeEHT:    $('fail_alt_eht').value,
     failureDateTime:   new Date(failTime).toISOString(),
     agency,
@@ -943,7 +1059,7 @@ async function logFailure(){
       method:'PATCH', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         status: 'breakdown', lastUpdated: now,
-        lastBreakdownId: id, feederName: fn
+        lastBreakdownId: id, feederName: connected.name, feederCode: connected.code || '', breakdownSS: ss.name, breakdownSSCode: ss.code
       })
     });
     toast(`⚡ Breakdown logged: ${id}`);
@@ -1185,12 +1301,14 @@ function exportHistorical(){
 async function bootstrap(){
   setSyncChip('loading', '☁ LOADING…');
   try {
-    const [ptrs, topo, ssTopo, statuses, breakdowns] = await Promise.all([
+    const [ptrs, topo, ssTopo, statuses, breakdowns, manualCurrent, manualLegacy] = await Promise.all([
       fetch(`${FIREBASE_URL}/masterData/ptrs.json`).then(r => r.ok ? r.json() : null),
       fetch(`${FIREBASE_URL}/masterData/topology.json`).then(r => r.ok ? r.json() : null),
       fetch(`${FIREBASE_URL}/masterData/ssTopology.json`).then(r => r.ok ? r.json() : null),
       fetch(`${FIREBASE_URL}/feeders.json`).then(r => r.ok ? r.json() : null),
       fetch(`${FIREBASE_URL}/breakdowns.json`).then(r => r.ok ? r.json() : null),
+      fetch(`${FIREBASE_URL}/smartgrid/manualTopologyV1/current.json`).then(r => r.ok ? r.json() : null),
+      fetch(`${FIREBASE_URL}/smartgrid/manualDrawing/latest.json`).then(r => r.ok ? r.json() : null),
     ]);
     MASTER_PTRS    = ptrs   || {};
     MASTER_TOPO    = topo   || {};
@@ -1199,7 +1317,10 @@ async function bootstrap(){
     FEEDER_STATUS  = {};
     if (statuses) Object.keys(statuses).forEach(k => { const s = statuses[k]?.status; if (s) FEEDER_STATUS[k] = s; });
     BREAKDOWNS = breakdowns || {};
-    console.log(`[BD] Loaded — ${Object.keys(MASTER_PTRS).length} PTRs, ${Object.keys(MASTER_TOPO).length} feeders, ${Object.keys(BREAKDOWNS).length} breakdowns`);
+    MANUAL_TOPOLOGY = (manualCurrent && Array.isArray(manualCurrent.rows) && manualCurrent.rows.length) ? manualCurrent : ((manualLegacy && Array.isArray(manualLegacy.rows)) ? manualLegacy : null);
+    MANUAL_ROWS = MANUAL_TOPOLOGY?.rows || [];
+    buildManualSSIndex();
+    console.log(`[BD] Loaded — ${Object.keys(MASTER_PTRS).length} PTRs, ${Object.keys(MASTER_TOPO).length} master feeders, ${MANUAL_ROWS.length} manual topology rows, ${Object.keys(BREAKDOWNS).length} breakdowns`);
     populateDatalists();
     setSyncChip('live', '☁ SYNCED');
     subscribeSSE();
@@ -1211,7 +1332,7 @@ async function bootstrap(){
 }
 
 // ─── SSE subscriptions ───
-let _sseFeeders = null, _sseBreakdowns = null;
+let _sseFeeders = null, _sseBreakdowns = null, _sseManualTopology = null;
 function subscribeSSE(){
   if (!('EventSource' in window)) return;
   // Feeders
@@ -1237,6 +1358,20 @@ function subscribeSSE(){
     _sseFeeders.addEventListener('patch', fh);
     _sseFeeders.addEventListener('error', () => { try { _sseFeeders.close(); } catch(_){} setTimeout(subscribeSSE, 5000); });
   } catch(err){ console.warn('SSE feeders failed:', err); }
+  // Manual Smart Grid topology — keep failure dropdowns synchronized with drawing edits
+  try {
+    if(_sseManualTopology) try{_sseManualTopology.close();}catch(_){}
+    _sseManualTopology=new EventSource(`${FIREBASE_URL}/smartgrid/manualTopologyV1/current.json`);
+    const th=()=>{
+      fetch(`${FIREBASE_URL}/smartgrid/manualTopologyV1/current.json?ts=${Date.now()}`,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{
+        if(data&&Array.isArray(data.rows)){ MANUAL_TOPOLOGY=data; MANUAL_ROWS=data.rows; buildManualSSIndex(); renderFailureSSList();
+          if($('fail_ss_search')?.value) onFailSSChange(); flashSync(); }
+      }).catch(()=>{});
+    };
+    _sseManualTopology.addEventListener('put',th); _sseManualTopology.addEventListener('patch',th);
+    _sseManualTopology.addEventListener('error',()=>{try{_sseManualTopology.close();}catch(_){} setTimeout(subscribeSSE,5000);});
+  }catch(err){console.warn('SSE manual topology failed:',err);}
+
   // Breakdowns
   try {
     if (_sseBreakdowns) try { _sseBreakdowns.close(); } catch(_){}
@@ -1263,6 +1398,6 @@ buildScopeOptions();
 bootstrap();
 
 // Expose for debugging
-window.bdDash = { bootstrap, BREAKDOWNS:()=>BREAKDOWNS, FEEDER_STATUS:()=>FEEDER_STATUS, MASTER_PTRS:()=>MASTER_PTRS, MASTER_TOPO:()=>MASTER_TOPO };
+window.bdDash = { bootstrap, BREAKDOWNS:()=>BREAKDOWNS, FEEDER_STATUS:()=>FEEDER_STATUS, MASTER_PTRS:()=>MASTER_PTRS, MASTER_TOPO:()=>MASTER_TOPO, MASTER_SS_TOPO:()=>MASTER_SS_TOPO, MANUAL_ROWS:()=>MANUAL_ROWS, MANUAL_SS_INDEX:()=>MANUAL_SS_INDEX };
 </script>
 </body></html>
