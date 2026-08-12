@@ -3,7 +3,7 @@
  
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TGSPDCL — NMC Failure Entry Dashboard · SS Connected V2</title>
+<title>TGSPDCL — NMC Runtime & Substation Source Dashboard V4</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -888,11 +888,11 @@ async function saveLogEntry(){
   const payload={feederName:name,feederCode:code,ehtSource:eht,status,lastUpdated:now,effectiveDateTime:now,feedsToSS:ssConn?.name||'',feedsToSSCode:ssConn?.code||'',ptrsConnected:selPTRs,createdInSmartGrid:true,source:'nmc-dashboard-v3'};
   const canonicalKey=safeFbKey(code||name),legacyKey=safeFbKey(name);
   try{
-    const [a,b]=await Promise.all([
-      fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${canonicalKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
-      fetch(`${FIREBASE_URL}/feeders/${legacyKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-    ]);
-    if(!a.ok||!b.ok)throw new Error('Firebase write failed');
+    const a=await fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${canonicalKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!a.ok)throw new Error(`Canonical Smart Grid write rejected (HTTP ${a.status})`);
+    // Legacy mirror is compatibility-only. Its security rules must not turn a
+    // successful canonical save into a false "not saved" result.
+    fetch(`${FIREBASE_URL}/feeders/${legacyKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(r=>{if(!r.ok)console.warn('Legacy feeder mirror rejected',r.status)}).catch(e=>console.warn('Legacy feeder mirror unavailable',e));
     FEEDER_STATUS[legacyKey]=status;toast(status==='live'?`⚡ LIVE saved — ${name.substring(0,42)}`:`⏸ IDLE saved — ${name.substring(0,42)}`);$('log_status_msg').textContent=`Saved to Smart Grid runtime: ${new Date().toLocaleString()}`;flashSync();
   }catch(err){toast('Save failed: '+err.message,true);}
 }
@@ -1036,12 +1036,12 @@ async function logFailure(){
   try {
     const runtimePayload={status:'breakdown',lastUpdated:now,lastBreakdownId:id,feederName:connected.name,feederCode:connected.code||'',ehtSource:$('fail_eht').value||connected.eht||'',breakdownSS:ss.name,breakdownSSCode:ss.code,createdInSmartGrid:true,source:'nmc-dashboard-v3'};
     const runtimeKey=safeFbKey((connected.code||'')||connected.name);
-    const [bdw,canon,legacy]=await Promise.all([
+    const [bdw,canon]=await Promise.all([
       fetch(`${FIREBASE_URL}/breakdowns/${id}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
-      fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${runtimeKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(runtimePayload)}),
-      fetch(`${FIREBASE_URL}/feeders/${fbk}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(runtimePayload)})
+      fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${runtimeKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(runtimePayload)})
     ]);
-    if(!bdw.ok||!canon.ok||!legacy.ok)throw new Error('Firebase write failed');
+    if(!bdw.ok||!canon.ok)throw new Error(`Firebase write rejected (${bdw.status}/${canon.status})`);
+    fetch(`${FIREBASE_URL}/feeders/${fbk}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(runtimePayload)}).catch(()=>{});
     toast(`⚡ Breakdown logged: ${id}`);
     $('fail_status_msg').textContent = `Logged ${id} at ${new Date().toLocaleString()}`;
     flashSync();
@@ -1141,16 +1141,16 @@ async function saveRectification(){
     isOpen: false
   };
   try {
-    await fetch(`${FIREBASE_URL}/breakdowns/${CURRENT_RECT_ID}.json`, {
+    const closeWrite=await fetch(`${FIREBASE_URL}/breakdowns/${CURRENT_RECT_ID}.json`, {
       method:'PATCH', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(patch)
     });
+    if(!closeWrite.ok)throw new Error(`Breakdown close rejected (HTTP ${closeWrite.status})`);
     const restoreCode=String(b.feederCode||'').trim(), restoreName=String(b.feederName||'').trim();
     const restorePayload={status:'live',lastUpdated:now,feederName:restoreName,feederCode:restoreCode,lastBreakdownId:'',createdInSmartGrid:!!findCreatedFeeder(restoreCode||restoreName),source:'nmc-dashboard-v3-rectification'};
-    await Promise.all([
-      fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${safeFbKey(restoreCode||restoreName)}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(restorePayload)}),
-      fetch(`${FIREBASE_URL}/feeders/${safeFbKey(restoreName)}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(restorePayload)})
-    ]);
+    const runtimeWrite=await fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${safeFbKey(restoreCode||restoreName)}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(restorePayload)});
+    if(!runtimeWrite.ok)throw new Error(`Runtime restore rejected (HTTP ${runtimeWrite.status})`);
+    fetch(`${FIREBASE_URL}/feeders/${safeFbKey(restoreName)}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(restorePayload)}).catch(()=>{});
     Object.assign(BREAKDOWNS[CURRENT_RECT_ID], patch);
     toast(`✓ Rectification saved — ${b.feederName.substring(0,30)}…`);
     flashSync();
@@ -1402,6 +1402,30 @@ window.onFailFeederChange=function(){
 // Keep the LIVE feeder list synchronized whenever manual topology is edited in another page.
 let sig='';setInterval(()=>{try{const next=JSON.stringify((MANUAL_ROWS||[]).map(r=>[r.feeder_code,r.feeder_name,r.feeding_code,r.feeding_name]));if(next!==sig){sig=next;populateDatalists();if(document.getElementById('log_feeder_search')?.value)onLogFeederChange();}}catch(e){}},2500);
 console.log('[NMC] V3 — only Smart-Grid-created feeder codes can receive LIVE/IDLE/BREAKDOWN runtime status. Canonical runtime path: /smartgrid/runtime/feeders/{feederCode}.');
+})();
+</script>
+
+<style id="nmcV4SourceStyle">
+.source-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.source-toolbar input,.source-toolbar select{border:1px solid var(--border);border-radius:7px;padding:8px 10px;background:#fff;font-size:11px}.source-summary{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin:12px 0}.source-kpi{background:#fff;border:1px solid var(--border);border-radius:9px;padding:12px}.source-kpi b{display:block;font-size:20px;color:var(--blue)}.source-kpi span{font-size:9px;color:var(--muted);font-weight:800;letter-spacing:.7px}.source-ss{background:#fff;border:1px solid var(--border);border-radius:10px;margin:12px 0;overflow:hidden}.source-ss-h{padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px}.source-ss-h b{color:#17324d}.source-ss-h span{font-size:10px;color:var(--muted)}.source-table td,.source-table th{padding:8px 9px;border-bottom:1px solid #edf2f7;text-align:left}.source-table th{background:#fbfdff;color:#64748b;font-size:9px;letter-spacing:.5px}.source-status{display:inline-block;border-radius:12px;padding:3px 8px;font-size:9px;font-weight:800}.source-status.live{background:#dcfce7;color:#15803d}.source-status.idle{background:#e2e8f0;color:#475569}.source-status.breakdown{background:#fee2e2;color:#b91c1c}.source-status.unknown{background:#fef3c7;color:#92400e}.source-decision.ok{color:#15803d;font-weight:800}.source-decision.no{color:#b91c1c;font-weight:800}.source-decision.check{color:#92400e;font-weight:800}.source-note{padding:10px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#854d0e;font-size:10px;margin:10px 0}@media(max-width:800px){.source-summary{grid-template-columns:1fr 1fr}.source-table{display:block;overflow:auto}}
+</style>
+<script id="nmcV4SourceScript">
+(function(){
+'use strict';
+const esc=s=>String(s??'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m]));
+const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
+function runtimeFor(f){const keys=[safeFbKey(f.code||''),safeFbKey(f.name||'')];for(const k of keys){if(window.NMC_CANON_RUNTIME?.[k])return window.NMC_CANON_RUNTIME[k];}const legacy=keys.map(k=>FEEDER_STATUS[k]).find(Boolean);return legacy?{status:legacy}:{};}
+function loadInfo(f){const r=runtimeFor(f),load=num(r.currentLoadMW??r.feederLoadingMW??r.loadMW??r.loadingMW??r.loadMVA??r.loadingMVA),capacity=num(r.availableCapacityMW??r.capacityMW??r.ratedCapacityMW??r.capacityMVA??r.ratedMVA),explicit=num(r.availableLoadMW??r.availableHeadroomMW??r.headroomMW);const head=explicit!==null?explicit:(load!==null&&capacity!==null?capacity-load:null);return {r,load,capacity,head};}
+function roleRank(x){x=String(x||'').toUpperCase();return /REGULAR/.test(x)?0:/ALTERNATE.?I(\D|$)/.test(x)?1:/ALTERNATE/.test(x)?2:3;}
+function decision(status,head){if(status==='breakdown')return ['NOT AVAILABLE','no'];if(status==='idle'&&head!==null&&head>0)return ['AVAILABLE','ok'];if(status==='live'&&head!==null&&head>0)return ['AVAILABLE — LOAD BALANCE','ok'];if(head!==null&&head<=0)return ['NO HEADROOM','no'];return ['CHECK / UNKNOWN','check'];}
+async function refreshCanonical(){try{const r=await fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders.json?ts=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);window.NMC_CANON_RUNTIME=await r.json()||{};}catch(e){window.NMC_CANON_RUNTIME=window.NMC_CANON_RUNTIME||{};}renderSourceDashboard();}
+function sourceRows(){return (MANUAL_SS_INDEX||[]).map(ss=>({...ss,feeders:[...ss.feeders.values()].sort((a,b)=>roleRank(a.role)-roleRank(b.role)||a.name.localeCompare(b.name))}));}
+window.renderSourceDashboard=function(){const host=document.getElementById('sourceDashboard');if(!host)return;const q=String(document.getElementById('sourceSearch')?.value||'').toUpperCase(),filter=document.getElementById('sourceFilter')?.value||'all';let stations=sourceRows().filter(s=>!q||`${s.name} ${s.code}`.toUpperCase().includes(q));let live=0,idle=0,bd=0;stations.forEach(s=>s.feeders.forEach(f=>{const st=String(runtimeFor(f).status||'idle').toLowerCase();if(st==='live')live++;else if(st==='breakdown')bd++;else idle++;}));const cards=stations.map(ss=>{const fs=ss.feeders.filter(f=>{const st=String(runtimeFor(f).status||'idle').toLowerCase();return filter==='all'||st===filter;});if(!fs.length&&filter!=='all')return '';const running=ss.feeders.filter(f=>String(runtimeFor(f).status||'idle').toLowerCase()==='live').map(f=>f.name);return `<div class="source-ss"><div class="source-ss-h"><div><b>${esc(ss.name)}</b><br><span>${esc(ss.code||'No SS code')} · ${ss.feeders.length} physically connected feeder(s)</span></div><span>RUNNING: ${running.length?esc(running.join(', ')):'NONE RECORDED'}</span></div><table class="source-table"><thead><tr><th>FEEDER / CODE</th><th>SOURCE ROLE</th><th>STATUS</th><th>FEEDER / PTR LOAD</th><th>CAPACITY</th><th>HEADROOM</th><th>CHANGEOVER SUPPORT</th></tr></thead><tbody>${fs.map(f=>{const x=loadInfo(f),st=String(x.r.status||'idle').toLowerCase(),d=decision(st,x.head),ptr=x.r.ptrLoadMW??x.r.ptrLoadingMW??x.r.ptrsConnected;return `<tr><td><b>${esc(f.name)}</b><br><small>${esc(f.code||'NO CODE')} · ${esc(f.eht||'EHT UNKNOWN')}</small></td><td>${esc(f.role||'CONNECTED — ROLE CHECK')}</td><td><span class="source-status ${['live','idle','breakdown'].includes(st)?st:'unknown'}">${esc(st.toUpperCase())}</span></td><td>${x.load===null?'CHECK / UNKNOWN':esc(x.load+' MW/MVA')}${ptr!=null?`<br><small>PTR: ${esc(Array.isArray(ptr)?ptr.join(' + '):ptr)}</small>`:''}</td><td>${x.capacity===null?'CHECK / UNKNOWN':esc(x.capacity+' MW/MVA')}</td><td>${x.head===null?'CHECK / UNKNOWN':esc(x.head.toFixed(2)+' MW/MVA')}</td><td class="source-decision ${d[1]}">${d[0]}</td></tr>`}).join('')}</tbody></table></div>`}).join('');host.innerHTML=`<div class="source-summary"><div class="source-kpi"><b>${stations.length}</b><span>CREATED SUBSTATIONS</span></div><div class="source-kpi"><b>${live}</b><span>LIVE CONNECTIONS</span></div><div class="source-kpi"><b>${idle}</b><span>IDLE OPTIONS</span></div><div class="source-kpi"><b>${bd}</b><span>BREAKDOWNS</span></div></div><div class="source-note">Decision support uses only saved topology and supplied loading/capacity fields. Missing capacity or load is shown as CHECK / UNKNOWN; no load is estimated.</div>${cards||'<div class="source-note">No matching physically created Smart Grid connections.</div>'}`;};
+window.exportSourceDashboard=function(){const h=['Substation','SS Code','Feeder','Feeder Code','EHT Source','Relationship','Status','Load','Capacity','Headroom','Decision'];const data=[];sourceRows().forEach(ss=>ss.feeders.forEach(f=>{const x=loadInfo(f),st=String(x.r.status||'idle').toLowerCase(),d=decision(st,x.head);data.push([ss.name,ss.code,f.name,f.code,f.eht,f.role,st,x.load??'UNKNOWN',x.capacity??'UNKNOWN',x.head??'UNKNOWN',d[0]])}));const csv=[h,...data].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');const a=document.createElement('a'),u=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.href=u;a.download='TGSPDCL_Substation_Source_Dashboard.csv';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);};
+function install(){if(document.querySelector('[data-pane="source"]'))return;const tabs=document.querySelector('.tabs'),wrap=document.querySelector('.wrap');if(!tabs||!wrap)return;const tab=document.createElement('div');tab.className='tab';tab.dataset.pane='source';tab.onclick=()=>{switchTab('source');refreshCanonical()};tab.innerHTML='<span class="num">5</span>SUBSTATION SOURCE';tabs.appendChild(tab);const pane=document.createElement('div');pane.id='pane-source';pane.className='pane';pane.innerHTML='<div class="section"><div class="section-hd"><span class="step">5</span><span class="title">SUBSTATION OPERATING SOURCE / CHANGEOVER SUPPORT</span></div><div class="section-bd"><div class="source-toolbar"><input id="sourceSearch" placeholder="Search substation name / code" oninput="renderSourceDashboard()"><select id="sourceFilter" onchange="renderSourceDashboard()"><option value="all">ALL CONNECTIONS</option><option value="live">LIVE</option><option value="idle">IDLE</option><option value="breakdown">BREAKDOWN</option></select><button class="btn btn-blue" onclick="refreshCanonical()">↻ REFRESH STATUS</button><button class="btn btn-amber" onclick="exportSourceDashboard()">⬇ EXCEL-FRIENDLY CSV</button></div><div id="sourceDashboard"></div></div></div>';wrap.appendChild(pane);}
+const oldSwitch=window.switchTab;window.switchTab=function(name){oldSwitch(name);if(name==='source')refreshCanonical();};
+const oldBoot=window.bootstrap;window.bootstrap=bootstrap=async function(){const r=await oldBoot.apply(this,arguments);await refreshCanonical();return r;};
+setTimeout(install,0);setTimeout(refreshCanonical,1200);setInterval(()=>{if(document.getElementById('pane-source')?.classList.contains('active'))refreshCanonical();},15000);
+console.log('[NMC] V4 substation source dashboard and verified canonical runtime reader loaded.');
 })();
 </script>
 
