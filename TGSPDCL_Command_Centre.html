@@ -815,7 +815,9 @@ html,body{width:100%;height:100%;overflow:hidden}
 </div>
 
 <!-- ── BREAKDOWN ENTRY ────────────────────────────────────────────────── -->
-<div class="shell-section" id="sec-entry" style="overflow:hidden;">
+<div class="shell-section" id="sec-entry" style="overflow:hidden;position:relative;">
+  <button onclick="reloadEntryFrame()" title="Fetch a fresh copy of the Breakdown Entry form, bypassing the browser cache"
+    style="position:absolute;top:8px;right:14px;z-index:40;background:#fff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:7px;padding:5px 11px;font:800 9.5px/1 Arial;letter-spacing:.7px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.12)">↻ RELOAD FORM</button>
   <iframe id="entry-frame" src="" style="width:100%;height:100%;border:none;display:block;" allowfullscreen></iframe>
 </div>
 
@@ -2974,10 +2976,24 @@ function switchSection(id) {
     _entryLoaded = true;
     var entryFrame = document.getElementById('entry-frame');
     if (entryFrame) {
-      entryFrame.src = 'Breakdown_Entry.html';
+      // CACHE-BUSTER (13-Aug-2026): the iframe used to request the bare
+      // filename, so GitHub Pages / the browser kept serving a STALE cached
+      // copy of Breakdown_Entry.html. A newly deployed Breakdown_Entry.html
+      // therefore never ran inside this dashboard even after a hard reload of
+      // this page — its Save button kept behaving like the old build.
+      // The version query forces a fresh copy on every load.
+      entryFrame.src = 'Breakdown_Entry.html?v=' + Date.now();
     }
   }
 }
+
+/* Manual reload for the embedded Breakdown Entry form — always fetches a
+   fresh copy, never the cache. */
+function reloadEntryFrame(){
+  var f = document.getElementById('entry-frame');
+  if (f) { f.src = 'Breakdown_Entry.html?v=' + Date.now(); }
+}
+window.reloadEntryFrame = reloadEntryFrame;
 
 
 /* ── SS DATABASE ─────────────────────────────────────────────────────────── */
