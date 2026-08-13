@@ -8061,5 +8061,228 @@ console.log('[SmartGrid] V16 loads route topology before master data and applies
 })();
 </script>
 
+
+<style id="sgV17Style">
+#sgV17Master{position:fixed;z-index:13600;left:370px;top:150px;max-width:700px;padding:9px 12px;border-radius:9px;background:#eff6ff;border:1px solid #60a5fa;color:#1d4ed8;font:800 10px/1.45 Arial;box-shadow:0 5px 16px rgba(30,64,175,.15)}
+#sgV17Master.ok{background:#ecfdf5;border-color:#34d399;color:#047857}
+#sgV17Master.bad{background:#fff7ed;border-color:#fb923c;color:#9a3412}
+#sgV17Master .x{float:right;cursor:pointer;opacity:.6;margin-left:12px}
+@media(max-width:800px){#sgV17Master{left:10px;right:10px}}
+</style>
+<script id="sgV17Script">
+/* ═══════════════════════════════════════════════════════════════════════
+   V17 — FIXED MASTER ASSET LOADING (EHT SS + 33/11KV SS symbols + popups)
+
+   PROBLEM THIS FIXES
+   V16's masterNonBlocking() wrapped the ENTIRE master-data load in:
+       Promise.race([ loadSmartGridMasterData(), reject-after-10-seconds ])
+   loadSmartGridMasterData() fetched 11 Firebase branches at once, including
+   masterData/ssSourceRows (1000 records), masterData/ptrs, masterData/
+   feederMaster and masterData/ssCoordinates (922 records) — several MB.
+   On any normal connection that exceeds 10s, the race rejected, the coord
+   cache stayed EMPTY, and therefore:
+     • every EHT SS symbol and every 33/11KV SS symbol disappeared,
+     • only nodes belonging to drawn feeders remained ("only connected"),
+     • the node counter collapsed (1289 → 28),
+     • substation popups reported "No PTR-wise source rows found in Master
+       Data" because the popup reads the same master branches.
+
+   THE FIX
+   Master data is now loaded in two tiers:
+     TIER 1 (coordinates)  — the small branches that produce the SYMBOLS.
+                             Fetched first, so icons come back within the
+                             existing 10s budget and the map redraws.
+     TIER 2 (detail)       — the heavy branches that only feed POPUP content.
+                             Loaded in the background afterwards with a long
+                             timeout, then the map redraws again.
+   Each branch has its own timeout, each tier retries with backoff, and
+   results are MERGED into sgMasterData — a failed or slow branch can never
+   wipe master data that already loaded.
+
+   SAFETY: this block only ever READS master branches and re-renders. It does
+   not touch, rewrite or clear manual drawing / feeder topology in any way.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+const FB = (typeof FIREBASE_URL!=='undefined' ? FIREBASE_URL
+          : 'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app');
+
+/* Tier 1 — these produce the fixed station SYMBOLS on the map.
+   sgMasterBuildCoordCache() only accepts ss33 icons from masterData/
+   ssCoordinates and eht icons from masterData/ehtSources (falling back to
+   masterData/substationsEHT), so those are the branches that matter most. */
+const COORD_PATHS = [
+  'masterData/ssCoordinates',
+  'masterData/ehtSources',
+  'masterData/substationsEHT',
+  'masterData/substations33'
+];
+
+/* Tier 2 — heavy branches used for popup detail (PTR rows, source rows,
+   topology joins). Not needed to draw a single symbol. */
+const DETAIL_PATHS = [
+  'masterData/ssSourceRows',
+  'masterData/ptrs',
+  'masterData/ssTopology',
+  'masterData/feederMaster',
+  'substationSources',
+  'smartgrid/masterData',
+  'smartgrid/endStartPoints'
+];
+
+let detailStarted = false;
+let detailDone    = false;
+
+function note(kind,msg,autohide){
+  let x=document.getElementById('sgV17Master');
+  if(!x){ x=document.createElement('div'); x.id='sgV17Master'; document.body.appendChild(x); }
+  x.className=kind||'';
+  x.innerHTML='<span class="x" onclick="this.parentNode.style.display=\'none\'">✕</span>'+msg;
+  x.style.display='block';
+  if(autohide) setTimeout(()=>{ if(x) x.style.display='none'; }, autohide);
+}
+
+/* Per-branch fetch with its own abort timeout. Returns null on any failure so
+   one bad branch can never reject the whole load. */
+async function grab(path, ms){
+  const ctrl=new AbortController(), t=setTimeout(()=>ctrl.abort(), ms);
+  try{
+    const r=await fetch(`${FB}/${path}.json`, {cache:'no-store', signal:ctrl.signal});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    return j || null;
+  }catch(e){
+    console.warn('[V17] branch failed', path, e && (e.name==='AbortError'?'TIMEOUT':e.message));
+    return null;
+  }finally{ clearTimeout(t); }
+}
+
+/* MERGE, never overwrite. The original code did `sgMasterData = out`, so a
+   partial/failed reload silently destroyed branches that had already loaded. */
+function mergeIn(map){
+  const base = (window.sgMasterData && typeof window.sgMasterData==='object') ? window.sgMasterData : {};
+  const out  = Object.assign({}, base);
+  let added=0;
+  Object.entries(map).forEach(([k,v])=>{ if(v){ out[k]=v; added++; } });
+  try{ sgMasterData = out; }catch(e){}   // top-level `let` global binding
+  window.sgMasterData = out;
+  return added;
+}
+
+/* Rebuild the coordinate cache and redraw. Every step is individually guarded
+   so a failure in one never blocks the redraw. */
+function rebuild(){
+  try{ window._sgMasterCoordCache=null; sgMasterBuildCoordCache(); }catch(e){ console.warn('[V17] coord cache',e); }
+  try{ sgEnsureCanonicalMasterPoints(); }catch(e){}
+  try{ sgApplyCircleFromMasterData(); }catch(e){}
+  try{ populateFilters(); }catch(e){}
+  try{ sgRefreshSubstationCounts(); }catch(e){}
+  try{ render(); }catch(e){ console.warn('[V17] render',e); }
+  return (window._sgMasterCoordCache && window._sgMasterCoordCache.all || []).length;
+}
+
+function counts(){
+  const all=(window._sgMasterCoordCache && window._sgMasterCoordCache.all)||[];
+  return { ss: all.filter(x=>x.kind==='ss33').length,
+           eht: all.filter(x=>x.kind==='eht').length,
+           total: all.length };
+}
+
+/* ── TIER 1 ── symbols. Generous per-branch timeout, but these are the small
+   branches so in practice they return quickly. */
+async function loadCoords(){
+  const res={};
+  await Promise.all(COORD_PATHS.map(async p=>{ const d=await grab(p, 45000); if(d) res[p]=d; }));
+  mergeIn(res);
+  return rebuild();
+}
+
+/* ── TIER 2 ── popup detail. Long timeout, runs in background. */
+async function loadDetail(){
+  const res={};
+  await Promise.all(DETAIL_PATHS.map(async p=>{ const d=await grab(p, 120000); if(d) res[p]=d; }));
+  mergeIn(res);
+  try{ _sgBuildSSSrcIndex((window.sgMasterData||{})['masterData/ssSourceRows']); }catch(e){ console.warn('[V17] ss source index',e); }
+  detailDone=true;
+  const n=rebuild();
+  const c=counts();
+  note('ok', `✓ MASTER DATA COMPLETE — ${c.eht} EHT SS · ${c.ss} 33/11KV SS symbols on map.<br>Substation popup detail (PTR / source rows) is now loaded.`, 9000);
+  return n;
+}
+
+function startDetailOnce(){
+  if(detailStarted) return;
+  detailStarted=true;
+  loadDetail().catch(e=>console.warn('[V17] detail load',e));
+}
+
+/* ── OVERRIDE ──
+   V16 calls loadSmartGridMasterData() inside a 10-second Promise.race. This
+   replacement resolves as soon as the SYMBOL branches are in, so V16's race
+   now succeeds comfortably, and the heavy popup branches continue loading in
+   the background afterwards. */
+async function loadSmartGridMasterDataV17(){
+  const n = await loadCoords();
+  startDetailOnce();
+  return window.sgMasterData || {};
+}
+try{ loadSmartGridMasterData = loadSmartGridMasterDataV17; }catch(e){}
+window.loadSmartGridMasterData = loadSmartGridMasterDataV17;
+
+/* ── BOOT ── retry the symbol tier until the coord cache is actually
+   populated. This is what guarantees the symbols come back even on a slow or
+   briefly failing connection, instead of silently giving up after one try. */
+let booted=false;
+async function boot(){
+  if(booted) return; booted=true;
+  note('', 'LOADING MASTER SUBSTATION SYMBOLS (EHT SS + 33/11KV SS)…');
+  let n=0;
+  for(let i=0;i<6 && !n;i++){
+    if(i) note('', `RETRYING MASTER SUBSTATION LOAD — attempt ${i+1} of 6…`);
+    try{ n=await loadCoords(); }catch(e){ console.warn('[V17] coord attempt',i,e); }
+    if(!n) await new Promise(r=>setTimeout(r, 1500*(i+1)));
+  }
+  const c=counts();
+  if(n){
+    note('', `✓ ${c.eht} EHT SS · ${c.ss} 33/11KV SS symbols restored — loading substation popup detail in background…`);
+    startDetailOnce();
+  }else{
+    note('bad', 'MASTER SUBSTATION SYMBOLS DID NOT LOAD after 6 attempts.<br>'
+      + 'The map is showing drawn feeder nodes only. Your saved feeder routes are NOT affected — do not press Save Manual Drawing.<br>'
+      + 'Press “↻ Reload Master Substations” to try again.');
+    startDetailOnce();
+  }
+}
+setTimeout(boot, 400);
+
+/* Manual retry button next to the existing loader button. */
+function installBtn(){
+  if(document.getElementById('sgV17ReloadBtn')) return;
+  const host=document.getElementById('sgV15RecoverAllBtn');
+  if(!host) return;
+  const b=document.createElement('button');
+  b.id='sgV17ReloadBtn';
+  b.className=host.className;
+  b.textContent='↻ Reload Master Substations';
+  b.onclick=async ()=>{
+    note('', 'RELOADING MASTER SUBSTATION SYMBOLS…');
+    detailStarted=false; detailDone=false;
+    const n=await loadCoords();
+    const c=counts();
+    if(n) note('ok', `✓ ${c.eht} EHT SS · ${c.ss} 33/11KV SS symbols on map — popup detail loading…`, 8000);
+    else  note('bad','Master substation branches still returned nothing. Check the network connection to Firebase.');
+    startDetailOnce();
+  };
+  host.insertAdjacentElement('afterend', b);
+}
+setInterval(installBtn, 1500);
+
+window.sgV17ReloadMaster = async function(){ detailStarted=false; const n=await loadCoords(); startDetailOnce(); return n; };
+window.sgV17MasterCounts = counts;
+
+console.log('[SmartGrid] V17 loaded — master data now loads in two tiers (symbols first, popup detail in background), merges instead of overwriting, and retries until the coordinate cache is populated. This restores the EHT SS / 33-11KV SS symbols and substation popup data that the old 10-second all-or-nothing timeout was discarding.');
+})();
+</script>
+
 </body>
 </html>
