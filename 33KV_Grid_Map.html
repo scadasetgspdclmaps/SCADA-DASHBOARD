@@ -8284,5 +8284,218 @@ console.log('[SmartGrid] V17 loaded — master data now loads in two tiers (symb
 })();
 </script>
 
+
+<style id="sgV18Style">
+#sgV18LineStyle{margin:6px 0 2px}
+.sg-v18-label{font:800 8.5px/1 Arial;letter-spacing:1.1px;color:#7dd3fc;margin-bottom:6px;text-transform:uppercase}
+.sg-v18-seg{display:flex;gap:0;border:1px solid rgba(125,211,252,.45);border-radius:7px;overflow:hidden;margin-bottom:7px}
+.sg-v18-seg button{flex:1;background:transparent;border:none;color:#cbd5e1;font:800 9px/1 Arial;letter-spacing:.7px;padding:7px 4px;cursor:pointer;transition:.15s}
+.sg-v18-seg button:hover{background:rgba(125,211,252,.14)}
+.sg-v18-seg button.on{background:#38bdf8;color:#04293d}
+.sg-v18-slider{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.sg-v18-slider input{flex:1;accent-color:#38bdf8}
+.sg-v18-slider b{font:800 9px/1 var(--mono,monospace);color:#7dd3fc;min-width:30px;text-align:right}
+.sg-v18-acts{display:flex;gap:6px}
+.sg-v18-acts button{flex:1;background:rgba(56,189,248,.12);border:1px solid rgba(125,211,252,.4);color:#bae6fd;border-radius:6px;font:800 8.5px/1 Arial;letter-spacing:.5px;padding:7px 3px;cursor:pointer}
+.sg-v18-acts button:hover{background:rgba(56,189,248,.28)}
+.sg-v18-note{font:600 8.5px/1.45 Arial;color:#94a3b8;margin-top:6px}
+</style>
+<script id="sgV18Script">
+/* ═══════════════════════════════════════════════════════════════════════
+   V18 — STRAIGHT / CURVED LINE STYLE WHEN CONNECTING TO A NEW SS
+
+   The map draws each feeder as straight segments between the vertices that
+   are actually stored in the topology (curve() returns [A,B] verbatim, by
+   design, so no phantom bows are ever invented). That means a curve cannot
+   be a render-time effect — it has to be REAL geometry.
+
+   So this block bakes the curve into the stored points at the moment the
+   connection is made. When LINE STYLE = CURVED and you finish a spur (or an
+   extend) on a substation centre, the final straight run is replaced by a
+   smooth arc of intermediate bend points. Because those points are stored
+   like any other bend, the curve:
+     • renders identically on the Smart Grid map and the full Route Map,
+     • survives Save Manual Drawing and any reload,
+     • can be nudged vertex-by-vertex afterwards like normal geometry.
+
+   Geometry: quadratic Bézier. The control point sits perpendicular to the
+   A→B chord at its midpoint, offset by (chord length × bend factor).
+   Longitude is scaled by cos(latitude) so the arc stays visually circular
+   instead of squashing east-west.
+
+   Nothing here changes existing saved feeders. It only affects the segment
+   you are drawing at the moment you complete it, plus the two explicit
+   Curve / Straighten buttons which act on the last segment on demand.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+let CURVED = false;   // OFF by default — existing behaviour is unchanged
+let BEND   = 0.18;    // perpendicular offset as a fraction of chord length
+const STEPS = 14;     // intermediate points generated per arc
+
+window.sgV18 = {get curved(){return CURVED}, get bend(){return BEND}};
+
+/* ── Arc generator ── */
+function arcPoints(a,b,bend,steps){
+  const R=Math.PI/180;
+  const kx=Math.cos(((+a.lat + +b.lat)/2)*R) || 1;   // east-west scale at this latitude
+  const ax=+a.lng*kx, ay=+a.lat, bx=+b.lng*kx, by=+b.lat;
+  const dx=bx-ax, dy=by-ay, len=Math.hypot(dx,dy);
+  if(!len || !isFinite(len)) return [];
+  const px=-dy/len, py=dx/len;                       // perpendicular unit vector
+  const cx=(ax+bx)/2 + px*len*bend;                  // Bézier control point
+  const cy=(ay+by)/2 + py*len*bend;
+  const out=[];
+  for(let i=1;i<steps;i++){
+    const t=i/steps, u=1-t;
+    const x=u*u*ax + 2*u*t*cx + t*t*bx;
+    const y=u*u*ay + 2*u*t*cy + t*t*by;
+    if(isFinite(x)&&isFinite(y)) out.push({lat:y, lng:x/kx});
+  }
+  return out;
+}
+window.sgV18ArcPoints=arcPoints;
+
+function spurPoint(p){ return {lat:p.lat,lng:p.lng,name:'BEND POINT',code:'',kind:'bend',v18curve:true}; }
+function vertPoint(p){ return {row:null,lat:p.lat,lng:p.lng,locked:false,label:'CURVE POINT',overrideName:'BEND POINT',isBend:true,moved:true,v18curve:true}; }
+
+/* ── Insert the arc just before the destination station is appended ── */
+function injectArcBefore(target){
+  if(!CURVED || !target || target.lat==null) return 0;
+  try{
+    if(sgDraft && sgDraft.mode==='drawSpur' && geomEdit && geomEdit.spurDraft && geomEdit.spurDraft.points.length){
+      const pts=geomEdit.spurDraft.points;
+      const pointsAdded=arcPoints(pts[pts.length-1], target, BEND, STEPS);
+      pointsAdded.forEach(p=>pts.push(spurPoint(p)));
+      return pointsAdded.length;
+    }
+    if(sgDraft && sgDraft.mode==='extend' && geomEdit && geomEdit.verts && geomEdit.verts.length){
+      const vs=geomEdit.verts;
+      const pointsAdded=arcPoints(vs[vs.length-1], target, BEND, STEPS);
+      pointsAdded.forEach(p=>vs.push(vertPoint(p)));
+      return pointsAdded.length;
+    }
+  }catch(e){ console.warn('[V18] arc injection failed',e); }
+  return 0;
+}
+
+/* Wrap the station-snap handler. The original still does all the real work —
+   we only pre-insert the arc points so its final straight hop becomes a curve. */
+const origApplyStation = window.sgDraftApplyStation || (typeof sgDraftApplyStation==='function'?sgDraftApplyStation:null);
+if(origApplyStation){
+  const wrapped = function(n){
+    let added=0;
+    if(n && ['drawSpur','extend'].includes(sgDraft && sgDraft.mode)) added=injectArcBefore(n);
+    const r=origApplyStation.apply(this,arguments);
+    if(added) try{ toast(`Curved connection drawn — ${added} arc points added. Press Save Manual Drawing to commit.`); }catch(e){}
+    return r;
+  };
+  try{ sgDraftApplyStation = wrapped; }catch(e){}
+  window.sgDraftApplyStation = wrapped;
+}
+
+/* ── After-the-fact controls on the last segment ── */
+function lastSegmentTargets(){
+  if(geomEdit && geomEdit.spurDraft && geomEdit.spurDraft.points && geomEdit.spurDraft.points.length>=2)
+    return {arr:geomEdit.spurDraft.points, kind:'spur'};
+  if(geomEdit && geomEdit.verts && geomEdit.verts.length>=2)
+    return {arr:geomEdit.verts, kind:'verts'};
+  return null;
+}
+
+window.sgV18CurveLast=function(){
+  const t=lastSegmentTargets();
+  if(!t){ try{toast('Open a feeder in Edit Feeder Geometry first')}catch(e){} return; }
+  try{ if(typeof sgDraftSnapshot==='function') sgDraftSnapshot(); }catch(e){}
+  const arr=t.arr;
+  // Strip any arc previously generated for this same segment so repeated
+  // presses adjust the curve instead of stacking curves on top of each other.
+  let end=arr.length-1;
+  let start=end-1;
+  while(start>0 && arr[start] && arr[start].v18curve) start--;
+  const a=arr[start], b=arr[end];
+  if(!a||!b){ try{toast('Nothing to curve')}catch(e){} return; }
+  const mid=arcPoints(a,b,BEND,STEPS).map(p=>t.kind==='spur'?spurPoint(p):vertPoint(p));
+  arr.splice(start+1, end-start-1, ...mid);
+  try{ _sgRenderEditHandles(); }catch(e){}
+  try{ toast(`Last segment curved (${mid.length} arc points, bend ${BEND.toFixed(2)})`); }catch(e){}
+};
+
+window.sgV18StraightenLast=function(){
+  const t=lastSegmentTargets();
+  if(!t){ try{toast('Open a feeder in Edit Feeder Geometry first')}catch(e){} return; }
+  try{ if(typeof sgDraftSnapshot==='function') sgDraftSnapshot(); }catch(e){}
+  const arr=t.arr;
+  const before=arr.length;
+  let end=arr.length-1, start=end-1;
+  while(start>0 && arr[start] && arr[start].v18curve) start--;
+  if(end-start>1) arr.splice(start+1, end-start-1);
+  try{ _sgRenderEditHandles(); }catch(e){}
+  try{ toast(before===arr.length?'Last segment is already straight':`Straightened — ${before-arr.length} arc points removed`); }catch(e){}
+};
+
+/* Remove every V18 arc point from the whole feeder currently open. */
+window.sgV18StraightenAll=function(){
+  const t=lastSegmentTargets();
+  if(!t){ try{toast('Open a feeder in Edit Feeder Geometry first')}catch(e){} return; }
+  try{ if(typeof sgDraftSnapshot==='function') sgDraftSnapshot(); }catch(e){}
+  const arr=t.arr, before=arr.length;
+  for(let i=arr.length-2;i>0;i--) if(arr[i] && arr[i].v18curve) arr.splice(i,1);
+  try{ _sgRenderEditHandles(); }catch(e){}
+  try{ toast(before===arr.length?'No curve points found on this feeder':`All curves removed — ${before-arr.length} points deleted`); }catch(e){}
+};
+
+/* ── Panel inside the geometry edit bar ── */
+function setMode(c){
+  CURVED=!!c;
+  const s=document.getElementById('sgV18Straight'), v=document.getElementById('sgV18Curved');
+  if(s) s.className=CURVED?'':'on';
+  if(v) v.className=CURVED?'on':'';
+  const w=document.getElementById('sgV18BendWrap');
+  if(w) w.style.display=CURVED?'flex':'none';
+  try{ toast(CURVED?'CURVED — the next connection to an SS will be drawn as an arc':'STRAIGHT — connections will be drawn as direct lines'); }catch(e){}
+}
+window.sgV18SetMode=setMode;
+window.sgV18SetBend=function(v){
+  BEND=Math.max(0.02,Math.min(0.6,parseFloat(v)||0.18));
+  const b=document.getElementById('sgV18BendVal');
+  if(b) b.textContent=BEND.toFixed(2);
+};
+
+function installPanel(){
+  const bar=document.getElementById('sgeBar');
+  if(!bar) return;
+  if(document.getElementById('sgV18LineStyle')) return;
+  const host=document.createElement('div');
+  host.id='sgV18LineStyle';
+  host.innerHTML=
+    '<div class="sg-v18-label">Line style — new SS connection</div>'
+   +'<div class="sg-v18-seg">'
+   +  '<button id="sgV18Straight" class="on" onclick="sgV18SetMode(false)">╱ Straight</button>'
+   +  '<button id="sgV18Curved" onclick="sgV18SetMode(true)">◜ Curved</button>'
+   +'</div>'
+   +'<div class="sg-v18-slider" id="sgV18BendWrap" style="display:none">'
+   +  '<span style="font:800 8.5px/1 Arial;color:#94a3b8">BEND</span>'
+   +  '<input type="range" min="0.02" max="0.60" step="0.02" value="0.18" oninput="sgV18SetBend(this.value)">'
+   +  '<b id="sgV18BendVal">0.18</b>'
+   +'</div>'
+   +'<div class="sg-v18-acts">'
+   +  '<button onclick="sgV18CurveLast()">Curve last</button>'
+   +  '<button onclick="sgV18StraightenLast()">Straighten last</button>'
+   +  '<button onclick="sgV18StraightenAll()">Clear all</button>'
+   +'</div>'
+   +'<div class="sg-v18-note">Curved bakes a real arc into the saved geometry, so it shows on the Route Map too. Press Save Manual Drawing to commit.</div>';
+  // Sit directly above the POINT CONNECTION panel when that exists.
+  const pc=document.getElementById('sgV9PointConnect');
+  if(pc && pc.parentNode===bar) bar.insertBefore(host,pc); else bar.appendChild(host);
+}
+setInterval(installPanel,900);
+setTimeout(installPanel,600);
+
+console.log('[SmartGrid] V18 loaded — LINE STYLE (straight / curved) for new SS connections. Curves are baked into stored geometry as real bend points, so they persist through save and render on the Route Map as well.');
+})();
+</script>
+
 </body>
 </html>
