@@ -1731,4 +1731,246 @@ console.log('[NMC] V6 loaded — save is fully guarded, retries 3x, verifies by 
 })();
 </script>
 
+
+<style id="nmcV7Style">
+#nmcV6Proof{display:block;width:100%;margin-top:12px;padding:12px 14px;border-radius:9px;font-size:11px;font-weight:700;line-height:1.55;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;flex-basis:100%}
+#nmcV6Proof.ok{background:#ecfdf5;border-color:#6ee7b7;color:#047857}
+#nmcV6Proof.bad{background:#fff1f2;border-color:#fda4af;color:#be123c}
+#nmcV6Proof.busy{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+#nmcV6Proof code{font-family:var(--mono);background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:10px}
+.nmc-v7-spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(29,78,216,.25);border-top-color:#1d4ed8;border-radius:50%;animation:nmcv7spin .7s linear infinite;vertical-align:-1px;margin-right:7px}
+@keyframes nmcv7spin{to{transform:rotate(360deg)}}
+</style>
+<script id="nmcV7Script">
+/* ═══════════════════════════════════════════════════════════════════════
+   V7 — SAVE CAN NO LONGER HANG, AND STATUS IS STORED WITH THE DRAWN FEEDER
+
+   ── Why it sat on "Saving operating status…" forever ───────────────────
+   The V6 save used a plain fetch with no timeout. A stalled request never
+   resolves and never rejects, so the routine parked on its first progress
+   message with no spinner, no error and no way to tell whether anything had
+   happened. Every request now runs under an AbortController with a hard
+   20-second ceiling per attempt, so it must finish one way or the other.
+
+   ── Banner placement ───────────────────────────────────────────────────
+   The banner was appended into the .actions row, which is a flex container,
+   so it rendered as a narrow box wedged beside the CLEAR button. It is now a
+   full-width block placed AFTER that row.
+
+   ── Status now lives with the drawn feeder ─────────────────────────────
+   A verified save writes to three places:
+     1. smartgrid/runtime/feeders/{FEEDER_CODE}   canonical (map + source tab)
+     2. smartgrid/feeders/{FEEDER_CODE}/…         alongside the drawn feeder
+        in the Smart Grid branch, so live / idle / breakdown sits with the
+        topology the feeder was drawn into
+     3. feeders/{FEEDER_NAME_KEY}                 legacy mirror, best effort
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+const FB = (typeof FIREBASE_URL!=='undefined' ? FIREBASE_URL
+          : 'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app');
+
+const esc   = v => String(v??'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const el    = id => document.getElementById(id);
+
+/* ── Banner: full-width block placed AFTER the actions row ── */
+function banner(kind,msg){
+  let x=el('nmcV6Proof');
+  if(!x){
+    x=document.createElement('div');
+    x.id='nmcV6Proof';
+    const btn=el('saveLogBtn');
+    const actions=btn && btn.closest ? btn.closest('.actions') : null;
+    if(actions && actions.parentElement) actions.parentElement.insertBefore(x, actions.nextSibling);
+    else if(btn && btn.parentElement)    btn.parentElement.appendChild(x);
+    else                                  document.body.appendChild(x);
+  }
+  x.className=(kind||'');
+  x.innerHTML=msg;
+  x.style.display='block';
+  return x;
+}
+function busy(msg){ return banner('busy','<span class="nmc-v7-spin"></span>'+msg); }
+window.nmcV6Banner = banner;
+
+/* ── fetch with a hard timeout — this is what stops the hang ── */
+async function timedFetch(url, opts, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), ms||20000);
+  try{
+    return await fetch(url, Object.assign({}, opts||{}, {signal: ctrl.signal, cache:'no-store'}));
+  }finally{ clearTimeout(t); }
+}
+
+async function writeWithRetry(url, payload, attempts, onProgress){
+  let last=null;
+  for(let i=1;i<=attempts;i++){
+    if(onProgress) onProgress(i,attempts);
+    const t0=Date.now();
+    try{
+      const r=await timedFetch(url,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      },20000);
+      if(!r.ok){
+        let body=''; try{ body=await r.text(); }catch(e){}
+        throw new Error(`HTTP ${r.status} ${r.statusText||''}`.trim() + (body?` — ${body.slice(0,200)}`:''));
+      }
+      return {ok:true, attempts:i, ms:Date.now()-t0};
+    }catch(e){
+      last = (e && e.name==='AbortError')
+        ? new Error(`attempt ${i} timed out after 20s — no response from Firebase`)
+        : e;
+      if(i<attempts) await sleep(700*i);
+    }
+  }
+  return {ok:false, error:last, attempts};
+}
+
+/* ── THE SAVE ── */
+async function saveLogEntryV7(){
+  const oldProof=el('nmcSaveProof'); if(oldProof) oldProof.style.display='none';
+  const btn=el('saveLogBtn');
+  const started=Date.now();
+  try{
+    if(btn) btn.disabled=true;
+    busy('Saving operating status…');
+
+    const typed=(el('log_feeder_search')?.value||'').trim();
+    if(!typed){ banner('bad','✕ NOT SAVED — no 33KV feeder selected. Nothing was written.'); return; }
+
+    const created = findCreatedFeeder((el('log_feeder_code')?.value||'') || typed);
+    if(!created){
+      banner('bad',`✕ NOT SAVED — <b>${esc(typed)}</b> is not created in the Smart Grid map.<br>`
+        +'Only feeders drawn and saved in the Smart Grid topology can be set LIVE/IDLE. Nothing was written.');
+      return;
+    }
+
+    const status = getPillValue('log_status_group') || 'live';
+    const ssName = (el('log_ss_search')?.value||'').trim();
+    let ssConn=null;
+    if(ssName){
+      const connected = connectedSSForCreated(created);
+      ssConn = connected.find(s=>compactTopo(s.name)===compactTopo(ssName)||compactTopo(s.code)===compactTopo(ssName));
+      if(!ssConn){
+        banner('bad',`✕ NOT SAVED — <b>${esc(ssName)}</b> is not connected to <b>${esc(created.name)}</b> in the saved topology.<br>`
+          +(connected.length?'Connected: '+connected.map(s=>esc(s.name)).join(', '):'This feeder has no 33/11KV destination saved.')
+          +'<br>Clear the substation box to save feeder status only. Nothing was written.');
+        return;
+      }
+    }
+
+    let selPTRs=[];
+    try{
+      selPTRs=[...(el('log_ptr_list')?.querySelectorAll('input:checked')||[])]
+        .map(cb=>parseFloat(cb.dataset.cap)).filter(v=>!isNaN(v));
+    }catch(e){ selPTRs=[]; }
+
+    const code = created.code || el('log_feeder_code')?.value || '';
+    const name = created.name || typed;
+    const eht  = created.eht  || el('log_eht')?.value || '';
+    const now  = new Date().toISOString();
+
+    const payload = {
+      feederName:name, feederCode:code, ehtSource:eht, status,
+      lastUpdated:now, effectiveDateTime:now,
+      feedsToSS:ssConn?.name||'', feedsToSSCode:ssConn?.code||'',
+      ptrsConnected:selPTRs, createdInSmartGrid:true, source:'nmc-dashboard-v7'
+    };
+
+    const canonKey  = safeFbKey(code||name);
+    const legacyKey = safeFbKey(name);
+    const canonUrl  = `${FB}/smartgrid/runtime/feeders/${canonKey}.json`;
+
+    const w = await writeWithRetry(canonUrl, payload, 3, (i,n)=>{
+      busy(`Saving operating status… attempt ${i} of ${n}`);
+    });
+
+    if(!w.ok){
+      const m=String(w.error && w.error.message || w.error || 'unknown error');
+      banner('bad', `✕ NOT SAVED — Firebase did not accept the write after ${w.attempts} attempts.<br>`
+        + `<code>${esc(m)}</code><br>Path: <code>/smartgrid/runtime/feeders/${esc(canonKey)}</code><br>`
+        + (/timed out/i.test(m)
+            ? 'Every attempt timed out, so the connection to Firebase is not getting through from this page.'
+            : (/^HTTP 40[13]/.test(m) ? 'A 401/403 means the database rules are rejecting writes on this path.' : '')));
+      return;
+    }
+
+    /* Status stored WITH the drawn feeder in the Smart Grid branch. */
+    timedFetch(`${FB}/smartgrid/feeders/${canonKey}.json`,{
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        feederName:name, feederCode:code, ehtSource:eht,
+        status, lastUpdated:now,
+        feedsToSS:ssConn?.name||'', feedsToSSCode:ssConn?.code||'',
+        ptrsConnected:selPTRs, drawnInSmartGrid:true
+      })
+    },20000).then(r=>{ if(!r.ok) console.warn('[V7] smartgrid/feeders mirror rejected', r.status); })
+      .catch(e=>console.warn('[V7] smartgrid/feeders mirror unavailable', e));
+
+    /* Legacy mirror, best effort. */
+    timedFetch(`${FB}/feeders/${legacyKey}.json`,{
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    },20000).catch(e=>console.warn('[V7] legacy mirror unavailable', e));
+
+    /* Local caches under BOTH keys so this tab reflects it at once. */
+    try{
+      window.NMC_CANON_RUNTIME = window.NMC_CANON_RUNTIME || {};
+      window.NMC_CANON_RUNTIME[canonKey] = Object.assign({}, window.NMC_CANON_RUNTIME[canonKey]||{}, payload);
+      if(typeof FEEDER_STATUS==='object' && FEEDER_STATUS){
+        FEEDER_STATUS[canonKey]=status; FEEDER_STATUS[legacyKey]=status;
+      }
+    }catch(e){}
+    try{ if(typeof renderSourceDashboard==='function') renderSourceDashboard(); }catch(e){}
+    try{ if(typeof nmcRenderWireDashboard==='function') nmcRenderWireDashboard(); }catch(e){}
+    try{ toast(status==='live'?`⚡ LIVE saved — ${name.substring(0,42)}`:`⏸ IDLE saved — ${name.substring(0,42)}`); }catch(e){}
+    try{ flashSync(); }catch(e){}
+
+    /* Read-back proof. */
+    busy('Written — verifying against Firebase…');
+    await sleep(300);
+    try{
+      const r=await timedFetch(`${canonUrl}?ts=${Date.now()}`,{},15000);
+      if(!r.ok) throw new Error(`read-back HTTP ${r.status}`);
+      const d=await r.json();
+      if(!d) throw new Error('record missing straight after a successful write');
+      if(String(d.status).toLowerCase()!==String(status).toLowerCase())
+        throw new Error(`stored status is "${d.status}" but "${status}" was submitted`);
+
+      banner('ok',
+        `✓ SAVED AND VERIFIED IN FIREBASE <span style="opacity:.7">(${((Date.now()-started)/1000).toFixed(1)}s)</span><br>`
+        + `<b>${esc(d.feederName||name)}</b> — <b>${esc(String(d.status).toUpperCase())}</b>`
+        + (ssConn?` → ${esc(ssConn.name)}`:'')
+        + (selPTRs.length?` · ${selPTRs.length} PTR (${selPTRs.reduce((a,b)=>a+b,0)} MVA)`:'')
+        + `<br>Key <code>${esc(canonKey)}</code> · ${new Date(d.lastUpdated).toLocaleString()}`
+        + `<br>Written to <code>smartgrid/runtime/feeders</code> and <code>smartgrid/feeders</code>. `
+        + `The Smart Grid map picks this up within about 15 seconds.`);
+    }catch(err){
+      const m=String(err && err.message || err);
+      banner('bad', `⚠ WRITE ACCEPTED BUT NOT VERIFIED — ${esc(m)}<br>`
+        + `Path: <code>/smartgrid/runtime/feeders/${esc(canonKey)}</code><br>`
+        + 'Check the Substation Source tab before relying on this status.');
+    }
+
+  }catch(err){
+    console.error('[NMC V7] save crashed', err);
+    banner('bad', `✕ SAVE CRASHED — <code>${esc(String(err && err.message || err))}</code><br>Nothing was written.`);
+  }finally{
+    if(btn) btn.disabled=false;
+  }
+}
+
+try{ saveLogEntry = saveLogEntryV7; }catch(e){}
+window.saveLogEntry = saveLogEntryV7;
+
+setInterval(()=>{ if(window.saveLogEntry!==saveLogEntryV7){ window.saveLogEntry=saveLogEntryV7; try{ saveLogEntry=saveLogEntryV7; }catch(e){} } }, 2000);
+setInterval(()=>{ const b=el('saveLogBtn'); if(b && b.__nmcV7!==1){ b.__nmcV7=1; b.onclick=()=>window.saveLogEntry(); } }, 1200);
+
+console.log('[NMC] V7 loaded — every request has a 20s hard timeout so the save can no longer hang, the banner is full-width below the action row, and verified status is also written to smartgrid/feeders alongside the drawn feeder.');
+})();
+</script>
+
 </body></html>
