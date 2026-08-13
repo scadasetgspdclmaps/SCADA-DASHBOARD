@@ -8497,5 +8497,209 @@ console.log('[SmartGrid] V18 loaded — LINE STYLE (straight / curved) for new S
 })();
 </script>
 
+
+<style id="sgV19Style">
+#sgV19Warn{position:fixed;z-index:13800;left:370px;top:190px;max-width:700px;padding:10px 13px;border-radius:9px;background:#fff7ed;border:1px solid #fb923c;color:#9a3412;font:800 10px/1.5 Arial;box-shadow:0 5px 16px rgba(0,0,0,.15)}
+#sgV19Warn .x{float:right;cursor:pointer;opacity:.6;margin-left:12px}
+@media(max-width:800px){#sgV19Warn{left:10px;right:10px}}
+</style>
+<script id="sgV19Script">
+/* ═══════════════════════════════════════════════════════════════════════
+   V19 — THREE REAL BUGS FIXED
+
+   ── BUG 1 · Edited feeder geometry vanished after refresh ──────────────
+   `rows` is declared `let rows=[]` at top level. A top-level `let` does NOT
+   create a window property, so `window.rows` is a SEPARATE reference that is
+   only assigned by the recovery scripts (`rows=best.data.rows; window.rows=rows`).
+
+   saveFeederEdit() commits an edit with `rows = rows.filter(...)` — that
+   REBINDS the lexical `rows` to a brand-new array, while `window.rows` keeps
+   pointing at the OLD pre-edit array. The save routine reads
+   `rr(){return window.rows||rows}` — i.e. the STALE array — so:
+     • the map redrew correctly (render() uses the lexical rows), but
+     • the PUT body contained the OLD rows, and
+     • read-back verification compared the old data against itself and PASSED,
+       printing "✓ VERIFIED SAVED".
+   Reload → the edit was gone, with no error ever shown. Exactly the reported
+   "editing a feeder path is not showing after refresh".
+
+   FIX: keep window.rows pointing at the live lexical array — before every
+   save and continuously — so every writer serialises what is actually drawn.
+
+   ── BUG 2 · "SAVING… do not close this page" could hang forever ─────────
+   The save helper is a bare fetch with no timeout and no AbortController. If
+   any of its five awaited requests stalls, the receipt stays on "SAVING…"
+   permanently — no error, no timer, no finally. A watchdog now reports it.
+
+   ── BUG 3 · SS/EHT symbols intermittently vanished (0 EHT SS · 0 33/11KV) ─
+   My own V17 rebuild was destructive: it set _sgMasterCoordCache = null and
+   THEN rebuilt. When the rebuild threw or produced nothing — which happens
+   once the heavy tier-2 branches are merged and the flat-record walk gets
+   very large — the cache was left empty and every fixed station symbol
+   disappeared, even though a perfectly good cache had existed a moment
+   earlier. That is why the same page showed 401 nodes on one load and 28 on
+   the next. The cache build is now non-destructive: it can never downgrade a
+   populated cache to an empty one.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+/* ───────────────────────── BUG 3 · non-destructive coord cache ───────── */
+let bestCache = null;
+const origBuildCache = (typeof sgMasterBuildCoordCache==='function') ? sgMasterBuildCoordCache : null;
+
+if(origBuildCache){
+  const guardedBuild = function(){
+    const prev  = window._sgMasterCoordCache;
+    const prevN = (prev && prev.all || []).length;
+    if(prevN > 0) bestCache = prev;
+
+    let out = null;
+    try{ out = origBuildCache.apply(this, arguments); }
+    catch(e){ console.warn('[V19] coord cache build threw', e); out = null; }
+
+    const cur  = window._sgMasterCoordCache;
+    const curN = (cur && cur.all || []).length;
+    if(curN > 0){ bestCache = cur; return cur; }
+
+    // The build produced nothing. Never blank the map — put back the best
+    // populated cache we have ever held.
+    const restore = (prevN > 0 ? prev : bestCache);
+    if(restore && (restore.all || []).length){
+      window._sgMasterCoordCache = restore;
+      console.warn('[V19] coord build returned 0 points — restored previous good cache ('+restore.all.length+' points)');
+      return restore;
+    }
+    return out;
+  };
+  try{ sgMasterBuildCoordCache = guardedBuild; }catch(e){}
+  window.sgMasterBuildCoordCache = guardedBuild;
+}
+
+/* Safety net: if anything nulls the cache outright, put the good one back. */
+setInterval(function(){
+  try{
+    const c = window._sgMasterCoordCache;
+    const n = (c && c.all || []).length;
+    if(n > 0){ bestCache = c; return; }
+    if(bestCache && (bestCache.all||[]).length){
+      window._sgMasterCoordCache = bestCache;
+      try{ sgRefreshSubstationCounts(); }catch(e){}
+      try{ render(); }catch(e){}
+      console.warn('[V19] master coord cache was empty — restored '+bestCache.all.length+' points');
+    }
+  }catch(e){}
+}, 3000);
+
+/* ───────────────────────── BUG 1 · rows / window.rows sync ───────────── */
+function syncRows(reason){
+  try{
+    if(typeof rows === 'undefined' || !Array.isArray(rows)) return false;
+    if(window.rows !== rows){
+      window.rows = rows;
+      if(reason) console.warn('[V19] window.rows re-synced to the live array ('+rows.length+' rows) — '+reason);
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+window.sgV19SyncRows = syncRows;
+
+/* Continuous sync so EVERY writer (V14 saveFirebase, sgV5PersistTopology,
+   payload builders) serialises the array that is actually rendered. */
+setInterval(function(){ syncRows(''); }, 400);
+syncRows('startup');
+
+/* ───────────────────── BUG 1 + 2 · guarded save wrapper ──────────────── */
+function warn(msg){
+  let x=document.getElementById('sgV19Warn');
+  if(!x){ x=document.createElement('div'); x.id='sgV19Warn'; document.body.appendChild(x); }
+  x.innerHTML='<span class="x" onclick="this.parentNode.style.display=\'none\'">✕</span>'+msg;
+  x.style.display='block';
+}
+function clearWarn(){ const x=document.getElementById('sgV19Warn'); if(x) x.style.display='none'; }
+
+const origSaveFirebase = window.saveFirebase;
+if(typeof origSaveFirebase === 'function'){
+  const guardedSave = async function(){
+    clearWarn();
+    // Make sure the edit that was just committed is the thing we serialise.
+    syncRows('about to save');
+
+    let settled = false;
+    // Watchdog: the underlying save has no request timeout, so a stalled
+    // connection would otherwise leave "SAVING…" on screen forever.
+    const t1 = setTimeout(function(){
+      if(settled) return;
+      const r = document.getElementById('sgV14SaveReceipt');
+      if(r && /saving/i.test(r.className||'')){
+        warn('⏳ The save has been running for 25 seconds with no response from Firebase.<br>'
+           + 'It has NOT failed yet and your drawing is safe in this browser — but the connection may have stalled.<br>'
+           + 'Wait a little longer, then press <b>Save Manual Drawing</b> again. Do not clear the drawing.');
+      }
+    }, 25000);
+    const t2 = setTimeout(function(){
+      if(settled) return;
+      const r = document.getElementById('sgV14SaveReceipt');
+      if(r && /saving/i.test(r.className||'')){
+        warn('✕ The save has been stuck for 60 seconds — the request never came back.<br>'
+           + 'Your drawing is still intact in this browser. Check the network connection to Firebase, then press '
+           + '<b>Save Manual Drawing</b> again. Do NOT press Clear Drawing and do NOT close this page.');
+      }
+    }, 60000);
+
+    try{
+      const r = await origSaveFirebase.apply(this, arguments);
+      settled = true; clearTimeout(t1); clearTimeout(t2);
+      if(r) clearWarn();
+      return r;
+    }catch(e){
+      settled = true; clearTimeout(t1); clearTimeout(t2);
+      warn('✕ SAVE THREW AN ERROR — '+String(e && e.message || e)+'<br>Your drawing is still intact in this browser.');
+      throw e;
+    }
+  };
+  try{ saveFirebase = guardedSave; }catch(e){}
+  window.saveFirebase = guardedSave;
+}
+
+/* Also sync immediately after a geometry edit is committed, before the
+   deferred sgV5PersistTopology() write fires 300 ms later. */
+const origSaveEdit = window.saveFeederEdit;
+if(typeof origSaveEdit === 'function'){
+  const wrappedEdit = function(){
+    const r = origSaveEdit.apply(this, arguments);
+    syncRows('feeder geometry committed');
+    setTimeout(function(){ syncRows('post-edit settle'); }, 60);
+    return r;
+  };
+  try{ saveFeederEdit = wrappedEdit; }catch(e){}
+  window.saveFeederEdit = wrappedEdit;
+}
+
+/* Diagnostic helper — run sgV19Check() in the console at any time. */
+window.sgV19Check = function(){
+  // Every lookup is individually guarded: `typeof` still throws a
+  // ReferenceError for a top-level `let` binding that is not reachable from
+  // the calling realm, so a bare typeof guard is not safe here.
+  const grab = fn => { try{ const v = fn(); return v; }catch(e){ return null; } };
+  const lex  = grab(()=>rows);
+  const topo = grab(()=>topology);
+  const info = {
+    lexicalRows : Array.isArray(lex) ? lex.length : 'n/a',
+    windowRows  : Array.isArray(window.rows) ? window.rows.length : 'n/a',
+    sameArray   : (Array.isArray(lex) && lex === window.rows),
+    connections : Array.isArray(topo) ? topo.length : 'n/a',
+    masterPoints: ((window._sgMasterCoordCache && window._sgMasterCoordCache.all) || []).length,
+    bestCacheHeld: ((bestCache && bestCache.all) || []).length
+  };
+  try{ console.table(info); }catch(e){ console.log(info); }
+  return info;
+};
+
+console.log('[SmartGrid] V19 loaded — window.rows kept in sync with the live array (edited geometry now actually saves), save watchdog added, and the master coordinate cache can no longer be downgraded to empty. Run sgV19Check() to inspect state.');
+})();
+</script>
+
 </body>
 </html>
