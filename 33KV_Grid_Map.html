@@ -8701,5 +8701,98 @@ console.log('[SmartGrid] V19 loaded — window.rows kept in sync with the live a
 })();
 </script>
 
+
+<style id="sgV20Style">
+/* ═══════════════════════════════════════════════════════════════════════
+   V20 — ENERGY FLOW READS AS FLOW, NOT AS A DASHED LINE
+
+   The old overlay used stroke-dasharray: 2 18 — a 2px speck followed by an
+   18px gap, repeated. Animating that just marches a picket fence along the
+   cable, which is exactly why it looked "dashed" rather than "flowing".
+
+   The fix is a conductor-plus-pulse model, the way the reference dashboards
+   do it: the feeder line itself stays solid and continuous (that is the
+   conductor), and a long luminous segment travels along it (that is the
+   current). One long lit run inside a long gap reads as a comet of light
+   moving down the cable instead of a row of ticks.
+
+   Core and halo share the SAME 120px period and the SAME duration, so they
+   travel locked together — the halo is longer, so it trails the core and
+   gives the pulse a soft tail. Offset animates exactly one full period
+   (-120), which makes the loop seamless with no visible jump.
+
+   Purely visual. No data, no layers, no geometry, no map behaviour touched.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes sgV20Pulse { to { stroke-dashoffset: -120; } }
+
+/* Bright core of the travelling pulse. */
+.leaflet-overlay-pane path.sg-flow-forward{
+  stroke:#e8fdff !important;
+  stroke-width:2.1 !important;
+  stroke-dasharray:20 100 !important;      /* period 120 */
+  stroke-linecap:round !important;
+  stroke-opacity:1 !important;
+  opacity:1 !important;
+  animation:sgV20Pulse 2.4s linear infinite !important;
+  filter:drop-shadow(0 0 3px rgba(232,253,255,.98))
+         drop-shadow(0 0 9px rgba(56,208,255,.85))
+         drop-shadow(0 0 18px rgba(0,170,255,.45)) !important;
+  pointer-events:none !important;
+}
+
+/* Softer, longer glow that trails the core — this is what turns a moving
+   dash into a comet. Same period and duration, so they never drift apart. */
+.leaflet-overlay-pane path.sg-flow-halo{
+  stroke:#5ee7ff !important;
+  stroke-width:5.5 !important;
+  stroke-dasharray:42 78 !important;       /* period 120 */
+  stroke-linecap:round !important;
+  opacity:.30 !important;
+  animation:sgV20Pulse 2.4s linear infinite !important;
+  filter:drop-shadow(0 0 10px rgba(56,208,255,.85))
+         drop-shadow(0 0 22px rgba(0,150,255,.55)) !important;
+  pointer-events:none !important;
+}
+
+/* The energised conductor underneath: continuous, gently lit, never dashed. */
+.leaflet-overlay-pane path.sg-runtime-live{
+  stroke-dasharray:none !important;
+  filter:drop-shadow(0 0 3px rgba(34,211,238,.45))
+         drop-shadow(0 0 9px rgba(34,211,238,.22)) !important;
+}
+/* Idle cables recede so energised ones read first. */
+.leaflet-overlay-pane path.sg-runtime-idle{ opacity:.34 !important; }
+
+/* Breakdown: a slow red breathing pulse rather than a hard blink. */
+@keyframes sgV20Fault{
+  0%,100%{ stroke-opacity:1;   filter:drop-shadow(0 0 4px rgba(239,68,68,.95)) drop-shadow(0 0 12px rgba(239,68,68,.6)); }
+  50%    { stroke-opacity:.35; filter:drop-shadow(0 0 2px rgba(239,68,68,.5)); }
+}
+.leaflet-overlay-pane path.sg-runtime-breakdown{
+  animation:sgV20Fault 1.5s ease-in-out infinite !important;
+}
+</style>
+<script id="sgV20Script">
+(function(){
+'use strict';
+/* The flow overlay polylines are created with inline dashArray/opacity by the
+   render loop. The stylesheet above already wins on specificity + source
+   order, but Leaflet re-applies inline stroke attributes on every redraw, so
+   nothing here needs to run on a timer — this block only exposes a small
+   control so the pulse speed can be tuned live without touching the file. */
+window.sgV20SetFlowSpeed = function(seconds){
+  const s = Math.max(0.6, Math.min(8, parseFloat(seconds) || 2.4));
+  let st = document.getElementById('sgV20Speed');
+  if(!st){ st = document.createElement('style'); st.id='sgV20Speed'; document.head.appendChild(st); }
+  st.textContent =
+    `.leaflet-overlay-pane path.sg-flow-forward{animation-duration:${s}s!important}`
+  + `.leaflet-overlay-pane path.sg-flow-halo{animation-duration:${s}s!important}`;
+  return s;
+};
+console.log('[SmartGrid] V20 loaded — energy flow now renders as a travelling luminous pulse on a solid conductor instead of a marching dashed line. Tune with sgV20SetFlowSpeed(seconds).');
+})();
+</script>
+
 </body>
 </html>
