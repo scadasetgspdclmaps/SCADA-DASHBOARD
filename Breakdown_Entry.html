@@ -878,23 +878,25 @@ function updatePTRTotal(){
 }
 
 async function saveLogEntry(){
+  window.__lastLogSaveError=null;
+  const fail=(msg)=>{window.__lastLogSaveError=msg;toast(msg,true);};
   const typed=$('log_feeder_search').value.trim(),created=findCreatedFeeder($('log_feeder_code').value||typed),status=getPillValue('log_status_group')||'live';
-  if(!typed){toast('Pick a 33KV Feeder',true);return;}
-  if(!created){toast('FEEDER NOT CREATED IN SMART GRID MAP — draw/save it first',true);return;}
+  if(!typed){fail('Pick a 33KV Feeder');return;}
+  if(!created){fail('FEEDER NOT CREATED IN SMART GRID MAP — draw/save it first');return;}
   const ssName=$('log_ss_search').value.trim();let ssConn=null;
-  if(ssName){ssConn=connectedSSForCreated(created).find(s=>compactTopo(s.name)===compactTopo(ssName)||compactTopo(s.code)===compactTopo(ssName));if(!ssConn){toast('Selected SS is not connected to this feeder in Smart Grid',true);return;}}
+  if(ssName){ssConn=connectedSSForCreated(created).find(s=>compactTopo(s.name)===compactTopo(ssName)||compactTopo(s.code)===compactTopo(ssName));if(!ssConn){fail('Selected SS is not connected to this feeder in Smart Grid');return;}}
   const selPTRs=[...$('log_ptr_list').querySelectorAll('input:checked')].map(cb=>parseFloat(cb.dataset.cap));
   const code=created.code||$('log_feeder_code').value||'',name=created.name||typed,eht=created.eht||$('log_eht').value||'',now=nowISO();
   const payload={feederName:name,feederCode:code,ehtSource:eht,status,lastUpdated:now,effectiveDateTime:now,feedsToSS:ssConn?.name||'',feedsToSSCode:ssConn?.code||'',ptrsConnected:selPTRs,createdInSmartGrid:true,source:'nmc-dashboard-v3'};
   const canonicalKey=safeFbKey(code||name),legacyKey=safeFbKey(name);
   try{
     const a=await fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${canonicalKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    if(!a.ok)throw new Error(`Canonical Smart Grid write rejected (HTTP ${a.status})`);
+    if(!a.ok){let detail='';try{detail=await a.text()}catch(_){}throw new Error(`Canonical Smart Grid write rejected (HTTP ${a.status})${detail?': '+detail.substring(0,200):''}`);}
     // Legacy mirror is compatibility-only. Its security rules must not turn a
     // successful canonical save into a false "not saved" result.
     fetch(`${FIREBASE_URL}/feeders/${legacyKey}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(r=>{if(!r.ok)console.warn('Legacy feeder mirror rejected',r.status)}).catch(e=>console.warn('Legacy feeder mirror unavailable',e));
     FEEDER_STATUS[legacyKey]=status;toast(status==='live'?`⚡ LIVE saved — ${name.substring(0,42)}`:`⏸ IDLE saved — ${name.substring(0,42)}`);$('log_status_msg').textContent=`Saved to Smart Grid runtime: ${new Date().toLocaleString()}`;flashSync();
-  }catch(err){toast('Save failed: '+err.message,true);}
+  }catch(err){console.error('[NMC] saveLogEntry failed',err);fail('Save failed: '+err.message);}
 }
 
 function clearPane(name){
@@ -1448,7 +1450,28 @@ window.nmcToggleWire=function(id){document.getElementById(id)?.classList.toggle(
 window.nmcRenderWireDashboard=function(){const host=document.getElementById('sourceDashboard');if(!host)return;const q=String(document.getElementById('sourceSearch')?.value||'').toUpperCase(),filter=document.getElementById('sourceFilter')?.value||'all',stations=(MANUAL_SS_INDEX||[]).filter(s=>!q||`${s.name} ${s.code}`.toUpperCase().includes(q));let lc=0,ic=0,bc=0;stations.forEach(s=>s.feeders.forEach(f=>{const st=li(f).status;st==='live'?lc++:st==='breakdown'?bc++:ic++}));host.innerHTML=`<div class="source-summary"><div class="source-kpi"><b>${stations.length}</b><span>CREATED SUBSTATIONS</span></div><div class="source-kpi"><b>${lc}</b><span>LIVE CONNECTIONS</span></div><div class="source-kpi"><b>${ic}</b><span>IDLE OPTIONS</span></div><div class="source-kpi"><b>${bc}</b><span>BREAKDOWNS</span></div></div><div class="source-note">Click a substation to open its one-line wireframe. Only physically drawn Smart Grid feeders appear. Unknown loading stays CHECK / UNKNOWN.</div>${stations.map((ss,si)=>{const all=[...ss.feeders.values()],shown=all.filter(f=>filter==='all'||li(f).status===filter),running=all.filter(f=>li(f).status==='live'),regular=all.find(f=>/REGULAR/i.test(f.role||''))||running[0]||all[0],rx=regular?li(regular):null,rptr=regular?ptrs(ss,regular):[],wid='wireSS'+si;return `<div class="source-ss"><div class="source-ss-h" onclick="nmcToggleWire('${wid}')"><div><b>${e(ss.name)}</b><br><span>${e(ss.code||'NO SS CODE')} · ${all.length} physically created source relationship(s)</span></div><div><span>RUNNING: ${running.length?e(running.map(f=>f.name).join(', ')):'NONE RECORDED'}</span> <button class="ss-open-btn">OPEN WIREFRAME ▾</button></div></div><div class="source-wire" id="${wid}"><div class="wire-grid"><div class="wire-node eht"><small>EHT SOURCE SS</small><strong>${e(regular?.eht||'CHECK / UNKNOWN')}</strong></div><div class="wire-line"></div><div class="wire-node"><small>33KV FEEDER · ${e(regular?.role||'ROLE CHECK')}</small><strong>${e(regular?.name||'NO CREATED FEEDER')}</strong><small>${e(regular?.code||'NO FEEDER CODE')} · ${e((rx?.status||'unknown').toUpperCase())}</small>${rx?meter(rx):''}<small>Load ${rx?.load??'CHECK'} / Capacity ${rx?.cap??'CHECK'} · Headroom ${rx?.head??'CHECK'}</small></div><div class="wire-line"></div><div class="wire-stack">${rptr.length?rptr.map(p=>{const pp=p.load!==null&&p.capacity?Math.min(100,p.load/p.capacity*100):0;return `<div class="wire-node ptr"><small>${e(p.name)} · ${e(p.role||'Connected')}</small><strong>${p.load??'CHECK'} / ${p.capacity??'CHECK'} MVA</strong><div class="wire-meter"><i style="width:${pp}%"></i></div></div>`}).join(''):'<div class="wire-node ptr"><strong>PTR LOADING: CHECK / UNKNOWN</strong><small>No PTR-wise loading fields were supplied.</small></div>'}</div></div><div class="wire-alt-grid">${shown.filter(f=>f!==regular).map(f=>{const x=li(f);return `<div class="wire-node"><small>${e(f.role||'ALTERNATE / ROLE CHECK')} · ${e(x.status.toUpperCase())}</small><strong>${e(f.name)}</strong><small>${e(f.eht||'EHT CHECK')} · ${e(f.code||'NO CODE')}</small>${meter(x)}<small>Load ${x.load??'CHECK'} / Capacity ${x.cap??'CHECK'} · Headroom ${x.head??'CHECK'}</small><div class="wire-decision">${e(decision(x))}</div></div>`}).join('')||'<div class="wire-empty">No other created feeder option matches this view.</div>'}</div></div></div>`}).join('')||'<div class="source-note">No physically created substations are available.</div>'}`};
 const oldRender=window.renderSourceDashboard;window.renderSourceDashboard=function(){nmcRenderWireDashboard()};
 function proof(kind,msg){let x=document.getElementById('nmcSaveProof');if(!x){x=document.createElement('div');x.id='nmcSaveProof';x.className='save-proof';document.getElementById('saveLogBtn')?.parentElement?.appendChild(x)}if(x){x.className='save-proof '+kind;x.innerHTML=msg}}
-const oldSave=window.saveLogEntry;window.saveLogEntry=saveLogEntry=async function(){proof('','Saving and verifying…');const before=Date.now(),typed=document.getElementById('log_feeder_search')?.value?.trim()||'',created=findCreatedFeeder(document.getElementById('log_feeder_code')?.value||typed),wanted=getPillValue('log_status_group')||'live';await oldSave.apply(this,arguments);if(!created)return;const key=safeFbKey(created.code||created.name);try{const r=await fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${key}.json?ts=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json(),savedAt=Date.parse(d?.lastUpdated||0)||0;if(!d||String(d.status).toLowerCase()!==wanted)throw new Error('saved status does not match');if(savedAt<before-2000)throw new Error('read-back is an older record, so this click was not saved');proof('ok',`✓ VERIFIED SAVED<br>${e(d.feederName||created.name)} · ${e(String(d.status).toUpperCase())}<br>${new Date(d.lastUpdated).toLocaleString()} · Firebase read-back confirmed`)}catch(err){proof('bad',`✕ SAVE NOT VERIFIED — ${e(err.message)}<br>Do not assume the operating status was saved.`)}};
+const oldSave=window.saveLogEntry;window.saveLogEntry=saveLogEntry=async function(){
+  proof('','Saving and verifying…');
+  const before=Date.now(),typed=document.getElementById('log_feeder_search')?.value?.trim()||'',created=findCreatedFeeder(document.getElementById('log_feeder_code')?.value||typed),wanted=getPillValue('log_status_group')||'live';
+  window.__lastLogSaveError=null;
+  await oldSave.apply(this,arguments);
+  // If the underlying save aborted before ever calling Firebase (missing feeder,
+  // SS not connected, etc.) that exact reason is captured — show it immediately
+  // instead of a confusing "does not match" from checking a record that was
+  // never written in the first place.
+  if(window.__lastLogSaveError){proof('bad',`✕ NOT SAVED — ${e(window.__lastLogSaveError)}<br>Firebase was never contacted for this click.`);return;}
+  if(!created){proof('bad','✕ NOT SAVED — feeder could not be resolved against the saved Smart Grid topology.');return;}
+  const key=safeFbKey(created.code||created.name);
+  try{
+    const r=await fetch(`${FIREBASE_URL}/smartgrid/runtime/feeders/${key}.json?ts=${Date.now()}`,{cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status+' reading back the saved record — check Firebase Realtime Database rules allow public read on /smartgrid/runtime/feeders');
+    const d=await r.json(),savedAt=Date.parse(d?.lastUpdated||0)||0;
+    if(!d)throw new Error('no record exists at this path after saving — the write was likely rejected by Firebase security rules (check that PATCH/write is allowed, not just read, on /smartgrid/runtime/feeders)');
+    if(String(d.status).toLowerCase()!==wanted)throw new Error('saved status does not match what was submitted — an older or different write won the race');
+    if(savedAt<before-2000)throw new Error('read-back is an older record, so this click was not saved');
+    proof('ok',`✓ VERIFIED SAVED<br>${e(d.feederName||created.name)} · ${e(String(d.status).toUpperCase())}<br>${new Date(d.lastUpdated).toLocaleString()} · Firebase read-back confirmed`)
+  }catch(err){proof('bad',`✕ SAVE NOT VERIFIED — ${e(err.message)}<br>Do not assume the operating status was saved.`)}
+};
 setTimeout(()=>{if(document.getElementById('pane-source')?.classList.contains('active'))nmcRenderWireDashboard()},1400);
 console.log('[NMC] V5 expandable substation one-line wireframes and verified status receipts loaded.');
 })();
