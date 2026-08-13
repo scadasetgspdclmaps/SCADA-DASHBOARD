@@ -1477,4 +1477,258 @@ console.log('[NMC] V5 expandable substation one-line wireframes and verified sta
 })();
 </script>
 
+
+<style id="nmcV6Style">
+.nmc-v6-proof{display:block;margin-top:10px;padding:12px 14px;border-radius:9px;font-size:11px;font-weight:700;line-height:1.5;border:1px solid #cbd5e1;background:#f8fafc;color:#475569}
+.nmc-v6-proof.ok{background:#ecfdf5;border-color:#6ee7b7;color:#047857}
+.nmc-v6-proof.bad{background:#fff1f2;border-color:#fda4af;color:#be123c}
+.nmc-v6-proof.busy{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+.nmc-v6-proof code{font-family:var(--mono);background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:10px}
+</style>
+<script id="nmcV6Script">
+/* ═══════════════════════════════════════════════════════════════════════
+   V6 — RELIABLE + SELF-DIAGNOSING "SAVE OPERATING STATUS"
+
+   WHAT WAS WRONG
+   1. Several validation paths in saveLogEntry() returned after only a toast,
+      which fades in ~2s. If you looked away you saw nothing at all and the
+      status was never written — indistinguishable from "the button is dead".
+   2. Anything that threw BEFORE the try{} block (a missing element, a bad
+      PTR value) escaped as an unhandled promise rejection: no toast, no
+      write, no error — the click did nothing, silently.
+   3. On a successful write the code set FEEDER_STATUS under the feeder NAME
+      key only. The Substation Source tab reads NMC_CANON_RUNTIME under the
+      feeder CODE key first, so a fresh save often did not appear there until
+      the next 15s poll — and that poll only runs while that tab is open.
+   4. A rejected Firebase write reported just "HTTP nnn" with no response
+      body, so there was no way to tell a rules rejection from a network drop.
+
+   WHAT THIS DOES
+   • One authoritative saveLogEntry, fully wrapped — nothing can fail silently.
+   • A PERSISTENT banner under the Save button after every click: what was
+     written, where, and on failure the exact reason including Firebase's own
+     response body.
+   • 3 write attempts with backoff before declaring failure.
+   • On success: updates BOTH the canonical code key and the legacy name key
+     in the local caches, then immediately re-renders the Substation Source
+     tab so the change shows without waiting for a poll.
+   • Read-back verification straight from Firebase to prove it persisted.
+   • A global unhandled-rejection trap so any future silent failure surfaces.
+
+   The Smart Grid map is a separate page: it polls this same canonical branch
+   every 15s and also listens on EventSource, so a verified save appears there
+   within a few seconds. Nothing here touches feeder geometry or topology.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+const FB = (typeof FIREBASE_URL!=='undefined' ? FIREBASE_URL
+          : 'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app');
+
+const esc = v => String(v??'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const el = id => document.getElementById(id);
+
+/* ── Persistent banner under the Save button ── */
+function banner(kind,msg){
+  let x=el('nmcV6Proof');
+  if(!x){
+    x=document.createElement('div');
+    x.id='nmcV6Proof';
+    const btn=el('saveLogBtn');
+    (btn && btn.parentElement ? btn.parentElement : document.body).appendChild(x);
+  }
+  x.className='nmc-v6-proof '+(kind||'');
+  x.innerHTML=msg;
+  try{ x.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(e){}
+  return x;
+}
+window.nmcV6Banner = banner;
+
+/* Hide the older V5 receipt so there is only ever one status line. */
+function hideOld(){ const o=el('nmcSaveProof'); if(o) o.style.display='none'; }
+
+/* ── Surface anything that would previously have died silently ── */
+window.addEventListener('unhandledrejection', ev=>{
+  const m = ev && ev.reason && (ev.reason.message || ev.reason);
+  console.error('[NMC V6] unhandled rejection', ev && ev.reason);
+  if(/saveLog|firebase|fetch|Failed to fetch/i.test(String(m||''))){
+    banner('bad', `✕ SAVE FAILED — an unexpected error escaped the save routine.<br><code>${esc(String(m))}</code><br>Nothing was written. Please report this message.`);
+  }
+});
+
+/* ── Firebase write with retry and full error detail ── */
+async function writeWithRetry(url, payload, attempts=3){
+  let last=null;
+  for(let i=1;i<=attempts;i++){
+    try{
+      const r=await fetch(url,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        cache:'no-store',
+        body:JSON.stringify(payload)
+      });
+      if(!r.ok){
+        let body='';
+        try{ body=await r.text(); }catch(e){}
+        throw new Error(`HTTP ${r.status} ${r.statusText||''}`.trim() + (body?` — ${body.slice(0,200)}`:''));
+      }
+      return {ok:true, attempts:i};
+    }catch(e){
+      last=e;
+      if(i<attempts) await sleep(700*i);
+    }
+  }
+  return {ok:false, error:last, attempts};
+}
+
+/* ── THE SAVE ── */
+async function saveLogEntryV6(){
+  hideOld();
+  try{
+    banner('busy','⏳ Saving operating status…');
+
+    /* 1. Feeder */
+    const typed=(el('log_feeder_search')?.value||'').trim();
+    if(!typed){
+      banner('bad','✕ NOT SAVED — no 33KV feeder selected.<br>Pick a feeder from the list first. Nothing was written.');
+      return;
+    }
+    const created = findCreatedFeeder((el('log_feeder_code')?.value||'') || typed);
+    if(!created){
+      banner('bad',`✕ NOT SAVED — <b>${esc(typed)}</b> is not created in the Smart Grid map.<br>`
+        + 'Only feeders physically drawn and saved in the Smart Grid topology can be set LIVE/IDLE. Draw and save it there first. Nothing was written.');
+      return;
+    }
+
+    /* 2. Status */
+    const status = getPillValue('log_status_group') || 'live';
+
+    /* 3. Optional substation */
+    const ssName=(el('log_ss_search')?.value||'').trim();
+    let ssConn=null;
+    if(ssName){
+      const connected = connectedSSForCreated(created);
+      ssConn = connected.find(s =>
+        compactTopo(s.name)===compactTopo(ssName) || compactTopo(s.code)===compactTopo(ssName));
+      if(!ssConn){
+        banner('bad',`✕ NOT SAVED — <b>${esc(ssName)}</b> is not connected to <b>${esc(created.name)}</b> in the saved Smart Grid topology.<br>`
+          + (connected.length
+              ? 'Connected substations for this feeder: '+connected.map(s=>esc(s.name)).join(', ')
+              : 'This feeder has no 33/11KV substation destination saved in the topology.')
+          + '<br>Clear the substation box to save feeder status only. Nothing was written.');
+        return;
+      }
+    }
+
+    /* 4. PTRs */
+    let selPTRs=[];
+    try{
+      selPTRs=[...(el('log_ptr_list')?.querySelectorAll('input:checked')||[])]
+        .map(cb=>parseFloat(cb.dataset.cap)).filter(v=>!isNaN(v));
+    }catch(e){ selPTRs=[]; }
+
+    /* 5. Payload */
+    const code = created.code || el('log_feeder_code')?.value || '';
+    const name = created.name || typed;
+    const eht  = created.eht  || el('log_eht')?.value || '';
+    const now  = new Date().toISOString();
+
+    const payload = {
+      feederName:name, feederCode:code, ehtSource:eht, status,
+      lastUpdated:now, effectiveDateTime:now,
+      feedsToSS:ssConn?.name||'', feedsToSSCode:ssConn?.code||'',
+      ptrsConnected:selPTRs, createdInSmartGrid:true, source:'nmc-dashboard-v6'
+    };
+
+    const canonicalKey = safeFbKey(code||name);
+    const legacyKey    = safeFbKey(name);
+    const canonicalUrl = `${FB}/smartgrid/runtime/feeders/${canonicalKey}.json`;
+
+    /* 6. Canonical write */
+    const w = await writeWithRetry(canonicalUrl, payload, 3);
+    if(!w.ok){
+      const m=String(w.error && w.error.message || w.error || 'unknown error');
+      banner('bad', `✕ NOT SAVED — Firebase rejected the write after ${w.attempts} attempts.<br>`
+        + `<code>${esc(m)}</code><br>`
+        + `Path: <code>/smartgrid/runtime/feeders/${esc(canonicalKey)}</code><br>`
+        + (/Failed to fetch|NetworkError|TypeError/i.test(m)
+            ? 'This looks like a network/connectivity problem reaching Firebase.'
+            : 'A 401/403 here means the Realtime Database rules do not allow writes on this path.'));
+      return;
+    }
+
+    /* 7. Legacy mirror — compatibility only, never blocks success */
+    fetch(`${FB}/feeders/${legacyKey}.json`,{
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    }).then(r=>{ if(!r.ok) console.warn('[V6] legacy mirror rejected', r.status); })
+      .catch(e=>console.warn('[V6] legacy mirror unavailable', e));
+
+    /* 8. Update local caches under BOTH keys so this tab reflects it at once */
+    try{
+      window.NMC_CANON_RUNTIME = window.NMC_CANON_RUNTIME || {};
+      window.NMC_CANON_RUNTIME[canonicalKey] =
+        Object.assign({}, window.NMC_CANON_RUNTIME[canonicalKey]||{}, payload);
+      if(typeof FEEDER_STATUS==='object' && FEEDER_STATUS){
+        FEEDER_STATUS[canonicalKey]=status;
+        FEEDER_STATUS[legacyKey]=status;
+      }
+    }catch(e){ console.warn('[V6] cache update',e); }
+
+    /* 9. Repaint the Substation Source view immediately */
+    try{ if(typeof renderSourceDashboard==='function') renderSourceDashboard(); }catch(e){}
+    try{ if(typeof nmcRenderWireDashboard==='function') nmcRenderWireDashboard(); }catch(e){}
+
+    try{ toast(status==='live' ? `⚡ LIVE saved — ${name.substring(0,42)}` : `⏸ IDLE saved — ${name.substring(0,42)}`); }catch(e){}
+    try{ if(el('log_status_msg')) el('log_status_msg').textContent=`Saved to Smart Grid runtime: ${new Date().toLocaleString()}`; }catch(e){}
+    try{ flashSync(); }catch(e){}
+
+    /* 10. Read back from Firebase to prove it persisted */
+    banner('busy','⏳ Written — verifying against Firebase…');
+    await sleep(350);
+    try{
+      const r=await fetch(`${canonicalUrl}?ts=${Date.now()}`,{cache:'no-store'});
+      if(!r.ok) throw new Error(`read-back HTTP ${r.status}`);
+      const d=await r.json();
+      if(!d) throw new Error('the record is missing immediately after a successful write — the database rejected it silently');
+      if(String(d.status).toLowerCase()!==String(status).toLowerCase())
+        throw new Error(`stored status is "${d.status}" but "${status}" was submitted`);
+
+      banner('ok',
+        `✓ SAVED AND VERIFIED IN FIREBASE<br>`
+        + `<b>${esc(d.feederName||name)}</b> — <b>${esc(String(d.status).toUpperCase())}</b>`
+        + (ssConn?` → ${esc(ssConn.name)}`:'')
+        + (selPTRs.length?` · ${selPTRs.length} PTR (${selPTRs.reduce((a,b)=>a+b,0)} MVA)`:'')
+        + `<br>${new Date(d.lastUpdated).toLocaleString()} · <code>${esc(canonicalKey)}</code>`
+        + `<br>Substation Source tab updated. The Smart Grid map picks this up within about 15 seconds — reload it if it is already open.`);
+    }catch(err){
+      banner('bad', `⚠ WRITE ACCEPTED BUT NOT VERIFIED — ${esc(String(err.message||err))}<br>`
+        + `Path: <code>/smartgrid/runtime/feeders/${esc(canonicalKey)}</code><br>`
+        + 'Re-check the Substation Source tab before relying on this status.');
+    }
+
+  }catch(err){
+    console.error('[NMC V6] save crashed', err);
+    banner('bad', `✕ SAVE CRASHED — <code>${esc(String(err && err.message || err))}</code><br>`
+      + 'Nothing was written. This is a bug in the form, not a Firebase problem — please report this exact message.');
+  }
+}
+
+/* Install as the single authoritative handler (this block is last, so it wins). */
+try{ saveLogEntry = saveLogEntryV6; }catch(e){}
+window.saveLogEntry = saveLogEntryV6;
+
+/* Keep it installed even if an older wrapper re-registers later. */
+setInterval(()=>{ if(window.saveLogEntry!==saveLogEntryV6){ window.saveLogEntry=saveLogEntryV6; try{ saveLogEntry=saveLogEntryV6; }catch(e){} } }, 2000);
+
+/* Make sure the button is actually wired to it. */
+setInterval(()=>{
+  const b=el('saveLogBtn');
+  if(b && b.__nmcV6!==1){ b.__nmcV6=1; b.onclick=()=>window.saveLogEntry(); }
+}, 1200);
+
+console.log('[NMC] V6 loaded — save is fully guarded, retries 3x, verifies by read-back, reports the exact Firebase response on failure, and refreshes the Substation Source view immediately on success.');
+})();
+</script>
+
 </body></html>
