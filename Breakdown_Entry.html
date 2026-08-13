@@ -1973,4 +1973,230 @@ console.log('[NMC] V7 loaded — every request has a 20s hard timeout so the sav
 })();
 </script>
 
+
+<style id="nmcV8Style">
+/* ═══════════════════════════════════════════════════════════════════════
+   V8 — SUBSTATION SOURCE WIREFRAME AS A NODE GRAPH
+
+   The one-line used a CSS grid with flat 2px .wire-line divs and a ▶ glyph,
+   so EHT → 33/11KV always drew as a hard right-angle tick. The reference is a
+   node-graph canvas: dark board, rounded node cards, and smooth bezier
+   connectors that leave one node horizontally and arrive at the next
+   horizontally.
+
+   Straight divs cannot express that, so the connectors are now real SVG
+   cubic beziers drawn into an overlay sized from the live DOM rectangles of
+   the nodes. Because the geometry is measured rather than hard-coded, the
+   curves stay correct at any width, with any number of PTRs, and when the
+   panel is expanded or collapsed.
+
+   Only presentation changes. The same nodes, the same values, the same
+   status logic, the same data.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Canvas ── */
+.source-wire{
+  background:
+    radial-gradient(circle at 1px 1px, rgba(148,163,184,.16) 1px, transparent 0) 0 0/22px 22px,
+    linear-gradient(180deg,#0f172a 0%,#111c33 100%) !important;
+  border-top:1px solid #1e293b !important;
+  padding:26px 22px !important;
+  border-radius:0 0 11px 11px;
+}
+.wire-grid{ position:relative; gap:10px !important; min-height:170px !important; }
+
+/* The old straight connectors are replaced by the SVG overlay.
+   IMPORTANT: visibility, NOT display:none. A display:none child is removed
+   from grid placement entirely, which shifts every later item one track to
+   the left — the feeder card ends up crushed into the narrow connector track
+   and the beziers collapse to ~10px stubs. visibility:hidden keeps the track
+   occupied so the curves have real horizontal room to travel. */
+.wire-line{ visibility:hidden !important; }
+.wire-line:after{ content:'' !important; }
+
+/* Wider connector tracks so the curves read as curves. Desktop only — the
+   original mobile rule stacks to a single column and must keep winning. */
+@media(min-width:901px){
+  .source-wire .wire-grid{
+    grid-template-columns:minmax(150px,.8fr) 84px minmax(230px,1.35fr) 84px minmax(170px,1fr) !important;
+  }
+}
+
+/* ── Node cards ── */
+.source-wire .wire-node{
+  position:relative; z-index:2;
+  background:linear-gradient(180deg,#1b2740 0%,#162034 100%) !important;
+  border:1.5px solid #2f4468 !important;
+  border-radius:13px !important;
+  padding:13px 15px !important;
+  box-shadow:0 6px 18px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.05) !important;
+  transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.source-wire .wire-node:hover{
+  transform:translateY(-2px);
+  border-color:#3b82f6 !important;
+  box-shadow:0 10px 26px rgba(0,0,0,.5), 0 0 0 1px rgba(59,130,246,.35) !important;
+}
+.source-wire .wire-node strong{ color:#e8effb !important; font-size:12.5px !important; letter-spacing:.2px; }
+.source-wire .wire-node small{ color:#8fa3c4 !important; }
+.source-wire .wire-node.eht{
+  border-color:#a855f7 !important;
+  box-shadow:0 6px 18px rgba(0,0,0,.42), 0 0 0 1px rgba(168,85,247,.28), 0 0 22px rgba(168,85,247,.16) !important;
+}
+.source-wire .wire-node.ptr{ border-color:#22c55e !important; }
+.source-wire .wire-node.total{ border-color:#0ea5e9 !important; }
+
+/* Loading meters */
+.source-wire .wire-meter{ background:#0b1424 !important; height:7px !important; border-radius:6px !important; }
+.source-wire .wire-meter i{ background:linear-gradient(90deg,#22c55e,#4ade80) !important; }
+.source-wire .wire-meter.warn i{ background:linear-gradient(90deg,#f59e0b,#fbbf24) !important; }
+.source-wire .wire-meter.bad  i{ background:linear-gradient(90deg,#ef4444,#f87171) !important; }
+
+/* Alternates + notes on the dark board */
+.source-wire .wire-alt-grid{ margin-top:22px !important; gap:12px !important; }
+.source-wire .wire-decision{
+  background:rgba(245,158,11,.10) !important; border:1px solid rgba(245,158,11,.35) !important;
+  color:#fcd34d !important; border-radius:8px !important;
+}
+.source-wire .wire-empty{ color:#fbbf24 !important; }
+
+/* ── SVG connector overlay ── */
+svg.nmc-v8-links{
+  position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:1; overflow:visible;
+}
+.nmc-v8-wire{ fill:none; stroke-width:2.2; stroke-linecap:round; }
+.nmc-v8-wire.live      { stroke:#22c55e; opacity:.85; filter:drop-shadow(0 0 5px rgba(34,197,94,.55)); }
+.nmc-v8-wire.idle      { stroke:#64748b; opacity:.60; stroke-dasharray:5 6; }
+.nmc-v8-wire.breakdown { stroke:#ef4444; opacity:.9;  filter:drop-shadow(0 0 6px rgba(239,68,68,.6)); }
+.nmc-v8-wire.unknown   { stroke:#475569; opacity:.5;  stroke-dasharray:3 7; }
+
+/* Same conductor-plus-pulse idea as the map: one long lit run travelling
+   along a solid line, not a row of ticks. Period 120, offset animates -120. */
+@keyframes nmcV8Flow{ to { stroke-dashoffset:-120; } }
+.nmc-v8-flow{
+  fill:none; stroke:#d8ffe9; stroke-width:2.4; stroke-linecap:round;
+  stroke-dasharray:18 102; opacity:.95;
+  animation:nmcV8Flow 2.4s linear infinite;
+  filter:drop-shadow(0 0 4px rgba(216,255,233,.95)) drop-shadow(0 0 10px rgba(34,197,94,.7));
+}
+.nmc-v8-fault{
+  fill:none; stroke:#fecaca; stroke-width:2.4; stroke-linecap:round;
+  stroke-dasharray:14 106; opacity:.9;
+  animation:nmcV8Flow 1.5s linear infinite;
+  filter:drop-shadow(0 0 5px rgba(254,202,202,.9)) drop-shadow(0 0 12px rgba(239,68,68,.7));
+}
+/* Junction dot where a connector meets a node. */
+.nmc-v8-dot{ r:3.2; }
+.nmc-v8-dot.live{ fill:#22c55e; filter:drop-shadow(0 0 5px rgba(34,197,94,.9)); }
+.nmc-v8-dot.idle{ fill:#64748b; }
+.nmc-v8-dot.breakdown{ fill:#ef4444; filter:drop-shadow(0 0 5px rgba(239,68,68,.9)); }
+.nmc-v8-dot.unknown{ fill:#475569; }
+
+@media(max-width:900px){ .source-wire{padding:18px 12px !important} svg.nmc-v8-links{display:none} }
+</style>
+<script id="nmcV8Script">
+(function(){
+'use strict';
+const NS='http://www.w3.org/2000/svg';
+
+function statusOf(node){
+  const t=(node && node.textContent || '').toUpperCase();
+  if(t.indexOf('BREAKDOWN')>=0) return 'breakdown';
+  if(t.indexOf('LIVE')>=0)      return 'live';
+  if(t.indexOf('IDLE')>=0)      return 'idle';
+  return 'unknown';
+}
+
+/* Horizontal-out / horizontal-in cubic bezier, exactly the node-graph shape. */
+function curvePath(a,b){
+  const x1=a.x2, y1=a.cy, x2=b.x1, y2=b.cy;
+  const span=Math.abs(x2-x1);
+  const dx=Math.max(30, span*0.55);
+  return `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${(x1+dx).toFixed(1)} ${y1.toFixed(1)}, ${(x2-dx).toFixed(1)} ${y2.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+}
+
+function drawOne(wire){
+  const grid = wire.querySelector('.wire-grid');
+  if(!grid) return;
+  const gb = grid.getBoundingClientRect();
+  if(!gb.width || !gb.height) return;              // collapsed — nothing to measure
+
+  let svg = grid.querySelector('svg.nmc-v8-links');
+  if(!svg){
+    svg=document.createElementNS(NS,'svg');
+    svg.setAttribute('class','nmc-v8-links');
+    grid.appendChild(svg);
+  }
+  svg.setAttribute('viewBox', `0 0 ${gb.width} ${gb.height}`);
+
+  const rel = el => {
+    const r=el.getBoundingClientRect();
+    return { x1:r.left-gb.left, x2:r.right-gb.left, cy:(r.top+r.bottom)/2-gb.top };
+  };
+
+  const eht    = grid.querySelector('.wire-node.eht');
+  const direct = [...grid.children].filter(c=>c.classList && c.classList.contains('wire-node'));
+  const feeder = direct.find(n=>n!==eht) || null;
+  const ptrs   = [...grid.querySelectorAll('.wire-stack .wire-node')];
+
+  const st = statusOf(feeder);
+  let out='';
+  const link = (from,to) => {
+    const d = curvePath(rel(from), rel(to));
+    let s = `<path class="nmc-v8-wire ${st}" d="${d}"/>`;
+    if(st==='live')      s += `<path class="nmc-v8-flow" d="${d}"/>`;
+    else if(st==='breakdown') s += `<path class="nmc-v8-fault" d="${d}"/>`;
+    const a=rel(from), b=rel(to);
+    s += `<circle class="nmc-v8-dot ${st}" cx="${a.x2.toFixed(1)}" cy="${a.cy.toFixed(1)}"/>`
+       + `<circle class="nmc-v8-dot ${st}" cx="${b.x1.toFixed(1)}" cy="${b.cy.toFixed(1)}"/>`;
+    return s;
+  };
+
+  if(eht && feeder) out += link(eht, feeder);
+  if(feeder) ptrs.forEach(p => { out += link(feeder, p); });
+  svg.innerHTML = out;
+}
+
+function drawAll(){
+  try{
+    document.querySelectorAll('.source-wire').forEach(w=>{
+      // Only measure panels that are actually open and laid out.
+      if(w.offsetParent === null) return;
+      drawOne(w);
+    });
+  }catch(e){ console.warn('[V8] connector draw', e); }
+}
+window.nmcV8DrawLinks = drawAll;
+
+/* Redraw whenever the dashboard re-renders, a panel is toggled, or the
+   layout changes. requestAnimationFrame lets the grid settle first. */
+function later(){ requestAnimationFrame(()=>requestAnimationFrame(drawAll)); }
+
+['nmcRenderWireDashboard','renderSourceDashboard'].forEach(fn=>{
+  const orig = window[fn];
+  if(typeof orig === 'function'){
+    window[fn] = function(){ const r = orig.apply(this, arguments); later(); setTimeout(drawAll, 220); return r; };
+  }
+});
+
+const origToggle = window.nmcToggleWire;
+if(typeof origToggle === 'function'){
+  window.nmcToggleWire = function(){ const r = origToggle.apply(this, arguments); later(); setTimeout(drawAll, 260); return r; };
+}
+
+window.addEventListener('resize', later);
+if('ResizeObserver' in window){
+  try{
+    const ro=new ResizeObserver(()=>later());
+    setInterval(()=>{ document.querySelectorAll('.wire-grid').forEach(g=>{ if(!g.__nmcV8){ g.__nmcV8=1; ro.observe(g); } }); }, 1500);
+  }catch(e){}
+}
+setInterval(drawAll, 2500);   // catches status changes repainting the cards
+setTimeout(drawAll, 900);
+
+console.log('[NMC] V8 loaded — EHT → 33/11KV connections are now measured SVG bezier connectors on a node-graph canvas, with a travelling pulse on energised paths.');
+})();
+</script>
+
 </body></html>
