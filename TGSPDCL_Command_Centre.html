@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> 
-  
+<head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>TGSPDCL SCADA Dashboard</title>
@@ -816,9 +815,14 @@ html,body{width:100%;height:100%;overflow:hidden}
 </div>
 
 <!-- ── BREAKDOWN ENTRY ────────────────────────────────────────────────── -->
-<div class="shell-section" id="sec-entry" style="overflow:hidden;position:relative;">
+<!-- NOTE: do NOT add position:relative here. .shell-section is position:fixed
+     with top/left/right/bottom insets; an inline position override collapses
+     the section to auto height and the height:100% iframe renders blank.
+     position:fixed already creates the containing block the RELOAD button needs. -->
+<div class="shell-section" id="sec-entry" style="overflow:hidden;">
   <button onclick="reloadEntryFrame()" title="Fetch a fresh copy of the Breakdown Entry form, bypassing the browser cache"
-    style="position:absolute;top:8px;right:14px;z-index:40;background:#fff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:7px;padding:5px 11px;font:800 9.5px/1 Arial;letter-spacing:.7px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.12)">↻ RELOAD FORM</button>
+    style="position:absolute;bottom:12px;left:16px;z-index:40;background:rgba(255,255,255,.94);border:1px solid #93c5fd;color:#1d4ed8;border-radius:7px;padding:6px 12px;font:800 9.5px/1 Arial;letter-spacing:.7px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.16);opacity:.85"
+    onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.85">↻ RELOAD FORM</button>
   <iframe id="entry-frame" src="" style="width:100%;height:100%;border:none;display:block;" allowfullscreen></iframe>
 </div>
 
