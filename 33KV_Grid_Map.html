@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-  
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
@@ -2284,6 +2283,14 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
   <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
     <label style="margin-bottom:0"><span>ENERGY FLOW ANIMATION</span>
       <input type="checkbox" id="sgFlowToggle" onchange="setSGFlow(this.checked)" style="transform:translateY(2px)"></label>
+  </div>
+  <div class="gsp-row">
+    <label>FLOW SPEED <span id="gspFlowSpeedVal">Normal</span></label>
+    <input type="range" id="gspFlowSpeed" min="0.35" max="3.0" step="0.05" value="1.1" oninput="setSGFlowSpeed(this.value)">
+  </div>
+  <div class="gsp-row">
+    <label>FLOW DOT SIZE <span id="gspFlowGlowVal">1.90</span></label>
+    <input type="range" id="gspFlowGlow" min="1.2" max="3.5" step="0.05" value="1.9" oninput="setSGFlowGlow(this.value)">
   </div>
   <div class="gsp-row">
     <label style="margin-bottom:0"><span>FEEDER CODE LABELS</span>
@@ -8703,95 +8710,195 @@ console.log('[SmartGrid] V19 loaded — window.rows kept in sync with the live a
 </script>
 
 
-<style id="sgV20Style">
+
+
+
+
+
+
+<style id="sgV22Style">
 /* ═══════════════════════════════════════════════════════════════════════
-   V20 — ENERGY FLOW READS AS FLOW, NOT AS A DASHED LINE
+   V22 — ENERGY FLOW AS A TRAVELLING DOT (Option 2: dot with soft glow)
 
-   The old overlay used stroke-dasharray: 2 18 — a 2px speck followed by an
-   18px gap, repeated. Animating that just marches a picket fence along the
-   cable, which is exactly why it looked "dashed" rather than "flowing".
+   No dashes anywhere. The render loop still draws its two flow overlay
+   polylines; those are now made invisible and kept purely as the MOTION PATH
+   that the dot follows, so the dot tracks the exact feeder geometry — every
+   bend, every spur, every partial run the sectionalising logic produces.
 
-   The fix is a conductor-plus-pulse model, the way the reference dashboards
-   do it: the feeder line itself stays solid and continuous (that is the
-   conductor), and a long luminous segment travels along it (that is the
-   current). One long lit run inside a long gap reads as a comet of light
-   moving down the cable instead of a row of ticks.
+   Dot size is derived from the cable weight, so the LINE THICKNESS slider
+   scales it automatically and it always sits a little proud of the cable.
+   Duration is derived from each path's own length, so a long feeder and a
+   short feeder move at the SAME pixels-per-second — without that, short
+   cables look sluggish and long ones look frantic.
 
-   Core and halo share the SAME 120px period and the SAME duration, so they
-   travel locked together — the halo is longer, so it trails the core and
-   gives the pulse a soft tail. Offset animates exactly one full period
-   (-120), which makes the loop seamless with no visible jump.
-
-   Purely visual. No data, no layers, no geometry, no map behaviour touched.
+   Nothing dims. Idle and breakdown cables are untouched.
    ═══════════════════════════════════════════════════════════════════════ */
 
-@keyframes sgV20Pulse { to { stroke-dashoffset: -120; } }
-
-/* Bright core of the travelling pulse. */
+/* The overlay polylines become invisible rails for the dot. */
 .leaflet-overlay-pane path.sg-flow-forward{
-  stroke:#e8fdff !important;
-  stroke-width:2.1 !important;
-  stroke-dasharray:20 100 !important;      /* period 120 */
-  stroke-linecap:round !important;
-  stroke-opacity:1 !important;
-  opacity:1 !important;
-  animation:sgV20Pulse 2.4s linear infinite !important;
-  filter:drop-shadow(0 0 3px rgba(232,253,255,.98))
-         drop-shadow(0 0 9px rgba(56,208,255,.85))
-         drop-shadow(0 0 18px rgba(0,170,255,.45)) !important;
-  pointer-events:none !important;
+  stroke:none !important; fill:none !important; pointer-events:none !important;
+  animation:none !important;
 }
+.leaflet-overlay-pane path.sg-flow-halo{ display:none !important; }
 
-/* Softer, longer glow that trails the core — this is what turns a moving
-   dash into a comet. Same period and duration, so they never drift apart. */
-.leaflet-overlay-pane path.sg-flow-halo{
-  stroke:#5ee7ff !important;
-  stroke-width:5.5 !important;
-  stroke-dasharray:42 78 !important;       /* period 120 */
-  stroke-linecap:round !important;
-  opacity:.30 !important;
-  animation:sgV20Pulse 2.4s linear infinite !important;
-  filter:drop-shadow(0 0 10px rgba(56,208,255,.85))
-         drop-shadow(0 0 22px rgba(0,150,255,.55)) !important;
-  pointer-events:none !important;
-}
-
-/* The energised conductor underneath: continuous, gently lit, never dashed. */
+/* Energised cable keeps a gentle halo so it reads as live. */
 .leaflet-overlay-pane path.sg-runtime-live{
-  stroke-dasharray:none !important;
-  filter:drop-shadow(0 0 3px rgba(34,211,238,.45))
-         drop-shadow(0 0 9px rgba(34,211,238,.22)) !important;
+  filter:drop-shadow(0 0 3px rgba(34,211,238,.40)) !important;
 }
-/* Idle cables recede so energised ones read first. */
-.leaflet-overlay-pane path.sg-runtime-idle{ opacity:.34 !important; }
 
-/* Breakdown: a slow red breathing pulse rather than a hard blink. */
-@keyframes sgV20Fault{
-  0%,100%{ stroke-opacity:1;   filter:drop-shadow(0 0 4px rgba(239,68,68,.95)) drop-shadow(0 0 12px rgba(239,68,68,.6)); }
-  50%    { stroke-opacity:.35; filter:drop-shadow(0 0 2px rgba(239,68,68,.5)); }
-}
-.leaflet-overlay-pane path.sg-runtime-breakdown{
-  animation:sgV20Fault 1.5s ease-in-out infinite !important;
-}
+/* The travelling dot. */
+.sgv22-dot{ pointer-events:none; }
+.sgv22-core{ fill:#f2ffff; filter:drop-shadow(0 0 3px rgba(242,255,255,.95)) drop-shadow(0 0 7px rgba(56,189,248,.9)); }
+.sgv22-halo{ fill:#38bdf8; opacity:.28; }
 </style>
-<script id="sgV20Script">
+<script id="sgV22Script">
 (function(){
 'use strict';
-/* The flow overlay polylines are created with inline dashArray/opacity by the
-   render loop. The stylesheet above already wins on specificity + source
-   order, but Leaflet re-applies inline stroke attributes on every redraw, so
-   nothing here needs to run on a timer — this block only exposes a small
-   control so the pulse speed can be tuned live without touching the file. */
-window.sgV20SetFlowSpeed = function(seconds){
-  const s = Math.max(0.6, Math.min(8, parseFloat(seconds) || 2.4));
-  let st = document.getElementById('sgV20Speed');
-  if(!st){ st = document.createElement('style'); st.id='sgV20Speed'; document.head.appendChild(st); }
-  st.textContent =
-    `.leaflet-overlay-pane path.sg-flow-forward{animation-duration:${s}s!important}`
-  + `.leaflet-overlay-pane path.sg-flow-halo{animation-duration:${s}s!important}`;
-  return s;
+const SVGNS='http://www.w3.org/2000/svg';
+const XLINK='http://www.w3.org/1999/xlink';
+
+let DOT_MULT = 1.9;    // dot diameter = cable weight × this
+let SPEED_S  = 1.1;    // seconds to cross a 200px cable
+let seq = 0;
+
+const PX_REF = 200;    // reference length the speed slider is calibrated to
+
+function cableWeight(p){
+  try{ if(typeof sgLineWeight==='number' && sgLineWeight>0) return sgLineWeight; }catch(e){}
+  const sw=parseFloat(p.getAttribute('stroke-width')||'0');
+  return sw>0 ? sw/0.62 : 1.5;      // the overlay is drawn at 0.62 × cable weight
+}
+
+function makeDot(cls, r, pathId, dur){
+  const c=document.createElementNS(SVGNS,'circle');
+  c.setAttribute('class','sgv22-dot '+cls);
+  c.setAttribute('r', r.toFixed(2));
+  c.setAttribute('cx','0'); c.setAttribute('cy','0');
+  const am=document.createElementNS(SVGNS,'animateMotion');
+  am.setAttribute('dur', dur.toFixed(3)+'s');
+  am.setAttribute('repeatCount','indefinite');
+  const mp=document.createElementNS(SVGNS,'mpath');
+  mp.setAttributeNS(XLINK,'href','#'+pathId);
+  mp.setAttribute('href','#'+pathId);
+  am.appendChild(mp); c.appendChild(am);
+  return c;
+}
+
+function apply(){
+  try{
+    const panes=document.querySelectorAll('.leaflet-overlay-pane svg');
+    if(!panes.length) return 0;
+    let made=0;
+    panes.forEach(svg=>{
+      svg.querySelectorAll('.sgv22-dot').forEach(n=>n.remove());
+      svg.querySelectorAll('path.sg-flow-forward').forEach(p=>{
+        let len=0;
+        try{ len=p.getTotalLength(); }catch(e){ return; }
+        if(!isFinite(len) || len < 6) return;             // too short to animate
+        if(!p.id) p.id='sgv22path'+(++seq);
+        const w   = cableWeight(p);
+        const r   = Math.max(1.4, (w*DOT_MULT)/2);        // radius from diameter
+        const dur = Math.max(0.30, (len/PX_REF) * SPEED_S); // constant px/sec
+        const g   = p.parentNode || svg;
+        g.appendChild(makeDot('sgv22-halo', r*2.1, p.id, dur));
+        g.appendChild(makeDot('sgv22-core', r,     p.id, dur));
+        made++;
+      });
+    });
+    return made;
+  }catch(e){ console.warn('[V22] dot apply failed', e); return 0; }
+}
+window.sgV22Apply = apply;
+
+/* Re-apply after anything that rebuilds or reshapes the overlay. */
+let pending=null;
+function schedule(){
+  if(pending) cancelAnimationFrame(pending);
+  pending=requestAnimationFrame(()=>{ pending=null; apply(); });
+}
+window.sgV22Refresh = schedule;
+
+const origRender = window.render;
+if(typeof origRender==='function'){
+  const wrapped=function(){ const r=origRender.apply(this,arguments); schedule(); return r; };
+  try{ render = wrapped; }catch(e){}
+  window.render = wrapped;
+}
+try{
+  if(typeof map!=='undefined' && map && map.on){
+    map.on('zoomend moveend', schedule);      // path `d` changes → recompute duration
+  }
+}catch(e){}
+setInterval(()=>{
+  // Leaflet re-creates overlay paths on its own schedule; cheap reconciliation.
+  const svg=document.querySelector('.leaflet-overlay-pane svg');
+  if(!svg) return;
+  const paths=svg.querySelectorAll('path.sg-flow-forward').length;
+  const dots =svg.querySelectorAll('.sgv22-core').length;
+  if(paths!==dots) apply();
+}, 1200);
+setTimeout(apply, 800);
+
+/* ── Symbol Adjuster controls ── */
+window.setSGFlowSpeed = function(v){
+  SPEED_S = Math.max(0.35, Math.min(3, parseFloat(v) || 1.1));
+  const lbl=document.getElementById('gspFlowSpeedVal');
+  if(lbl) lbl.textContent = SPEED_S<=0.6?'Very fast':SPEED_S<=0.9?'Fast':SPEED_S<=1.4?'Normal':SPEED_S<=2.1?'Slow':'Very slow';
+  try{ localStorage.setItem('TGSPDCL_FLOW_SPEED', String(SPEED_S)); }catch(e){}
+  apply(); return SPEED_S;
 };
-console.log('[SmartGrid] V20 loaded — energy flow now renders as a travelling luminous pulse on a solid conductor instead of a marching dashed line. Tune with sgV20SetFlowSpeed(seconds).');
+window.setSGFlowGlow = function(v){        // now controls DOT SIZE
+  DOT_MULT = Math.max(1.2, Math.min(3.5, parseFloat(v) || 1.9));
+  const lbl=document.getElementById('gspFlowGlowVal');
+  if(lbl) lbl.textContent = DOT_MULT.toFixed(2);
+  try{ localStorage.setItem('TGSPDCL_FLOW_DOT', String(DOT_MULT)); }catch(e){}
+  apply(); return DOT_MULT;
+};
+window.setSGFlowDotSize = window.setSGFlowGlow;
+
+/* Dots must resize the moment LINE THICKNESS moves. */
+const origWeight = window.setSGLineWeight;
+if(typeof origWeight==='function'){
+  const wrappedW=function(){ const r=origWeight.apply(this,arguments); schedule(); return r; };
+  try{ setSGLineWeight = wrappedW; }catch(e){}
+  window.setSGLineWeight = wrappedW;
+}
+
+(function init(){
+  let s=1.1, d=1.9;
+  try{
+    s=parseFloat(localStorage.getItem('TGSPDCL_FLOW_SPEED'))||1.1;
+    d=parseFloat(localStorage.getItem('TGSPDCL_FLOW_DOT'))||1.9;
+  }catch(e){}
+  SPEED_S=s; DOT_MULT=d;
+  const sync=()=>{
+    const a=document.getElementById('gspFlowSpeed'), b=document.getElementById('gspFlowGlow');
+    if(a) a.value=s; if(b) b.value=d;
+    const la=document.getElementById('gspFlowSpeedVal'), lb=document.getElementById('gspFlowGlowVal');
+    if(la) la.textContent = s<=0.6?'Very fast':s<=0.9?'Fast':s<=1.4?'Normal':s<=2.1?'Slow':'Very slow';
+    if(lb) lb.textContent = d.toFixed(2);
+    return !!(a&&b);
+  };
+  if(!sync()){ const t=setInterval(()=>{ if(sync()) clearInterval(t); },600); setTimeout(()=>clearInterval(t),20000); }
+})();
+
+window.sgV22Check = function(){
+  const svg=document.querySelector('.leaflet-overlay-pane svg');
+  const out={
+    flowPaths: svg?svg.querySelectorAll('path.sg-flow-forward').length:0,
+    dots:      svg?svg.querySelectorAll('.sgv22-core').length:0,
+    liveCables:svg?svg.querySelectorAll('path.sg-runtime-live').length:0,
+    dotMultiplier:DOT_MULT, secondsPer200px:SPEED_S
+  };
+  out.verdict = out.dots>0 ? 'dots are attached and travelling'
+              : out.flowPaths>0 ? 'flow paths exist but no dots — call sgV22Apply()'
+              : out.liveCables>0 ? 'live cables exist but no flow path — check ENERGY FLOW ANIMATION toggle'
+              : 'no live feeder on screen — set one LIVE in Breakdown Entry';
+  try{ console.table(out); }catch(e){ console.log(out); }
+  return out;
+};
+
+console.log('[SmartGrid] V22 loaded — energy flow is now a glowing dot travelling along each live feeder (Option 2). Size scales with LINE THICKNESS, speed is constant px/sec across cables. Run sgV22Check() to inspect.');
 })();
 </script>
 
