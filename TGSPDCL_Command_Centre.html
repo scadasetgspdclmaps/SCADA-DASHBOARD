@@ -3070,5 +3070,210 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 </script>
+
+<style id="ccApprovalStyle">
+#ccApprovals{margin:0 auto 26px;max-width:1240px;padding:0 18px}
+.cca-card{background:#fff;border:1px solid #D5E3F0;border-radius:13px;box-shadow:0 3px 12px rgba(20,60,110,.07);overflow:hidden;margin-bottom:18px}
+.cca-hd{background:linear-gradient(90deg,#1A3A6B,#2D6CC0);color:#fff;padding:13px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cca-hd b{font-size:13px;letter-spacing:1px;text-transform:uppercase}
+.cca-hd .cnt{background:#F5A623;color:#4A2800;border-radius:20px;padding:2px 11px;font:800 11px/1.6 Arial}
+.cca-hd .sp{margin-left:auto;font-size:10.5px;opacity:.9}
+.cca-bd{padding:16px 20px}
+.cca-who{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;background:#EEF4FA;border:1px solid #D5E3F0;border-radius:10px;padding:13px 16px;margin-bottom:16px}
+.cca-who .f{display:flex;flex-direction:column;min-width:190px;flex:1}
+.cca-who label{font:800 9.5px/1 Arial;letter-spacing:.9px;color:#40668F;text-transform:uppercase;margin-bottom:5px}
+.cca-who input,.cca-who select{padding:8px 10px;border:1.5px solid #C7D9EA;border-radius:7px;font-size:12.5px;background:#fff;color:#12304F}
+.cca-who .hint{flex-basis:100%;font-size:10.5px;color:#5A7A9B;margin-top:2px}
+.cca-req{border:1px solid #D5E3F0;border-left:5px solid #F5A623;border-radius:10px;padding:15px 17px;margin-bottom:13px;background:#FBFDFF}
+.cca-req.approved{border-left-color:#16A34A;background:#F6FEF9}
+.cca-req.rejected{border-left-color:#DC2626;background:#FFF7F7}
+.cca-top{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.cca-top h4{font-size:14px;color:#12304F;margin-bottom:3px}
+.cca-top .sub{font-size:11.5px;color:#5A7A9B}
+.cca-pill{display:inline-block;padding:3px 11px;border-radius:11px;font:800 9.5px/1.5 Arial;letter-spacing:.6px;text-transform:uppercase}
+.cca-pill.pending{background:#FEF3C7;color:#92400E}
+.cca-pill.approved{background:#D1FAE5;color:#047857}
+.cca-pill.rejected{background:#FEE2E2;color:#B91C1C}
+.cca-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px;margin-top:13px}
+.cca-f{background:#fff;border:1px solid #E2ECF6;border-radius:8px;padding:9px 12px}
+.cca-f span{display:block;font:800 8.5px/1 Arial;letter-spacing:.8px;color:#7A97B5;text-transform:uppercase;margin-bottom:4px}
+.cca-f b{font-size:12px;color:#12304F;font-weight:700}
+.cca-div{margin-top:13px;padding:12px 14px;border-radius:9px;background:#EFF6FF;border:1px solid #93C5FD}
+.cca-div.total{background:#FFF7ED;border-color:#FB923C}
+.cca-div h5{font:800 9.5px/1 Arial;letter-spacing:.9px;color:#1D4ED8;text-transform:uppercase;margin-bottom:7px}
+.cca-div.total h5{color:#9A3412}
+.cca-act{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center}
+.cca-btn{border:none;border-radius:8px;padding:10px 20px;font:800 11px/1 Arial;letter-spacing:.8px;cursor:pointer;text-transform:uppercase}
+.cca-ok{background:#16A34A;color:#fff}.cca-ok:hover{background:#15803D}
+.cca-no{background:#DC2626;color:#fff}.cca-no:hover{background:#B91C1C}
+.cca-btn:disabled{opacity:.45;cursor:not-allowed}
+.cca-rem{flex:1;min-width:210px;padding:9px 11px;border:1.5px solid #C7D9EA;border-radius:7px;font-size:12px}
+.cca-stamp{margin-top:11px;padding:10px 13px;border-radius:8px;font-size:11.5px;font-weight:700}
+.cca-stamp.a{background:#D1FAE5;color:#047857}
+.cca-stamp.r{background:#FEE2E2;color:#B91C1C}
+.cca-empty{padding:26px;text-align:center;color:#7A97B5;font-size:12.5px}
+@media(max-width:760px){.cca-who .f{min-width:100%}}
+</style>
+<script id="ccApprovalScript">
+/* ═══════════════════════════════════════════════════════════════════════
+   SE SCADA — LINE CLEAR APPROVALS (Live Dashboard)
+
+   Field officers raise Line Clear / works requests from tab 6 of the
+   Breakdown Entry form. They arrive here as PENDING and must be approved by
+   SE SCADA before any clear is taken.
+
+   Approver identity is captured by name and designation, as chosen — there
+   is no login in this system, so this is an audit trail rather than an
+   access control. Every decision records who, when, and any remarks, and the
+   approver's details are remembered on this machine so they are typed once.
+
+   Reads/writes: smartgrid/lineClearRequests/{id}
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+const FB='https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app';
+const e=v=>String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const $=id=>document.getElementById(id);
+const dt=v=>v?new Date(v).toLocaleString():'—';
+let CACHE={};
+
+function mount(){
+  const host=document.getElementById('sec-live');
+  if(!host || document.getElementById('ccApprovals')) return;
+  const box=document.createElement('div');
+  box.id='ccApprovals';
+  box.innerHTML=`
+    <div class="cca-card">
+      <div class="cca-hd">
+        <b>⚡ Line Clear Approvals — SE SCADA</b>
+        <span class="cnt" id="ccaPendCnt">0</span>
+        <span class="sp">Requests raised by field officers in the Breakdown Entry form</span>
+      </div>
+      <div class="cca-bd">
+        <div class="cca-who">
+          <div class="f"><label>Approving officer name</label><input id="ccaWho" placeholder="Your name"></div>
+          <div class="f"><label>Designation</label>
+            <select id="ccaDesig">
+              <option value="">— Select —</option>
+              <option>SE / SCADA</option><option>SE / Operation</option>
+              <option>DE / SCADA</option><option>ADE / SCADA</option>
+              <option>Chief Engineer</option><option>Other</option>
+            </select>
+          </div>
+          <button class="cca-btn" style="background:#2D6CC0;color:#fff" onclick="ccaRefresh()">↻ Refresh</button>
+          <div class="hint">Your name and designation are stamped on every decision and stored with the request as the approval record.</div>
+        </div>
+        <div id="ccaPending"><div class="cca-empty">Loading requests…</div></div>
+      </div>
+    </div>
+    <div class="cca-card">
+      <div class="cca-hd" style="background:linear-gradient(90deg,#334155,#475569)">
+        <b>Decided requests &amp; load diversions on record</b>
+        <span class="sp">Most recent 20</span>
+      </div>
+      <div class="cca-bd"><div id="ccaDecided"><div class="cca-empty">Loading…</div></div></div>
+    </div>`;
+  host.appendChild(box);
+
+  try{
+    const s=localStorage.getItem('TGSPDCL_SE_APPROVER');
+    if(s){ const [n,d]=s.split('|'); if($('ccaWho'))$('ccaWho').value=n||''; if($('ccaDesig'))$('ccaDesig').value=d||''; }
+  }catch(err){}
+  ccaRefresh();
+}
+
+function card(x, decided){
+  const st=String(x.status||'pending').toLowerCase();
+  const dv=x.diversion||{}, by=x.requestedBy||{}, ap=x.approval||{};
+  const aff=Array.isArray(x.affectedSubstations)?x.affectedSubstations:[];
+  return `<div class="cca-req ${st}">
+    <div class="cca-top">
+      <div>
+        <h4>${e(x.feederName||'—')}</h4>
+        <div class="sub">${e(x.substationName||'')}${x.ehtSource?' · from '+e(x.ehtSource):''}${x.feederCode?' · '+e(x.feederCode):''}</div>
+      </div>
+      <span class="cca-pill ${st}">${e(st)}</span>
+    </div>
+    <div class="cca-grid">
+      <div class="cca-f"><span>Requested window</span><b>${dt(x.requestedFrom)}<br>→ ${dt(x.requestedTo)}</b></div>
+      <div class="cca-f"><span>Nature of work</span><b>${e(x.natureOfWork||'—')}</b></div>
+      <div class="cca-f"><span>Consumers affected</span><b>${x.estimatedConsumers?Number(x.estimatedConsumers).toLocaleString('en-IN'):'—'}</b></div>
+      <div class="cca-f"><span>Load interrupted</span><b>${x.estimatedLoadMW?x.estimatedLoadMW+' MW':'—'}</b></div>
+      <div class="cca-f"><span>Requested by</span><b>${e(by.name||'—')}<br><small style="font-weight:600;color:#5A7A9B">${e(by.designation||'')}${by.phone?' · '+e(by.phone):''}</small></b></div>
+      <div class="cca-f"><span>Substations off supply</span><b>${aff.length?aff.map(s=>e(s.name)).join('<br>'):'—'}</b></div>
+    </div>
+    <div class="cca-div ${dv.totalOutage?'total':''}">
+      <h5>${dv.totalOutage?'⚠ No diversion — total outage':'⚡ Load diversion plan'}</h5>
+      ${dv.totalOutage
+        ? '<div style="font-size:12px;color:#9A3412;font-weight:700">Supply cannot be maintained during this clear. Confirm the outage window is acceptable before approving.</div>'
+        : `<div style="font-size:12.5px;color:#12304F"><b>Divert to:</b> ${e(dv.plannedToFeeder||'—')}
+           ${dv.alternateStatusAtRequest?` <span style="color:#5A7A9B">(alternate was ${e(dv.alternateStatusAtRequest)} when requested)</span>`:''}</div>`}
+      ${dv.remarks?`<div style="margin-top:7px;font-size:11.5px;color:#40668F"><b>Switching / remarks:</b> ${e(dv.remarks)}</div>`:''}
+    </div>
+    ${x.workDescription?`<div style="margin-top:11px;font-size:12px;color:#40668F"><b>Work:</b> ${e(x.workDescription)}</div>`:''}
+    ${decided
+      ? `<div class="cca-stamp ${st==='approved'?'a':'r'}">
+           ${st==='approved'?'✓ APPROVED':'✕ REJECTED'} by ${e(ap.by||'—')} (${e(ap.designation||'')}) · ${dt(ap.at)}
+           ${ap.remarks?'<br>Remarks: '+e(ap.remarks):''}</div>`
+      : `<div class="cca-act">
+           <input class="cca-rem" id="rem_${e(x.id)}" placeholder="Remarks / conditions (optional)">
+           <button class="cca-btn cca-ok" onclick="ccaDecide('${e(x.id)}','approved')">✓ Approve</button>
+           <button class="cca-btn cca-no" onclick="ccaDecide('${e(x.id)}','rejected')">✕ Reject</button>
+         </div>`}
+  </div>`;
+}
+
+window.ccaRefresh=async function(){
+  const pend=$('ccaPending'), dec=$('ccaDecided');
+  if(!pend) return;
+  try{
+    const r=await fetch(`${FB}/smartgrid/lineClearRequests.json?ts=${Date.now()}`,{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json()||{};
+    CACHE=d;
+    const all=Object.values(d).sort((a,b)=>String(b.raisedAt||'').localeCompare(String(a.raisedAt||'')));
+    const p=all.filter(x=>String(x.status||'pending').toLowerCase()==='pending');
+    const q=all.filter(x=>['approved','rejected'].includes(String(x.status||'').toLowerCase())).slice(0,20);
+    const c=$('ccaPendCnt'); if(c) c.textContent=p.length;
+    pend.innerHTML = p.length ? p.map(x=>card(x,false)).join('')
+      : '<div class="cca-empty">No line clear requests awaiting approval.</div>';
+    if(dec) dec.innerHTML = q.length ? q.map(x=>card(x,true)).join('')
+      : '<div class="cca-empty">No decided requests yet.</div>';
+  }catch(err){
+    pend.innerHTML='<div class="cca-empty" style="color:#B91C1C">Could not load requests — '+e(String(err.message||err))+'</div>';
+  }
+};
+
+window.ccaDecide=async function(id, decision){
+  const who=($('ccaWho').value||'').trim(), desig=$('ccaDesig').value;
+  if(!who||!desig){ alert('Enter your name and designation before approving or rejecting.\n\nEvery decision is recorded against the approving officer.'); $('ccaWho').focus(); return; }
+  const x=CACHE[id]; if(!x){ alert('Request not found — press Refresh.'); return; }
+  const rem=($('rem_'+id)&&$('rem_'+id).value||'').trim();
+  const label=decision==='approved'?'APPROVE':'REJECT';
+  if(!confirm(`${label} this line clear?\n\nFeeder: ${x.feederName}\nSubstation: ${x.substationName}\nWindow: ${dt(x.requestedFrom)} → ${dt(x.requestedTo)}\n\nRecorded against: ${who} (${desig})`)) return;
+
+  try{ localStorage.setItem('TGSPDCL_SE_APPROVER', who+'|'+desig); }catch(err){}
+  const now=new Date().toISOString();
+  const patch={ status:decision, updatedAt:now,
+    approval:{ by:who, designation:desig, at:now, remarks:rem, decision } };
+  try{
+    const r=await fetch(`${FB}/smartgrid/lineClearRequests/${id}.json`,
+      {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    await ccaRefresh();
+  }catch(err){
+    alert('Could not record the decision — '+String(err.message||err)+'\n\nNothing was changed. Check the connection and try again.');
+  }
+};
+
+setTimeout(mount,700);
+setInterval(mount,2500);
+setInterval(()=>{ const s=document.getElementById('sec-live');
+  if(s && s.classList.contains('active') && document.getElementById('ccaPending')) ccaRefresh(); }, 30000);
+
+console.log('[CC] SE SCADA line clear approvals panel mounted on the Live Dashboard.');
+})();
+</script>
+
 </body>
 </html>
