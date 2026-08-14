@@ -3,7 +3,7 @@
  
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TGSPDCL — NMC Runtime & Substation Source Dashboard V5</title>
+<title>TGSPDCL — NMC Runtime & Substation Source Dashboard V11</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -2780,6 +2780,159 @@ if(typeof oldSwitch==='function'){
 setTimeout(()=>{ const l=$('lcr_ss_list'); if(l&&!l.innerHTML) l.innerHTML=ssIndex().map(s=>`<option value="${e(s.name)}">${e(s.code||'')}</option>`).join(''); }, 3000);
 
 console.log('[NMC] V10 loaded — LINE CLEAR REQUEST tab added. Requests go to smartgrid/lineClearRequests and await SE SCADA approval on the Live Dashboard.');
+})();
+</script>
+
+
+<style id="nmcV11FixStyle">
+.nmc-v11-delete{background:#fff;color:#b91c1c;border:1.5px solid #fca5a5!important}.nmc-v11-delete:hover{background:#fee2e2!important;color:#991b1b!important}
+.nmc-v11-lcr-picker{margin-top:8px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.nmc-v11-lcr-picker select{padding:9px 11px;border:1.5px solid #93c5fd;border-radius:8px;background:#eff6ff;color:#17324d;font-size:11px;font-weight:700}.nmc-v11-mini{font-size:9px;color:#64748b;font-weight:700}.nmc-v11-proof{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:10px;font-weight:700}.nmc-v11-proof.ok{background:#ecfdf5;border:1px solid #86efac;color:#047857}.nmc-v11-proof.bad{background:#fff1f2;border:1px solid #fda4af;color:#be123c}.nmc-v11-proof.busy{background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8}
+.row-actions-v11{display:flex;gap:6px;flex-wrap:wrap}.lcr-del{border:1px solid #fca5a5;background:#fff;color:#b91c1c;border-radius:6px;padding:4px 8px;font-size:9px;font-weight:800;cursor:pointer}.lcr-del:hover{background:#fee2e2}
+</style>
+<script id="nmcV11FirebaseLineClearDeleteFix">
+(function(){
+'use strict';
+const FB11=(typeof FIREBASE_URL!=='undefined'?FIREBASE_URL:'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app');
+const E11=id=>document.getElementById(id);
+const esc11=s=>String(s??'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m]||m));
+const sleep11=ms=>new Promise(r=>setTimeout(r,ms));
+function lcrProof11(kind,msg){const x=E11('lcrProof');if(x){x.className=kind||'';x.innerHTML=msg;x.style.display='block';try{x.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(_){}}}
+function statusProof(kind,msg){
+  let x=E11('nmcV11StatusProof');
+  if(!x){x=document.createElement('div');x.id='nmcV11StatusProof';x.className='nmc-v11-proof';const a=E11('saveLogBtn')?.closest('.actions');if(a)a.insertAdjacentElement('afterend',x)}
+  if(x){x.className='nmc-v11-proof '+kind;x.innerHTML=msg;x.style.display='block'}
+}
+async function fetch11(url,opt={},timeout=12000){
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout);
+  try{return await fetch(url,Object.assign({cache:'no-store'},opt,{signal:c.signal}))}finally{clearTimeout(t)}
+}
+async function json11(url){const r=await fetch11(url,{},12000);if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}
+async function write11(url,method,payload,timeout=12000){
+  const r=await fetch11(url,{method,headers:{'Content-Type':'application/json'},body:payload===undefined?undefined:JSON.stringify(payload)},timeout);
+  if(!r.ok){let b='';try{b=await r.text()}catch(_){}throw new Error('HTTP '+r.status+(b?' — '+b.slice(0,160):''))}
+  return r;
+}
+function created11(){const typed=(E11('log_feeder_search')?.value||'').trim();return typeof findCreatedFeeder==='function'?findCreatedFeeder((E11('log_feeder_code')?.value||'')||typed):null}
+
+/* PRIMARY STATUS STORAGE: /feeders is already used/read by the existing NMC system.
+   smartgrid/runtime is mirror-only so restrictive rules there cannot block operation. */
+async function saveOperatingStatusV11(){
+  const btn=E11('saveLogBtn'); if(btn)btn.disabled=true;
+  try{
+    statusProof('busy','⏳ Saving operating status to Firebase…');
+    const typed=(E11('log_feeder_search')?.value||'').trim(); if(!typed)throw new Error('Select a 33KV feeder first.');
+    const c=created11(); if(!c)throw new Error('FEEDER NOT CREATED IN SMART GRID MAP — draw and save it first.');
+    const status=(typeof getPillValue==='function'?getPillValue('log_status_group'):'')||'live';
+    const ssName=(E11('log_ss_search')?.value||'').trim(); let ssConn=null;
+    if(ssName){const a=typeof connectedSSForCreated==='function'?connectedSSForCreated(c):[];ssConn=a.find(s=>compactTopo(s.name)===compactTopo(ssName)||compactTopo(s.code)===compactTopo(ssName));if(!ssConn)throw new Error('Selected substation is not physically connected to this feeder.');}
+    let ptrs=[];try{ptrs=[...(E11('log_ptr_list')?.querySelectorAll('input:checked')||[])].map(x=>Number(x.dataset.cap)).filter(Number.isFinite)}catch(_){}
+    const name=c.name||typed,code=c.code||E11('log_feeder_code')?.value||'',eht=c.eht||E11('log_eht')?.value||'',now=new Date().toISOString();
+    const payload={feederName:name,feederCode:code,ehtSource:eht,status,lastUpdated:now,effectiveDateTime:now,feedsToSS:ssConn?.name||'',feedsToSSCode:ssConn?.code||'',ptrsConnected:ptrs,createdInSmartGrid:true,source:'nmc-dashboard-v11'};
+    const legacyKey=safeFbKey(name),canonKey=safeFbKey(code||name);
+    const primary=`${FB11}/feeders/${legacyKey}.json`;
+    await write11(primary,'PATCH',payload,12000);
+    const rb=await json11(primary+'?ts='+Date.now()); if(!rb||String(rb.status||'').toLowerCase()!==status)throw new Error('Firebase read-back did not match the submitted status.');
+    // mirrors never block the successful save
+    write11(`${FB11}/smartgrid/runtime/feeders/${canonKey}.json`,'PATCH',payload,9000).catch(e=>console.warn('[V11] runtime mirror:',e.message));
+    write11(`${FB11}/smartgrid/feeders/${canonKey}.json`,'PATCH',payload,9000).catch(e=>console.warn('[V11] smartgrid feeder mirror:',e.message));
+    try{FEEDER_STATUS[legacyKey]=status;FEEDER_STATUS[canonKey]=status;window.NMC_CANON_RUNTIME=window.NMC_CANON_RUNTIME||{};window.NMC_CANON_RUNTIME[canonKey]=payload}catch(_){}
+    statusProof('ok',`✓ SAVED & VERIFIED — <b>${esc11(name)}</b> = <b>${status.toUpperCase()}</b>${ssConn?' → '+esc11(ssConn.name):''}<br>Primary Firebase path: <code>/feeders/${esc11(legacyKey)}</code>. Smart Grid mirrors update in the background.`);
+    try{toast(status==='live'?'⚡ LIVE saved':'⏸ IDLE saved');flashSync();renderSourceDashboard?.();nmcRenderWireDashboard?.()}catch(_){}
+  }catch(e){statusProof('bad','✕ NOT SAVED — '+esc11(e?.message||e)+'<br>The primary write is now made to <code>/feeders</code>, so a blocked <code>/smartgrid/runtime</code> path no longer causes a false failure.');}
+  finally{if(btn)btn.disabled=false}
+}
+window.saveLogEntry=saveOperatingStatusV11;try{saveLogEntry=saveOperatingStatusV11}catch(_){}
+
+window.deleteOperatingStatusV11=async function(){
+  const c=created11();if(!c){statusProof('bad','Select a created feeder first.');return}
+  const name=c.name||'',code=c.code||'';if(!confirm(`Delete saved operating status for\n${name}?\n\nThis does NOT delete the feeder drawing.`))return;
+  const lk=safeFbKey(name),ck=safeFbKey(code||name);
+  try{await write11(`${FB11}/feeders/${lk}.json`,'DELETE',undefined,12000);write11(`${FB11}/smartgrid/runtime/feeders/${ck}.json`,'DELETE',undefined,8000).catch(()=>{});write11(`${FB11}/smartgrid/feeders/${ck}.json`,'DELETE',undefined,8000).catch(()=>{});try{delete FEEDER_STATUS[lk];delete FEEDER_STATUS[ck];if(window.NMC_CANON_RUNTIME)delete window.NMC_CANON_RUNTIME[ck]}catch(_){}statusProof('ok',`✓ Operating status deleted for <b>${esc11(name)}</b>. Feeder geometry remains untouched.`);try{renderSourceDashboard?.();nmcRenderWireDashboard?.()}catch(_){}}
+  catch(e){statusProof('bad','Delete failed: '+esc11(e?.message||e))}
+};
+function installStatusDelete(){const a=E11('saveLogBtn')?.closest('.actions');if(!a||E11('deleteStatusBtnV11'))return;const b=document.createElement('button');b.id='deleteStatusBtnV11';b.className='btn btn-outline nmc-v11-delete';b.textContent='🗑 DELETE STATUS';b.onclick=deleteOperatingStatusV11;const clear=[...a.querySelectorAll('button')].find(x=>/CLEAR/i.test(x.textContent||''));a.insertBefore(b,clear||null)}
+
+/* BREAKDOWN writes: /breakdowns + /feeders are primary. Runtime mirror is best effort.
+   This prevents a successful breakdown record from being followed by a runtime timeout
+   and then duplicated when the operator retries. */
+window.logFailure=async function logFailureV11(){
+  const ss=findManualSS(E11('fail_ss_search').value.trim());if(!ss){toast('Select affected SS from saved Smart Grid topology',true);return}
+  const fn=E11('fail_feeder_search').value.trim(),connected=feederForManualSS(ss.name,fn);if(!connected){toast('Select a feeder physically connected to '+ss.name,true);return}
+  const failTime=E11('fail_time').value,agency=getPillValue('fail_agency_group'),outage=E11('fail_outage_type').value;if(!failTime||!agency||!outage){toast('Failure time, agency and outage type are required',true);return}
+  const altName=E11('fail_alt').value.trim();if(altName&&!feederForManualSS(ss.name,altName)){toast('Selected alternate is not connected to '+ss.name,true);return}
+  const id='BD_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),now=new Date().toISOString(),topo=lookupTopo(connected.name)||{},sr=SS_DATA.find(s=>String(s.ss_code)===String(ss.code))||{};
+  const payload={id,feederName:connected.name,feederCode:connected.code||topo.feederCode||'',substationName:ss.name,substationCode:ss.code||sr.ss_code||'',connectionRole:connected.role||'',division:sr.lines_division||topo.division||'',sub_division:sr.sub_division||topo.sub_division||'',section:sr.section||topo.section||'',ehtSource:E11('fail_eht').value,alternativeSource:altName,alternativeEHT:E11('fail_alt_eht').value,failureDateTime:new Date(failTime).toISOString(),agency,outageType:outage,operationType:E11('fail_op_type').value,relayIndication:E11('fail_relay').value,identifiedFault:E11('fail_fault').value,natureOfFault:getPillValue('fail_nature_group'),weatherCondition:E11('fail_weather').value,faultCurrent:E11('fail_current').value,personResponsible:E11('fail_person').value,phoneNumber:E11('fail_phone').value,fpiActed:E11('fail_fpi').value,additionalRemarks:E11('fail_remarks').value,enteredAt:now,updatedAt:now,isOpen:true,feedsAllSS:[ss.name],source:'nmc-dashboard-v11'};
+  const rp={status:'breakdown',lastUpdated:now,lastBreakdownId:id,feederName:connected.name,feederCode:connected.code||'',ehtSource:E11('fail_eht').value||connected.eht||'',breakdownSS:ss.name,breakdownSSCode:ss.code,createdInSmartGrid:true,source:'nmc-dashboard-v11'};
+  try{await write11(`${FB11}/breakdowns/${id}.json`,'PUT',payload,12000);await write11(`${FB11}/feeders/${safeFbKey(connected.name)}.json`,'PATCH',rp,12000);write11(`${FB11}/smartgrid/runtime/feeders/${safeFbKey(connected.code||connected.name)}.json`,'PATCH',rp,8000).catch(()=>{});BREAKDOWNS[id]=payload;toast('⚡ Breakdown saved: '+id);E11('fail_status_msg').textContent='Saved '+id+' at '+new Date().toLocaleString();clearPane('failure');renderOpenBreakdowns();flashSync();}
+  catch(e){toast('Breakdown save failed: '+(e?.message||e),true)}
+};
+try{logFailure=window.logFailure}catch(_){}
+
+window.deleteBreakdownV11=async function(id){
+  const b=BREAKDOWNS[id];if(!b){toast('Breakdown record not found',true);return}if(!confirm(`DELETE this breakdown record?\n\n${b.feederName||''}\n${b.substationName||''}\n${b.failureDateTime?new Date(b.failureDateTime).toLocaleString():''}\n\nThis cannot be undone.`))return;
+  try{await write11(`${FB11}/breakdowns/${id}.json`,'DELETE',undefined,12000);delete BREAKDOWNS[id];const other=Object.values(BREAKDOWNS).some(x=>x&&x.id!==id&&(x.isOpen===true||!x.restorationDateTime)&&compactTopo(x.feederCode||x.feederName)===compactTopo(b.feederCode||b.feederName));if(!other&&b.feederName){const p={status:'idle',lastUpdated:new Date().toISOString(),lastBreakdownId:'',feederName:b.feederName,feederCode:b.feederCode||'',source:'nmc-dashboard-v11-delete'};write11(`${FB11}/feeders/${safeFbKey(b.feederName)}.json`,'PATCH',p,9000).catch(()=>{});write11(`${FB11}/smartgrid/runtime/feeders/${safeFbKey(b.feederCode||b.feederName)}.json`,'PATCH',p,7000).catch(()=>{})}renderOpenBreakdowns();try{applyHistFilters?.()}catch(_){}toast('✓ Breakdown deleted')}
+  catch(e){toast('Delete failed: '+(e?.message||e),true)}
+};
+window.renderOpenBreakdowns=function renderOpenBreakdownsV11(){
+  const tb=E11('rect_open_tbody');if(!tb)return;const open=Object.values(BREAKDOWNS).filter(b=>b&&(b.isOpen===true||!b.restorationDateTime)).sort((a,b)=>String(b.failureDateTime||'').localeCompare(String(a.failureDateTime||'')));E11('rect_count_pill').textContent=open.length+' OPEN';const badge=E11('openCntBadge');if(badge){badge.style.display=open.length?'':'none';badge.textContent=open.length}if(!open.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">No open breakdowns</td></tr>';return}tb.innerHTML=open.map((b,i)=>{const ft=new Date(b.failureDateTime||0),dur=b.failureDateTime?humanDuration(Date.now()-ft.getTime()):'—';return `<tr><td>${i+1}</td><td style="white-space:nowrap">${ft.toLocaleString()}</td><td>${esc11(b.feederName||'—')}</td><td>${esc11(b.substationName||'—')}</td><td><span class="status-pill open">${esc11(b.outageType||'BREAKDOWN')}</span></td><td>${dur}</td><td><div class="row-actions-v11"><button class="row-btn success" onclick="openRectification('${esc11(b.id)}')">✎ RECTIFY</button><button class="row-btn nmc-v11-delete" onclick="deleteBreakdownV11('${esc11(b.id)}')">🗑 DELETE</button></div></td></tr>`}).join('')
+};
+try{renderOpenBreakdowns=window.renderOpenBreakdowns}catch(_){}
+
+/* RECTIFICATION: do not let a blocked smartgrid/runtime mirror invalidate the close. */
+window.saveRectification=async function saveRectificationV11(){
+  if(!CURRENT_RECT_ID){toast('No record open',true);return}const b=BREAKDOWNS[CURRENT_RECT_ID],restore=E11('rect_restore_time').value;if(!restore){toast('Set Restoration Date & Time',true);return}const now=new Date().toISOString(),ri=new Date(restore).toISOString(),dur=(new Date(ri)-new Date(b.failureDateTime))/60000,patch={restorationDateTime:ri,durationMinutes:Math.max(0,Math.round(dur)),rectifiedDateTime:E11('rect_rectified_time').value?new Date(E11('rect_rectified_time').value).toISOString():null,rectificationWork:E11('rect_work').value,lcTakenFrom:E11('rect_lc_from').value,lcCompleted:E11('rect_lc_completed').value?new Date(E11('rect_lc_completed').value).toISOString():null,rootCause:E11('rect_root_cause').value,rectificationRemarks:E11('rect_remarks').value,isOpen:false,status:'closed',updatedAt:now};
+  const rp={status:'live',lastUpdated:now,feederName:b.feederName||'',feederCode:b.feederCode||'',lastBreakdownId:'',createdInSmartGrid:!!findCreatedFeeder(b.feederCode||b.feederName),source:'nmc-dashboard-v11-rectification'};
+  try{await write11(`${FB11}/breakdowns/${CURRENT_RECT_ID}.json`,'PATCH',patch,12000);if(b.feederName)await write11(`${FB11}/feeders/${safeFbKey(b.feederName)}.json`,'PATCH',rp,12000);write11(`${FB11}/smartgrid/runtime/feeders/${safeFbKey(b.feederCode||b.feederName)}.json`,'PATCH',rp,8000).catch(()=>{});Object.assign(BREAKDOWNS[CURRENT_RECT_ID],patch);toast('✓ Rectification saved');cancelRectification();renderOpenBreakdowns();flashSync()}
+  catch(e){toast('Rectification save failed: '+(e?.message||e),true)}
+};try{saveRectification=window.saveRectification}catch(_){}
+
+/* LINE CLEAR: always refresh after topology bootstrap; add a visible SS picker so
+   the operator is not dependent on browser datalist behavior. */
+function lcrIndex11(){try{return Array.isArray(MANUAL_SS_INDEX)?MANUAL_SS_INDEX:[]}catch(_){return []}}
+window.lcrRefreshSSOptionsV11=function(){
+  const list=lcrIndex11();const dl=E11('lcr_ss_list');if(dl)dl.innerHTML=list.map(s=>`<option value="${esc11(s.name)}">${esc11(s.code||'')} · ${s.feeders?.size||0} connected feeder(s)</option>`).join('');
+  let pick=E11('lcr_ss_pick_v11'),inp=E11('lcr_ss');if(inp&&!pick){const box=document.createElement('div');box.className='nmc-v11-lcr-picker';box.innerHTML='<select id="lcr_ss_pick_v11"><option value="">— SELECT CONNECTED SUBSTATION —</option></select><span class="nmc-v11-mini">Loaded from saved Smart Grid topology</span>';inp.insertAdjacentElement('afterend',box);pick=E11('lcr_ss_pick_v11');pick.onchange=()=>{if(!pick.value)return;inp.value=pick.value;lcrOnSS()}}
+  if(pick)pick.innerHTML='<option value="">— SELECT CONNECTED SUBSTATION ('+list.length+') —</option>'+list.map(s=>`<option value="${esc11(s.name)}">${esc11(s.name)} · ${esc11(s.code||'')} · ${s.feeders?.size||0} feeder(s)</option>`).join('');
+  const note=E11('lcr_ss_note');if(note&&!list.length)note.innerHTML='<span style="color:#b45309;font-weight:700">Smart Grid topology is still loading or has no saved SS connections. Press ↻ RELOAD TOPOLOGY.</span>';
+  return list.length;
+};
+window.lcrReloadTopologyV11=async function(){
+  const note=E11('lcr_ss_note');if(note)note.textContent='Reloading saved Smart Grid topology…';
+  try{if(typeof loadManualTopology==='function')await loadManualTopology();else{const paths=['smartgrid/manualTopologyV1/current','smartgrid/manualDrawing/latest'];for(const p of paths){const r=await fetch11(`${FB11}/${p}.json?ts=${Date.now()}`);const d=r.ok?await r.json():null;if(d&&Array.isArray(d.rows)&&d.rows.length){MANUAL_TOPOLOGY=d;MANUAL_ROWS=d.rows;buildManualSSIndex();break}}}const n=lcrRefreshSSOptionsV11();if(note&&n)note.innerHTML=`<span class="lcr-ok">● ${n} connected substations loaded from Smart Grid topology.</span>`}
+  catch(e){if(note)note.innerHTML='<span style="color:#dc2626;font-weight:700">Topology reload failed: '+esc11(e?.message||e)+'</span>'}
+};
+function installLcrReload(){const inp=E11('lcr_ss');if(!inp||E11('lcrReloadBtnV11'))return;const b=document.createElement('button');b.id='lcrReloadBtnV11';b.type='button';b.className='btn btn-outline';b.style.cssText='margin-top:8px;padding:7px 12px;font-size:9px';b.textContent='↻ RELOAD TOPOLOGY';b.onclick=lcrReloadTopologyV11;const note=E11('lcr_ss_note');(note||inp).insertAdjacentElement('afterend',b)}
+const oldSwitch11=window.switchTab;window.switchTab=function(name){const r=oldSwitch11?.apply(this,arguments);if(name==='lcr'){setTimeout(()=>{installLcrReload();lcrRefreshSSOptionsV11();if(!lcrIndex11().length)lcrReloadTopologyV11();lcrRefreshMine?.()},50)}return r};
+
+/* LINE CLEAR save: try its normal path, then a feeder child fallback. */
+const originalLcrSubmit=window.lcrSubmit;
+window.lcrSubmit=async function lcrSubmitV11(){
+  try{
+    const ss=findManualSS((E11('lcr_ss')?.value||'').trim());if(!ss){lcrProof11('bad','✕ NOT SUBMITTED — select a connected substation.');return}
+    const f=feederForManualSS(ss.name,(E11('lcr_feeder')?.value||'').trim());if(!f){lcrProof11('bad','✕ NOT SUBMITTED — select a feeder physically connected to '+esc11(ss.name)+'.');return}
+    const from=E11('lcr_from').value,to=E11('lcr_to').value,nature=E11('lcr_nature').value,desc=(E11('lcr_desc').value||'').trim(),byName=(E11('lcr_by_name').value||'').trim(),byDesig=E11('lcr_by_desig').value;if(!from||!to||new Date(to)<=new Date(from)||!nature||!desc||!byName||!byDesig){lcrProof11('bad','✕ NOT SUBMITTED — complete the required SS/feeder, FROM/TO, nature, description, officer and designation fields.');return}
+    const affected=[...document.querySelectorAll('.lcr-aff:checked')].map(c=>({name:c.dataset.name,code:c.dataset.code})),altName=(E11('lcr_alt')?.value||'').trim(),alt=altName?feederForManualSS(ss.name,altName):null,id='LCR_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),now=new Date().toISOString();
+    const p={id,status:'pending',substationName:ss.name,substationCode:ss.code||'',feederName:f.name,feederCode:f.code||'',ehtSource:f.eht||'',connectionRole:f.role||'',requestedFrom:new Date(from).toISOString(),requestedTo:new Date(to).toISOString(),natureOfWork:nature,workDescription:desc,affectedSubstations:affected,estimatedConsumers:parseInt(E11('lcr_consumers').value||'0',10)||0,estimatedLoadMW:parseFloat(E11('lcr_load').value||'0')||0,diversion:{plannedToFeeder:alt?alt.name:'',plannedToCode:alt?alt.code||'':'',alternateStatusAtRequest:E11('lcr_alt_status').value||'',remarks:(E11('lcr_div_remarks').value||'').trim(),totalOutage:!alt},requestedBy:{name:byName,designation:byDesig,phone:(E11('lcr_by_phone').value||'').trim()},raisedAt:now,updatedAt:now,source:'nmc-lineclear-v11'};
+    lcrProof11('busy','⏳ Submitting line clear request…');let savedPath='';
+    try{await write11(`${FB11}/smartgrid/lineClearRequests/${id}.json`,'PUT',p,10000);savedPath=`/smartgrid/lineClearRequests/${id}`}catch(e1){try{await write11(`${FB11}/lineClearRequests/${id}.json`,'PUT',p,10000);savedPath=`/lineClearRequests/${id}`}catch(e2){await write11(`${FB11}/feeders/${safeFbKey(f.name)}/lineClearRequests/${id}.json`,'PUT',p,10000);savedPath=`/feeders/${safeFbKey(f.name)}/lineClearRequests/${id}`}}
+    lcrProof11('ok',`✓ LINE CLEAR REQUEST SAVED — <b>${esc11(f.name)}</b> at <b>${esc11(ss.name)}</b><br>Reference <code>${esc11(id)}</code> · Firebase <code>${esc11(savedPath)}</code>`);lcrRefreshMineV11();
+  }catch(e){lcrProof11('bad','✕ LINE CLEAR SAVE FAILED — '+esc11(e?.message||e))}
+};
+
+async function collectLineClear11(){
+  const out=new Map();
+  for(const path of ['smartgrid/lineClearRequests','lineClearRequests']){try{const r=await fetch11(`${FB11}/${path}.json?ts=${Date.now()}`,{},9000);if(r.ok){const d=await r.json()||{};Object.entries(d).forEach(([k,v])=>{if(v&&typeof v==='object')out.set(v.id||k,v)})}}catch(_){}}
+  // feeder-child fallbacks for created feeders only
+  try{const r=await fetch11(`${FB11}/feeders.json?ts=${Date.now()}`,{},10000);if(r.ok){const d=await r.json()||{};Object.values(d).forEach(fr=>{if(fr?.lineClearRequests)Object.entries(fr.lineClearRequests).forEach(([k,v])=>{if(v&&typeof v==='object')out.set(v.id||k,v)})})}}catch(_){}
+  return [...out.values()];
+}
+window.lcrRefreshMineV11=async function(){const host=E11('lcrMine');if(!host)return;host.innerHTML='<span class="lcr-note">Loading…</span>';try{const list=(await collectLineClear11()).sort((a,b)=>String(b.raisedAt||'').localeCompare(String(a.raisedAt||''))).slice(0,50);if(!list.length){host.innerHTML='<span class="lcr-note">No line clear requests raised yet.</span>';return}host.innerHTML=list.map(x=>{const st=String(x.status||'pending').toLowerCase(),ap=x.approval||{};return `<div class="lcr-mine"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><b>${esc11(x.feederName||'')}</b> — ${esc11(x.substationName||'')}<br><small>${esc11(x.natureOfWork||'')} · ${x.requestedFrom?new Date(x.requestedFrom).toLocaleString():''} → ${x.requestedTo?new Date(x.requestedTo).toLocaleString():''}</small></div><div style="display:flex;gap:6px;align-items:center"><span class="lcr-badge ${st}">${esc11(st)}</span><button class="lcr-del" onclick="lcrDeleteV11('${esc11(x.id||'')}')">🗑 DELETE</button></div></div><div style="margin-top:6px;font-size:11px;color:var(--muted)">${x.diversion?.plannedToFeeder?'Diverted to <b>'+esc11(x.diversion.plannedToFeeder)+'</b>':'<b style="color:#b91c1c">Total outage — no diversion</b>'} · by ${esc11(x.requestedBy?.name||'')} (${esc11(x.requestedBy?.designation||'')})</div>${ap.by?`<div style="margin-top:6px;font-size:11px;font-weight:700">${st==='approved'?'✓ Approved':'✕ Rejected'} by ${esc11(ap.by)}</div>`:''}</div>`}).join('')}catch(e){host.innerHTML='<span class="lcr-note" style="color:#b91c1c">Could not load requests — '+esc11(e?.message||e)+'</span>'}};
+window.lcrRefreshMine=window.lcrRefreshMineV11;
+window.lcrDeleteV11=async function(id){if(!id||!confirm('Delete line clear request '+id+'?'))return;let ok=false;for(const p of [`smartgrid/lineClearRequests/${id}`,`lineClearRequests/${id}`]){try{await write11(`${FB11}/${p}.json`,'DELETE',undefined,8000);ok=true}catch(_){}}try{const fr=await json11(`${FB11}/feeders.json?ts=${Date.now()}`)||{};for(const [k,v] of Object.entries(fr)){if(v?.lineClearRequests?.[id]){try{await write11(`${FB11}/feeders/${k}/lineClearRequests/${id}.json`,'DELETE',undefined,8000);ok=true}catch(_){}}}}catch(_){}if(ok){toast('✓ Line clear request deleted');lcrRefreshMineV11()}else toast('Delete failed — Firebase did not accept any delete path',true)};
+
+function boot11(){installStatusDelete();installLcrReload();lcrRefreshSSOptionsV11();setTimeout(()=>{if(!lcrIndex11().length)lcrReloadTopologyV11()},1800);setInterval(()=>{installStatusDelete();if(E11('pane-lcr')?.classList.contains('active'))lcrRefreshSSOptionsV11()},2500)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot11);else boot11();
+console.log('[NMC] V11 patch loaded — primary /feeders status writes, non-blocking runtime mirrors, breakdown deletion, line-clear topology refresh and deletion.');
 })();
 </script>
 
