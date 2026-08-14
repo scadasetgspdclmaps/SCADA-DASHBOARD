@@ -2280,17 +2280,28 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
     <label>LINE THICKNESS <span id="gspLineVal">1.5</span></label>
     <input type="range" min="0.5" max="6" step="0.25" value="1.5" oninput="setSGLineWeight(this.value)">
   </div>
-  <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
+  <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px;display:none">
     <label style="margin-bottom:0"><span>ENERGY FLOW ANIMATION</span>
       <input type="checkbox" id="sgFlowToggle" onchange="setSGFlow(this.checked)" style="transform:translateY(2px)"></label>
   </div>
-  <div class="gsp-row">
+  <div class="gsp-row" style="border-top:1px solid #e2e8f0;padding-top:9px">
+    <label>ENERGY FLOW <span id="gspFlowModeVal" style="color:#0ea5e9">Static</span></label>
+    <select id="gspFlowMode" onchange="setSGFlowMode(this.value)" style="width:100%;padding:5px 7px;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;background:#fff;color:#0f172a">
+      <option value="off">Static — no animation (fastest)</option>
+      <option value="live">Animate in LIVE / LIVE+BD views only</option>
+      <option value="always">Animate in every view</option>
+    </select>
+  </div>
+  <div class="gsp-row" id="gspFlowSpeedRow">
     <label>FLOW SPEED <span id="gspFlowSpeedVal">Normal</span></label>
     <input type="range" id="gspFlowSpeed" min="0.35" max="3.0" step="0.05" value="1.1" oninput="setSGFlowSpeed(this.value)">
   </div>
-  <div class="gsp-row">
-    <label>FLOW DOT SIZE <span id="gspFlowGlowVal">1.90</span></label>
-    <input type="range" id="gspFlowGlow" min="1.2" max="3.5" step="0.05" value="1.9" oninput="setSGFlowGlow(this.value)">
+  <div class="gsp-row" id="gspFlowDotRow">
+    <label>FLOW DOT SIZE <span id="gspFlowGlowVal">2.60</span></label>
+    <input type="range" id="gspFlowGlow" min="1.2" max="4.5" step="0.05" value="2.6" oninput="setSGFlowGlow(this.value)">
+  </div>
+  <div class="gsp-row" style="padding-top:4px">
+    <span style="font:700 8.5px/1 monospace;color:#94a3b8;letter-spacing:.6px">FLOW ENGINE V23 — if you cannot see this line, an older file is deployed</span>
   </div>
   <div class="gsp-row">
     <label style="margin-bottom:0"><span>FEEDER CODE LABELS</span>
@@ -8716,189 +8727,260 @@ console.log('[SmartGrid] V19 loaded — window.rows kept in sync with the live a
 
 
 
-<style id="sgV22Style">
+
+
+
+<style id="sgV23Style">
 /* ═══════════════════════════════════════════════════════════════════════
-   V22 — ENERGY FLOW AS A TRAVELLING DOT (Option 2: dot with soft glow)
+   V23 — STATIC BY DEFAULT, REAL DOTS, EQUAL VISIBILITY IN "ALL CREATED"
 
-   No dashes anywhere. The render loop still draws its two flow overlay
-   polylines; those are now made invisible and kept purely as the MOTION PATH
-   that the dot follows, so the dot tracks the exact feeder geometry — every
-   bend, every spur, every partial run the sectionalising logic produces.
+   Three separate faults were in play:
 
-   Dot size is derived from the cable weight, so the LINE THICKNESS slider
-   scales it automatically and it always sits a little proud of the cable.
-   Duration is derived from each path's own length, so a long feeder and a
-   short feeder move at the SAME pixels-per-second — without that, short
-   cables look sluggish and long ones look frantic.
+   1. THE ENERGY FLOW TOGGLE DID NOTHING. The render loop reads
+        (window.sgV9IsLiveConnection ? window.sgV9IsLiveConnection(c) : sgFlowOn)
+      so once the V9 block loaded, `sgFlowOn` — the checkbox — was never
+      consulted. Flow was drawn purely because a feeder was live, which is why
+      turning the animation off changed nothing. V23 gates that function
+      instead, so when flow is off NO overlay path is created at all. That is
+      also the load-time fix: nothing to build, nothing to animate.
 
-   Nothing dims. Idle and breakdown cables are untouched.
+   2. "SMALL LINE" NOT A DOT. That is the dashed overlay still being painted —
+      an 8px dash with a round cap on a 2px stroke looks exactly like a small
+      capsule. The overlay is now forced to stroke:none at higher specificity
+      so it is a pure invisible rail, and the only thing drawn is a circle.
+
+   3. IDLE FEEDERS WERE HALF TRANSPARENT (opacity .48) in every view, which
+      makes ALL CREATED a poor place to draw and edit. In ALL CREATED every
+      feeder is now rendered at full strength; LIVE / LIVE+BD keep filtering
+      idle cables out entirely, so nothing is lost there.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* The overlay polylines become invisible rails for the dot. */
-.leaflet-overlay-pane path.sg-flow-forward{
-  stroke:none !important; fill:none !important; pointer-events:none !important;
-  animation:none !important;
+/* The flow overlay is geometry only — never painted. Higher specificity than
+   the older rules so it wins regardless of load order. */
+.leaflet-overlay-pane svg path.sg-flow-forward{
+  stroke:none !important; fill:none !important;
+  animation:none !important; pointer-events:none !important;
 }
-.leaflet-overlay-pane path.sg-flow-halo{ display:none !important; }
+.leaflet-overlay-pane svg path.sg-flow-halo{ display:none !important; }
 
-/* Energised cable keeps a gentle halo so it reads as live. */
-.leaflet-overlay-pane path.sg-runtime-live{
+/* ALL CREATED — every feeder equally visible for drawing and editing. */
+body[data-sg-view="all"] .leaflet-overlay-pane path.sg-runtime-idle,
+body[data-sg-view="all"] .leaflet-overlay-pane path.sg-runtime-live,
+body[data-sg-view="all"] .leaflet-overlay-pane path.sg-runtime-breakdown{
+  opacity:.94 !important;
+}
+/* No drop-shadow in ALL CREATED either — glow blurs the line you are editing. */
+body[data-sg-view="all"] .leaflet-overlay-pane path.sg-feeder-line{ filter:none !important; }
+
+/* Live cable gets a gentle halo only in the live-focused views. */
+body[data-sg-view="live"] .leaflet-overlay-pane path.sg-runtime-live,
+body[data-sg-view="energized"] .leaflet-overlay-pane path.sg-runtime-live{
   filter:drop-shadow(0 0 3px rgba(34,211,238,.40)) !important;
 }
 
-/* The travelling dot. */
-.sgv22-dot{ pointer-events:none; }
-.sgv22-core{ fill:#f2ffff; filter:drop-shadow(0 0 3px rgba(242,255,255,.95)) drop-shadow(0 0 7px rgba(56,189,248,.9)); }
-.sgv22-halo{ fill:#38bdf8; opacity:.28; }
+/* The travelling dot — plain circles, NO svg filters. Filters on dozens of
+   moving nodes were a large part of the slowdown; two flat circles give the
+   same read at a fraction of the cost. */
+.sgv23-dot{ pointer-events:none }
+.sgv23-core{ fill:#ffffff }
+.sgv23-halo{ fill:#38bdf8; opacity:.30 }
 </style>
-<script id="sgV22Script">
+<script id="sgV23Script">
 (function(){
 'use strict';
-const SVGNS='http://www.w3.org/2000/svg';
-const XLINK='http://www.w3.org/1999/xlink';
+const SVGNS='http://www.w3.org/2000/svg', XLINK='http://www.w3.org/1999/xlink';
 
-let DOT_MULT = 1.9;    // dot diameter = cable weight × this
-let SPEED_S  = 1.1;    // seconds to cross a 200px cable
+let MODE     = 'off';   // off | live | always   — STATIC IS THE DEFAULT
+let SPEED_S  = 1.1;     // seconds per 200px of cable
+let DOT_MULT = 2.6;     // dot diameter = cable weight × this
 let seq = 0;
+const PX_REF = 200;
+const MAX_HALOS = 120;  // beyond this, cores only — keeps very busy views cheap
 
-const PX_REF = 200;    // reference length the speed slider is calibrated to
+try{
+  MODE     = localStorage.getItem('TGSPDCL_FLOW_MODE') || 'off';
+  SPEED_S  = parseFloat(localStorage.getItem('TGSPDCL_FLOW_SPEED')) || 1.1;
+  DOT_MULT = parseFloat(localStorage.getItem('TGSPDCL_FLOW_DOT'))   || 2.6;
+}catch(e){}
 
+function currentView(){
+  try{ return (window.SG_V9_RUNTIME && window.SG_V9_RUNTIME.view) || 'all'; }catch(e){ return 'all'; }
+}
+function flowEnabled(){
+  if(MODE==='off') return false;
+  if(MODE==='always') return true;
+  const v=currentView();
+  return v==='live' || v==='energized' || v==='breakdown';
+}
+window.sgV23FlowEnabled = flowEnabled;
+
+/* ── 1. Gate the overlay at source ──────────────────────────────────────
+   Returning false here means render() never creates the flow polylines, so
+   with flow off there is genuinely nothing extra to build, style or animate. */
+const origIsLive = window.sgV9IsLiveConnection;
+window.sgV9IsLiveConnection = function(c){
+  if(!flowEnabled()) return false;
+  try{ return origIsLive ? !!origIsLive(c) : false; }catch(e){ return false; }
+};
+
+/* ── 2. Dots ── */
 function cableWeight(p){
   try{ if(typeof sgLineWeight==='number' && sgLineWeight>0) return sgLineWeight; }catch(e){}
   const sw=parseFloat(p.getAttribute('stroke-width')||'0');
-  return sw>0 ? sw/0.62 : 1.5;      // the overlay is drawn at 0.62 × cable weight
+  return sw>0 ? sw/0.62 : 1.5;
 }
-
-function makeDot(cls, r, pathId, dur){
+function dot(cls,r,pathId,dur){
   const c=document.createElementNS(SVGNS,'circle');
-  c.setAttribute('class','sgv22-dot '+cls);
-  c.setAttribute('r', r.toFixed(2));
-  c.setAttribute('cx','0'); c.setAttribute('cy','0');
+  c.setAttribute('class','sgv23-dot '+cls);
+  c.setAttribute('r',r.toFixed(2)); c.setAttribute('cx','0'); c.setAttribute('cy','0');
   const am=document.createElementNS(SVGNS,'animateMotion');
-  am.setAttribute('dur', dur.toFixed(3)+'s');
-  am.setAttribute('repeatCount','indefinite');
+  am.setAttribute('dur',dur.toFixed(3)+'s'); am.setAttribute('repeatCount','indefinite');
   const mp=document.createElementNS(SVGNS,'mpath');
-  mp.setAttributeNS(XLINK,'href','#'+pathId);
-  mp.setAttribute('href','#'+pathId);
-  am.appendChild(mp); c.appendChild(am);
-  return c;
+  mp.setAttributeNS(XLINK,'href','#'+pathId); mp.setAttribute('href','#'+pathId);
+  am.appendChild(mp); c.appendChild(am); return c;
 }
-
+function clearDots(){
+  document.querySelectorAll('.sgv23-dot').forEach(n=>n.remove());
+}
 function apply(){
   try{
-    const panes=document.querySelectorAll('.leaflet-overlay-pane svg');
-    if(!panes.length) return 0;
+    clearDots();
+    if(!flowEnabled()) return 0;
+    const svg=document.querySelector('.leaflet-overlay-pane svg');
+    if(!svg) return 0;
+    const paths=[...svg.querySelectorAll('path.sg-flow-forward')];
+    const withHalo = paths.length <= MAX_HALOS;
     let made=0;
-    panes.forEach(svg=>{
-      svg.querySelectorAll('.sgv22-dot').forEach(n=>n.remove());
-      svg.querySelectorAll('path.sg-flow-forward').forEach(p=>{
-        let len=0;
-        try{ len=p.getTotalLength(); }catch(e){ return; }
-        if(!isFinite(len) || len < 6) return;             // too short to animate
-        if(!p.id) p.id='sgv22path'+(++seq);
-        const w   = cableWeight(p);
-        const r   = Math.max(1.4, (w*DOT_MULT)/2);        // radius from diameter
-        const dur = Math.max(0.30, (len/PX_REF) * SPEED_S); // constant px/sec
-        const g   = p.parentNode || svg;
-        g.appendChild(makeDot('sgv22-halo', r*2.1, p.id, dur));
-        g.appendChild(makeDot('sgv22-core', r,     p.id, dur));
-        made++;
-      });
+    paths.forEach(p=>{
+      let len=0; try{ len=p.getTotalLength(); }catch(e){ return; }
+      if(!isFinite(len) || len<6) return;
+      if(!p.id) p.id='sgv23p'+(++seq);
+      const w=cableWeight(p);
+      const r=Math.max(1.6,(w*DOT_MULT)/2);
+      const dur=Math.max(0.30,(len/PX_REF)*SPEED_S);
+      const g=p.parentNode||svg;
+      if(withHalo) g.appendChild(dot('sgv23-halo', r*2.0, p.id, dur));
+      g.appendChild(dot('sgv23-core', r, p.id, dur));
+      made++;
     });
     return made;
-  }catch(e){ console.warn('[V22] dot apply failed', e); return 0; }
+  }catch(e){ console.warn('[V23] dot apply',e); return 0; }
 }
-window.sgV22Apply = apply;
+window.sgV23Apply=apply;
 
-/* Re-apply after anything that rebuilds or reshapes the overlay. */
 let pending=null;
 function schedule(){
   if(pending) cancelAnimationFrame(pending);
   pending=requestAnimationFrame(()=>{ pending=null; apply(); });
 }
-window.sgV22Refresh = schedule;
 
+/* ── 3. Track the active view on <body> so CSS can respond ── */
+function stampView(){
+  try{ document.body.setAttribute('data-sg-view', currentView()); }catch(e){}
+}
+const origSetView = window.sgV9SetView;
+if(typeof origSetView==='function'){
+  window.sgV9SetView=function(v){
+    const r=origSetView.apply(this,arguments);
+    stampView();
+    schedule();                     // flow may switch on/off with the view
+    try{ render(); }catch(e){}
+    return r;
+  };
+}
+stampView();
+setInterval(stampView, 1500);
+
+/* Re-attach dots after any redraw. */
 const origRender = window.render;
 if(typeof origRender==='function'){
   const wrapped=function(){ const r=origRender.apply(this,arguments); schedule(); return r; };
-  try{ render = wrapped; }catch(e){}
-  window.render = wrapped;
+  try{ render=wrapped; }catch(e){}
+  window.render=wrapped;
 }
-try{
-  if(typeof map!=='undefined' && map && map.on){
-    map.on('zoomend moveend', schedule);      // path `d` changes → recompute duration
-  }
-}catch(e){}
+try{ if(typeof map!=='undefined' && map && map.on) map.on('zoomend moveend', schedule); }catch(e){}
+/* Light reconciliation — only while flow is actually on. */
 setInterval(()=>{
-  // Leaflet re-creates overlay paths on its own schedule; cheap reconciliation.
-  const svg=document.querySelector('.leaflet-overlay-pane svg');
-  if(!svg) return;
-  const paths=svg.querySelectorAll('path.sg-flow-forward').length;
-  const dots =svg.querySelectorAll('.sgv22-core').length;
-  if(paths!==dots) apply();
-}, 1200);
-setTimeout(apply, 800);
+  if(!flowEnabled()) return;
+  const svg=document.querySelector('.leaflet-overlay-pane svg'); if(!svg) return;
+  if(svg.querySelectorAll('path.sg-flow-forward').length !== svg.querySelectorAll('.sgv23-core').length) apply();
+}, 2000);
 
-/* ── Symbol Adjuster controls ── */
-window.setSGFlowSpeed = function(v){
-  SPEED_S = Math.max(0.35, Math.min(3, parseFloat(v) || 1.1));
-  const lbl=document.getElementById('gspFlowSpeedVal');
-  if(lbl) lbl.textContent = SPEED_S<=0.6?'Very fast':SPEED_S<=0.9?'Fast':SPEED_S<=1.4?'Normal':SPEED_S<=2.1?'Slow':'Very slow';
-  try{ localStorage.setItem('TGSPDCL_FLOW_SPEED', String(SPEED_S)); }catch(e){}
+/* ── 4. Symbol Adjuster controls ── */
+function syncRowVisibility(){
+  const on = MODE!=='off';
+  ['gspFlowSpeedRow','gspFlowDotRow'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display = on ? '' : 'none';
+  });
+  const lbl=document.getElementById('gspFlowModeVal');
+  if(lbl) lbl.textContent = MODE==='off' ? 'Static' : MODE==='live' ? 'Live views' : 'All views';
+}
+window.setSGFlowMode=function(v){
+  MODE = (v==='live'||v==='always') ? v : 'off';
+  try{ localStorage.setItem('TGSPDCL_FLOW_MODE',MODE); }catch(e){}
+  syncRowVisibility();
+  const cb=document.getElementById('sgFlowToggle'); if(cb) cb.checked = (MODE!=='off');
+  clearDots();
+  try{ render(); }catch(e){}      // rebuilds overlays with the new gate
+  schedule();
+  return MODE;
+};
+/* The legacy checkbox now maps onto the mode, so it genuinely turns flow off. */
+window.setSGFlow=function(on){ return window.setSGFlowMode(on ? 'live' : 'off'); };
+
+window.setSGFlowSpeed=function(v){
+  SPEED_S=Math.max(0.35,Math.min(3,parseFloat(v)||1.1));
+  const l=document.getElementById('gspFlowSpeedVal');
+  if(l) l.textContent = SPEED_S<=0.6?'Very fast':SPEED_S<=0.9?'Fast':SPEED_S<=1.4?'Normal':SPEED_S<=2.1?'Slow':'Very slow';
+  try{ localStorage.setItem('TGSPDCL_FLOW_SPEED',String(SPEED_S)); }catch(e){}
   apply(); return SPEED_S;
 };
-window.setSGFlowGlow = function(v){        // now controls DOT SIZE
-  DOT_MULT = Math.max(1.2, Math.min(3.5, parseFloat(v) || 1.9));
-  const lbl=document.getElementById('gspFlowGlowVal');
-  if(lbl) lbl.textContent = DOT_MULT.toFixed(2);
-  try{ localStorage.setItem('TGSPDCL_FLOW_DOT', String(DOT_MULT)); }catch(e){}
+window.setSGFlowGlow=function(v){
+  DOT_MULT=Math.max(1.2,Math.min(4.5,parseFloat(v)||2.6));
+  const l=document.getElementById('gspFlowGlowVal');
+  if(l) l.textContent=DOT_MULT.toFixed(2);
+  try{ localStorage.setItem('TGSPDCL_FLOW_DOT',String(DOT_MULT)); }catch(e){}
   apply(); return DOT_MULT;
 };
-window.setSGFlowDotSize = window.setSGFlowGlow;
+window.setSGFlowDotSize=window.setSGFlowGlow;
 
-/* Dots must resize the moment LINE THICKNESS moves. */
-const origWeight = window.setSGLineWeight;
+const origWeight=window.setSGLineWeight;
 if(typeof origWeight==='function'){
-  const wrappedW=function(){ const r=origWeight.apply(this,arguments); schedule(); return r; };
-  try{ setSGLineWeight = wrappedW; }catch(e){}
-  window.setSGLineWeight = wrappedW;
+  const w2=function(){ const r=origWeight.apply(this,arguments); schedule(); return r; };
+  try{ setSGLineWeight=w2; }catch(e){}
+  window.setSGLineWeight=w2;
 }
 
-(function init(){
-  let s=1.1, d=1.9;
-  try{
-    s=parseFloat(localStorage.getItem('TGSPDCL_FLOW_SPEED'))||1.1;
-    d=parseFloat(localStorage.getItem('TGSPDCL_FLOW_DOT'))||1.9;
-  }catch(e){}
-  SPEED_S=s; DOT_MULT=d;
+(function initUI(){
   const sync=()=>{
-    const a=document.getElementById('gspFlowSpeed'), b=document.getElementById('gspFlowGlow');
-    if(a) a.value=s; if(b) b.value=d;
-    const la=document.getElementById('gspFlowSpeedVal'), lb=document.getElementById('gspFlowGlowVal');
-    if(la) la.textContent = s<=0.6?'Very fast':s<=0.9?'Fast':s<=1.4?'Normal':s<=2.1?'Slow':'Very slow';
-    if(lb) lb.textContent = d.toFixed(2);
-    return !!(a&&b);
+    const m=document.getElementById('gspFlowMode'),
+          s=document.getElementById('gspFlowSpeed'),
+          d=document.getElementById('gspFlowGlow');
+    if(!(m&&s&&d)) return false;
+    m.value=MODE; s.value=SPEED_S; d.value=DOT_MULT;
+    const ls=document.getElementById('gspFlowSpeedVal'), ld=document.getElementById('gspFlowGlowVal');
+    if(ls) ls.textContent = SPEED_S<=0.6?'Very fast':SPEED_S<=0.9?'Fast':SPEED_S<=1.4?'Normal':SPEED_S<=2.1?'Slow':'Very slow';
+    if(ld) ld.textContent = DOT_MULT.toFixed(2);
+    const cb=document.getElementById('sgFlowToggle'); if(cb) cb.checked=(MODE!=='off');
+    syncRowVisibility();
+    return true;
   };
-  if(!sync()){ const t=setInterval(()=>{ if(sync()) clearInterval(t); },600); setTimeout(()=>clearInterval(t),20000); }
+  if(!sync()){ const t=setInterval(()=>{ if(sync()) clearInterval(t); },500); setTimeout(()=>clearInterval(t),20000); }
 })();
 
-window.sgV22Check = function(){
+window.sgV23Check=function(){
   const svg=document.querySelector('.leaflet-overlay-pane svg');
   const out={
+    build:'V23', mode:MODE, view:currentView(), flowEnabled:flowEnabled(),
     flowPaths: svg?svg.querySelectorAll('path.sg-flow-forward').length:0,
-    dots:      svg?svg.querySelectorAll('.sgv22-core').length:0,
-    liveCables:svg?svg.querySelectorAll('path.sg-runtime-live').length:0,
+    dots:      svg?svg.querySelectorAll('.sgv23-core').length:0,
     dotMultiplier:DOT_MULT, secondsPer200px:SPEED_S
   };
-  out.verdict = out.dots>0 ? 'dots are attached and travelling'
-              : out.flowPaths>0 ? 'flow paths exist but no dots — call sgV22Apply()'
-              : out.liveCables>0 ? 'live cables exist but no flow path — check ENERGY FLOW ANIMATION toggle'
-              : 'no live feeder on screen — set one LIVE in Breakdown Entry';
   try{ console.table(out); }catch(e){ console.log(out); }
   return out;
 };
 
-console.log('[SmartGrid] V22 loaded — energy flow is now a glowing dot travelling along each live feeder (Option 2). Size scales with LINE THICKNESS, speed is constant px/sec across cables. Run sgV22Check() to inspect.');
+console.log('[SmartGrid] V23 loaded — flow is STATIC by default; the toggle now truly gates overlay creation; dots are plain circles with no SVG filters; ALL CREATED renders every feeder at full opacity for editing. Run sgV23Check().');
 })();
 </script>
 
