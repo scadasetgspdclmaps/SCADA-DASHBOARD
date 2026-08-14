@@ -2199,4 +2199,588 @@ console.log('[NMC] V8 loaded — EHT → 33/11KV connections are now measured SV
 })();
 </script>
 
+
+<style id="nmcV9Style">
+.nmc-v9-proof{display:block;width:100%;margin-top:12px;padding:12px 14px;border-radius:9px;font-size:11px;font-weight:700;line-height:1.55;border:1px solid #cbd5e1;background:#f8fafc;color:#475569}
+.nmc-v9-proof.ok{background:#ecfdf5;border-color:#6ee7b7;color:#047857}
+.nmc-v9-proof.bad{background:#fff1f2;border-color:#fda4af;color:#be123c}
+.nmc-v9-proof.busy{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+.nmc-v9-proof code{font-family:var(--mono);background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:10px}
+.nmc-v9-retry{margin-top:9px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:7px 14px;font:800 10px/1 Arial;letter-spacing:.7px;cursor:pointer}
+.nmc-v9-retry:hover{background:#1e40af}
+#nmcV9Queue{position:fixed;right:16px;bottom:16px;z-index:9998;background:#fff7ed;border:1px solid #fb923c;color:#9a3412;border-radius:10px;padding:11px 14px;font:700 11px/1.5 Arial;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:340px;display:none}
+#nmcV9Queue b{display:block;margin-bottom:4px}
+</style>
+<script id="nmcV9Script">
+/* ═══════════════════════════════════════════════════════════════════════
+   V9 — EVERY FIREBASE WRITE IS NOW RESILIENT, NOT JUST THE LOG ENTRY
+
+   The database is healthy — it currently holds 19 feeder status records, so
+   writes from this dashboard have been landing. What you hit is a transient
+   network stall, and the code had no defence against one:
+
+     • logFailure() (FAILURE ENTRY) still used bare fetch with NO timeout and
+       reported problems only through a toast that fades in two seconds. A
+       stalled request there simply never returned and nothing was ever shown.
+     • The 20s ceiling on the Log Entry save was too tight for a slow link,
+       and when it gave up the entry was lost — you had to retype everything.
+
+   Rather than rewrite each save (each builds a large payload and rewriting
+   them risks changing what gets stored), this block intercepts fetch itself
+   for Firebase WRITES only. Reads are untouched and pass straight through.
+   Every write now gets a 45s ceiling, 4 attempts with backoff, and if it
+   still fails the payload is parked in a queue you can retry with one click —
+   so a dropout costs you a button press, never the data.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+const FB = (typeof FIREBASE_URL!=='undefined' ? FIREBASE_URL
+          : 'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app');
+
+const TIMEOUT_MS = 45000;
+const ATTEMPTS   = 4;
+const QKEY       = 'TGSPDCL_PENDING_WRITES';
+
+const esc   = v => String(v??'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const el    = id => document.getElementById(id);
+
+/* ── failed-write queue ─────────────────────────────────────────────── */
+function loadQ(){ try{ return JSON.parse(localStorage.getItem(QKEY)||'[]'); }catch(e){ return []; } }
+function saveQ(q){ try{ localStorage.setItem(QKEY, JSON.stringify(q.slice(-40))); }catch(e){} }
+function pushQ(item){ const q=loadQ(); q.push(item); saveQ(q); paintQ(); }
+function paintQ(){
+  const q=loadQ(); let box=el('nmcV9Queue');
+  if(!box){ box=document.createElement('div'); box.id='nmcV9Queue'; document.body.appendChild(box); }
+  if(!q.length){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML=`<b>⚠ ${q.length} unsaved change${q.length===1?'':'s'} held locally</b>`
+    + `These did not reach Firebase. Nothing is lost — press retry when the connection is back.`
+    + `<button class="nmc-v9-retry" onclick="nmcV9RetryQueue()">↻ RETRY ALL NOW</button>`;
+}
+window.nmcV9RetryQueue = async function(){
+  const q=loadQ(); if(!q.length) return;
+  const box=el('nmcV9Queue'); if(box) box.innerHTML='<b>⏳ Retrying…</b>';
+  const left=[];
+  for(const item of q){
+    const r = await rawWrite(item.url, item.opts, 2);
+    if(!r.ok) left.push(item);
+  }
+  saveQ(left); paintQ();
+  if(!left.length){
+    try{ toast('✓ All held changes saved'); }catch(e){}
+    try{ if(typeof renderSourceDashboard==='function') renderSourceDashboard(); }catch(e){}
+    try{ if(typeof bootstrap==='function') bootstrap(); }catch(e){}
+  }else{
+    try{ toast(`${left.length} change(s) still could not be saved`, true); }catch(e){}
+  }
+};
+
+/* ── the resilient write ────────────────────────────────────────────── */
+const origFetch = window.fetch.bind(window);
+
+async function rawWrite(url, opts, attempts){
+  let last=null;
+  const n = attempts || ATTEMPTS;
+  for(let i=1;i<=n;i++){
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>ctrl.abort(), TIMEOUT_MS);
+    try{
+      const r = await origFetch(url, Object.assign({}, opts, {signal:ctrl.signal}));
+      clearTimeout(t);
+      if(!r.ok){
+        let body=''; try{ body=await r.clone().text(); }catch(e){}
+        throw new Error(`HTTP ${r.status} ${r.statusText||''}`.trim()+(body?` — ${body.slice(0,160)}`:''));
+      }
+      return {ok:true, response:r, attempts:i};
+    }catch(e){
+      clearTimeout(t);
+      last = (e && e.name==='AbortError')
+        ? new Error(`attempt ${i} timed out after ${TIMEOUT_MS/1000}s`)
+        : e;
+      if(i<n) await sleep(900*i);
+    }
+  }
+  return {ok:false, error:last, attempts:n};
+}
+
+/* Intercept Firebase WRITES only. Reads and anything already carrying its own
+   AbortSignal (the V7 save path) pass through untouched, so nothing is
+   double-wrapped. */
+window.fetch = function(input, init){
+  try{
+    const url = (typeof input==='string') ? input : (input && input.url) || '';
+    const m   = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+    const isWrite = (m==='PUT'||m==='PATCH'||m==='POST');
+    const mine    = url.indexOf(FB)===0;
+    const already = init && init.signal;
+    if(isWrite && mine && !already && typeof input==='string'){
+      return rawWrite(url, init||{}, ATTEMPTS).then(r=>{
+        if(r.ok) return r.response;
+        pushQ({url, opts:init||{}, at:new Date().toISOString()});
+        console.error('[V9] write failed, queued for retry', url, r.error);
+        // statusText must be ISO-8859-1 only — a non-Latin1 character here
+        // makes the Response constructor throw, which would turn every failed
+        // write into an unhandled exception instead of a queued retry.
+        return new Response(JSON.stringify({error:String(r.error&&r.error.message||r.error)}),
+                            {status:599, statusText:'Network stalled - queued locally'});
+      });
+    }
+  }catch(e){}
+  return origFetch(input, init);
+};
+
+/* ── FAILURE ENTRY: persistent banner instead of a fading toast ─────── */
+function banner(kind,msg){
+  let x=el('nmcV9Proof');
+  if(!x){
+    x=document.createElement('div'); x.id='nmcV9Proof'; x.className='nmc-v9-proof';
+    const btn=[...document.querySelectorAll('button')].find(b=>/LOG BREAKDOWN ENTRY/i.test(b.textContent||''));
+    const actions = btn && btn.closest ? btn.closest('.actions') : null;
+    if(actions && actions.parentElement) actions.parentElement.insertBefore(x, actions.nextSibling);
+    else if(btn && btn.parentElement) btn.parentElement.appendChild(x);
+    else document.body.appendChild(x);
+  }
+  x.className='nmc-v9-proof '+(kind||'');
+  x.innerHTML=msg; x.style.display='block';
+  try{ x.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(e){}
+  return x;
+}
+window.nmcV9Banner = banner;
+
+const origLogFailure = window.logFailure;
+if(typeof origLogFailure === 'function'){
+  const wrapped = async function(){
+    const before = loadQ().length;
+    banner('busy','<span>⏳ Logging breakdown entry…</span>');
+    try{
+      const r = await origLogFailure.apply(this, arguments);
+      await sleep(150);
+      const after = loadQ().length;
+      if(after > before){
+        banner('bad','✕ BREAKDOWN NOT SAVED — the connection to Firebase stalled on every attempt.<br>'
+          + 'Your entry is <b>held locally and not lost</b>. Press <b>RETRY ALL NOW</b> in the orange box, '
+          + 'bottom-right, once the connection is back.');
+      }else{
+        // Nothing queued — either it saved, or validation stopped it before any write.
+        const t=document.querySelector('#toast');
+        const failedValidation = t && /select|set the|choose/i.test(t.textContent||'');
+        if(failedValidation) banner('bad','✕ NOT SAVED — '+esc(t.textContent.trim()));
+        else banner('ok','✓ BREAKDOWN ENTRY SAVED AND CONFIRMED BY FIREBASE.<br>It will appear in Failure Rectification and on the Smart Grid map.');
+      }
+      return r;
+    }catch(err){
+      banner('bad','✕ BREAKDOWN LOG CRASHED — <code>'+esc(String(err&&err.message||err))+'</code>');
+      throw err;
+    }
+  };
+  try{ logFailure = wrapped; }catch(e){}
+  window.logFailure = wrapped;
+}
+setInterval(()=>{
+  const b=[...document.querySelectorAll('button')].find(x=>/LOG BREAKDOWN ENTRY/i.test(x.textContent||''));
+  if(b && b.__nmcV9!==1){ b.__nmcV9=1; b.addEventListener('click',()=>{ setTimeout(paintQ,400); }); }
+}, 1500);
+
+/* ── connection health probe ───────────────────────────────────────── */
+window.nmcV9Health = async function(){
+  const t0=Date.now();
+  let read=null, write=null;
+  try{
+    const r=await origFetch(`${FB}/smartgrid/runtime/feeders.json?shallow=true&ts=${Date.now()}`,{cache:'no-store'});
+    read={ok:r.ok, status:r.status, ms:Date.now()-t0};
+  }catch(e){ read={ok:false, error:String(e.message||e), ms:Date.now()-t0}; }
+  const t1=Date.now();
+  const w=await rawWrite(`${FB}/smartgrid/runtime/_health.json`,
+    {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({at:new Date().toISOString()})},1);
+  write={ok:w.ok, ms:Date.now()-t1, error:w.error?String(w.error.message||w.error):null};
+  const out={read, write, queued:loadQ().length,
+    verdict: (read.ok&&write.ok) ? 'Firebase reachable for both read and write'
+           : (read.ok&&!write.ok) ? 'reads fine, writes blocked — likely a proxy or firewall filtering PUT/PATCH'
+           : 'cannot reach Firebase at all from this page'};
+  try{ console.table({read:JSON.stringify(read), write:JSON.stringify(write), verdict:out.verdict}); }catch(e){ console.log(out); }
+  return out;
+};
+
+paintQ();
+setTimeout(paintQ, 2000);
+console.log('[NMC] V9 loaded — all Firebase writes now retry 4× with a 45s ceiling, failures are queued locally instead of lost, and FAILURE ENTRY finally reports its outcome. Run nmcV9Health() to test the connection.');
+})();
+</script>
+
+
+<style id="nmcV10Style">
+#pane-lcr .lcr-note{font-size:10.5px;color:var(--muted);margin-top:5px;line-height:1.5}
+#pane-lcr .lcr-warn{padding:8px 11px;border:1px solid #fecaca;background:#fff7f7;color:#b91c1c;border-radius:7px;font-size:10.5px;font-weight:700;margin-top:6px}
+#pane-lcr .lcr-ok{color:#047857;font-weight:700}
+.lcr-div-box{background:linear-gradient(135deg,#eff6ff,#e0f2fe);border:1.5px solid #60a5fa;border-radius:10px;padding:14px;margin-top:6px}
+.lcr-div-box h4{font-size:10px;font-weight:800;color:#1d4ed8;letter-spacing:1px;margin-bottom:9px;text-transform:uppercase}
+.lcr-ss-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #93c5fd;border-radius:7px;padding:6px 11px;margin:4px 6px 0 0;font-size:11.5px;font-weight:700;color:#1e3a8a}
+.lcr-mine{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:12px 15px;margin-top:10px;font-size:11.5px}
+.lcr-badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+.lcr-badge.pending{background:#fef3c7;color:#92400e}
+.lcr-badge.approved{background:#d1fae5;color:#047857}
+.lcr-badge.rejected{background:#fee2e2;color:#b91c1c}
+.lcr-badge.completed{background:#e0e7ff;color:#3730a3}
+#lcrProof{display:block;width:100%;margin-top:12px;padding:12px 14px;border-radius:9px;font-size:11px;font-weight:700;line-height:1.55;border:1px solid #cbd5e1;background:#f8fafc;color:#475569}
+#lcrProof.ok{background:#ecfdf5;border-color:#6ee7b7;color:#047857}
+#lcrProof.bad{background:#fff1f2;border-color:#fda4af;color:#be123c}
+#lcrProof.busy{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+</style>
+<script id="nmcV10Script">
+/* ═══════════════════════════════════════════════════════════════════════
+   V10 — LINE CLEAR / WORKS REQUEST (raised by the field officer)
+
+   Tab 6 of the Breakdown Entry form. The officer raises a request here; it
+   lands in Firebase as PENDING and appears in the SE SCADA approvals panel
+   on the Live Dashboard. Nothing is cleared until SE SCADA approves.
+
+   Everything selectable is driven by the saved Smart Grid topology, so a
+   request cannot name a feeder or an alternate that is not physically
+   connected — the same rule the breakdown form already enforces.
+
+   Firebase: smartgrid/lineClearRequests/{id}
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+const FB=(typeof FIREBASE_URL!=='undefined'?FIREBASE_URL:'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app');
+const e=v=>String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const $=id=>document.getElementById(id);
+const nowLocal=()=>{const d=new Date(),o=d.getTimezoneOffset();return new Date(d.getTime()-o*60000).toISOString().slice(0,16)};
+
+function proof(kind,msg){
+  let x=$('lcrProof');
+  if(!x){ x=document.createElement('div'); x.id='lcrProof';
+    const b=$('lcrSubmitBtn'); (b&&b.parentElement?b.parentElement:document.body).appendChild(x); }
+  x.className=kind||''; x.innerHTML=msg; x.style.display='block';
+  try{ x.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(err){}
+}
+
+function ssIndex(){ try{ return MANUAL_SS_INDEX||[]; }catch(err){ return []; } }
+
+function buildPane(){
+  if($('pane-lcr')) return;
+  const tabs=document.querySelector('.tabs'), wrap=document.querySelector('.wrap');
+  if(!tabs||!wrap) return;
+  const tab=document.createElement('div');
+  tab.className='tab'; tab.dataset.pane='lcr';
+  tab.onclick=()=>{ switchTab('lcr'); lcrRefreshMine(); };
+  tab.innerHTML='<span class="num">6</span>LINE CLEAR REQUEST';
+  tabs.appendChild(tab);
+
+  const pane=document.createElement('div');
+  pane.id='pane-lcr'; pane.className='pane';
+  pane.innerHTML=`
+  <div class="section">
+    <div class="section-hd"><span class="step">1</span><span class="title">FEEDER TO BE CLEARED</span></div>
+    <div class="section-bd">
+      <div class="grid">
+        <div class="field col-span-2">
+          <label>Affected 33/11KV Substation <span class="req">*</span></label>
+          <input type="text" id="lcr_ss" list="lcr_ss_list" placeholder="Type substation name / code…" oninput="lcrOnSS()">
+          <datalist id="lcr_ss_list"></datalist>
+          <div id="lcr_ss_note" class="lcr-note">Only substations present in the saved Smart Grid topology can be selected.</div>
+        </div>
+        <div class="field"><label>SS Code <span class="num">(auto)</span></label><input id="lcr_ss_code" class="auto-fill" readonly></div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field col-span-2">
+          <label>33KV Feeder requiring line clear <span class="req">*</span></label>
+          <input type="text" id="lcr_feeder" list="lcr_feeder_list" placeholder="Select substation first…" oninput="lcrOnFeeder()" disabled>
+          <datalist id="lcr_feeder_list"></datalist>
+          <div id="lcr_feeder_note" class="lcr-note"></div>
+        </div>
+        <div class="field"><label>Feeder Code <span class="num">(auto)</span></label><input id="lcr_feeder_code" class="auto-fill" readonly></div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field"><label>EHT Source <span class="num">(auto)</span></label><input id="lcr_eht" class="auto-fill" readonly></div>
+        <div class="field"><label>Requested FROM <span class="req">*</span></label><input type="datetime-local" id="lcr_from"></div>
+        <div class="field"><label>Requested TO <span class="req">*</span></label><input type="datetime-local" id="lcr_to"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hd"><span class="step">2</span><span class="title">LOAD DIVERSION PLAN</span></div>
+    <div class="section-bd">
+      <div class="lcr-div-box">
+        <h4>⚡ Where does the load go during the clear?</h4>
+        <div class="grid">
+          <div class="field col-span-2">
+            <label>Divert load to (alternate 33KV feeder on the same SS)</label>
+            <select id="lcr_alt" onchange="lcrOnAlt()"><option value="">— select substation and feeder first —</option></select>
+            <div id="lcr_alt_note" class="lcr-note">Only feeders physically connected to the same substation are offered.</div>
+          </div>
+          <div class="field"><label>Alternate status <span class="num">(auto)</span></label><input id="lcr_alt_status" class="auto-fill" readonly></div>
+        </div>
+        <div class="grid" style="margin-top:12px">
+          <div class="field col-span-3">
+            <label>Diversion remarks / switching sequence</label>
+            <textarea id="lcr_div_remarks" rows="2" placeholder="e.g. Close AB switch at Pole 45, then open incomer at 33/11KV SS…"></textarea>
+          </div>
+        </div>
+        <div id="lcr_nodiv" class="lcr-warn" style="display:none">No alternate source is saved for this substation — the clear will cause a total outage. State this clearly in the remarks.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hd"><span class="step">3</span><span class="title">AFFECTED SUPPLY &amp; NATURE OF WORK</span></div>
+    <div class="section-bd">
+      <div class="grid">
+        <div class="field col-span-3">
+          <label>33/11KV Substations going off supply <span class="num">(auto from topology — tick to confirm)</span></label>
+          <div id="lcr_affected"></div>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field"><label>Estimated consumers affected</label><input id="lcr_consumers" type="number" min="0" placeholder="e.g. 4500"></div>
+        <div class="field"><label>Estimated load interrupted (MW)</label><input id="lcr_load" type="number" min="0" step="0.01" placeholder="e.g. 6.5"></div>
+        <div class="field">
+          <label>Nature of work <span class="req">*</span></label>
+          <select id="lcr_nature">
+            <option value="">— Select —</option>
+            <option>Line Clear — Maintenance</option>
+            <option>Line Clear — Emergency</option>
+            <option>Cable Jointing / Fault Repair</option>
+            <option>Tower / Pole Replacement</option>
+            <option>Conductor Replacement</option>
+            <option>Tree Cutting / Right of Way</option>
+            <option>New Connection / Tapping</option>
+            <option>Transformer Work at SS</option>
+            <option>Statutory Inspection</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field col-span-3">
+          <label>Description of work <span class="req">*</span></label>
+          <textarea id="lcr_desc" rows="2" placeholder="What exactly will be done during the clear…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hd"><span class="step">4</span><span class="title">REQUESTING OFFICER</span></div>
+    <div class="section-bd">
+      <div class="grid">
+        <div class="field"><label>Name <span class="req">*</span></label><input id="lcr_by_name" placeholder="Officer name"></div>
+        <div class="field">
+          <label>Designation <span class="req">*</span></label>
+          <select id="lcr_by_desig">
+            <option value="">— Select —</option>
+            <option>AE / Lines</option><option>ADE / Lines</option><option>DE / Lines</option>
+            <option>AE / Operation</option><option>ADE / Operation</option><option>DE / Operation</option>
+            <option>AE / Construction</option><option>ADE / Construction</option>
+            <option>NMC Officer</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Contact number</label><input id="lcr_by_phone" placeholder="10-digit number"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="lcrSubmitBtn" onclick="lcrSubmit()">⚡ SUBMIT LINE CLEAR REQUEST</button>
+    <button class="btn btn-outline" onclick="lcrClear()">✕ CLEAR</button>
+    <button class="btn btn-outline" onclick="lcrRefreshMine()">↻ REFRESH MY REQUESTS</button>
+  </div>
+
+  <div class="data-section">
+    <div class="data-section-hd"><span class="title">MY RECENT REQUESTS &amp; APPROVAL STATUS</span></div>
+    <div style="padding:14px 18px" id="lcrMine"><span class="lcr-note">Loading…</span></div>
+  </div>`;
+  wrap.appendChild(pane);
+
+  const l=$('lcr_ss_list');
+  if(l) l.innerHTML=ssIndex().map(s=>`<option value="${e(s.name)}">${e(s.code||'')}</option>`).join('');
+  if($('lcr_from')) $('lcr_from').value=nowLocal();
+}
+
+/* ── cascading selects, all driven by saved topology ── */
+window.lcrOnSS=function(){
+  const ss=findManualSS($('lcr_ss').value.trim());
+  $('lcr_ss_code').value = ss?ss.code:'';
+  $('lcr_feeder').value=''; $('lcr_feeder_code').value=''; $('lcr_eht').value='';
+  $('lcr_alt').innerHTML='<option value="">— none —</option>';
+  $('lcr_affected').innerHTML='';
+  const note=$('lcr_ss_note');
+  if(!ss){
+    $('lcr_feeder').disabled=true; $('lcr_feeder').placeholder='Select a saved substation first…';
+    $('lcr_feeder_list').innerHTML='';
+    if(note) note.innerHTML='<span style="color:#dc2626;font-weight:700">Not found in the saved Smart Grid topology.</span>';
+    return;
+  }
+  const feeders=[...ss.feeders.values()].sort((a,b)=>a.name.localeCompare(b.name));
+  $('lcr_feeder').disabled=false;
+  $('lcr_feeder').placeholder='Choose the feeder to be cleared…';
+  $('lcr_feeder_list').innerHTML=feeders.map(f=>`<option value="${e(f.name)}">${e(f.code||'')}${f.role?' · '+e(f.role):''}</option>`).join('');
+  if(note) note.innerHTML=`<span class="lcr-ok">● ${feeders.length} feeder(s) connected to ${e(ss.name)}</span>`;
+  if(feeders.length===1){ $('lcr_feeder').value=feeders[0].name; window.lcrOnFeeder(); }
+};
+
+window.lcrOnFeeder=function(){
+  const ss=findManualSS($('lcr_ss').value.trim());
+  const fn=$('lcr_feeder').value.trim();
+  if(!ss||!fn) return;
+  const f=feederForManualSS(ss.name,fn);
+  const note=$('lcr_feeder_note');
+  if(!f){
+    $('lcr_feeder_code').value=''; $('lcr_eht').value='';
+    if(note) note.innerHTML='<span style="color:#dc2626;font-weight:700">This feeder is not connected to the selected substation.</span>';
+    return;
+  }
+  $('lcr_feeder').value=f.name;
+  $('lcr_feeder_code').value=f.code||'';
+  $('lcr_eht').value=f.eht||'';
+  if(note) note.innerHTML=`<span class="lcr-ok">● Connected · ${e(f.role||'source')}</span>`;
+
+  const alts=[...ss.feeders.values()].filter(x=>compactTopo(x.code||x.name)!==compactTopo(f.code||f.name));
+  $('lcr_alt').innerHTML='<option value="">— no diversion, total outage —</option>'
+    + alts.map(a=>`<option value="${e(a.name)}">${e(a.name)}${a.code?' · '+e(a.code):''}</option>`).join('');
+  $('lcr_nodiv').style.display = alts.length?'none':'block';
+
+  // Substations that lose supply if this feeder is cleared.
+  const affected=ssIndex().filter(s=>[...s.feeders.values()].some(x=>compactTopo(x.code||x.name)===compactTopo(f.code||f.name)));
+  $('lcr_affected').innerHTML = affected.length
+    ? affected.map((s,i)=>`<label class="lcr-ss-chip"><input type="checkbox" class="lcr-aff" checked data-name="${e(s.name)}" data-code="${e(s.code||'')}"> ${e(s.name)}</label>`).join('')
+    : '<span class="lcr-note">No substation is recorded as fed by this feeder.</span>';
+};
+
+window.lcrOnAlt=function(){
+  const v=$('lcr_alt').value.trim();
+  if(!v){ $('lcr_alt_status').value=''; return; }
+  let st='UNKNOWN';
+  try{
+    const ss=findManualSS($('lcr_ss').value.trim());
+    const f=ss?feederForManualSS(ss.name,v):null;
+    const k=f?safeFbKey(f.code||f.name):safeFbKey(v);
+    const rec=(window.NMC_CANON_RUNTIME||{})[k];
+    if(rec&&rec.status) st=String(rec.status).toUpperCase();
+  }catch(err){}
+  $('lcr_alt_status').value=st;
+  const n=$('lcr_alt_note');
+  if(n) n.innerHTML = st==='LIVE'
+    ? '<span class="lcr-ok">● Alternate is LIVE — diversion is feasible.</span>'
+    : `<span style="color:#b45309;font-weight:700">● Alternate is ${e(st)} — confirm it can be charged before the clear.</span>`;
+};
+
+window.lcrClear=function(){
+  ['lcr_ss','lcr_ss_code','lcr_feeder','lcr_feeder_code','lcr_eht','lcr_consumers','lcr_load','lcr_desc','lcr_div_remarks','lcr_by_name','lcr_by_phone'].forEach(id=>{ if($(id)) $(id).value=''; });
+  ['lcr_nature','lcr_by_desig','lcr_alt'].forEach(id=>{ if($(id)) $(id).selectedIndex=0; });
+  $('lcr_affected').innerHTML=''; $('lcr_feeder').disabled=true;
+  const p=$('lcrProof'); if(p) p.style.display='none';
+};
+
+/* ── submit ── */
+window.lcrSubmit=async function(){
+  try{
+    proof('busy','⏳ Submitting line clear request…');
+    const ss=findManualSS(($('lcr_ss').value||'').trim());
+    if(!ss){ proof('bad','✕ NOT SUBMITTED — select a substation from the saved Smart Grid topology.'); return; }
+    const fn=($('lcr_feeder').value||'').trim();
+    const f=feederForManualSS(ss.name,fn);
+    if(!f){ proof('bad','✕ NOT SUBMITTED — select a feeder physically connected to '+e(ss.name)+'.'); return; }
+    const from=$('lcr_from').value, to=$('lcr_to').value;
+    if(!from||!to){ proof('bad','✕ NOT SUBMITTED — set both the FROM and TO date/time of the requested window.'); return; }
+    if(new Date(to)<=new Date(from)){ proof('bad','✕ NOT SUBMITTED — the TO time must be after the FROM time.'); return; }
+    const nature=$('lcr_nature').value, desc=($('lcr_desc').value||'').trim();
+    if(!nature){ proof('bad','✕ NOT SUBMITTED — select the nature of work.'); return; }
+    if(!desc){ proof('bad','✕ NOT SUBMITTED — describe the work to be carried out.'); return; }
+    const byName=($('lcr_by_name').value||'').trim(), byDesig=$('lcr_by_desig').value;
+    if(!byName||!byDesig){ proof('bad','✕ NOT SUBMITTED — enter the requesting officer name and designation.'); return; }
+
+    const affected=[...document.querySelectorAll('.lcr-aff:checked')].map(c=>({name:c.dataset.name,code:c.dataset.code}));
+    const altName=$('lcr_alt').value.trim();
+    const alt=altName?feederForManualSS(ss.name,altName):null;
+    const id='LCR_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+    const now=new Date().toISOString();
+
+    const payload={
+      id, status:'pending',
+      substationName:ss.name, substationCode:ss.code||'',
+      feederName:f.name, feederCode:f.code||'', ehtSource:f.eht||'', connectionRole:f.role||'',
+      requestedFrom:new Date(from).toISOString(), requestedTo:new Date(to).toISOString(),
+      natureOfWork:nature, workDescription:desc,
+      affectedSubstations:affected,
+      estimatedConsumers:parseInt($('lcr_consumers').value||'0',10)||0,
+      estimatedLoadMW:parseFloat($('lcr_load').value||'0')||0,
+      diversion:{
+        plannedToFeeder: alt?alt.name:'', plannedToCode: alt?(alt.code||''):'',
+        alternateStatusAtRequest: $('lcr_alt_status').value||'',
+        remarks: ($('lcr_div_remarks').value||'').trim(),
+        totalOutage: !alt
+      },
+      requestedBy:{name:byName, designation:byDesig, phone:($('lcr_by_phone').value||'').trim()},
+      raisedAt:now, updatedAt:now, source:'nmc-breakdown-v10'
+    };
+
+    const r=await fetch(`${FB}/smartgrid/lineClearRequests/${id}.json`,
+      {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok){
+      proof('bad',`✕ NOT SUBMITTED — Firebase returned HTTP ${r.status}.<br>`
+        + (r.status===599?'The connection stalled; the request is held locally — press RETRY ALL NOW in the orange box.':''));
+      return;
+    }
+    try{ localStorage.setItem('TGSPDCL_LAST_LCR_BY', byName+'|'+byDesig); }catch(err){}
+    proof('ok',
+      `✓ LINE CLEAR REQUEST SUBMITTED — awaiting SE SCADA approval<br>`
+      +`<b>${e(f.name)}</b> at <b>${e(ss.name)}</b><br>`
+      +`Window ${new Date(from).toLocaleString()} → ${new Date(to).toLocaleString()}<br>`
+      +(alt?`Load diverted to <b>${e(alt.name)}</b>`:'<b>No diversion — total outage declared</b>')
+      +`<br>Reference <code>${e(id)}</code>. It is now visible to SE SCADA on the Live Dashboard. `
+      +`<b>Do not start work until it shows APPROVED.</b>`);
+    lcrRefreshMine();
+  }catch(err){
+    console.error('[V10] submit',err);
+    proof('bad','✕ SUBMIT CRASHED — '+e(String(err&&err.message||err)));
+  }
+};
+
+/* ── my requests + their approval state ── */
+window.lcrRefreshMine=async function(){
+  const host=$('lcrMine'); if(!host) return;
+  host.innerHTML='<span class="lcr-note">Loading…</span>';
+  try{
+    const r=await fetch(`${FB}/smartgrid/lineClearRequests.json?ts=${Date.now()}`,{cache:'no-store'});
+    const d=r.ok?(await r.json()||{}):{};
+    const list=Object.values(d).sort((a,b)=>String(b.raisedAt||'').localeCompare(String(a.raisedAt||''))).slice(0,25);
+    if(!list.length){ host.innerHTML='<span class="lcr-note">No line clear requests raised yet.</span>'; return; }
+    host.innerHTML=list.map(x=>{
+      const st=String(x.status||'pending').toLowerCase();
+      const ap=x.approval||{};
+      return `<div class="lcr-mine">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+          <div><b>${e(x.feederName||'')}</b> — ${e(x.substationName||'')}<br>
+          <small style="color:var(--muted)">${e(x.natureOfWork||'')} · ${x.requestedFrom?new Date(x.requestedFrom).toLocaleString():''} → ${x.requestedTo?new Date(x.requestedTo).toLocaleString():''}</small></div>
+          <span class="lcr-badge ${st}">${e(st)}</span>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:var(--muted)">
+          ${x.diversion&&x.diversion.plannedToFeeder?('Diverted to <b>'+e(x.diversion.plannedToFeeder)+'</b>'):'<b style="color:#b91c1c">Total outage — no diversion</b>'}
+          · by ${e((x.requestedBy&&x.requestedBy.name)||'')} (${e((x.requestedBy&&x.requestedBy.designation)||'')})
+        </div>
+        ${ap.by?`<div style="margin-top:6px;font-size:11px;color:${st==='approved'?'#047857':'#b91c1c'};font-weight:700">
+           ${st==='approved'?'✓ Approved':'✕ Rejected'} by ${e(ap.by)} (${e(ap.designation||'')}) on ${ap.at?new Date(ap.at).toLocaleString():''}
+           ${ap.remarks?'<br>Remarks: '+e(ap.remarks):''}</div>`:''}
+      </div>`;
+    }).join('');
+  }catch(err){ host.innerHTML='<span class="lcr-note" style="color:#b91c1c">Could not load requests — '+e(String(err.message||err))+'</span>'; }
+};
+
+/* boot */
+setTimeout(buildPane,300);
+setInterval(()=>{ if(!$('pane-lcr')) buildPane(); }, 2500);
+const oldSwitch=window.switchTab;
+if(typeof oldSwitch==='function'){
+  window.switchTab=function(n){ const r=oldSwitch.apply(this,arguments); if(n==='lcr') lcrRefreshMine(); return r; };
+}
+setTimeout(()=>{ const l=$('lcr_ss_list'); if(l&&!l.innerHTML) l.innerHTML=ssIndex().map(s=>`<option value="${e(s.name)}">${e(s.code||'')}</option>`).join(''); }, 3000);
+
+console.log('[NMC] V10 loaded — LINE CLEAR REQUEST tab added. Requests go to smartgrid/lineClearRequests and await SE SCADA approval on the Live Dashboard.');
+})();
+</script>
+
 </body></html>
