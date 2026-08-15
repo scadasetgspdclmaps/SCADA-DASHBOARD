@@ -3,7 +3,7 @@
  
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TGSPDCL — NMC Runtime & Substation Source Dashboard V11</title>
+<title>TGSPDCL — NMC Runtime & Substation Source Dashboard V12</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -1719,7 +1719,7 @@ try{ saveLogEntry = saveLogEntryV6; }catch(e){}
 window.saveLogEntry = saveLogEntryV6;
 
 /* Keep it installed even if an older wrapper re-registers later. */
-setInterval(()=>{ if(window.saveLogEntry!==saveLogEntryV6){ window.saveLogEntry=saveLogEntryV6; try{ saveLogEntry=saveLogEntryV6; }catch(e){} } }, 2000);
+/* V12 disabled legacy V6 save-handler enforcement. */
 
 /* Make sure the button is actually wired to it. */
 setInterval(()=>{
@@ -1966,7 +1966,7 @@ async function saveLogEntryV7(){
 try{ saveLogEntry = saveLogEntryV7; }catch(e){}
 window.saveLogEntry = saveLogEntryV7;
 
-setInterval(()=>{ if(window.saveLogEntry!==saveLogEntryV7){ window.saveLogEntry=saveLogEntryV7; try{ saveLogEntry=saveLogEntryV7; }catch(e){} } }, 2000);
+/* V12 disabled legacy V7 save-handler enforcement. */
 setInterval(()=>{ const b=el('saveLogBtn'); if(b && b.__nmcV7!==1){ b.__nmcV7=1; b.onclick=()=>window.saveLogEntry(); } }, 1200);
 
 console.log('[NMC] V7 loaded — every request has a 20s hard timeout so the save can no longer hang, the banner is full-width below the action row, and verified status is also written to smartgrid/feeders alongside the drawn feeder.');
@@ -2802,15 +2802,44 @@ function statusProof(kind,msg){
   if(!x){x=document.createElement('div');x.id='nmcV11StatusProof';x.className='nmc-v11-proof';const a=E11('saveLogBtn')?.closest('.actions');if(a)a.insertAdjacentElement('afterend',x)}
   if(x){x.className='nmc-v11-proof '+kind;x.innerHTML=msg;x.style.display='block'}
 }
-async function fetch11(url,opt={},timeout=12000){
-  const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout);
-  try{return await fetch(url,Object.assign({cache:'no-store'},opt,{signal:c.signal}))}finally{clearTimeout(t)}
+async function fetch11(url,opt={},timeout=30000){
+  const req=fetch(url,Object.assign({cache:'no-store'},opt));
+  if(!timeout||timeout<1)return await req;
+  let timer;
+  try{
+    return await Promise.race([
+      req,
+      new Promise((_,rej)=>{timer=setTimeout(()=>rej(new Error('Firebase request timed out after '+Math.round(timeout/1000)+' seconds')),timeout)})
+    ]);
+  }finally{if(timer)clearTimeout(timer)}
 }
-async function json11(url){const r=await fetch11(url,{},12000);if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}
-async function write11(url,method,payload,timeout=12000){
-  const r=await fetch11(url,{method,headers:{'Content-Type':'application/json'},body:payload===undefined?undefined:JSON.stringify(payload)},timeout);
-  if(!r.ok){let b='';try{b=await r.text()}catch(_){}throw new Error('HTTP '+r.status+(b?' — '+b.slice(0,160):''))}
-  return r;
+async function json11(url){
+  const r=await fetch11(url,{},30000);
+  if(!r.ok)throw new Error('Firebase read HTTP '+r.status);
+  return await r.json();
+}
+async function write11(url,method,payload,timeout=30000){
+  let last=null;
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      const r=await fetch11(url,{method,headers:{'Content-Type':'application/json'},body:payload===undefined?undefined:JSON.stringify(payload)},timeout);
+      if(r.ok)return r;
+      let b='';try{b=await r.text()}catch(_){}
+      const err=new Error('Firebase '+method+' HTTP '+r.status+(b?' — '+b.slice(0,180):''));
+      if(r.status>=400&&r.status<500&&r.status!==408&&r.status!==429)throw err;
+      last=err;
+    }catch(e){
+      last=e;
+      if(/HTTP 40[01345]|HTTP 422/.test(String(e?.message||e)))throw e;
+    }
+    if(attempt<3)await sleep11(700*attempt);
+  }
+  throw last||new Error('Firebase write failed after 3 attempts');
+}
+async function verifyDeleted11(url){
+  const d=await json11(url+(url.includes('?')?'&':'?')+'ts='+Date.now());
+  if(d!==null)throw new Error('Delete was not verified — record still exists in Firebase');
+  return true;
 }
 function created11(){const typed=(E11('log_feeder_search')?.value||'').trim();return typeof findCreatedFeeder==='function'?findCreatedFeeder((E11('log_feeder_code')?.value||'')||typed):null}
 
@@ -2830,7 +2859,7 @@ async function saveOperatingStatusV11(){
     const payload={feederName:name,feederCode:code,ehtSource:eht,status,lastUpdated:now,effectiveDateTime:now,feedsToSS:ssConn?.name||'',feedsToSSCode:ssConn?.code||'',ptrsConnected:ptrs,createdInSmartGrid:true,source:'nmc-dashboard-v11'};
     const legacyKey=safeFbKey(name),canonKey=safeFbKey(code||name);
     const primary=`${FB11}/feeders/${legacyKey}.json`;
-    await write11(primary,'PATCH',payload,12000);
+    await write11(primary,'PATCH',payload,30000);
     const rb=await json11(primary+'?ts='+Date.now()); if(!rb||String(rb.status||'').toLowerCase()!==status)throw new Error('Firebase read-back did not match the submitted status.');
     // mirrors never block the successful save
     write11(`${FB11}/smartgrid/runtime/feeders/${canonKey}.json`,'PATCH',payload,9000).catch(e=>console.warn('[V11] runtime mirror:',e.message));
@@ -2845,10 +2874,21 @@ window.saveLogEntry=saveOperatingStatusV11;try{saveLogEntry=saveOperatingStatusV
 
 window.deleteOperatingStatusV11=async function(){
   const c=created11();if(!c){statusProof('bad','Select a created feeder first.');return}
-  const name=c.name||'',code=c.code||'';if(!confirm(`Delete saved operating status for\n${name}?\n\nThis does NOT delete the feeder drawing.`))return;
-  const lk=safeFbKey(name),ck=safeFbKey(code||name);
-  try{await write11(`${FB11}/feeders/${lk}.json`,'DELETE',undefined,12000);write11(`${FB11}/smartgrid/runtime/feeders/${ck}.json`,'DELETE',undefined,8000).catch(()=>{});write11(`${FB11}/smartgrid/feeders/${ck}.json`,'DELETE',undefined,8000).catch(()=>{});try{delete FEEDER_STATUS[lk];delete FEEDER_STATUS[ck];if(window.NMC_CANON_RUNTIME)delete window.NMC_CANON_RUNTIME[ck]}catch(_){}statusProof('ok',`✓ Operating status deleted for <b>${esc11(name)}</b>. Feeder geometry remains untouched.`);try{renderSourceDashboard?.();nmcRenderWireDashboard?.()}catch(_){}}
-  catch(e){statusProof('bad','Delete failed: '+esc11(e?.message||e))}
+  const name=c.name||'',code=c.code||'';
+  if(!confirm(`Delete saved operating status for\n${name}?\n\nThis does NOT delete the feeder drawing.`))return;
+  const lk=safeFbKey(name),ck=safeFbKey(code||name),primary=`${FB11}/feeders/${lk}.json`;
+  try{
+    statusProof('busy','⏳ Deleting operating status from Firebase…');
+    await write11(primary,'DELETE',undefined,30000);
+    await verifyDeleted11(primary);
+    write11(`${FB11}/smartgrid/runtime/feeders/${ck}.json`,'DELETE',undefined,20000).catch(()=>{});
+    write11(`${FB11}/smartgrid/feeders/${ck}.json`,'DELETE',undefined,20000).catch(()=>{});
+    try{delete FEEDER_STATUS[lk];delete FEEDER_STATUS[ck];if(window.NMC_CANON_RUNTIME)delete window.NMC_CANON_RUNTIME[ck]}catch(_){}
+    statusProof('ok',`✓ DELETED & VERIFIED — operating status removed for <b>${esc11(name)}</b>.<br>Feeder geometry in Smart Grid is untouched.`);
+    try{renderSourceDashboard?.();nmcRenderWireDashboard?.();flashSync?.()}catch(_){}
+  }catch(e){
+    statusProof('bad','✕ DELETE FAILED — '+esc11(e?.message||e));
+  }
 };
 function installStatusDelete(){const a=E11('saveLogBtn')?.closest('.actions');if(!a||E11('deleteStatusBtnV11'))return;const b=document.createElement('button');b.id='deleteStatusBtnV11';b.className='btn btn-outline nmc-v11-delete';b.textContent='🗑 DELETE STATUS';b.onclick=deleteOperatingStatusV11;const clear=[...a.querySelectorAll('button')].find(x=>/CLEAR/i.test(x.textContent||''));a.insertBefore(b,clear||null)}
 
@@ -2863,15 +2903,33 @@ window.logFailure=async function logFailureV11(){
   const id='BD_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),now=new Date().toISOString(),topo=lookupTopo(connected.name)||{},sr=SS_DATA.find(s=>String(s.ss_code)===String(ss.code))||{};
   const payload={id,feederName:connected.name,feederCode:connected.code||topo.feederCode||'',substationName:ss.name,substationCode:ss.code||sr.ss_code||'',connectionRole:connected.role||'',division:sr.lines_division||topo.division||'',sub_division:sr.sub_division||topo.sub_division||'',section:sr.section||topo.section||'',ehtSource:E11('fail_eht').value,alternativeSource:altName,alternativeEHT:E11('fail_alt_eht').value,failureDateTime:new Date(failTime).toISOString(),agency,outageType:outage,operationType:E11('fail_op_type').value,relayIndication:E11('fail_relay').value,identifiedFault:E11('fail_fault').value,natureOfFault:getPillValue('fail_nature_group'),weatherCondition:E11('fail_weather').value,faultCurrent:E11('fail_current').value,personResponsible:E11('fail_person').value,phoneNumber:E11('fail_phone').value,fpiActed:E11('fail_fpi').value,additionalRemarks:E11('fail_remarks').value,enteredAt:now,updatedAt:now,isOpen:true,feedsAllSS:[ss.name],source:'nmc-dashboard-v11'};
   const rp={status:'breakdown',lastUpdated:now,lastBreakdownId:id,feederName:connected.name,feederCode:connected.code||'',ehtSource:E11('fail_eht').value||connected.eht||'',breakdownSS:ss.name,breakdownSSCode:ss.code,createdInSmartGrid:true,source:'nmc-dashboard-v11'};
-  try{await write11(`${FB11}/breakdowns/${id}.json`,'PUT',payload,12000);await write11(`${FB11}/feeders/${safeFbKey(connected.name)}.json`,'PATCH',rp,12000);write11(`${FB11}/smartgrid/runtime/feeders/${safeFbKey(connected.code||connected.name)}.json`,'PATCH',rp,8000).catch(()=>{});BREAKDOWNS[id]=payload;toast('⚡ Breakdown saved: '+id);E11('fail_status_msg').textContent='Saved '+id+' at '+new Date().toLocaleString();clearPane('failure');renderOpenBreakdowns();flashSync();}
+  try{await write11(`${FB11}/breakdowns/${id}.json`,'PUT',payload,30000);await write11(`${FB11}/feeders/${safeFbKey(connected.name)}.json`,'PATCH',rp,30000);write11(`${FB11}/smartgrid/runtime/feeders/${safeFbKey(connected.code||connected.name)}.json`,'PATCH',rp,8000).catch(()=>{});BREAKDOWNS[id]=payload;toast('⚡ Breakdown saved: '+id);E11('fail_status_msg').textContent='Saved '+id+' at '+new Date().toLocaleString();clearPane('failure');renderOpenBreakdowns();flashSync();}
   catch(e){toast('Breakdown save failed: '+(e?.message||e),true)}
 };
 try{logFailure=window.logFailure}catch(_){}
 
 window.deleteBreakdownV11=async function(id){
-  const b=BREAKDOWNS[id];if(!b){toast('Breakdown record not found',true);return}if(!confirm(`DELETE this breakdown record?\n\n${b.feederName||''}\n${b.substationName||''}\n${b.failureDateTime?new Date(b.failureDateTime).toLocaleString():''}\n\nThis cannot be undone.`))return;
-  try{await write11(`${FB11}/breakdowns/${id}.json`,'DELETE',undefined,12000);delete BREAKDOWNS[id];const other=Object.values(BREAKDOWNS).some(x=>x&&x.id!==id&&(x.isOpen===true||!x.restorationDateTime)&&compactTopo(x.feederCode||x.feederName)===compactTopo(b.feederCode||b.feederName));if(!other&&b.feederName){const p={status:'idle',lastUpdated:new Date().toISOString(),lastBreakdownId:'',feederName:b.feederName,feederCode:b.feederCode||'',source:'nmc-dashboard-v11-delete'};write11(`${FB11}/feeders/${safeFbKey(b.feederName)}.json`,'PATCH',p,9000).catch(()=>{});write11(`${FB11}/smartgrid/runtime/feeders/${safeFbKey(b.feederCode||b.feederName)}.json`,'PATCH',p,7000).catch(()=>{})}renderOpenBreakdowns();try{applyHistFilters?.()}catch(_){}toast('✓ Breakdown deleted')}
-  catch(e){toast('Delete failed: '+(e?.message||e),true)}
+  const b=BREAKDOWNS[id];
+  if(!b){toast('Breakdown record not found',true);return}
+  if(!confirm(`DELETE this breakdown record?\n\n${b.feederName||''}\n${b.substationName||''}\n${b.failureDateTime?new Date(b.failureDateTime).toLocaleString():''}\n\nThis cannot be undone.`))return;
+  const target=`${FB11}/breakdowns/${encodeURIComponent(id)}.json`;
+  try{
+    toast('Deleting breakdown…');
+    await write11(target,'DELETE',undefined,30000);
+    await verifyDeleted11(target);
+    delete BREAKDOWNS[id];
+    const other=Object.values(BREAKDOWNS).some(x=>x&&x.id!==id&&(x.isOpen===true||!x.restorationDateTime)&&compactTopo(x.feederCode||x.feederName)===compactTopo(b.feederCode||b.feederName));
+    if(!other&&b.feederName){
+      const p={status:'idle',lastUpdated:new Date().toISOString(),lastBreakdownId:'',feederName:b.feederName,feederCode:b.feederCode||'',source:'nmc-dashboard-v12-delete'};
+      write11(`${FB11}/feeders/${safeFbKey(b.feederName)}.json`,'PATCH',p,25000).catch(()=>{});
+      write11(`${FB11}/smartgrid/runtime/feeders/${safeFbKey(b.feederCode||b.feederName)}.json`,'PATCH',p,20000).catch(()=>{});
+    }
+    renderOpenBreakdowns();
+    try{applyHistFilters?.();flashSync?.()}catch(_){}
+    toast('✓ Breakdown deleted and verified in Firebase');
+  }catch(e){
+    toast('Delete failed: '+(e?.message||e),true);
+  }
 };
 window.renderOpenBreakdowns=function renderOpenBreakdownsV11(){
   const tb=E11('rect_open_tbody');if(!tb)return;const open=Object.values(BREAKDOWNS).filter(b=>b&&(b.isOpen===true||!b.restorationDateTime)).sort((a,b)=>String(b.failureDateTime||'').localeCompare(String(a.failureDateTime||'')));E11('rect_count_pill').textContent=open.length+' OPEN';const badge=E11('openCntBadge');if(badge){badge.style.display=open.length?'':'none';badge.textContent=open.length}if(!open.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">No open breakdowns</td></tr>';return}tb.innerHTML=open.map((b,i)=>{const ft=new Date(b.failureDateTime||0),dur=b.failureDateTime?humanDuration(Date.now()-ft.getTime()):'—';return `<tr><td>${i+1}</td><td style="white-space:nowrap">${ft.toLocaleString()}</td><td>${esc11(b.feederName||'—')}</td><td>${esc11(b.substationName||'—')}</td><td><span class="status-pill open">${esc11(b.outageType||'BREAKDOWN')}</span></td><td>${dur}</td><td><div class="row-actions-v11"><button class="row-btn success" onclick="openRectification('${esc11(b.id)}')">✎ RECTIFY</button><button class="row-btn nmc-v11-delete" onclick="deleteBreakdownV11('${esc11(b.id)}')">🗑 DELETE</button></div></td></tr>`}).join('')
@@ -2882,7 +2940,7 @@ try{renderOpenBreakdowns=window.renderOpenBreakdowns}catch(_){}
 window.saveRectification=async function saveRectificationV11(){
   if(!CURRENT_RECT_ID){toast('No record open',true);return}const b=BREAKDOWNS[CURRENT_RECT_ID],restore=E11('rect_restore_time').value;if(!restore){toast('Set Restoration Date & Time',true);return}const now=new Date().toISOString(),ri=new Date(restore).toISOString(),dur=(new Date(ri)-new Date(b.failureDateTime))/60000,patch={restorationDateTime:ri,durationMinutes:Math.max(0,Math.round(dur)),rectifiedDateTime:E11('rect_rectified_time').value?new Date(E11('rect_rectified_time').value).toISOString():null,rectificationWork:E11('rect_work').value,lcTakenFrom:E11('rect_lc_from').value,lcCompleted:E11('rect_lc_completed').value?new Date(E11('rect_lc_completed').value).toISOString():null,rootCause:E11('rect_root_cause').value,rectificationRemarks:E11('rect_remarks').value,isOpen:false,status:'closed',updatedAt:now};
   const rp={status:'live',lastUpdated:now,feederName:b.feederName||'',feederCode:b.feederCode||'',lastBreakdownId:'',createdInSmartGrid:!!findCreatedFeeder(b.feederCode||b.feederName),source:'nmc-dashboard-v11-rectification'};
-  try{await write11(`${FB11}/breakdowns/${CURRENT_RECT_ID}.json`,'PATCH',patch,12000);if(b.feederName)await write11(`${FB11}/feeders/${safeFbKey(b.feederName)}.json`,'PATCH',rp,12000);write11(`${FB11}/smartgrid/runtime/feeders/${safeFbKey(b.feederCode||b.feederName)}.json`,'PATCH',rp,8000).catch(()=>{});Object.assign(BREAKDOWNS[CURRENT_RECT_ID],patch);toast('✓ Rectification saved');cancelRectification();renderOpenBreakdowns();flashSync()}
+  try{await write11(`${FB11}/breakdowns/${CURRENT_RECT_ID}.json`,'PATCH',patch,30000);if(b.feederName)await write11(`${FB11}/feeders/${safeFbKey(b.feederName)}.json`,'PATCH',rp,30000);write11(`${FB11}/smartgrid/runtime/feeders/${safeFbKey(b.feederCode||b.feederName)}.json`,'PATCH',rp,8000).catch(()=>{});Object.assign(BREAKDOWNS[CURRENT_RECT_ID],patch);toast('✓ Rectification saved');cancelRectification();renderOpenBreakdowns();flashSync()}
   catch(e){toast('Rectification save failed: '+(e?.message||e),true)}
 };try{saveRectification=window.saveRectification}catch(_){}
 
@@ -2933,6 +2991,7 @@ window.lcrDeleteV11=async function(id){if(!id||!confirm('Delete line clear reque
 function boot11(){installStatusDelete();installLcrReload();lcrRefreshSSOptionsV11();setTimeout(()=>{if(!lcrIndex11().length)lcrReloadTopologyV11()},1800);setInterval(()=>{installStatusDelete();if(E11('pane-lcr')?.classList.contains('active'))lcrRefreshSSOptionsV11()},2500)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot11);else boot11();
 console.log('[NMC] V11 patch loaded — primary /feeders status writes, non-blocking runtime mirrors, breakdown deletion, line-clear topology refresh and deletion.');
+console.log('[NMC] V12 Firebase fix active — V6/V7 handler enforcement disabled; non-aborting retry-safe writes and verified deletes.');
 })();
 </script>
 
