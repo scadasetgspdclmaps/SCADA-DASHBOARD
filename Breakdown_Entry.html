@@ -2308,28 +2308,31 @@ async function rawWrite(url, opts, attempts){
 /* Intercept Firebase WRITES only. Reads and anything already carrying its own
    AbortSignal (the V7 save path) pass through untouched, so nothing is
    double-wrapped. */
-window.fetch = function(input, init){
-  try{
-    const url = (typeof input==='string') ? input : (input && input.url) || '';
-    const m   = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
-    const isWrite = (m==='PUT'||m==='PATCH'||m==='POST');
-    const mine    = url.indexOf(FB)===0;
-    const already = init && init.signal;
-    if(isWrite && mine && !already && typeof input==='string'){
-      return rawWrite(url, init||{}, ATTEMPTS).then(r=>{
-        if(r.ok) return r.response;
-        pushQ({url, opts:init||{}, at:new Date().toISOString()});
-        console.error('[V9] write failed, queued for retry', url, r.error);
-        // statusText must be ISO-8859-1 only — a non-Latin1 character here
-        // makes the Response constructor throw, which would turn every failed
-        // write into an unhandled exception instead of a queued retry.
-        return new Response(JSON.stringify({error:String(r.error&&r.error.message||r.error)}),
-                            {status:599, statusText:'Network stalled - queued locally'});
-      });
-    }
-  }catch(e){}
-  return origFetch(input, init);
-};
+/* ═══════════════════════════════════════════════════════════════════
+   DISABLED 15-Aug-2026 — THIS WRAPPER WAS THE CAUSE OF THE 30s TIMEOUTS.
+
+   A later block (nmcV11FirebaseLineClearDeleteFix) added its own retry
+   layer, write11(), which races every request against a 30-SECOND timer
+   and retries 3 times. It calls fetch() — which used to land here.
+
+   Stacked, the two layers guaranteed failure:
+     write11 calls fetch  ->  this wrapper began its OWN 4 attempts x 45s
+     loop (up to 185s before returning)  ->  write11's 30s race always
+     fired first and threw "timed out after 30 seconds", while this
+     wrapper carried on retrying invisibly in the background.
+
+   That is why the error was ALWAYS exactly 30 seconds, why entries piled
+   into the local queue, and why duplicate breakdown rows appeared — each
+   abandoned background retry still reached Firebase and wrote again.
+
+   The transport test proved the network is healthy (PATCH 674ms, PUT
+   699ms, POST 337ms), so one retry layer is ample. write11 is now the
+   single write path. Native fetch is left untouched.
+
+   DO NOT re-enable this without first removing write11's retry loop.
+   ═══════════════════════════════════════════════════════════════════ */
+/* window.fetch intentionally NOT wrapped — see note above. */
+void origFetch;
 
 /* ── FAILURE ENTRY: persistent banner instead of a fading toast ─────── */
 function banner(kind,msg){
@@ -2992,6 +2995,152 @@ function boot11(){installStatusDelete();installLcrReload();lcrRefreshSSOptionsV1
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot11);else boot11();
 console.log('[NMC] V11 patch loaded — primary /feeders status writes, non-blocking runtime mirrors, breakdown deletion, line-clear topology refresh and deletion.');
 console.log('[NMC] V12 Firebase fix active — V6/V7 handler enforcement disabled; non-aborting retry-safe writes and verified deletes.');
+})();
+</script>
+
+
+<style id="nmcV12Style">
+#nmcV12{position:fixed;left:14px;bottom:14px;z-index:9999;max-width:430px;background:#0f172a;color:#cbd5e1;border:1px solid #334155;border-radius:11px;padding:13px 15px;font:600 11px/1.6 Consolas,monospace;box-shadow:0 8px 26px rgba(0,0,0,.4);display:none}
+#nmcV12 b{color:#7dd3fc;display:block;margin-bottom:6px;font-size:11.5px}
+#nmcV12 .ok{color:#4ade80}#nmcV12 .bad{color:#f87171}#nmcV12 .warn{color:#fbbf24}
+#nmcV12 .x{float:right;cursor:pointer;color:#64748b}
+</style>
+<script id="nmcV12Script">
+/* ═══════════════════════════════════════════════════════════════════════
+   V12 — SAVE PROBE
+
+   The transport test proved this PC writes to Firebase in about 700ms, and
+   duplicate breakdown rows prove writes DO land from the dashboard. Yet the
+   form reports "timed out after 30 seconds". Those three facts together mean
+   the request is reaching Firebase and Firebase is answering — but the page
+   is not seeing the answer in time.
+
+   Guessing further would waste your time. This block measures it instead.
+   For every save it records, from the browser's own Performance timeline:
+
+     • whether the request was actually put on the wire
+     • when the server started and finished responding
+     • how long the MAIN THREAD was blocked (a heartbeat that should tick
+       every 250ms — if it stalls, JavaScript on the page froze and no
+       response can be processed, which produces a timeout even though the
+       write succeeded)
+     • how many Firebase requests were in flight at the same time
+
+   The verdict appears bottom-left after each save. Send me that box.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+const FB=(typeof FIREBASE_URL!=='undefined'?FIREBASE_URL:'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app');
+
+/* ── main-thread heartbeat ── */
+let lastBeat=Date.now(), worstStall=0, stallLog=[];
+setInterval(()=>{
+  const now=Date.now(), gap=now-lastBeat-250;
+  if(gap>400){ worstStall=Math.max(worstStall,gap); stallLog.push({at:new Date(now).toLocaleTimeString(),ms:Math.round(gap)}); if(stallLog.length>8) stallLog.shift(); }
+  lastBeat=now;
+},250);
+
+/* ── in-flight counter ── */
+let inFlight=0, peakInFlight=0;
+const nativeFetch=window.fetch.bind(window);
+window.fetch=function(input,init){
+  const url=(typeof input==='string')?input:(input&&input.url)||'';
+  if(url.indexOf(FB)===0){
+    inFlight++; peakInFlight=Math.max(peakInFlight,inFlight);
+    return nativeFetch(input,init).finally(()=>{ inFlight--; });
+  }
+  return nativeFetch(input,init);
+};
+
+function panel(html){
+  let x=document.getElementById('nmcV12');
+  if(!x){ x=document.createElement('div'); x.id='nmcV12'; document.body.appendChild(x); }
+  x.innerHTML='<span class="x" onclick="this.parentNode.style.display=\'none\'">✕</span>'+html;
+  x.style.display='block';
+}
+const ms=n=>n==null?'—':Math.round(n)+'ms';
+
+/* Pull the browser's own timing for the last write to this path. */
+function timingFor(urlPart){
+  try{
+    const all=performance.getEntriesByType('resource')
+      .filter(r=>r.name.indexOf(FB)===0 && r.name.indexOf(urlPart)>=0);
+    const r=all[all.length-1];
+    if(!r) return null;
+    return {
+      sent: r.requestStart>0,
+      dns: r.domainLookupEnd-r.domainLookupStart,
+      tcp: r.connectEnd-r.connectStart,
+      waitedForServer: r.responseStart-r.requestStart,
+      download: r.responseEnd-r.responseStart,
+      total: r.duration,
+      startedAt: r.startTime
+    };
+  }catch(e){ return null; }
+}
+
+async function probe(label, key){
+  await new Promise(r=>setTimeout(r,400));       // let the entry land
+  const t=timingFor(key||'');
+  const stall=worstStall;
+  let verdict, cls;
+  if(!t){
+    verdict='The request was NEVER PUT ON THE WIRE. The browser dropped it before sending — almost always an extension, or the page being frozen at that moment.';
+    cls='bad';
+  }else if(t.waitedForServer>20000){
+    verdict='Firebase itself took '+Math.round(t.waitedForServer/1000)+'s to answer. That is a genuine server/link stall — the retry queue is the right defence.';
+    cls='bad';
+  }else if(stall>3000){
+    verdict='Firebase answered in '+ms(t.waitedForServer)+', but the page FROZE for '+ms(stall)+'. The write succeeded; the form just could not process the reply in time. That is why duplicates appear.';
+    cls='warn';
+  }else if(t.total<3000){
+    verdict='Clean round trip in '+ms(t.total)+'. No stall, no freeze. This save was healthy.';
+    cls='ok';
+  }else{
+    verdict='Round trip '+ms(t.total)+' — slower than the 700ms measured by the transport test, but the request did complete.';
+    cls='warn';
+  }
+  panel(`<b>SAVE PROBE — ${label}</b>`
+    +(t?`on the wire: <span class="ok">yes</span><br>`
+       +`DNS ${ms(t.dns)} · TCP ${ms(t.tcp)}<br>`
+       +`waiting for Firebase: <b>${ms(t.waitedForServer)}</b><br>`
+       +`download ${ms(t.download)} · total <b>${ms(t.total)}</b><br>`
+      :`on the wire: <span class="bad">NO</span><br>`)
+    +`main thread worst freeze: <b>${ms(stall)}</b><br>`
+    +`peak concurrent Firebase calls: <b>${peakInFlight}</b><br>`
+    +`<span class="${cls}">${verdict}</span>`);
+  worstStall=0; peakInFlight=inFlight;
+  console.log('[V12] probe',label,{timing:t,worstStallMs:stall,peakInFlight,stallLog});
+}
+window.nmcV12Probe=probe;
+
+/* Attach to the two saves without altering their behaviour. */
+function attach(name,label,key){
+  const orig=window[name];
+  if(typeof orig!=='function' || orig.__v12) return false;
+  const w=async function(){
+    worstStall=0; peakInFlight=inFlight;
+    try{ return await orig.apply(this,arguments); }
+    finally{ probe(label,key); }
+  };
+  w.__v12=true;
+  try{ window[name]=w; }catch(e){}
+  return true;
+}
+setInterval(()=>{
+  attach('saveLogEntry','Log Entry','/feeders/');
+  attach('logFailure','Failure Entry','/breakdowns/');
+  attach('lcrSubmit','Line Clear Request','/lineClearRequests/');
+}, 1500);
+
+window.nmcV12Health=function(){
+  const out={worstStallMs:worstStall, recentStalls:stallLog, peakConcurrentFirebase:peakInFlight,
+             note:'A worst freeze above ~3000ms means the page, not the network, is causing the timeouts.'};
+  try{ console.table(out); }catch(e){ console.log(out); }
+  return out;
+};
+
+console.log('[NMC] V12 save probe active — after each save a panel appears bottom-left with the real network timing and main-thread freeze. Run nmcV12Health() any time.');
 })();
 </script>
 
