@@ -9077,5 +9077,254 @@ console.log('[SmartGrid] V24 loaded — Breakdown Entry sync ONLY. Existing Clau
 })();
 </script>
 
+
+<style id="sgV25Style">
+#sgV25Box{margin-top:8px;border-radius:9px;padding:10px 12px;font:600 10.5px/1.55 Consolas,monospace;border:1px solid #b91c1c;background:#2a0b0f;color:#fecaca;display:none}
+#sgV25Box b{color:#fff;display:block;margin-bottom:4px;font-size:11px}
+#sgV25Box .k{color:#fca5a5}
+#sgV25Box .v{color:#fff}
+#sgV25Box.okstate{border-color:#15803d;background:#052e18;color:#bbf7d0}
+#sgV25Box button{margin-top:8px;margin-right:6px;background:#334155;color:#fff;border:none;border-radius:6px;padding:6px 11px;font:800 9.5px/1 Arial;letter-spacing:.7px;cursor:pointer}
+#sgV25Box button:hover{background:#475569}
+</style>
+<script id="sgV25Script">
+/* ═══════════════════════════════════════════════════════════════════════════
+   V25 — REAL SAVE TIMEOUT + FIREBASE ERROR CAPTURE          15-Aug-2026
+
+   WHY THE ABORTCONTROLLER ADVICE DID NOT CHANGE ANYTHING
+   ------------------------------------------------------
+   The advice was to patch `saveFirebase()` around line 4272. That function is
+   real, but it is DEAD CODE. Three later blocks replace it, in this order:
+
+       line 4272  original saveFirebase()          <- the code that was patched
+       line 7319  V5   window.saveFirebase = ...   <- replaces it
+       line 8035  V14  window.saveFirebase = ...   <- replaces it again (LIVE)
+       line 8641  V19  guardedSave wrapper         <- wraps V14
+
+   Clicking "Save Manual Drawing" runs V19 -> V14, never line 4272. So the
+   AbortController was added to a function the button never calls.
+
+   THE LIVE PATH HAS TWO REAL DEFECTS
+   ----------------------------------
+   1. No request timeout. V14 writes through:
+          json14 = async (path,opts) => { const r = await fetch(...) ... }
+      A bare fetch() never rejects on a stalled connection, so "SAVING…" can
+      hang forever. (V19 only prints a warning at 25s and 60s — it cannot
+      cancel the request, because the request was never made cancellable.)
+
+   2. It throws away what Firebase actually said:
+          if(!r.ok) throw new Error(`${path}: HTTP ${r.status}`)
+      The response BODY is discarded. That body is where Firebase writes the
+      real reason — "Permission denied", "Invalid data; couldn't parse JSON
+      object", "Index not defined", payload rejections. That is precisely why
+      you have never seen a Firebase error: the code deletes it before you can.
+
+   WHAT THIS BLOCK DOES
+   --------------------
+   * Adds a genuine 45s AbortController ceiling to EVERY Firebase request this
+     page makes — including the two PUTs V14 fires in parallel — without
+     touching V14's logic, its read-back verification or its receipts.
+   * Captures the HTTP status AND the Firebase response body on any failure and
+     shows it under the Save button, verbatim.
+   * Reports the payload size. A large drawing sent as one PUT over a slow link
+     is a legitimate cause of a long save, and until now you had no way to see it.
+   * Adds a "TEST WRITE NOW" button that PUTs a 30-byte scratch key. If the tiny
+     write succeeds and the real save times out, the problem is payload size or
+     link speed. If the tiny write also fails, the problem is access, and its
+     error text will say so.
+   * NO retries are added. Retry stacking is what created duplicate rows in the
+     breakdown form; this layer only bounds and reports.
+
+   ABOUT DELETES
+   -------------
+   Deleting a spur (sgDeleteEntireSpur) removes the rows from this browser and
+   then calls saveFirebase() to persist it. So a delete is not a separate
+   operation with its own bug — it rides on the same save. When the save fails,
+   the delete exists only in this tab and the line returns on refresh. Fix the
+   save and the delete sticks. This block now says so explicitly when it happens.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+const FB = (typeof FIREBASE_URL !== 'undefined')
+  ? FIREBASE_URL
+  : 'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app';
+const CEILING = 45000;
+
+let lastErr = null;
+let lastNet = null;
+window.__sgLastFbError = null;
+
+const nativeFetch = window.fetch.bind(window);
+const shortUrl = u => String(u).replace(FB, '').split('?')[0] || '/';
+
+/* Bound + observe Firebase traffic only. Everything else is untouched. */
+window.fetch = function(input, init){
+  const url = (typeof input === 'string') ? input : (input && input.url) || '';
+  if(url.indexOf(FB) !== 0) return nativeFetch(input, init);
+
+  const method = (init && init.method) || 'GET';
+  const bytes  = (init && init.body) ? String(init.body).length : 0;
+  const ctrl   = new AbortController();
+  const timer  = setTimeout(() => { try{ ctrl.abort(); }catch(e){} }, CEILING);
+  const opts   = Object.assign({}, init || {}, {
+    signal: (init && init.signal) || ctrl.signal,
+    cache : 'no-store'
+  });
+  const t0 = Date.now();
+
+  return nativeFetch(input, opts).then(function(r){
+    clearTimeout(timer);
+    const ms = Date.now() - t0;
+    lastNet = {method, path: shortUrl(url), status: r.status, ms, bytes};
+    if(!r.ok){
+      return r.clone().text().catch(()=> '').then(function(body){
+        lastErr = window.__sgLastFbError = {
+          at: new Date().toLocaleTimeString(),
+          what: method + ' ' + shortUrl(url),
+          status: 'HTTP ' + r.status,
+          firebaseSaid: (body || '').trim().slice(0, 420) || '(Firebase returned an empty body)',
+          tookMs: ms, sentBytes: bytes
+        };
+        console.error('[V25] Firebase REFUSED this write:', lastErr);
+        return r;
+      });
+    }
+    return r;
+  }).catch(function(e){
+    clearTimeout(timer);
+    const ms = Date.now() - t0;
+    const aborted = e && (e.name === 'AbortError');
+    lastErr = window.__sgLastFbError = {
+      at: new Date().toLocaleTimeString(),
+      what: method + ' ' + shortUrl(url),
+      status: aborted ? 'ABORTED BY THIS PAGE' : 'BROWSER-LEVEL FAILURE',
+      firebaseSaid: aborted
+        ? 'Firebase sent no reply within ' + (CEILING/1000) + ' seconds, so the request was cancelled. '
+          + 'Firebase never answered — this is the network path, not a rejected write.'
+        : 'The browser could not complete the request: ' + String(e && e.message || e)
+          + '. A blocked domain, an extension, or an offline link produces exactly this.',
+      tookMs: ms, sentBytes: bytes
+    };
+    console.error('[V25] Firebase request failed:', lastErr);
+    throw aborted
+      ? new Error('no reply from Firebase within ' + (CEILING/1000) + 's — request cancelled')
+      : e;
+  });
+};
+
+/* ── the report box, mounted under the save receipt ── */
+function box(){
+  let b = document.getElementById('sgV25Box');
+  if(b) return b;
+  const anchor = document.getElementById('sgV14SaveReceipt');
+  if(!anchor) return null;
+  b = document.createElement('div');
+  b.id = 'sgV25Box';
+  anchor.insertAdjacentElement('afterend', b);
+  return b;
+}
+function show(html, ok){
+  const b = box(); if(!b) return;
+  b.className = ok ? 'okstate' : '';
+  b.innerHTML = html
+    + '<button onclick="sgV25TestWrite()">TEST WRITE NOW</button>'
+    + '<button onclick="sgV25Copy()">COPY DETAILS</button>'
+    + '<button onclick="document.getElementById(\'sgV25Box\').style.display=\'none\'">HIDE</button>';
+  b.style.display = 'block';
+}
+function fmtErr(e){
+  return '<b>WHAT FIREBASE ACTUALLY SAID</b>'
+    + '<span class="k">when</span> <span class="v">' + e.at + '</span><br>'
+    + '<span class="k">request</span> <span class="v">' + e.what + '</span><br>'
+    + '<span class="k">result</span> <span class="v">' + e.status + ' after ' + Math.round(e.tookMs/100)/10 + 's</span><br>'
+    + '<span class="k">sent</span> <span class="v">' + Math.round(e.sentBytes/1024) + ' KB</span><br><br>'
+    + '<span class="k">message</span><br><span class="v">' + String(e.firebaseSaid).replace(/</g,'&lt;') + '</span>';
+}
+window.sgV25Copy = function(){
+  const t = JSON.stringify({lastError: lastErr, lastNetwork: lastNet}, null, 2);
+  try{ navigator.clipboard.writeText(t); toast('Details copied — paste them to me'); }
+  catch(e){ console.log(t); toast('Details printed to the console'); }
+};
+
+/* A 30-byte scratch write. Separates "access is blocked" from "payload too big". */
+window.sgV25TestWrite = function(){
+  const t0 = Date.now();
+  show('<b>TEST WRITE — running…</b>Writing a 30-byte scratch value to /smartgrid/runtime/_sgV25Test', true);
+  fetch(FB + '/smartgrid/runtime/_sgV25Test.json', {
+    method : 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body   : JSON.stringify({at: new Date().toISOString()})
+  }).then(function(r){
+    const ms = Date.now() - t0;
+    if(r.ok){
+      show('<b>TEST WRITE PASSED — ' + ms + 'ms</b>'
+        + 'A small write reached Firebase and was accepted, so access and permissions are fine.<br><br>'
+        + 'If the full save still times out, the difference is the payload: your drawing is sent as '
+        + 'one large PUT and the link cannot push it inside the timeout. Save again on a faster '
+        + 'connection, or tell me and I will split the write into chunks.', true);
+    }else{
+      show(fmtErr(lastErr || {at:new Date().toLocaleTimeString(), what:'PUT /_sgV25Test', status:'HTTP '+r.status, firebaseSaid:'(no body)', tookMs:ms, sentBytes:30}), false);
+    }
+  }).catch(function(){
+    show(fmtErr(lastErr || {at:new Date().toLocaleTimeString(), what:'PUT /_sgV25Test', status:'FAILED', firebaseSaid:'no reply', tookMs:Date.now()-t0, sentBytes:30}), false);
+  });
+};
+
+/* ── wrap the LIVE save (V19 -> V14) and report on its outcome ── */
+function wrapSave(){
+  const base = window.saveFirebase;
+  if(typeof base !== 'function' || base.__v25) return false;
+  const wrapped = async function(){
+    lastErr = null;
+    let kb = 0;
+    try{ kb = Math.round(JSON.stringify(window.rows || []).length / 1024); }catch(e){}
+    const t0 = Date.now();
+    let result;
+    try{
+      result = await base.apply(this, arguments);
+    }catch(e){
+      const detail = lastErr ? fmtErr(lastErr)
+        : '<b>SAVE THREW</b>' + String(e && e.message || e).replace(/</g,'&lt;');
+      show(detail + '<br><br>Your drawing is still in this browser. Nothing in Firebase was replaced.', false);
+      throw e;
+    }
+    const secs = Math.round((Date.now() - t0)/100)/10;
+    if(result){
+      show('<b>SAVE COMPLETED — ' + secs + 's</b>'
+        + 'Payload ' + kb + ' KB · both copies written and read back by V14.', true);
+    }else if(lastErr){
+      show(fmtErr(lastErr)
+        + '<br><br><span class="k">payload</span> <span class="v">' + kb + ' KB</span><br>'
+        + 'Your drawing is still intact in this browser. If this save was triggered by a '
+        + '<b>delete</b>, the deletion did NOT reach Firebase — refreshing will bring the line back.', false);
+    }else{
+      show('<b>SAVE DID NOT COMPLETE — ' + secs + 's</b>'
+        + 'No Firebase error was recorded, so the write was refused before it left the page — '
+        + 'usually the row-count safety prompt being cancelled, or an empty workspace. '
+        + 'Payload ' + kb + ' KB.', false);
+    }
+    return result;
+  };
+  wrapped.__v25 = true;
+  try{ saveFirebase = wrapped; }catch(e){}
+  window.saveFirebase = wrapped;
+  return true;
+}
+if(!wrapSave()) setTimeout(wrapSave, 800);
+setTimeout(wrapSave, 2500);
+
+window.sgWhySaveFailed = function(){
+  const o = {lastFirebaseError: lastErr, lastFirebaseRequest: lastNet,
+             timeoutCeilingMs: CEILING,
+             note: 'lastFirebaseError.firebaseSaid is the database\'s own words. '
+                 + 'ABORTED means Firebase never replied; an HTTP status means it replied and refused.'};
+  console.log(o); return o;
+};
+
+console.log('[SmartGrid] V25 active — real 45s AbortController ceiling on every Firebase request, '
+          + 'and Firebase\'s own error text is now shown under the Save button. Run sgWhySaveFailed() any time.');
+})();
+</script>
+
 </body>
 </html>
