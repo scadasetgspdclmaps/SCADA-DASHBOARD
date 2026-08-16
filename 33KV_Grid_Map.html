@@ -9722,5 +9722,130 @@ console.log('[SmartGrid] V26b adaptive chunked save active — live progress, au
 </script>
 
 
+<script id="sgV27SequentialSaveScript">
+/* V27: optimized manual-topology persistence only.
+   The complete live rows array is preserved; no geometry or data fields are transformed. */
+(function(){
+'use strict';
+const FB27 = (typeof FIREBASE_URL !== 'undefined')
+  ? FIREBASE_URL
+  : 'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app';
+const PRIMARY27 = 'smartgrid/manualTopologyV1/current';
+const MIRROR27 = 'smartgrid/manualDrawing/latest';
+const HISTORY27 = 'smartgrid/manualTopologyV1/history';
+const LOCAL27 = 'TGSPDCL_MANUAL_TOPOLOGY_V1_LOCAL';
+
+function receipt27(kind, html){
+  const el=document.getElementById('sgV14SaveReceipt');
+  if(el){ el.className=kind; el.innerHTML=html; }
+}
+function checksum27(value){
+  const s=JSON.stringify(value); let h=2166136261;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); }
+  return (h>>>0).toString(16).padStart(8,'0');
+}
+function writeUrl27(path){ return FB27+'/'+path+'.json?print=silent'; }
+async function write27(method, path, body, timeoutMs){
+  const ctrl = timeoutMs ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, timeoutMs) : null;
+  try{
+    const res=await fetch(writeUrl27(path),{
+      method:method,
+      headers:{'Content-Type':'application/json'},
+      body:body,
+      signal:ctrl ? ctrl.signal : undefined,
+      cache:'no-store'
+    });
+    if(!res.ok && res.status!==204) throw new Error(path+': HTTP '+res.status);
+    return res;
+  } finally { if(timer) clearTimeout(timer); }
+}
+async function read27(path, query){
+  const suffix=query ? '&'+query : '';
+  const res=await fetch(FB27+'/'+path+'.json?ts='+Date.now()+suffix,{cache:'no-store'});
+  if(!res.ok) throw new Error(path+': HTTP '+res.status);
+  return await res.json();
+}
+
+async function sequentialSave27(){
+  const liveRows=(window.rows && Array.isArray(window.rows)) ? window.rows :
+    ((typeof rows!=='undefined' && Array.isArray(rows)) ? rows : []);
+  if(!liveRows.length){
+    receipt27('bad','&#10005; NOT SAVED &mdash; there are 0 manual topology rows in this browser.');
+    try{ toast('NOT SAVED — workspace is empty'); }catch(e){}
+    return false;
+  }
+  try{ buildTopology(); }catch(e){}
+  const now=new Date().toISOString();
+  const currentMeta=(window.meta || (typeof meta!=='undefined' ? meta : {}) || {});
+  const payload={
+    schema:'tgspdcl.smartgrid.manualTopology.v1',
+    schemaVersion:1,
+    meta:{...currentMeta,updatedAt:now,verifiedSaveId:'SAVE-'+Date.now(),
+      checksum:checksum27(liveRows),rowCount:liveRows.length,
+      connections:(typeof topology!=='undefined'&&topology)?topology.length:undefined,
+      feeders:new Set(liveRows.map(r=>r.feeder_code||r.feeder_name).filter(Boolean)).size,
+      frontendVersion:'SEQUENTIAL-SILENT-V27'},
+    rows:liveRows
+  };
+  const body=JSON.stringify(payload);
+
+  // Browser safety copy is written before any network operation.
+  try{
+    localStorage.setItem(LOCAL27,body);
+    localStorage.setItem('TGSPDCL_MANUAL_TOPOLOGY_V1_LOCAL_SAVED_AT',now);
+  }catch(e){ console.warn('[V27] browser safety copy could not be updated:',e); }
+
+  receipt27('saving','&#9679; SAVING&hellip; browser safety copy stored. Uploading the primary topology first. Do not close this page.');
+  try{
+    let oldCount=0;
+    try{ const old=await read27(PRIMARY27+'/meta'); oldCount=Number(old&&old.rowCount)||0; }catch(e){}
+    if(oldCount>20 && liveRows.length<oldCount*.5 &&
+       !confirm('Saved topology has '+oldCount+' rows. Current drawing has only '+liveRows.length+'. Replace it?')){
+      receipt27('bad','Save cancelled &mdash; Firebase was not changed. The current drawing remains in the browser safety copy.');
+      return false;
+    }
+
+    // Required write: one complete primary payload with a 90-second ceiling.
+    await write27('PUT',PRIMARY27,body,90000);
+  }catch(e){
+    const timedOut=e&&e.name==='AbortError';
+    console.error('[V27] primary topology save failed:',e);
+    receipt27('bad','&#10005; PRIMARY SAVE FAILED &mdash; '+(timedOut?'upload exceeded 90 seconds':String(e.message||e))+
+      '<br>Your complete drawing is safe in this browser. Mirror/history were not attempted.');
+    try{ toast(timedOut?'SAVE TIMED OUT — browser safety copy kept':'SAVE FAILED — browser safety copy kept'); }catch(x){}
+    return false;
+  }
+
+  const warnings=[];
+  receipt27('saving','&#10003; PRIMARY SAVED. Updating the secondary mirror&hellip;');
+  try{ await write27('PUT',MIRROR27,body,90000); }
+  catch(e){ warnings.push('secondary mirror'); console.warn('[V27] mirror save skipped; primary is safe:',e); }
+
+  receipt27('saving','&#10003; PRIMARY SAVED. Finishing the optional history snapshot&hellip;');
+  try{ await write27('POST',HISTORY27,body,90000); }
+  catch(e){ warnings.push('history snapshot'); console.warn('[V27] history snapshot skipped; primary is safe:',e); }
+
+  try{ localStorage.setItem('TGSPDCL_LAST_VERIFIED_SAVE',JSON.stringify({
+    id:payload.meta.verifiedSaveId,at:now,rows:liveRows.length,
+    feeders:payload.meta.feeders,checksum:payload.meta.checksum,primarySaved:true,
+    optionalWarnings:warnings
+  })); }catch(e){}
+  const when=new Date(now).toLocaleString();
+  const note=warnings.length?'<br>Primary is safe; optional '+warnings.join(' and ')+' could not be updated.':'';
+  receipt27('ok','&#10003; PRIMARY TOPOLOGY SAVED<br>'+liveRows.length+' rows &middot; '+payload.meta.feeders+
+    ' feeders &middot; '+payload.meta.connections+' connections<br>'+when+' &middot; Receipt '+payload.meta.verifiedSaveId+note);
+  const fi=document.getElementById('fileInfo');
+  if(fi) fi.textContent='Primary saved · '+liveRows.length+' rows · '+payload.meta.feeders+' feeders · '+when;
+  try{ toast(warnings.length?'PRIMARY SAVED — optional backup warning':'✓ SAVED — primary, mirror and history completed'); }catch(e){}
+  return true;
+}
+
+sequentialSave27.__v27=true;
+try{ saveFirebase=sequentialSave27; }catch(e){}
+window.saveFirebase=sequentialSave27;
+console.log('[SmartGrid] V27 sequential silent save active — local first, primary 90s, mirror then optional history.');
+})();
+</script>
 </body>
 </html>
