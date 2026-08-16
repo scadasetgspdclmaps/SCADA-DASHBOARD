@@ -9842,8 +9842,16 @@ async function sequentialSave27(){
 }
 
 sequentialSave27.__v27=true;
-try{ saveFirebase=sequentialSave27; }catch(e){}
-window.saveFirebase=sequentialSave27;
+function installSequentialSave27(){
+  try{ saveFirebase=sequentialSave27; }catch(e){}
+  window.saveFirebase=sequentialSave27;
+}
+/* Older V19/V25/V26 blocks schedule delayed handler installs at 0.8s, 1.2s,
+   2.5s and 3s. Reinstall once after those timers so the visible Save button
+   cannot silently fall back to the obsolete chunked writer. */
+installSequentialSave27();
+setTimeout(installSequentialSave27,3500);
+setTimeout(installSequentialSave27,6000);
 console.log('[SmartGrid] V27 sequential silent save active — local first, primary 90s, mirror then optional history.');
 })();
 </script>
