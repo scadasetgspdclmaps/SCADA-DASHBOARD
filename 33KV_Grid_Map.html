@@ -4050,11 +4050,12 @@ function render(){
     if(c.type==='feeder')cnt[feederCableClass(c.feeder_type)]++;else cnt[c.type]++;
     const runtimeState=window.sgV9StatusForConnection?window.sgV9StatusForConnection(c):{status:'idle'};
     const baseCol=colorFor(c.type,c.feeder_type);
-    const col=runtimeState.status==='breakdown'?'#ef4444':baseCol;
+    const allCreatedView=!!(window.SG_V9_RUNTIME && (window.SG_V9_RUNTIME.view||'all')==='all');
+    const col=(!allCreatedView && runtimeState.status==='breakdown')?'#ef4444':baseCol;
     const pts=curve(c.from,c.to,idx,pairCount[k],c.type);
     const w = c.type==='link' ? Math.max(.8,sgLineWeight*0.8) : sgLineWeight;
-    const runtimeOpacity=runtimeState.status==='idle'?.48:.94;
-    const line=L.polyline(pts,{color:col,weight:runtimeState.status==='breakdown'?Math.max(w,3.2):w,opacity:runtimeOpacity,dashArray:null,lineCap:'round',lineJoin:'round',className:'sg-feeder-line '+(c.type==='link'?'sg-link-line ':'')+'sg-runtime-'+runtimeState.status});
+    const runtimeOpacity=allCreatedView?.94:(runtimeState.status==='idle'?.48:.94);
+    const line=L.polyline(pts,{color:col,weight:(!allCreatedView&&runtimeState.status==='breakdown')?Math.max(w,3.2):w,opacity:runtimeOpacity,dashArray:null,lineCap:'round',lineJoin:'round',className:'sg-feeder-line '+(c.type==='link'?'sg-link-line ':'')+'sg-runtime-'+runtimeState.status});
     // Feeder name appears ONLY on hover near the line, not as permanent map text.
     // No rectangular hover box. Feeder identity remains available from the
     // Feeder selector and drafting-panel title.
@@ -9853,6 +9854,111 @@ installSequentialSave27();
 setTimeout(installSequentialSave27,3500);
 setTimeout(installSequentialSave27,6000);
 console.log('[SmartGrid] V27 sequential silent save active — local first, primary 90s, mirror then optional history.');
+})();
+</script>
+<script id="sgV28ImportAndViewFixScript">
+/* V28: import is browser-local first and never depends on Firebase transport.
+   Also keeps shapefile layers confined to GRID MAP VIEW and fixes the requested
+   editing defaults. No topology row, _raw field or coordinate is transformed. */
+(function(){
+'use strict';
+const IMPORT_LOCAL_KEY='TGSPDCL_MANUAL_TOPOLOGY_V1_LOCAL';
+function importReceipt(kind,html){
+  const el=document.getElementById('sgV14SaveReceipt');
+  if(el){el.className=kind;el.innerHTML=html;}
+}
+function importCurrentRows(){try{return window.rows||rows||[]}catch(e){return []}}
+function importCurrentMeta(){try{return window.meta||meta||{}}catch(e){return {}}}
+function applyImportedTopology(pkg,fileName){
+  const topo=pkg&&pkg.manualTopology?pkg.manualTopology:pkg;
+  if(!topo||!Array.isArray(topo.rows)||!topo.rows.length)throw new Error('No topology rows found in this file');
+  const previous={schema:'tgspdcl.smartgrid.portable.v1',manualTopology:{meta:importCurrentMeta(),rows:importCurrentRows()}};
+  try{localStorage.setItem('TGSPDCL_MANUAL_TOPOLOGY_BEFORE_IMPORT',JSON.stringify(previous));}catch(e){}
+  const now=new Date().toISOString();
+  const payload={schema:'tgspdcl.smartgrid.manualTopology.v1',schemaVersion:1,
+    meta:{...(topo.meta||{}),updatedAt:now,importedAt:now,importSource:fileName||'portable-file'},
+    rows:topo.rows};
+  const body=JSON.stringify(payload);
+  /* The safety copy and the visible map are updated before any remote save.
+     Firebase is deliberately not contacted here; Save Manual Drawing handles it. */
+  try{localStorage.setItem(IMPORT_LOCAL_KEY,body);}catch(e){
+    throw new Error('Browser could not store the safety copy: '+String(e.message||e));
+  }
+  rows=payload.rows;meta=payload.meta;window.rows=rows;window.meta=meta;
+  populateFilters();buildTopology();render();
+  const fi=document.getElementById('fileInfo');
+  if(fi)fi.textContent='Imported locally · '+rows.length+' rows · '+new Date(now).toLocaleString();
+  importReceipt('ok','&#10003; JSON IMPORTED INTO THIS PAGE<br>'+rows.length+
+    ' complete rows restored and stored in this browser.<br>Review the drawing, then press Save Manual Drawing to upload it.');
+  try{toast('✓ Imported '+rows.length+' rows — drawing restored locally');}catch(e){}
+  return payload;
+}
+window.sgV13ImportFile=async function(input){
+  const file=input&&input.files&&input.files[0];if(input)input.value='';if(!file)return;
+  try{
+    let pkg;
+    if(/\.json$/i.test(file.name)) pkg=JSON.parse(await file.text());
+    else if(/\.xlsx?$/i.test(file.name)){
+      if(typeof XLSX==='undefined')throw new Error('Excel library unavailable');
+      const wb=XLSX.read(await file.arrayBuffer(),{type:'array'}),ws=wb.Sheets.PortablePackage;
+      if(ws&&ws.A2&&ws.A2.v)pkg=JSON.parse(ws.A2.v);
+      else{
+        const sheet=wb.Sheets.Topology||wb.Sheets[wb.SheetNames[0]];
+        const data=XLSX.utils.sheet_to_json(sheet,{defval:''});
+        const restored=data.map(x=>{try{return x.Raw_Row_JSON?JSON.parse(x.Raw_Row_JSON):x}catch(e){return x}});
+        pkg={manualTopology:{rows:restored,meta:{fileName:file.name}}};
+      }
+    }else throw new Error('Choose a Complete JSON or XLSX topology file');
+    const count=(pkg&&pkg.manualTopology?pkg.manualTopology:pkg)?.rows?.length||0;
+    if(!count)throw new Error('No topology rows found in this file');
+    if(!confirm('Import '+count+' topology rows into this page? The present drawing will first be backed up in this browser.'))return;
+    applyImportedTopology(pkg,file.name);
+  }catch(e){
+    console.error('[V28] local import failed',e);
+    importReceipt('bad','&#10005; IMPORT FAILED &mdash; '+String(e.message||e));
+    try{toast('Import failed: '+String(e.message||e));}catch(x){}
+  }
+};
+
+/* Shapefile fills and labels belong only to GRID MAP VIEW. */
+const originalSetBM28=window.setBM||setBM;
+function separatedSetBM28(name){
+  const result=originalSetBM28.apply(this,arguments);
+  try{
+    if(typeof window.tgSetGridShowDistricts==='function')window.tgSetGridShowDistricts(name==='grid_view');
+    if(name!=='grid_view'){
+      if(typeof window.tgSetGridShowAreaNames==='function')window.tgSetGridShowAreaNames(false);
+      if(typeof window.tgSetGridShowMandalNames==='function')window.tgSetGridShowMandalNames(false);
+      if(typeof window.tgSetGridShowRoads==='function')window.tgSetGridShowRoads(false);
+    }
+  }catch(e){console.warn('[V28] basemap layer separation warning',e);}
+  return result;
+}
+try{setBM=separatedSetBM28}catch(e){}
+window.setBM=separatedSetBM28;
+
+function setReferenceStyle28(){
+  try{
+    setSGSSSize(.55);setSGEHTSize(.60);setSGLabelSize(9);setSGABDPSize(1);setSGLineWeight(1.75);
+    if(typeof window.setSGFlowMode==='function')window.setSGFlowMode('live');
+    const panel=document.getElementById('gridStylePanel');
+    if(panel){
+      const ranges=panel.querySelectorAll('input[type="range"]');
+      [.55,.60,9,1,1.75].forEach((v,i)=>{if(ranges[i])ranges[i].value=String(v)});
+      panel.querySelectorAll('.gsp-row').forEach(row=>{
+        const text=(row.textContent||'').toUpperCase(),cb=row.querySelector('input[type="checkbox"]');
+        if(!cb)return;
+        if(text.includes('AREA BORDERS ONLY'))cb.checked=true;
+        if(text.includes('IMPORTANT AREA NAMES')||text.includes('MANDAL NAMES')||text.includes('ORR / RRR ROADS'))cb.checked=false;
+      });
+    }
+    separatedSetBM28('grid');
+    if(window.SG_V9_RUNTIME){window.SG_V9_RUNTIME.view='all';const sel=document.getElementById('sgV9ViewSel');if(sel)sel.value='all';}
+    try{render();}catch(e){}
+  }catch(e){console.warn('[V28] reference style initialization warning',e);}
+}
+setTimeout(setReferenceStyle28,4200);
+console.log('[SmartGrid] V28 active — local-first import, isolated shapefile view, normal ALL CREATED colors.');
 })();
 </script>
 </body>
