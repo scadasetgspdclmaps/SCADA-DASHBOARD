@@ -9148,7 +9148,7 @@ console.log('[SmartGrid] V24 loaded — Breakdown Entry sync ONLY. Existing Clau
 const FB = (typeof FIREBASE_URL !== 'undefined')
   ? FIREBASE_URL
   : 'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app';
-const CEILING = 45000;
+const CEILING = 120000;   /* raised from 45000 on 15-Aug-2026 */
 
 let lastErr = null;
 let lastNet = null;
@@ -9327,6 +9327,7 @@ console.log('[SmartGrid] V25 active — real 45s AbortController ceiling on ever
 </script>
 
 
+
 <style id="sgV26Style">
 #sgV26Box{margin-top:8px;border-radius:9px;padding:11px 13px;font:600 10.5px/1.6 Consolas,monospace;border:1px solid #334155;background:#0b1220;color:#cbd5e1;display:none}
 #sgV26Box b{color:#7dd3fc;display:block;margin-bottom:5px;font-size:11px}
@@ -9334,76 +9335,52 @@ console.log('[SmartGrid] V25 active — real 45s AbortController ceiling on ever
 #sgV26Box.ok b{color:#86efac}
 #sgV26Box.bad{border-color:#b91c1c;background:#2a0b0f;color:#fecaca}
 #sgV26Box.bad b{color:#fff}
-#sgV26Box .bar{height:7px;border-radius:4px;background:#1e293b;overflow:hidden;margin:7px 0 5px}
-#sgV26Box .bar i{display:block;height:100%;background:#38bdf8;width:0;transition:width .2s}
+#sgV26Box .bar{height:8px;border-radius:4px;background:#1e293b;overflow:hidden;margin:8px 0 6px}
+#sgV26Box .bar i{display:block;height:100%;background:#38bdf8;width:0;transition:width .25s}
+#sgV26Box .lg{max-height:74px;overflow:auto;margin-top:6px;color:#94a3b8;font-size:9.5px;line-height:1.5}
 #sgV26Box button{margin:8px 6px 0 0;background:#334155;color:#fff;border:none;border-radius:6px;padding:6px 11px;font:800 9.5px/1 Arial;letter-spacing:.7px;cursor:pointer}
 #sgV26Box button:hover{background:#475569}
+#sgV26Box button.stop{background:#7f1d1d}
 </style>
 <script id="sgV26Script">
 /* ═══════════════════════════════════════════════════════════════════════════
-   V26 — CHUNKED RESUMABLE SAVE                              15-Aug-2026
-   Nothing is stripped. Every field, including _raw, is preserved exactly.
+   V26b — CHUNKED · ADAPTIVE · RESUMABLE SAVE                 15-Aug-2026
+   Nothing is stripped. Every field, including _raw, is written exactly as is.
 
-   WHAT V25 PROVED
-   ---------------
-   ABORTED after 45s · PUT /smartgrid/manualTopologyV1/current · 600 KB.
-   Firebase never refused anything — it never answered. So this is the link,
-   not permissions, not rules, not the data.
+   WHY "JUST RAISE THE TIMEOUT TO 120s" IS NOT THE FIX HERE
+   -------------------------------------------------------
+   That advice is correct for the code as it stood BEFORE V26, when the save
+   was one 600 KB PUT: a longer ceiling would let a slow 600 KB stream finish.
+   It has been applied anyway — CEILING in V25 is now 120000 — because it costs
+   nothing and removes all doubt.
 
-   WHY IT WORKS AT NIGHT AND FAILS AT 10:20 AM
-   -------------------------------------------
-   A single 600 KB PUT is one uninterrupted upload stream. It succeeds only if
-   the connection holds for its whole duration. At night an office link is
-   quiet and it holds. In working hours the same link is shared, and proxies
-   or inspection gateways buffer large PUT bodies — one stalled segment and
-   the stream never completes. Nothing about your data changed; only the
-   probability that a single long stream survives.
+   But it cannot be the answer now, and here is the arithmetic. V26 no longer
+   sends 600 KB in one request; it sends slices of about 48 KB. For a 48 KB
+   request to miss a 45-second ceiling the link would have to be moving under
+   about 1.1 KB per second. A link that slow would not have loaded this map at
+   all. So if a SLICE times out, waiting 120 seconds instead of 45 does not
+   rescue it — something is stopping that request, not slowing it.
 
-   AND YOUR SAVE WAS FAR HEAVIER THAN 600 KB
-   -----------------------------------------
-   V14's save did all of this, every time you pressed Save:
+   WHAT V26b ADDS SO THERE IS NOTHING LEFT TO GUESS
+   ------------------------------------------------
+   * A live ticking panel: elapsed seconds, which slice is in flight, which
+     attempt, measured KB/s and an ETA. "SAVING…" can no longer look frozen
+     when it is simply working.
+   * Adaptive slicing. If a 12-row slice fails all its attempts, it is split
+     into 6 rows, then 3, then 1, and retried. A single row is a few KB; if
+     even that cannot cross the link, the panel says so plainly and names the
+     failure — that is a network verdict, not a size problem.
+   * Row-level change hashes, so a resumed or repeated save uploads only what
+     actually differs, at whatever slice size is in use.
+   * Measured throughput printed per slice, so the log itself shows whether
+     the link is slow, unstable, or blocked.
+   * A STOP button. Progress already sent is kept; pressing Save again resumes.
 
-       PUT  600 KB   -> manualTopologyV1/current
-       PUT  600 KB   -> manualDrawing/latest        (in parallel)
-       GET  600 KB   <- read back copy 1
-       GET  600 KB   <- read back copy 2
-       POST 600 KB   -> manualTopologyV1/history    (a new snapshot each save)
-       ------------
-       ~3 MB moved for one save, and all-or-nothing.
-
-   That is the real reason it fails intermittently. Five long transfers each
-   have to survive; if any one stalls the whole save is lost and the retry
-   starts again from zero.
-
-   WHAT V26 DOES INSTEAD
-   ---------------------
-   * Splits the rows into fixed slices of 12 rows (~50 KB each) and writes
-     them with PATCH to /current/rows. Integer keys mean Firebase still
-     returns rows as a normal array — every existing reader is unaffected.
-   * Skips slices whose content has not changed since the last successful
-     save. A typical edit then uploads 50-100 KB instead of 600 KB.
-   * Resumable: if slice 7 of 12 stalls, slices 1-6 are already stored. Press
-     Save again and it continues from 7 rather than restarting.
-   * Retries each SLICE up to 3 times with a short backoff. A slice is small,
-     so a retry costs seconds, not a full re-upload.
-   * Verifies with a shallow key count plus the meta checksum instead of
-     downloading 600 KB twice. Full verification is one button away.
-   * History snapshots are no longer written on every save (they were a third
-     600 KB upload). Use SNAPSHOT NOW when you want an archived copy.
-   * The mirror to manualDrawing/latest is written in the background after the
-     primary succeeds, so it can never fail your save.
-
-   ON THE TWO SUGGESTIONS YOU WERE GIVEN
-   -------------------------------------
-   1. "Strip _raw and extra columns." You were right to refuse. It would shrink
-      the payload but permanently lose the original Excel columns that the
-      Download Manual Drawing button rebuilds from. V26 gets a larger reduction
-      per save (changed slices only) while keeping every field.
-   2. "Raise nmcV9 TIMEOUT_MS and fetch11 to 120s." Those two blocks live in
-      Breakdown_Entry.html, not in this map file — editing them cannot affect
-      this save at all. And raising a timeout does not make a stall less
-      likely; it only makes you wait two minutes to learn the 600 KB must be
-      sent again from the beginning.
+   THE OLD SAVE, FOR CONTEXT
+   -------------------------
+   V14 moved roughly 3 MB per press: PUT 600 KB, a second PUT 600 KB, two full
+   600 KB read-backs and a 600 KB history POST — all-or-nothing. That is what
+   made it fail in office hours and pass at night.
    ═══════════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
@@ -9411,13 +9388,14 @@ const FB = (typeof FIREBASE_URL !== 'undefined')
   ? FIREBASE_URL
   : 'https://scadagridmap-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-const PRIMARY   = 'smartgrid/manualTopologyV1/current';
-const MIRROR    = 'smartgrid/manualDrawing/latest';
-const SLICE     = 12;          // rows per slice — about 50 KB at your row size
-const TRIES     = 3;           // per slice
-const HASH_KEY  = 'TGSPDCL_V26_SLICE_HASHES';
+const PRIMARY  = 'smartgrid/manualTopologyV1/current';
+const MIRROR   = 'smartgrid/manualDrawing/latest';
+const BASE_ROWS= 12;      // starting slice size
+const TRIES    = 3;       // attempts before a slice is split
+const HASH_KEY = 'TGSPDCL_V26_ROW_HASHES';
 
-/* identical to the map's own checksum(), so meta.checksum stays compatible */
+let stopFlag = false, running = false;
+
 function fnv(a){
   let h = 2166136261;
   const s = JSON.stringify(a.map(r => [r.feeder_code||'', r.feeder_name||'', r.feeding_code||'',
@@ -9431,287 +9409,318 @@ function hashText(s){
   for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h>>>0).toString(16);
 }
-const kb = n => Math.round(n/1024) + ' KB';
+const kb = n => (n>=1024*1024 ? (n/1048576).toFixed(1)+' MB' : Math.round(n/1024)+' KB');
+const secs = ms => (ms/1000).toFixed(1)+'s';
 
-/* ── UI ── */
+/* ── panel ── */
+let live = null, tick = null;
 function box(){
   let b = document.getElementById('sgV26Box');
   if(b) return b;
   const anchor = document.getElementById('sgV14SaveReceipt');
   if(!anchor) return null;
-  b = document.createElement('div'); b.id = 'sgV26Box';
+  b = document.createElement('div'); b.id='sgV26Box';
   anchor.insertAdjacentElement('afterend', b);
   return b;
 }
-function say(cls, title, body, pct){
-  const b = box(); if(!b) return;
-  b.className = cls || '';
-  b.innerHTML = '<b>'+title+'</b>' + body
-    + (pct != null ? '<div class="bar"><i style="width:'+pct+'%"></i></div>' : '')
+const logLines = [];
+function log(s){ logLines.push(s); if(logLines.length>40) logLines.shift(); }
+function buttons(){
+  return (running ? '<button class="stop" onclick="sgV26Stop()">STOP</button>' : '')
     + '<button onclick="sgV26FullVerify()">FULL VERIFY</button>'
     + '<button onclick="sgV26Snapshot()">SNAPSHOT NOW</button>'
     + '<button onclick="sgV26ForceFull()">FORCE FULL RESEND</button>'
     + '<button onclick="document.getElementById(\'sgV26Box\').style.display=\'none\'">HIDE</button>';
-  b.style.display = 'block';
 }
+function say(cls, title, body, pct, showLog){
+  const b = box(); if(!b) return;
+  b.className = cls||'';
+  b.innerHTML = '<b>'+title+'</b>'+body
+    + (pct!=null ? '<div class="bar"><i style="width:'+Math.max(2,pct)+'%"></i></div>' : '')
+    + (showLog && logLines.length ? '<div class="lg">'+logLines.slice(-8).join('<br>')+'</div>' : '')
+    + buttons();
+  b.style.display='block';
+}
+function startTicker(state){
+  live = state;
+  clearInterval(tick);
+  tick = setInterval(function(){
+    if(!live) return;
+    const el = Date.now() - live.t0;
+    const rate = live.doneBytes>0 ? live.doneBytes/(el/1000) : 0;
+    const left = Math.max(0, live.totalToSend - live.doneBytes);
+    const eta  = rate>0 ? Math.round(left/rate) : null;
+    say('', 'SAVING — chunked · '+secs(el),
+        'rows <b>'+live.rows+'</b> · to upload '+kb(live.totalToSend)+' of '+kb(live.totalBytes)+'<br>'
+      + 'slice <b>'+live.sliceNo+' / '+live.sliceTotal+'</b> ('+live.sliceRows+' rows, '+kb(live.sliceBytes)+')'
+      + (live.attempt>1 ? ' · attempt '+live.attempt : '')+'<br>'
+      + 'sent '+kb(live.doneBytes)
+      + (rate>0 ? ' · '+(rate/1024).toFixed(1)+' KB/s' : '')
+      + (eta!=null ? ' · about '+eta+'s left' : '')
+      + '<br>Progress is kept even if the link stalls — you can press Save again to resume.',
+        Math.round(live.doneBytes/Math.max(1,live.totalToSend)*100), true);
+  }, 400);
+}
+function stopTicker(){ clearInterval(tick); tick=null; live=null; }
+window.sgV26Stop = function(){ stopFlag = true; log('STOP requested — finishing the slice in flight'); };
 
-/* ── one bounded request, no global wrapper needed (V25 already bounds fetch) ── */
-async function put(path, body){
-  const r = await fetch(FB+'/'+path+'.json', {
-    method:'PUT', headers:{'Content-Type':'application/json'}, body, cache:'no-store'
-  });
-  if(!r.ok){ let t=''; try{ t = (await r.text()).slice(0,200); }catch(e){}
+/* ── transport ── */
+async function req(method, path, body){
+  const o = {method, cache:'no-store'};
+  if(body!=null){ o.headers = {'Content-Type':'application/json'}; o.body = body; }
+  const r = await fetch(FB+'/'+path+'.json', o);
+  if(!r.ok){ let t=''; try{ t=(await r.text()).slice(0,180); }catch(e){}
     throw new Error('HTTP '+r.status+(t?' — '+t:'')); }
-  return true;
-}
-async function patch(path, body){
-  const r = await fetch(FB+'/'+path+'.json', {
-    method:'PATCH', headers:{'Content-Type':'application/json'}, body, cache:'no-store'
-  });
-  if(!r.ok){ let t=''; try{ t = (await r.text()).slice(0,200); }catch(e){}
-    throw new Error('HTTP '+r.status+(t?' — '+t:'')); }
-  return true;
+  return r;
 }
 async function getJson(path, qs){
   const r = await fetch(FB+'/'+path+'.json?'+(qs?qs+'&':'')+'ts='+Date.now(), {cache:'no-store'});
   if(!r.ok) throw new Error('HTTP '+r.status);
   return await r.json();
 }
-const wait = ms => new Promise(r => setTimeout(r, ms));
+const wait = ms => new Promise(r=>setTimeout(r, ms));
 
-async function withRetry(label, fn, onNote){
-  let last;
-  for(let i=1;i<=TRIES;i++){
-    try{ return await fn(); }
-    catch(e){
-      last = e;
-      if(i < TRIES){
-        if(onNote) onNote(label+' attempt '+i+' failed ('+String(e.message||e).slice(0,60)+') — retrying');
-        await wait(1200*i);
-      }
-    }
-  }
-  throw last;
-}
-
-function loadHashes(){
-  try{ return JSON.parse(localStorage.getItem(HASH_KEY) || 'null') || {}; }catch(e){ return {}; }
-}
+function loadHashes(){ try{ return JSON.parse(localStorage.getItem(HASH_KEY)||'null')||{}; }catch(e){ return {}; } }
 function saveHashes(h){ try{ localStorage.setItem(HASH_KEY, JSON.stringify(h)); }catch(e){} }
 window.sgV26ForceFull = function(){
   saveHashes({});
-  say('', 'FULL RESEND ARMED', 'Every slice will be uploaded on the next save, even unchanged ones.');
+  say('','FULL RESEND ARMED','Every row will be uploaded on the next save, changed or not.');
 };
 
-/* ── the save ── */
-async function chunkedSave(opts){
-  opts = opts || {};
+/* ── save ── */
+async function chunkedSave(){
+  if(running){ log('save already running'); return false; }
   const rows = (window.rows && window.rows.length) ? window.rows : [];
   if(!rows.length){
     say('bad','NOT SAVED','There are 0 manual topology rows in this browser. Use Recover Saved Topology first.');
     try{ toast('NOT SAVED — workspace is empty'); }catch(e){}
     return false;
   }
+  running = true; stopFlag = false; logLines.length = 0;
   try{ buildTopology(); }catch(e){}
 
-  const now  = new Date().toISOString();
-  const meta = Object.assign({}, (window.meta || {}), {
-    updatedAt: now,
-    verifiedSaveId: 'SAVE-'+Date.now(),
-    checksum: fnv(rows),
+  const now = new Date().toISOString();
+  const meta = Object.assign({}, (window.meta||{}), {
+    updatedAt: now, verifiedSaveId: 'SAVE-'+Date.now(), checksum: fnv(rows),
     rowCount: rows.length,
-    connections: (typeof topology !== 'undefined' && topology) ? topology.length : undefined,
-    feeders: new Set(rows.map(r => r.feeder_code || r.feeder_name).filter(Boolean)).size,
-    frontendVersion: 'CHUNKED-RESUMABLE-V26',
-    schema: 'tgspdcl.smartgrid.manualTopology.v1',
-    schemaVersion: 1
+    connections: (typeof topology!=='undefined' && topology) ? topology.length : undefined,
+    feeders: new Set(rows.map(r=>r.feeder_code||r.feeder_name).filter(Boolean)).size,
+    frontendVersion: 'CHUNKED-ADAPTIVE-V26b',
+    schema: 'tgspdcl.smartgrid.manualTopology.v1', schemaVersion: 1
   });
 
-  /* Guard kept from V14: never silently replace a large saved set with a tiny one. */
   let oldCount = 0;
-  try{ const om = await getJson(PRIMARY+'/meta'); oldCount = (om && om.rowCount) || 0; }catch(e){}
-  if(oldCount > 20 && rows.length < oldCount*0.5 &&
+  try{ const om = await getJson(PRIMARY+'/meta'); oldCount = (om && om.rowCount)||0; }catch(e){}
+  if(oldCount>20 && rows.length < oldCount*0.5 &&
      !confirm('Saved topology has '+oldCount+' rows. This drawing has only '+rows.length+'. Replace it?')){
-    say('bad','SAVE CANCELLED','The stored topology was not changed.');
+    running=false; say('bad','SAVE CANCELLED','The stored topology was not changed.');
     return false;
   }
 
-  /* build slices */
-  const slices = [];
-  for(let i=0;i<rows.length;i+=SLICE){
-    const obj = {};
-    for(let j=i;j<Math.min(i+SLICE, rows.length);j++) obj[j] = rows[j];
+  /* row-level hashes → only changed rows are queued */
+  const prev = loadHashes();
+  const rowJson = rows.map(r => JSON.stringify(r));
+  const rowHash = rowJson.map(hashText);
+  const totalBytes = rowJson.reduce((s,x)=>s+x.length, 0);
+
+  const changed = [];
+  for(let i=0;i<rows.length;i++) if(prev[i] !== rowHash[i]) changed.push(i);
+  const totalToSend = changed.reduce((s,i)=>s+rowJson[i].length, 0);
+
+  /* queue of tasks over contiguous changed rows */
+  const queue = [];
+  for(let k=0;k<changed.length;k+=BASE_ROWS) queue.push(changed.slice(k, k+BASE_ROWS));
+
+  const state = {rows: rows.length, totalBytes, totalToSend, doneBytes: 0,
+                 sliceNo: 0, sliceTotal: queue.length, sliceRows: 0, sliceBytes: 0,
+                 attempt: 1, t0: Date.now()};
+  log('queued '+changed.length+' changed rows in '+queue.length+' slices'
+      + (changed.length<rows.length ? ' ('+(rows.length-changed.length)+' rows unchanged, skipped)' : ''));
+  startTicker(state);
+
+  let hardFail = null, sent = 0;
+  while(queue.length){
+    if(stopFlag){ hardFail = {stopped:true}; break; }
+    const idxs = queue.shift();
+    const obj = {}; idxs.forEach(i => obj[i] = rows[i]);
     const body = JSON.stringify(obj);
-    slices.push({index: i/SLICE, body, hash: hashText(body), bytes: body.length});
-  }
-  const totalBytes = slices.reduce((s,x)=>s+x.bytes, 0);
-  const prev  = loadHashes();
-  const todo  = slices.filter(s => prev[s.index] !== s.hash);
-  const skipBytes = totalBytes - todo.reduce((s,x)=>s+x.bytes, 0);
+    state.sliceNo = ++sent; state.sliceRows = idxs.length; state.sliceBytes = body.length;
 
-  say('', 'SAVING — chunked',
-      'rows <b>'+rows.length+'</b> · total '+kb(totalBytes)+'<br>'
-    + 'slices to upload <b>'+todo.length+'</b> of '+slices.length
-    + (skipBytes>0 ? ' · '+kb(skipBytes)+' unchanged, skipped' : '') + '<br>'
-    + 'Each slice is sent separately, so progress is kept even if the link stalls.', 0);
-
-  const t0 = Date.now();
-  let doneBytes = 0, uploaded = 0;
-  const notes = [];
-
-  for(const s of todo){
-    try{
-      await withRetry('slice '+(s.index+1), () => patch(PRIMARY+'/rows', s.body),
-        n => notes.push(n));
-    }catch(e){
-      saveHashes(prev);   // keep what did land, so the next press resumes
-      say('bad','SAVE STOPPED AT SLICE '+(s.index+1)+' OF '+slices.length,
-          'uploaded <b>'+uploaded+'</b> slices ('+kb(doneBytes)+') before the link failed.<br>'
-        + 'reason: '+String(e.message||e).replace(/</g,'&lt;')+'<br><br>'
-        + '<b>Nothing was lost.</b> Those slices are already stored in Firebase and your drawing '
-        + 'is intact in this browser. Press Save Manual Drawing again — it resumes from slice '
-        + (s.index+1)+' instead of restarting.'
-        + (notes.length ? '<br><br>'+notes.slice(-3).join('<br>') : ''));
-      try{ toast('Save paused — press Save again to resume'); }catch(e2){}
-      return false;
+    let ok = false, err = null;
+    for(let a=1;a<=TRIES;a++){
+      state.attempt = a;
+      const t = Date.now();
+      try{
+        await req('PATCH', PRIMARY+'/rows', body);
+        const ms = Date.now()-t;
+        log('slice '+sent+' · '+idxs.length+' rows · '+kb(body.length)+' · '+secs(ms)
+            +' · '+((body.length/1024)/(ms/1000)).toFixed(1)+' KB/s');
+        ok = true; break;
+      }catch(e){
+        err = e;
+        log('slice '+sent+' attempt '+a+' failed after '+secs(Date.now()-t)+' — '+String(e.message||e).slice(0,70));
+        if(a<TRIES) await wait(1000*a);
+      }
     }
-    prev[s.index] = s.hash; saveHashes(prev);
-    uploaded++; doneBytes += s.bytes;
-    say('', 'SAVING — chunked',
-        'slice <b>'+uploaded+'</b> of '+todo.length+' sent · '+kb(doneBytes)+' uploaded<br>'
-      + 'rows '+rows.length+' · total '+kb(totalBytes),
-        Math.round(uploaded/Math.max(1,todo.length)*100));
+
+    if(ok){
+      idxs.forEach(i => prev[i] = rowHash[i]);
+      saveHashes(prev);
+      state.doneBytes += body.length;
+      state.attempt = 1;
+      continue;
+    }
+
+    /* adaptive: split and retry smaller */
+    if(idxs.length > 1){
+      const half = Math.ceil(idxs.length/2);
+      queue.unshift(idxs.slice(half));
+      queue.unshift(idxs.slice(0, half));
+      state.sliceTotal += 1;
+      log('splitting slice '+sent+' into '+half+' + '+(idxs.length-half)+' rows and retrying smaller');
+      sent--;               // this slice number is being reused by the halves
+      continue;
+    }
+    hardFail = {row: idxs[0], bytes: body.length, err};
+    break;
+  }
+  stopTicker();
+
+  if(hardFail && hardFail.stopped){
+    running = false;
+    say('bad','STOPPED BY YOU',
+        'uploaded '+kb(state.doneBytes)+' of '+kb(state.totalToSend)+' before stopping.<br>'
+      + 'Everything sent is stored in Firebase. Press Save Manual Drawing to resume from here.', null, true);
+    return false;
+  }
+  if(hardFail){
+    running = false;
+    say('bad','A SINGLE ROW COULD NOT BE SENT',
+        'row <b>'+hardFail.row+'</b> is only '+kb(hardFail.bytes)+' and still failed '+TRIES+' times.<br>'
+      + 'last reason: '+String(hardFail.err && hardFail.err.message || hardFail.err).replace(/</g,'&lt;')+'<br><br>'
+      + 'uploaded '+kb(state.doneBytes)+' of '+kb(state.totalToSend)+' before this point — that part is stored.<br>'
+      + '<b>A few KB failing is a network verdict, not a size problem.</b> Try a phone hotspot; if the same '
+      + 'row saves there, the office link or its proxy is dropping these requests. Your drawing is intact here.',
+        null, true);
+    try{ toast('Save halted — see the panel'); }catch(e){}
+    return false;
   }
 
-  /* remove trailing rows if the drawing shrank */
+  /* trim removed rows */
   if(oldCount > rows.length){
-    const nulls = {};
-    for(let i=rows.length;i<oldCount;i++) nulls[i] = null;
-    try{ await withRetry('trim', () => patch(PRIMARY+'/rows', JSON.stringify(nulls))); }
-    catch(e){ notes.push('could not trim '+(oldCount-rows.length)+' old rows: '+String(e.message||e)); }
+    const nulls = {}; for(let i=rows.length;i<oldCount;i++) nulls[i]=null;
+    try{ await req('PATCH', PRIMARY+'/rows', JSON.stringify(nulls)); log('trimmed '+(oldCount-rows.length)+' removed rows'); }
+    catch(e){ log('could not trim old rows — '+String(e.message||e).slice(0,60)); }
   }
-  /* clear stale slice hashes beyond the new end */
-  Object.keys(prev).forEach(k => { if(+k >= slices.length) delete prev[k]; });
+  Object.keys(prev).forEach(k => { if(+k >= rows.length) delete prev[k]; });
   saveHashes(prev);
 
-  /* meta last — it is the marker that the set is complete */
-  try{ await withRetry('meta', () => put(PRIMARY+'/meta', JSON.stringify(meta))); }
+  /* meta last */
+  try{ await req('PUT', PRIMARY+'/meta', JSON.stringify(meta)); }
   catch(e){
-    say('bad','ROWS SAVED, META FAILED',
-        'All row slices are stored, but the summary record did not write: '
-      + String(e.message||e).replace(/</g,'&lt;')+'<br>Press Save again — it will only resend the summary.');
+    running=false;
+    say('bad','ROWS SAVED, SUMMARY FAILED',
+        'Every row slice is stored, but the summary record did not write: '
+      + String(e.message||e).replace(/</g,'&lt;')+'<br>Press Save again — only the summary will resend.', null, true);
     return false;
   }
 
-  /* verify without downloading the whole tree */
+  /* cheap verification */
   let storedCount = null, storedMeta = null;
   try{
-    const keys = await getJson(PRIMARY+'/rows', 'shallow=true');
+    const keys = await getJson(PRIMARY+'/rows','shallow=true');
     storedCount = keys ? Object.keys(keys).length : 0;
     storedMeta  = await getJson(PRIMARY+'/meta');
-  }catch(e){}
-
-  const secs = Math.round((Date.now()-t0)/100)/10;
-  const good = (storedCount === rows.length) && storedMeta && storedMeta.checksum === meta.checksum;
+  }catch(e){ log('verification read failed — '+String(e.message||e).slice(0,60)); }
 
   try{
     localStorage.setItem('TGSPDCL_LAST_VERIFIED_SAVE', JSON.stringify({
       id: meta.verifiedSaveId, at: meta.updatedAt, rows: rows.length,
-      feeders: meta.feeders, checksum: meta.checksum
-    }));
+      feeders: meta.feeders, checksum: meta.checksum}));
   }catch(e){}
 
+  const el = Date.now()-state.t0;
+  const good = (storedCount === rows.length) && storedMeta && storedMeta.checksum === meta.checksum;
+  running = false;
+
   if(good){
-    say('ok','SAVED AND VERIFIED — '+secs+'s',
+    say('ok','SAVED AND VERIFIED — '+secs(el),
         'rows <b>'+rows.length+'</b> · feeders '+meta.feeders+' · check '+meta.checksum+'<br>'
-      + 'uploaded '+kb(doneBytes)+' of '+kb(totalBytes)
-      + (skipBytes>0 ? ' — '+kb(skipBytes)+' was unchanged and skipped' : '')+'<br>'
-      + 'Firebase reports '+storedCount+' rows stored and the checksum matches.'
-      + (notes.length ? '<br><br>'+notes.slice(-3).join('<br>') : ''));
+      + 'uploaded '+kb(state.doneBytes)+' of '+kb(totalBytes)+' total'
+      + (totalToSend<totalBytes ? ' — '+kb(totalBytes-totalToSend)+' was unchanged and skipped' : '')+'<br>'
+      + 'Firebase reports '+storedCount+' rows stored and the checksum matches.', 100, true);
     try{ toast('✓ SAVE VERIFIED — '+rows.length+' rows'); }catch(e){}
     const fi = document.getElementById('fileInfo');
     if(fi) fi.textContent = 'Verified saved · '+rows.length+' rows · '+meta.feeders+' feeders · '+new Date(now).toLocaleString();
-  }else{
-    say('bad','UPLOAD FINISHED BUT VERIFY DISAGREES',
-        'expected '+rows.length+' rows / check '+meta.checksum+'<br>'
-      + 'Firebase reports '+(storedCount==null?'unknown':storedCount)+' rows / check '
-      + (storedMeta && storedMeta.checksum || 'unknown')+'<br><br>'
-      + 'Your drawing is intact in this browser. Press FORCE FULL RESEND, then Save again.');
-    try{ toast('Save finished but verification disagreed'); }catch(e){}
-    return false;
+
+    (async function(){
+      try{
+        for(let i=0;i<rows.length;i+=BASE_ROWS){
+          const o={}; for(let j=i;j<Math.min(i+BASE_ROWS,rows.length);j++) o[j]=rows[j];
+          await req('PATCH', MIRROR+'/rows', JSON.stringify(o));
+        }
+        await req('PUT', MIRROR+'/meta', JSON.stringify(meta));
+        console.log('[V26b] mirror updated');
+      }catch(e){ console.warn('[V26b] mirror lagging (harmless):', e && e.message); }
+    })();
+    return true;
   }
 
-  /* background mirror — never allowed to fail the save */
-  (async function(){
-    try{
-      for(const s of slices) await patch(MIRROR+'/rows', s.body);
-      await put(MIRROR+'/meta', JSON.stringify(meta));
-      console.log('[V26] mirror updated');
-    }catch(e){ console.warn('[V26] mirror lagging (harmless):', e && e.message); }
-  })();
-
-  return true;
+  say('bad','UPLOAD FINISHED BUT VERIFY DISAGREES',
+      'expected '+rows.length+' rows / check '+meta.checksum+'<br>'
+    + 'Firebase reports '+(storedCount==null?'unknown':storedCount)+' rows / check '
+    + (storedMeta && storedMeta.checksum || 'unknown')+'<br><br>'
+    + 'Your drawing is intact in this browser. Press FORCE FULL RESEND, then Save again.', null, true);
+  return false;
 }
 
-/* full verification on demand — downloads everything once */
 window.sgV26FullVerify = async function(){
   say('','FULL VERIFY — downloading the stored copy…','This reads the entire saved tree once.');
   try{
     const d = await getJson(PRIMARY);
     const stored = (d && d.rows || []).filter(Boolean);
-    const local  = window.rows || [];
+    const local = window.rows || [];
     const a = fnv(stored), b = fnv(local);
-    if(a === b) say('ok','FULL VERIFY PASSED',
-      'stored '+stored.length+' rows · check '+a+'<br>Byte-for-byte agreement with this browser.');
-    else say('bad','FULL VERIFY MISMATCH',
-      'stored '+stored.length+' rows / '+a+' vs this browser '+local.length+' rows / '+b
+    if(a===b) say('ok','FULL VERIFY PASSED','stored '+stored.length+' rows · check '+a+'<br>Agrees with this browser.');
+    else say('bad','FULL VERIFY MISMATCH','stored '+stored.length+' rows / '+a+' vs browser '+local.length+' rows / '+b
       +'<br>Press FORCE FULL RESEND then Save.');
   }catch(e){ say('bad','FULL VERIFY COULD NOT READ', String(e.message||e).replace(/</g,'&lt;')); }
 };
 
-/* archived snapshot on demand — this is the old per-save history POST */
 window.sgV26Snapshot = async function(){
-  const rows = window.rows || [];
+  const rows = window.rows||[];
   if(!rows.length){ say('bad','NO SNAPSHOT','Nothing is drawn in this browser.'); return; }
-  say('','SNAPSHOT — uploading an archived copy…','This sends the full set once to the history branch.');
+  say('','SNAPSHOT — uploading an archived copy…','Sends the full set once to the history branch.');
   try{
     const body = JSON.stringify({meta:{updatedAt:new Date().toISOString(), rowCount:rows.length, checksum:fnv(rows)}, rows});
-    const r = await fetch(FB+'/smartgrid/manualTopologyV1/history.json',
-      {method:'POST', headers:{'Content-Type':'application/json'}, body, cache:'no-store'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
+    await req('POST','smartgrid/manualTopologyV1/history', body);
     say('ok','SNAPSHOT STORED', rows.length+' rows archived under manualTopologyV1/history.');
-  }catch(e){ say('bad','SNAPSHOT FAILED', String(e.message||e).replace(/</g,'&lt;')
-      +'<br>This does not affect your saved drawing.'); }
+  }catch(e){ say('bad','SNAPSHOT FAILED', String(e.message||e).replace(/</g,'&lt;')+'<br>Your saved drawing is unaffected.'); }
 };
 
-/* Replace the save. V19's watchdog and V25's reporting still wrap this. */
 function install(){
   if(window.saveFirebase && window.saveFirebase.__v26) return true;
-  const wrapped = async function(){ return await chunkedSave(); };
-  wrapped.__v26 = true;
-  try{ saveFirebase = wrapped; }catch(e){}
-  window.saveFirebase = wrapped;
+  const w = async function(){ return await chunkedSave(); };
+  w.__v26 = true;
+  try{ saveFirebase = w; }catch(e){}
+  window.saveFirebase = w;
   return true;
 }
-install();
-setTimeout(install, 1200);
-setTimeout(install, 3000);
+install(); setTimeout(install,1200); setTimeout(install,3000);
 
 window.sgV26Info = function(){
-  const rows = window.rows || [];
-  const total = JSON.stringify(rows).length;
-  const h = loadHashes();
-  const o = {rows: rows.length, totalBytes: total, approxKB: Math.round(total/1024),
-             sliceRows: SLICE, slices: Math.ceil(rows.length/SLICE),
-             slicesAlreadyStored: Object.keys(h).length,
-             note: 'Only slices whose contents changed are uploaded on the next save.'};
+  const rows = window.rows||[], total = JSON.stringify(rows).length, h = loadHashes();
+  const o = {rows: rows.length, approxKB: Math.round(total/1024), startingSliceRows: BASE_ROWS,
+             rowsAlreadyStored: Object.keys(h).length,
+             note: 'Only rows whose contents changed are uploaded next time. Slices split automatically if one fails.'};
   console.log(o); return o;
 };
 
-console.log('[SmartGrid] V26 chunked resumable save active — slices of '+SLICE+' rows, '
-          + 'unchanged slices skipped, progress kept across failures. Run sgV26Info() any time.');
+console.log('[SmartGrid] V26b adaptive chunked save active — live progress, automatic slice splitting, '
+          + 'row-level resume. Run sgV26Info() any time.');
 })();
 </script>
+
 
 </body>
 </html>
