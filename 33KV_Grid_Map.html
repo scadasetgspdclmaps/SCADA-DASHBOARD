@@ -9164,6 +9164,13 @@ window.fetch = function(input, init){
   if(url.indexOf(FB) !== 0) return nativeFetch(input, init);
 
   const method = (init && init.method) || 'GET';
+  /* V27 topology writes have their own longer, save-specific timeout and
+     read-back verification. Do not let this obsolete global 120s watchdog
+     cancel those large silent writes first. */
+  if(/\/smartgrid\/(manualTopologyV1|manualDrawing)\//.test(url) &&
+     /^(PUT|POST|PATCH)$/i.test(method) && /[?&]print=silent(?:&|$)/.test(url)){
+    return nativeFetch(input, init);
+  }
   const bytes  = (init && init.body) ? String(init.body).length : 0;
   const ctrl   = new AbortController();
   const timer  = setTimeout(() => { try{ ctrl.abort(); }catch(e){} }, CEILING);
@@ -9807,24 +9814,34 @@ async function sequentialSave27(){
       return false;
     }
 
-    // Required write: one complete primary payload with a 90-second ceiling.
-    await write27('PUT',PRIMARY27,body,90000);
+    // Required write: one complete primary payload. Large daytime uploads get
+    // five minutes, and a lost response is checked against Firebase below.
+    await write27('PUT',PRIMARY27,body,300000);
   }catch(e){
-    const timedOut=e&&e.name==='AbortError';
-    console.error('[V27] primary topology save failed:',e);
-    receipt27('bad','&#10005; PRIMARY SAVE FAILED &mdash; '+(timedOut?'upload exceeded 90 seconds':String(e.message||e))+
-      '<br>Your complete drawing is safe in this browser. Mirror/history were not attempted.');
-    try{ toast(timedOut?'SAVE TIMED OUT — browser safety copy kept':'SAVE FAILED — browser safety copy kept'); }catch(x){}
-    return false;
+    /* A proxy can drop the empty 204 reply after Firebase has already committed
+       the silent PUT. Verify the primary metadata before reporting failure. */
+    let committed=false;
+    try{const savedMeta=await read27(PRIMARY27+'/meta');committed=!!(savedMeta&&savedMeta.checksum===payload.meta.checksum&&Number(savedMeta.rowCount)===liveRows.length);}catch(x){}
+    if(committed){
+      console.warn('[V27] primary reply was lost, but Firebase read-back confirms the complete save.');
+      receipt27('saving','&#10003; PRIMARY VERIFIED BY READ-BACK. The upload reply was lost, but Firebase contains the complete drawing. Updating optional copies&hellip;');
+    }else{
+      const timedOut=e&&e.name==='AbortError';
+      console.error('[V27] primary topology save failed:',e);
+      receipt27('bad','&#10005; PRIMARY SAVE FAILED &mdash; '+(timedOut?'upload exceeded five minutes':String(e.message||e))+
+        '<br>Your complete drawing is safe in this browser. Mirror/history were not attempted.');
+      try{ toast(timedOut?'SAVE TIMED OUT — browser safety copy kept':'SAVE FAILED — browser safety copy kept'); }catch(x){}
+      return false;
+    }
   }
 
   const warnings=[];
   receipt27('saving','&#10003; PRIMARY SAVED. Updating the secondary mirror&hellip;');
-  try{ await write27('PUT',MIRROR27,body,90000); }
+  try{ await write27('PUT',MIRROR27,body,300000); }
   catch(e){ warnings.push('secondary mirror'); console.warn('[V27] mirror save skipped; primary is safe:',e); }
 
   receipt27('saving','&#10003; PRIMARY SAVED. Finishing the optional history snapshot&hellip;');
-  try{ await write27('POST',HISTORY27,body,90000); }
+  try{ await write27('POST',HISTORY27,body,300000); }
   catch(e){ warnings.push('history snapshot'); console.warn('[V27] history snapshot skipped; primary is safe:',e); }
 
   try{ localStorage.setItem('TGSPDCL_LAST_VERIFIED_SAVE',JSON.stringify({
@@ -9853,9 +9870,23 @@ function installSequentialSave27(){
 installSequentialSave27();
 setTimeout(installSequentialSave27,3500);
 setTimeout(installSequentialSave27,6000);
-console.log('[SmartGrid] V27 sequential silent save active — local first, primary 90s, mirror then optional history.');
+console.log('[SmartGrid] V27 sequential silent save active — local first, primary five-minute ceiling with read-back verification, mirror then optional history.');
 })();
 </script>
+<style id="sgV29ShinyMixedFeederStyle">
+/* OH+UG remains black, with a pale metallic rim and cyan halo so it stays
+   legible on dark, grid, street, satellite and Google basemaps. */
+.leaflet-overlay-pane path.sg-feeder-line[stroke="#111827"],
+.leaflet-overlay-pane path.sg-feeder-line[stroke="#050505"]{
+  stroke:#050505!important;
+  filter:drop-shadow(0 0 1px rgba(255,255,255,.98)) drop-shadow(0 0 4px rgba(56,189,248,.92))!important;
+}
+#lyr-mixed .lswatch{
+  background:linear-gradient(135deg,#000 15%,#475569 48%,#000 78%)!important;
+  border:1px solid #e2e8f0!important;
+  box-shadow:0 0 5px #38bdf8!important;
+}
+</style>
 <script id="sgV28ImportAndViewFixScript">
 /* V28: import is browser-local first and never depends on Firebase transport.
    Also keeps shapefile layers confined to GRID MAP VIEW and fixes the requested
