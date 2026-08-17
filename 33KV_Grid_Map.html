@@ -3121,8 +3121,8 @@ function toast(msg,dur=2200){
 function updateVisibility(){ try{ if(typeof rows!=='undefined' && rows.length && typeof render==='function') render(); }catch(e){} }
 function togglePanel(){ const p=document.getElementById('panel'); if(p) p.classList.toggle('off'); const t=document.getElementById('ptab'); if(t) t.textContent=p.classList.contains('off')?'▶':'◀'; setTimeout(()=>{try{map.invalidateSize()}catch(e){}},360); }
 function toggleGridStylePanel(){ const g=document.getElementById('gridStylePanel'); if(g) g.style.display=(g.style.display==='block'?'none':'block'); }
-function setSGSSSize(v){ v=Math.max(.5,Math.min(2.5,+v||1)); document.documentElement.style.setProperty('--sg-ss-scale',v.toFixed(2)); const e=document.getElementById('gspSSVal'); if(e)e.textContent=v.toFixed(2); }
-function setSGEHTSize(v){ v=Math.max(.5,Math.min(2.5,+v||1)); document.documentElement.style.setProperty('--sg-eht-scale',v.toFixed(2)); const e=document.getElementById('gspEHTVal'); if(e)e.textContent=v.toFixed(2); }
+function setSGSSSize(v){ v=Math.max(.1,Math.min(2.5,+v||.30)); document.documentElement.style.setProperty('--sg-ss-scale',v.toFixed(2)); const e=document.getElementById('gspSSVal'); if(e)e.textContent=v.toFixed(2); }
+function setSGEHTSize(v){ v=Math.max(.1,Math.min(2.5,+v||.30)); document.documentElement.style.setProperty('--sg-eht-scale',v.toFixed(2)); const e=document.getElementById('gspEHTVal'); if(e)e.textContent=v.toFixed(2); }
 function setSGLabelSize(v){ v=Math.max(6,Math.min(16,+v||9)); document.documentElement.style.setProperty('--sg-label-size',v+'px'); const e=document.getElementById('gspLblVal'); if(e)e.textContent=v; }
 function setSGABDPSize(v){ v=Math.max(.5,Math.min(3,+v||1)); document.documentElement.style.setProperty('--sg-abdp-scale',v.toFixed(2)); const e=document.getElementById('gspABDPVal'); if(e)e.textContent=v.toFixed(2); }
 function setSGLineWeight(v){ v=Math.max(.5,Math.min(6,+v||1.5)); window.sgLineWeight=v; sgLineWeight=v; const e=document.getElementById('gspLineVal'); if(e)e.textContent=(+v).toFixed(2); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
@@ -4077,8 +4077,8 @@ function render(){
     if(c.type==='feeder' && (window.sgV9IsLiveConnection ? window.sgV9IsLiveConnection(c) : sgFlowOn)){
       const flowPts = window.sgElectricalFlowPoints ? window.sgElectricalFlowPoints(c,pts,sgElec) : pts;
       if(flowPts && flowPts.length>1){
-        L.polyline(flowPts,{color:'#67e8f9',weight:Math.max(2,w*1.15),opacity:.32,dashArray:'1 22',lineCap:'round',className:'sg-flow-halo'}).addTo(gLines);
-        L.polyline(flowPts,{color:'#eaffff',weight:Math.max(1.4,w*0.62),opacity:.92,dashArray:'2 18',lineCap:'round',className:'sg-flow-forward'}).addTo(gLines);
+        L.polyline(flowPts,{color:baseCol,weight:Math.max(2,w*1.15),opacity:.24,dashArray:'1 22',lineCap:'round',className:'sg-flow-halo'}).addTo(gLines);
+        L.polyline(flowPts,{color:baseCol,weight:Math.max(1.4,w*0.62),opacity:.96,dashArray:'2 18',lineCap:'round',className:'sg-flow-forward'}).addTo(gLines);
       }
     }
 
@@ -4851,6 +4851,11 @@ function _sgRenderEditHandles(){
       if(_sgGuideLine) _sgGuideLine.setLatLngs(geomEdit.verts.map(x=>[x.lat,x.lng]));
     });
     marker.on('dragend',()=>{
+      try{
+        const here=map.latLngToContainerPoint([v.lat,v.lng]);let best=null;
+        sgAllMasterCoordNodes().forEach(n=>{const d=here.distanceTo(map.latLngToContainerPoint([n.lat,n.lng]));if(d<=24&&(!best||d<best.d))best={n,d};});
+        if(best){const n=best.n;v.lat=+n.lat;v.lng=+n.lng;v.label=n.name;v.overrideName=n.name;v.overrideCode=n.code||'';v.moved=true;if(i===0)geomEdit.sourceTarget={...n};if(i===geomEdit.verts.length-1)geomEdit.endTarget={...n};toast('Point snapped exactly to '+clean(n.name)+' centre — Save to commit');}
+      }catch(e){console.warn('[V30] point centre snap',e);}
       if(geomEdit.mode==='spur'&&i===0&&v.junction)toast('Spur junction moved to main-line position '+_sgFormatSpurBase(geomEdit.spurBase)+' — Save to commit');
       _sgRenderEditHandles();
     });
@@ -7647,7 +7652,7 @@ function v8EditPanel(){
   let host=document.getElementById('sgV8EditMeta');if(!host){host=document.createElement('div');host.id='sgV8EditMeta';const saveRow=[...bar.children].find(x=>(x.textContent||'').includes('Save')&&(x.textContent||'').includes('Cancel'));bar.insertBefore(host,saveRow||bar.lastElementChild)}
   const rr=v8feederRows(),first=rr[0]||{},fm=v8masterFor(first.feeder_code,first.feeder_name),auto=fm?v8derive(fm.ohPct,fm.ugPct):v8displayType(first.feeder_code,first.feeder_name,first.feeder_type),manual=v8rowOverride(first.feeder_code,first.feeder_name);
   const dests=rr.filter(r=>{const n=String(r.feeding_name||r.feeding_to||'');return n&&!/BEND POINT|ROUTE\/WAY POINT|NEXT POLE/i.test(n)});
-  host.innerHTML=`<div class="sg-v8-edit-title">FEEDER / CONNECTION PROPERTIES</div><div class="sg-v8-edit-card"><label>Construction type</label><select class="sg-v8-edit-select" onchange="sgV8SetType(this.value)"><option value="AUTO" ${!manual?'selected':''}>AUTO — Stats rule (${auto})</option><option ${manual==='UG'?'selected':''}>UG</option><option ${manual==='OH'?'selected':''}>OH</option><option ${manual==='OH+UG'?'selected':''}>OH+UG</option></select><div class="sg-v8-edit-note">Stats: ${fm?`${fm.ugPct}% UG · ${fm.ohPct}% OH · ${fm.totalKm} km`:'No feeder-stat match'}. Manual choice overrides map colour for this saved feeder.</div></div><div class="sg-v8-edit-card"><label>SS / destination source relationship</label>${dests.length?dests.map(r=>{const ptrs=v8parsePtr(r),rk=v8rowKey(r),role=r.connection_role||r.relationship_role||'Regular Source';return `<div class="sg-v8-rel-row"><div class="sg-v8-rel-head"><b>${sgHtmlEsc(r.feeding_name||r.feeding_to||'Destination')}</b><span>${sgHtmlEsc(String(r.feeding_code||''))}</span></div><select class="sg-v8-edit-select" onchange="sgV8SetRole('${rk}',this.value)">${V8_ROLES.map(x=>`<option ${x===role?'selected':''}>${x}</option>`).join('')}</select>${ptrs.map((p,i)=>`<div class="sg-v8-ptr"><span>${sgHtmlEsc(p.lvName||p.ptr||('PTR '+(i+1)))}</span><select class="sg-v8-edit-select" onchange="sgV8SetPtrRole('${rk}',${i},this.value)">${['Not on this feeder',...V8_ROLES].map(x=>`<option ${x===(p.selected||p.role)?'selected':''}>${x}</option>`).join('')}</select></div>`).join('')}</div>`}).join(''):'<div class="sg-v8-edit-note">No saved SS/destination relation rows found on this feeder.</div>'}</div>`;
+  host.innerHTML=`<div class="sg-v8-edit-title">FEEDER / CONNECTION PROPERTIES</div><div class="sg-v8-edit-card"><label>Construction type</label><select class="sg-v8-edit-select" onchange="sgV8SetType(this.value)"><option value="AUTO" ${!manual?'selected':''}>AUTO — Stats rule (${auto})</option><option ${manual==='UG'?'selected':''}>UG</option><option ${manual==='OH'?'selected':''}>OH</option><option ${manual==='OH+UG'?'selected':''}>OH+UG</option></select><div class="sg-v8-edit-note">Stats: ${fm?`${fm.ugPct}% UG · ${fm.ohPct}% OH · ${fm.totalKm} km`:'No feeder-stat match'}. Manual choice overrides map colour for this saved feeder.</div></div><div class="sg-v8-edit-card"><label>SS / destination source relationship</label>${dests.length?dests.map(r=>{const ptrs=v8parsePtr(r),rk=v8rowKey(r),role=r.connection_role||r.relationship_role||'Regular Source';return `<div class="sg-v8-rel-row"><div class="sg-v8-rel-head"><b>${sgHtmlEsc(r.feeding_name||r.feeding_to||'Destination')}</b><button class="sg-v31-rel-delete" title="Delete this connection only" onclick="sgV31DeleteConnection('${rk}')">×</button><span>${sgHtmlEsc(String(r.feeding_code||''))}</span></div><select class="sg-v8-edit-select" onchange="sgV8SetRole('${rk}',this.value)">${V8_ROLES.map(x=>`<option ${x===role?'selected':''}>${x}</option>`).join('')}</select>${ptrs.map((p,i)=>`<div class="sg-v8-ptr"><span>${sgHtmlEsc(p.lvName||p.ptr||('PTR '+(i+1)))}</span><select class="sg-v8-edit-select" onchange="sgV8SetPtrRole('${rk}',${i},this.value)">${['Not on this feeder',...V8_ROLES].map(x=>`<option ${x===(p.selected||p.role)?'selected':''}>${x}</option>`).join('')}</select></div>`).join('')}</div>`}).join(''):'<div class="sg-v8-edit-note">No saved destination connections remain.</div>'}</div><button class="sg-v31-reset" onclick="sgV31RestartFeeder()">× Delete / Restart This Feeder</button><div class="sg-v8-edit-note">Deletes only this feeder's manually created rows, including P0–P1, so you can draw it again from the beginning.</div>`;
 }
 window.sgV8SetType=function(v){geomEdit.v8Type=v;const rr=v8feederRows(),fm=v8masterFor(rr[0]?.feeder_code,rr[0]?.feeder_name),auto=fm?v8derive(fm.ohPct,fm.ugPct):'UG';const typ=v==='AUTO'?auto:v;rr.forEach(r=>{r.manual_type_override=v==='AUTO'?'':typ;r.construction_type=typ;r.feeder_type=typ;if(r._raw){r._raw.manual_type_override=r.manual_type_override;r._raw.Type_of_feeder=typ;r._raw.construction_type=typ}});buildTopology();render();v8EditPanel();toast('Construction set to '+(v==='AUTO'?'AUTO ('+typ+')':typ)+' — Save to persist.')};
 window.sgV8SetRole=function(key,v){const r=v8findRow(key);if(!r)return;r.connection_role=v;r.relationship_role=v;if(r._raw)r._raw.connection_role=v;toast('Relationship changed to '+v+' — Save to persist.')};
@@ -8352,7 +8357,7 @@ console.log('[SmartGrid] V17 loaded — master data now loads in two tiers (symb
 
 let CURVED = false;   // OFF by default — existing behaviour is unchanged
 let BEND   = 0.18;    // perpendicular offset as a fraction of chord length
-const STEPS = 14;     // intermediate points generated per arc
+const STEPS = 4;      // three intermediate controls: smooth curve, minimal bend points
 
 window.sgV18 = {get curved(){return CURVED}, get bend(){return BEND}};
 
@@ -8830,9 +8835,11 @@ function cableWeight(p){
   const sw=parseFloat(p.getAttribute('stroke-width')||'0');
   return sw>0 ? sw/0.62 : 1.5;
 }
-function dot(cls,r,pathId,dur){
+function dot(cls,r,pathId,dur,color){
   const c=document.createElementNS(SVGNS,'circle');
   c.setAttribute('class','sgv23-dot '+cls);
+  c.setAttribute('fill',color||'#ffffff');
+  c.style.fill=color||'#ffffff';
   c.setAttribute('r',r.toFixed(2)); c.setAttribute('cx','0'); c.setAttribute('cy','0');
   const am=document.createElementNS(SVGNS,'animateMotion');
   am.setAttribute('dur',dur.toFixed(3)+'s'); am.setAttribute('repeatCount','indefinite');
@@ -8860,8 +8867,9 @@ function apply(){
       const r=Math.max(1.6,(w*DOT_MULT)/2);
       const dur=Math.max(0.30,(len/PX_REF)*SPEED_S);
       const g=p.parentNode||svg;
-      if(withHalo) g.appendChild(dot('sgv23-halo', r*2.0, p.id, dur));
-      g.appendChild(dot('sgv23-core', r, p.id, dur));
+      const flowColor=p.getAttribute('stroke')||'#ffffff';
+      if(withHalo) g.appendChild(dot('sgv23-halo', r*1.8, p.id, dur, flowColor));
+      g.appendChild(dot('sgv23-core', r, p.id, dur, flowColor));
       made++;
     });
     return made;
@@ -9990,6 +9998,188 @@ function setReferenceStyle28(){
 }
 setTimeout(setReferenceStyle28,4200);
 console.log('[SmartGrid] V28 active — local-first import, isolated shapefile view, normal ALL CREATED colors.');
+})();
+</script>
+
+<style id="sgV30RequestedEditingStyle">
+body.sg-v30-dark .leaflet-overlay-pane path.sg-feeder-line[stroke="#111827"],
+body.sg-v30-dark .leaflet-overlay-pane path.sg-feeder-line[stroke="#050505"],
+body.sg-v30-dark .leaflet-overlay-pane path.sg-feeder-line[stroke="#f8fafc"]{
+  stroke:#f8fafc!important;filter:drop-shadow(0 0 2px rgba(255,255,255,.75))!important
+}
+body:not(.sg-v30-dark) .leaflet-overlay-pane path.sg-feeder-line[stroke="#111827"],
+body:not(.sg-v30-dark) .leaflet-overlay-pane path.sg-feeder-line[stroke="#050505"]{
+  stroke:#050505!important;filter:none!important
+}
+#sgV30SegmentTools{border-top:1px solid #4b5563;padding-top:7px;margin-top:5px}
+#sgV30SegmentTools .sg-v30-row{display:flex;gap:5px;margin-top:5px}
+#sgV30SegmentTools .sg-v30-status{font:9px/1.35 Arial;color:#cbd5e1;margin-top:4px}
+#sgV30RouteStyle{margin:8px 0;padding:9px;background:#edf2f6;border-left:3px solid #5980a6}
+#sgV30RouteStyle b{display:block;font-size:9px;letter-spacing:.08em;margin-bottom:6px}
+#sgV30RouteStyle .nf-choice-row{margin:0}
+</style>
+<script id="sgV30RequestedEditingScript">
+(function(){
+'use strict';
+/* Presentation and CAD compatibility layer only. No Firebase path, topology
+   schema, row identity, status logic or persistence implementation is changed. */
+let routeStyle='straight', segmentA=-1;
+
+/* Mixed construction colour is view-aware; UG/OH retain the existing palette. */
+const baseColor30=window.colorFor||colorFor;
+window.colorFor=colorFor=function(type,ftype){
+  const s=String(ftype||'').toUpperCase();
+  if(type!=='link'&&(s.includes('OH+UG')||s.includes('UG+OH')))return curBM==='dark'?'#f8fafc':'#050505';
+  return baseColor30.apply(this,arguments);
+};
+const baseSetBM30=window.setBM||setBM;
+window.setBM=setBM=function(name){
+  const r=baseSetBM30.apply(this,arguments);
+  document.body.classList.toggle('sg-v30-dark',name==='dark');
+  try{render();}catch(e){}
+  return r;
+};
+
+/* Keep only real stored route points. Users can add a bend explicitly. */
+try{_sgAutoDivideSegments=function(v){return v;};window._sgAutoDivideSegments=_sgAutoDivideSegments;}catch(e){}
+
+/* Exact selected-point extension: an interior P-point starts a branch; the
+   final P-point keeps the familiar end-extension command. */
+const baseExtend30=window.sgDraftExtend||sgDraftExtend;
+window.sgDraftExtend=sgDraftExtend=function(){
+  const i=geomEdit&&Number.isInteger(geomEdit.selected)?geomEdit.selected:-1;
+  if(i>=0&&geomEdit.verts&&i<geomEdit.verts.length-1&&typeof window.sgV9ConnectFromPoint==='function')return window.sgV9ConnectFromPoint();
+  return baseExtend30.apply(this,arguments);
+};
+
+/* All route vertices are movable. A 24-pixel station-centre snap is applied
+   by the drag-end handler above and persists through the existing Save path. */
+const baseEnter30=window.enterFeederEdit||enterFeederEdit;
+window.enterFeederEdit=enterFeederEdit=function(){
+  const r=baseEnter30.apply(this,arguments);
+  if(geomEdit&&geomEdit.verts){geomEdit.verts.forEach(v=>v.locked=false);_sgRenderEditHandles();}
+  return r;
+};
+
+window.sgV30SetRouteStyle=function(style){
+  routeStyle=['straight','curved','polyline'].includes(style)?style:'straight';
+  if(typeof window.sgV18SetMode==='function')window.sgV18SetMode(routeStyle==='curved');
+  document.querySelectorAll('#sgV30RouteStyle button').forEach(b=>b.classList.toggle('on',b.dataset.style===routeStyle));
+  try{localStorage.setItem('TGSPDCL_NEW_ROUTE_STYLE',routeStyle);}catch(e){}
+};
+try{routeStyle=localStorage.getItem('TGSPDCL_NEW_ROUTE_STYLE')||'straight';}catch(e){}
+
+function installRouteChoice(){
+  const body=document.getElementById('nfWBody');if(!body||document.getElementById('sgV30RouteStyle'))return;
+  const box=document.createElement('div');box.id='sgV30RouteStyle';
+  box.innerHTML='<b>ROUTE STYLE</b><div class="nf-choice-row"><button data-style="straight" onclick="sgV30SetRouteStyle(\'straight\')">Straight</button><button data-style="curved" onclick="sgV30SetRouteStyle(\'curved\')">Curved</button><button data-style="polyline" onclick="sgV30SetRouteStyle(\'polyline\')">Polyline</button></div><div class="nf-footnote">Straight uses direct segments. Curved uses only three smooth control points. Polyline adds only the bend points you click.</div>';
+  body.insertBefore(box,body.firstChild);window.sgV30SetRouteStyle(routeStyle);
+}
+
+window.sgV30MarkSegmentPoint=function(){
+  const i=geomEdit&&geomEdit.selected;
+  if(!Number.isInteger(i)||i<0){toast('Select a numbered P-point first');return;}
+  segmentA=i;const el=document.getElementById('sgV30SegmentStatus');if(el)el.textContent='First point: P'+i+' — now select the second point';
+};
+window.sgV30DeleteSegment=function(){
+  const b=geomEdit&&geomEdit.selected;
+  if(segmentA<0||!Number.isInteger(b)||b<0||b===segmentA){toast('Mark the first point, then select a different second point');return;}
+  const lo=Math.min(segmentA,b),hi=Math.max(segmentA,b);
+  if(!confirm('Delete the created path from P'+lo+' through P'+hi+'? Unrelated points outside this range will remain.'))return;
+  if(geomEdit.verts.length-(hi-lo)<2){
+    if(typeof window.sgV31RestartFeeder==='function')return window.sgV31RestartFeeder();
+    toast('Complete-feeder delete is not available');return;
+  }
+  sgDraftSnapshot();
+  /* Retain the first selected anchor and remove the selected downstream path.
+     The following unaffected point becomes the new continuation. */
+  geomEdit.verts.splice(lo+1,hi-lo);
+  geomEdit.selected=-1;segmentA=-1;
+  geomEdit.verts.forEach(v=>v.locked=false);
+  _sgRenderEditHandles();
+  const el=document.getElementById('sgV30SegmentStatus');if(el)el.textContent='Path removed in editor — Undo or Save';
+  toast('Selected path removed — Undo is available; Save to persist');
+};
+function installSegmentTools(){
+  const bar=document.getElementById('sgeBar');if(!bar||document.getElementById('sgV30SegmentTools'))return;
+  const host=document.createElement('div');host.id='sgV30SegmentTools';
+  host.innerHTML='<div class="sg-v9-edit-label">DELETE PATH BETWEEN TWO POINTS</div><div class="sg-v30-row"><button class="sg-cad-btn" onclick="sgV30MarkSegmentPoint()">1 · Mark selected P</button><button class="sg-cad-btn" onclick="sgV30DeleteSegment()">2 · Delete to selected P</button></div><div id="sgV30SegmentStatus" class="sg-v30-status">Select P-point A, mark it, then select P-point B. Confirmation and Undo are included.</div>';
+  const saveRow=[...bar.children].find(x=>/Save/.test(x.textContent||'')&&/Cancel/.test(x.textContent||''));bar.insertBefore(host,saveRow||null);
+}
+
+function applyRequestedDefaults(){
+  const panel=document.getElementById('gridStylePanel');if(!panel)return;
+  const ranges=panel.querySelectorAll('input[type="range"]');
+  if(ranges[0]){ranges[0].min='0.1';ranges[0].step='0.05';ranges[0].value='0.30';}
+  if(ranges[1]){ranges[1].min='0.1';ranges[1].step='0.05';ranges[1].value='0.30';}
+  if(ranges[4])ranges[4].value='3.5';
+  /* These setters are deliberately called after the older V28 initializer. */
+  try{setSGSSSize(.30);setSGEHTSize(.30);setSGLineWeight(3.5);}catch(e){}
+  document.body.classList.toggle('sg-v30-dark',curBM==='dark');
+}
+const oldSS=window.setSGSSSize||setSGSSSize,oldEHT=window.setSGEHTSize||setSGEHTSize;
+window.setSGSSSize=setSGSSSize=function(v){return oldSS.call(this,Math.max(.1,+v||.30));};
+window.setSGEHTSize=setSGEHTSize=function(v){return oldEHT.call(this,Math.max(.1,+v||.30));};
+setInterval(()=>{installRouteChoice();installSegmentTools();},700);
+setTimeout(applyRequestedDefaults,4700);
+console.log('[SmartGrid] V30 requested editing update active — exact P-point branches, minimal route controls, centre snapping, segment deletion, view-aware mixed colour and matching flow dots.');
+})();
+</script>
+<style id="sgV31ConnectionDeleteStyle">
+.sg-v31-rel-delete{border:0;background:transparent;color:#ef4444;font-size:21px;font-weight:900;line-height:16px;padding:0 4px;cursor:pointer;margin-left:auto}
+.sg-v31-rel-delete:hover{color:#991b1b;transform:scale(1.15)}
+.sg-v31-reset{width:100%;margin-top:9px;padding:9px;border:1px solid #ef4444;border-radius:7px;background:#fff1f2;color:#b91c1c;font-size:10px;font-weight:900;cursor:pointer}
+.sg-v31-reset:hover{background:#fee2e2}
+.sg-v8-rel-head{display:flex!important;align-items:center!important;gap:5px!important;flex-wrap:wrap}
+.sg-v8-rel-head b{flex:1;min-width:150px}.sg-v8-rel-head span{width:100%}
+</style>
+<script id="sgV31ConnectionDeleteScript">
+(function(){
+'use strict';
+const BACKUP='TGSPDCL_MANUAL_TOPOLOGY_BEFORE_CONNECTION_DELETE';
+function currentRows(){try{return window.rows||rows||[]}catch(e){return []}}
+function currentMeta(){try{return window.meta||meta||{}}catch(e){return {}}}
+function feederKey(){try{return geomEdit&&geomEdit.feederKey||''}catch(e){return ''}}
+function sameFeeder(r,key){return String(r.feeder_code||r.feeder_name||'')===String(key||'')}
+function keyFor(r){return String(r.pole_number||'')+'|'+String(r.feeding_code||'')+'|'+String(r.feeding_name||r.feeding_to||'')}
+function backup(reason){
+  try{localStorage.setItem(BACKUP,JSON.stringify({schema:'tgspdcl.smartgrid.manualTopology.v1',meta:{...currentMeta(),backupAt:new Date().toISOString(),backupReason:reason},rows:currentRows()}));}catch(e){}
+}
+async function commit(message){
+  try{buildTopology();populateFilters();render();}catch(e){console.warn('[V31] redraw',e)}
+  try{
+    const ok=await window.saveFirebase();
+    if(ok!==false)toast(message+' — saved and verified');
+    return ok;
+  }catch(e){toast(message+' locally; Firebase save needs retry');console.error(e);return false;}
+}
+window.sgV31DeleteConnection=async function(encoded){
+  const wanted=decodeURIComponent(String(encoded||''));
+  const all=currentRows(),key=feederKey();
+  const index=all.findIndex(r=>sameFeeder(r,key)&&keyFor(r)===wanted);
+  if(index<0){toast('Connection row was not found');return false;}
+  const row=all[index],name=clean(row.feeding_name||row.feeding_to||'this destination');
+  if(!confirm('Delete only the connection to "'+name+'"?\n\nOther substations and feeders will not be deleted.'))return false;
+  backup('before deleting connection '+name);
+  const next=all.slice();next.splice(index,1);rows=next;window.rows=next;
+  try{exitFeederEdit(false);}catch(e){}
+  await commit('Connection to '+name+' deleted');
+  return true;
+};
+window.sgV31RestartFeeder=async function(){
+  const key=feederKey();if(!key){toast('Open a feeder in Edit Geometry first');return false;}
+  const all=currentRows(),selected=all.filter(r=>sameFeeder(r,key));
+  if(!selected.length){toast('No manual rows found for this feeder');return false;}
+  const label=clean((selected[0]&&selected[0].feeder_name)||key);
+  if(!confirm('DELETE AND RESTART THIS FEEDER?\n\n'+label+'\n\nThis removes all '+selected.length+' manually created row(s), including a P0–P1-only line, branches and duplicate connections for this feeder. Every other feeder remains unchanged. A browser recovery backup will be kept.'))return false;
+  backup('before restarting feeder '+label);
+  const next=all.filter(r=>!sameFeeder(r,key));rows=next;window.rows=next;
+  try{exitFeederEdit(false);}catch(e){}
+  const ok=await commit(label+' deleted; use New Feeder to start it again');
+  if(ok!==false&&confirm('Feeder deleted successfully. Open New Feeder now?'))try{startNewFeederMode();}catch(e){console.warn('[V31] New Feeder launcher',e)}
+  return ok;
+};
+console.log('[SmartGrid] V31 active — P0–P1 complete deletion, per-destination × delete, and feeder-only restart with recovery backup.');
 })();
 </script>
 </body>
