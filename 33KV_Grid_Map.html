@@ -2272,11 +2272,11 @@ body .tg-important-area-label{font-size:var(--sg-label-size,9px)!important}
   </div>
   <div class="gsp-row">
     <label>HT SERVICE SIZE <span id="gspHTVal">1.00</span></label>
-    <input type="range" min="0.5" max="2.5" step="0.05" value="1" oninput="setSGHTSize(this.value)">
+    <input type="range" min="0.005" max="2" step="0.005" value="1" oninput="setSGHTSize(this.value)">
   </div>
   <div class="gsp-row">
     <label>SWITCHING STATION SIZE <span id="gspSWSVal">1.00</span></label>
-    <input type="range" min="0.5" max="2.5" step="0.05" value="1" oninput="setSGSWSSize(this.value)">
+    <input type="range" min="0.005" max="2" step="0.005" value="1" oninput="setSGSWSSize(this.value)">
   </div>
   <div class="gsp-row">
     <label>LABEL SIZE <span id="gspLblVal">9</span></label>
@@ -3134,8 +3134,8 @@ function togglePanel(){ const p=document.getElementById('panel'); if(p) p.classL
 function toggleGridStylePanel(){ const g=document.getElementById('gridStylePanel'); if(g) g.style.display=(g.style.display==='block'?'none':'block'); }
 function setSGSSSize(v){ v=Math.max(.1,Math.min(2.5,+v||.30)); document.documentElement.style.setProperty('--sg-ss-scale',v.toFixed(2)); const e=document.getElementById('gspSSVal'); if(e)e.textContent=v.toFixed(2); }
 function setSGEHTSize(v){ v=Math.max(.1,Math.min(2.5,+v||.30)); document.documentElement.style.setProperty('--sg-eht-scale',v.toFixed(2)); const e=document.getElementById('gspEHTVal'); if(e)e.textContent=v.toFixed(2); }
-function setSGHTSize(v){ v=Math.max(.1,Math.min(2.5,+v||1)); document.documentElement.style.setProperty('--sg-ht-scale',v.toFixed(2)); const e=document.getElementById('gspHTVal'); if(e)e.textContent=v.toFixed(2); }
-function setSGSWSSize(v){ v=Math.max(.1,Math.min(2.5,+v||1)); document.documentElement.style.setProperty('--sg-sws-scale',v.toFixed(2)); const e=document.getElementById('gspSWSVal'); if(e)e.textContent=v.toFixed(2); }
+function setSGHTSize(v){ v=Math.max(.005,Math.min(2,+v||1)); document.documentElement.style.setProperty('--sg-ht-scale',v.toFixed(3)); const e=document.getElementById('gspHTVal'); if(e)e.textContent=v.toFixed(3); }
+function setSGSWSSize(v){ v=Math.max(.005,Math.min(2,+v||1)); document.documentElement.style.setProperty('--sg-sws-scale',v.toFixed(3)); const e=document.getElementById('gspSWSVal'); if(e)e.textContent=v.toFixed(3); }
 function setSGLabelSize(v){ v=Math.max(6,Math.min(16,+v||9)); document.documentElement.style.setProperty('--sg-label-size',v+'px'); const e=document.getElementById('gspLblVal'); if(e)e.textContent=v; }
 function setSGABDPSize(v){ v=Math.max(.5,Math.min(3,+v||1)); document.documentElement.style.setProperty('--sg-abdp-scale',v.toFixed(2)); const e=document.getElementById('gspABDPVal'); if(e)e.textContent=v.toFixed(2); }
 function setSGLineWeight(v){ v=Math.max(.5,Math.min(6,+v||1.5)); window.sgLineWeight=v; sgLineWeight=v; const e=document.getElementById('gspLineVal'); if(e)e.textContent=(+v).toFixed(2); if(typeof render==='function'&&typeof rows!=='undefined'&&rows.length)render(); }
@@ -6344,7 +6344,28 @@ function sgNFFilteredFeeders(){
 function sgNFSetSearch(v){sgNF.search=v;sgNFRenderFeederResults();}
 function sgNFRenderFeederResults(){
   const box=document.getElementById('nfFeederResults');if(!box)return;const arr=sgNFFilteredFeeders();
-  box.innerHTML=arr.length?arr.map((f,i)=>`<button class="nf-result" onclick="sgNFSelectFeederByKey('${encodeURIComponent((f.feederCode||'')+'|'+f.feederName)}')"><b>${sgNFEsc(f.feederName)}</b><span>${sgNFEsc(f.feederCode||'NO CODE')} · ${sgNFEsc(f.constructionType)} · ${sgNFEsc(f.linesDivision||f.operationDivision||'')}</span></button>`).join(''):`<div class="nf-empty">No feeder found for this drawing type.</div>`;
+  if(arr.length){
+    box.innerHTML=arr.map((f,i)=>`<button class="nf-result" onclick="sgNFSelectFeederByKey('${encodeURIComponent((f.feederCode||'')+'|'+f.feederName)}')"><b>${sgNFEsc(f.feederName)}</b><span>${sgNFEsc(f.feederCode||'NO CODE')} · ${sgNFEsc(f.constructionType)} · ${sgNFEsc(f.linesDivision||f.operationDivision||'')}</span></button>`).join('');
+    return;
+  }
+  // Nothing matched under the drawing type picked in Step 1 (33 kV Feeder /
+  // HT Service / Switching Station / Link Line each only search their own
+  // slice of Feeder Master). If the same search text DOES match a feeder
+  // under a different type, say so instead of leaving the user guessing.
+  const q=compact(sgNF.search);
+  let hint='No feeder found for this drawing type.';
+  if(q){
+    const otherHits={};
+    (sgNF.liveFeeders||[]).forEach(f=>{
+      const cls=sgNFAssetClass(f.feederAssetType);
+      if(cls!==sgNF.drawType && (compact(f.feederName).includes(q)||compact(f.feederCode).includes(q))) otherHits[cls]=(otherHits[cls]||0)+1;
+    });
+    const other=Object.keys(otherHits);
+    if(other.length){
+      hint=`No match under "${sgNFAssetLabel(sgNF.drawType)}". Found ${other.map(c=>otherHits[c]+' under '+sgNFAssetLabel(c)).join(', ')} — go Back and pick that drawing type instead.`;
+    }
+  }
+  box.innerHTML=`<div class="nf-empty">${sgNFEsc(hint)}</div>`;
 }
 function sgNFSelectFeederByKey(key){
   key=decodeURIComponent(String(key||''));
