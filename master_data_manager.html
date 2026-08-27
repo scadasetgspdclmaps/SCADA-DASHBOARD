@@ -466,10 +466,16 @@ async function boot(){
   try{
     for(const k of Object.keys(PATHS)) DB[k]=await fetch(`${FIREBASE_URL}/${PATHS[k]}.json`).then(r=>r.ok?r.json():null).catch(()=>null)||{};
     Object.values(DB.sscoords||{}).forEach(syncSSAliases);
-    const needSS=Object.keys(DB.sscoords||{}).length<Object.keys(BUNDLED_SSCOORDS).length;
-    const needEHT=Object.keys(DB.eht||{}).length<Object.keys(BUNDLED_EHT).length;
+    // Only bootstrap from the attached snapshot when Firebase is genuinely
+    // EMPTY for that dataset. The old "< bundled count" check would silently
+    // revert any live edit that ever brought a count below the frozen
+    // snapshot's size (e.g. deleting a duplicate row) back to stale data on
+    // the very next page load — a real live-data-loss bug, independent of
+    // the ADD ROW issue this session is fixing.
+    const needSS=Object.keys(DB.sscoords||{}).length===0;
+    const needEHT=Object.keys(DB.eht||{}).length===0;
     const needFeeders=Object.keys(DB.feeders||{}).length===0;
-    const needHT=Object.keys(DB.htservices||{}).length<Object.keys(BUNDLED_HTSERVICES).length;
+    const needHT=Object.keys(DB.htservices||{}).length===0;
     if(needSS||needEHT||needFeeders||needHT){
       if(needSS)DB.sscoords=JSON.parse(JSON.stringify(BUNDLED_SSCOORDS));
       if(needEHT)DB.eht=JSON.parse(JSON.stringify(BUNDLED_EHT));
@@ -1223,8 +1229,30 @@ async function saveCurrent(){
     if(valuePresent(rec.lat)&&(!isFinite(Number(rec.lat))||Number(rec.lat)<-90||Number(rec.lat)>90)){toast('Latitude must be between -90 and 90',true);return}
     if(valuePresent(rec.lng)&&(!isFinite(Number(rec.lng))||Number(rec.lng)<-180||Number(rec.lng)>180)){toast('Longitude must be between -180 and 180',true);return}
     const key=keyFor(type,rec,Date.now());if(!key||key==='EMPTY'){toast('Key fields are missing',true);return}
-    const oldKey=EDIT.actualKey||EDIT.key;if(oldKey&&oldKey!==key)delete DB[type][oldKey];DB[type][key]=rec;
-    await saveType(type);toast('✓ Row updated successfully');closeModal();renderAll();
+    const oldKey=EDIT.actualKey||EDIT.key;
+    // ADD NEW ROW silently overwriting an existing record: if this is a brand
+    // new row (no oldKey) but its computed key already exists in DB[type],
+    // the code/name you typed duplicates an existing row — without this check
+    // the save would quietly replace that other row instead of creating a
+    // new one, and the row count would stay unchanged (looks like "nothing
+    // saved" even though a write did happen, to the wrong record).
+    if(!oldKey && DB[type][key]){
+      const existing=DB[type][key];
+      toast(`A record with this ${type==='feeders'?'feeder code/name':type==='htservices'?'service no./feeder code/name':type==='eht'?'EHT code/name':'SS code/name'} already exists (${recordDisplayName(type,existing)}). Change the code or name to create a separate row, or open that existing row to edit it instead.`,true);
+      return;
+    }
+    if(oldKey&&oldKey!==key)delete DB[type][oldKey];DB[type][key]=rec;
+    await saveType(type);
+    // Verify the write actually landed in Firebase rather than trusting a
+    // 200 response alone — a silent partial failure would otherwise show the
+    // same success toast as a real save.
+    let verified=true;
+    try{
+      const check=await fetch(`${FIREBASE_URL}/${PATHS[type]}/${encodeURIComponent(key)}.json?ts=${Date.now()}`,{cache:'no-store'}).then(r=>r.ok?r.json():null);
+      verified=!!check;
+    }catch(e){verified=false}
+    if(!verified){toast('⚠ Save may not have reached Firebase — please check your connection and try again.',true);return}
+    toast('✓ Row updated successfully');closeModal();renderAll();
     setTimeout(()=>{const row=[...document.querySelectorAll(`#tb-${type} tr`)].find(tr=>tr.innerText.includes(rec.ssName||rec.ehtName||rec.ssCode||rec.ehtCode||''));if(row){row.classList.add('row-flash');row.scrollIntoView({block:'center',behavior:'smooth'})}},120);
   }catch(e){console.error(e);toast('Save failed: '+e.message,true)}
   finally{if(save){save.classList.remove('saving');save.disabled=false;if($('modalBg').classList.contains('active'))save.textContent='✓ SAVE CHANGES'}}
