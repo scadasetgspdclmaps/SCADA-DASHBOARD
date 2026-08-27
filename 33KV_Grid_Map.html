@@ -6337,9 +6337,17 @@ function sgNFChooseType(cls){sgNF.drawType=cls;sgNF.step='feeder';sgNF.search=''
 function sgNFBack(){
   if(sgNF.step==='feeder')sgNF.step='type';else if(sgNF.step==='source')sgNF.step='feeder';else if(sgNF.step==='draw'){if(confirm('Leave the current unsaved drawing and return to Source?')){map.off('click',sgNFMapClick);gNewFeederLayer.clearLayers();sgNF.step='source';sgNF.drawing=false;}}else if(sgNF.step==='review')sgNF.step='draw';sgNFRender();
 }
+function sgNFFeederClassesFor(cls){
+  // A "33 kV Feeder" drawing is one physical 33KV line regardless of what it
+  // ultimately terminates at — a 33/11KV SS, an HT Service, or a Switching
+  // Station. Feeder Master's own FEEDER TYPE column only records that final
+  // destination, so it must not gate which feeders are selectable here; only
+  // Link Line stays a structurally separate class (SS-to-SS, no EHT source).
+  return cls==='33KV' ? ['33KV','HT','SWS'] : [cls];
+}
 function sgNFFilteredFeeders(){
-  const q=compact(sgNF.search),cls=sgNF.drawType;
-  return (sgNF.liveFeeders||[]).filter(f=>sgNFAssetClass(f.feederAssetType)===cls&&(!q||compact(f.feederName).includes(q)||compact(f.feederCode).includes(q))).slice(0,120);
+  const q=compact(sgNF.search),wantClasses=sgNFFeederClassesFor(sgNF.drawType);
+  return (sgNF.liveFeeders||[]).filter(f=>wantClasses.includes(sgNFAssetClass(f.feederAssetType))&&(!q||compact(f.feederName).includes(q)||compact(f.feederCode).includes(q))).slice(0,120);
 }
 function sgNFSetSearch(v){sgNF.search=v;sgNFRenderFeederResults();}
 function sgNFRenderFeederResults(){
@@ -6355,10 +6363,11 @@ function sgNFRenderFeederResults(){
   const q=compact(sgNF.search);
   let hint='No feeder found for this drawing type.';
   if(q){
+    const wantClasses=sgNFFeederClassesFor(sgNF.drawType);
     const otherHits={};
     (sgNF.liveFeeders||[]).forEach(f=>{
       const cls=sgNFAssetClass(f.feederAssetType);
-      if(cls!==sgNF.drawType && (compact(f.feederName).includes(q)||compact(f.feederCode).includes(q))) otherHits[cls]=(otherHits[cls]||0)+1;
+      if(!wantClasses.includes(cls) && (compact(f.feederName).includes(q)||compact(f.feederCode).includes(q))) otherHits[cls]=(otherHits[cls]||0)+1;
     });
     const other=Object.keys(otherHits);
     if(other.length){
@@ -6506,7 +6515,7 @@ function sgNFRender(){
   document.getElementById('nfWSteps').innerHTML=labels.map((x,i)=>`<div class="${i<ci?'done':i===ci?'active':''}"><i></i><span>${x}</span></div>`).join('');
   const body=document.getElementById('nfWBody');
   if(sgNF.step==='type')body.innerHTML=`<p class="nf-lead">What are you drawing?</p><div class="nf-type-grid"><button onclick="sgNFChooseType('33KV')"><b>＋ 33 kV Feeder</b><span>Fixed EHT source → manual route → one or more 33/11 kV substations.</span></button><button onclick="sgNFChooseType('HT')"><b>◇ HT Service</b><span>EHT-fed HT service route with fixed/end-point option.</span></button><button onclick="sgNFChooseType('SWS')"><b>▣ Switching Station</b><span>33 kV route feeding a switching station.</span></button><button onclick="sgNFChooseType('LINK')"><b>⇄ Link Line</b><span>Interconnection between fixed SS / SWS / HT points.</span></button></div><div class="nf-master-status" id="nfMasterStatus">${sgNF.liveFeeders.length||321} feeders · ${sgNFEsc(sgNF.feederSource||'loading master…')}</div>`;
-  else if(sgNF.step==='feeder')body.innerHTML=`<p class="nf-lead">Select ${sgNFAssetLabel(sgNF.drawType)} from Feeder Master. Code, construction and hierarchy are automatic.</p><div class="nf-field"><label>Feeder name / code</label><input id="nfFeederSearch" class="nf-input" placeholder="Search feeder master…" value="${sgNFEsc(sgNF.search)}" oninput="sgNFSetSearch(this.value)" autocomplete="off"><div id="nfFeederResults" class="nf-results"></div></div><div class="nf-master-status">${sgNF.liveFeeders.filter(x=>sgNFAssetClass(x.feederAssetType)===sgNF.drawType).length} records in this type</div>`;
+  else if(sgNF.step==='feeder')body.innerHTML=`<p class="nf-lead">Select ${sgNFAssetLabel(sgNF.drawType)} from Feeder Master. Code, construction and hierarchy are automatic.</p><div class="nf-field"><label>Feeder name / code</label><input id="nfFeederSearch" class="nf-input" placeholder="Search feeder master…" value="${sgNFEsc(sgNF.search)}" oninput="sgNFSetSearch(this.value)" autocomplete="off"><div id="nfFeederResults" class="nf-results"></div></div><div class="nf-master-status">${sgNF.liveFeeders.filter(x=>sgNFFeederClassesFor(sgNF.drawType).includes(sgNFAssetClass(x.feederAssetType))).length} records in this type</div>`;
   else if(sgNF.step==='source')body.innerHTML=`<div class="nf-selected"><span>${sgNFEsc(sgNFAssetLabel(sgNF.drawType))}</span><b>${sgNFEsc(f?.feederName||'')}</b></div>${sgNFStatsHtml(f)}${sgNFSourceHtml()}<button class="nf-primary" ${sgNF.source?'':'disabled'} onclick="sgNFStartDrawing()">Open Drafting / Start From Fixed Source</button>`;
   else if(sgNF.step==='draw'){
     const p=sgNFPath(),last=sgNFLastPoint();body.innerHTML=`<div class="nf-draw-head"><div><span>Active route</span><b>${p?.id==='MAIN'?'MAIN FEEDER':'BRANCH '+p?.id}</b></div><div><span>Points</span><b>${p?.points.length||0}</b></div><div><span>Last</span><b>${sgNFEsc(last?.name||last?.kind||'Source')}</b></div></div><div class="nf-hint">Click the map only for route/bend points. Use the destination controls below to snap exactly to a fixed SS/SWS/HT coordinate.</div><div class="nf-field"><label>Current segment construction</label><div class="nf-choice-row"><button class="${sgNF.currentSeg==='UG'?'on':''}" onclick="sgNFSetSegment('UG')">UG</button><button class="${sgNF.currentSeg==='OH'?'on':''}" onclick="sgNFSetSegment('OH')">OH</button></div><small>Feeder master: ${sgNFEsc(f?.constructionType||'—')}${f?.constructionType==='OH+UG'?' — change UG/OH as you draw each section.':''}</small></div><div class="nf-tools"><button onclick="sgNFUndo()">↶ Undo</button><button onclick="sgNFInsertPoint()">⊕ Insert Pt</button><button onclick="sgNFDeleteSelected()">✕ Delete Pt</button><button onclick="sgNFTrimAfter()">✂ Trim After</button><button onclick="sgNFStartBranch()">⑂ Branch</button>${sgNF.activePath!=='MAIN'?'<button onclick="sgNFReturnMain()">↩ Main Route</button>':''}</div><div class="nf-divider"></div>${sgNFDestinationHtml()}<div class="nf-divider"></div><button class="nf-primary secondary" onclick="sgNFFinishDrawing()">Finish Route → Review</button>`;
