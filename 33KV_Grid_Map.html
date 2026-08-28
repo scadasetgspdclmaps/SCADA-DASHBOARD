@@ -3901,16 +3901,43 @@ function buildTopology(){
     const sorted=[...(mains.length?mains:list)].sort((a,b)=>(parseFloat(a.pole_number)||0)-(parseFloat(b.pole_number)||0));
     const first=sorted[0];
     const ftype=normType(first.feeder_asset_type||first.feeder_type);let seq=[];
-    const srcKind = ftype==='link' ? 'ss33' : 'eht';
-    const srcHit = sgMasterCoordFor(srcKind, first.eht_code, first.eht_name);
+    // The start point of a drawing is NOT always an EHT SS. It can be a
+    // Switching Station, a 33/11 kV SS, or a tap point on an existing feeder.
+    // Rows saved by the builder record which, in source_kind; without it the
+    // start point was always looked up in the EHT master, and because that
+    // lookup falls back to a fuzzy name match, a switching station named
+    // "132 KV MADHAPUR-33KV V.S.N.L (SS-III)" resolved to the EHT substation
+    // "132 KV MADHAPUR" and the line was redrawn from the EHT SS instead.
+    const savedSrcKind=String(first.source_kind||'').toLowerCase();
+    let srcKind;
+    if(['eht','ss33','sws','ht','tap','bend'].includes(savedSrcKind)) srcKind=savedSrcKind;
+    else {
+      // Legacy rows saved before source_kind existed. Auto-heal them: if the
+      // stored source code matches a Switching Station / HT point EXACTLY by
+      // code (never a fuzzy name match), that is what it really started from.
+      let healed='';
+      try{
+        const c=compact(first.eht_code);
+        if(c){
+          const cache=window._sgMasterCoordCache||sgMasterBuildCoordCache();
+          const byCode=(cache.byCode&&cache.byCode[c])||[];
+          const hit=byCode.find(x=>x.kind==='sws')||byCode.find(x=>x.kind==='ht');
+          if(hit)healed=hit.kind;
+        }
+      }catch(e){}
+      srcKind=healed||(ftype==='link'?'ss33':'eht');
+    }
+    const srcIsFree=(srcKind==='tap'||srcKind==='bend');
+    const srcHit = srcIsFree ? null : sgMasterCoordFor(srcKind, first.eht_code, first.eht_name);
     const srcLat = srcHit ? srcHit.lat : first.eht_lat;
     const srcLng = srcHit ? srcHit.lng : first.eht_lng;
     if(srcLat!=null&&srcLng!=null){
       // A feeder row may retain an old/misspelled EHT reference. Keep its
       // geometry usable, but do not turn it into an EHT icon unless it resolves
       // to the canonical Master EHT registry.
-      const visibleKind=(srcKind==='eht'&&!srcHit)?'bend':srcKind;
-      seq.push(sgApplyMasterCoord({kind:visibleKind,name:(srcHit&&srcHit.name)||first.eht_name||'EHT SOURCE',code:(srcHit&&srcHit.code)||first.eht_code||'',lat:srcLat,lng:srcLng,row:first,role:'source',poleNum:0}));
+      const visibleKind=srcIsFree?'bend':((srcKind==='eht'&&!srcHit)?'bend':srcKind);
+      const srcFallbackName=srcKind==='sws'?'SWITCHING STATION':srcKind==='ss33'?'33/11KV SS':srcKind==='ht'?'HT SERVICE':srcIsFree?'TAP POINT':'EHT SOURCE';
+      seq.push(sgApplyMasterCoord({kind:visibleKind,name:(srcHit&&srcHit.name)||first.eht_name||srcFallbackName,code:(srcHit&&srcHit.code)||first.eht_code||'',lat:srcLat,lng:srcLng,row:first,role:'source',poleNum:0}));
     }
     const mkNode=r=>{
       if(isCutOrBad(r.feeding_to)||isCutOrBad(r.feeding_name))return null;
@@ -4662,7 +4689,10 @@ function enterFeederEdit(key){
   window._sgActiveFeederKey = key;
   const verts = [];
   if(first.eht_lat!=null && first.eht_lng!=null){
-    verts.push({row:null, lat:+first.eht_lat, lng:+first.eht_lng, locked:true, label:first.eht_name||'EHT SOURCE'});
+    // Label the fixed start point by its real kind — it is not always an EHT SS.
+    const sk=String(first.source_kind||'').toLowerCase();
+    const srcLabel=sk==='sws'?'SWITCHING STATION SOURCE':sk==='ss33'?'33/11KV SS SOURCE':sk==='ht'?'HT SERVICE SOURCE':(sk==='tap'||sk==='bend')?'TAP POINT SOURCE':'EHT SOURCE';
+    verts.push({row:null, lat:+first.eht_lat, lng:+first.eht_lng, locked:true, sourceKind:sk||'eht', sourceLabel:srcLabel, label:first.eht_name||srcLabel});
   }
   const sorted = [...list].sort((a,b)=>(parseFloat(a.pole_number)||0)-(parseFloat(b.pole_number)||0));
   sorted.forEach(r=>{
@@ -6538,13 +6568,13 @@ function sgNFRowForPoint(point,meta,pole,pathId){
   const feedCode=isBend?`NEWF-${Date.now().toString(36)}-${String(pole).replace(/\W/g,'')}-${Math.random().toString(36).slice(2,5)}`:(point.code||'');
   const raw={
     feeder_name:meta.feederName,feeder_code:meta.feederCode,Feeder_Type:meta.feederAssetType,Type_of_feeder:point.segType||meta.constructionType,
-    name_of_the_EHT_SS:meta.sourceName,eht_code:meta.sourceCode,pole_number:pole,latitude:point.lat,longitude:point.lng,
+    name_of_the_EHT_SS:meta.sourceName,eht_code:meta.sourceCode,source_kind:meta.sourceKind||'eht',pole_number:pole,latitude:point.lat,longitude:point.lng,
     feeder_feeding_to:isBend?'':feedName,feeder_feeding_to_code:isBend?'':feedCode,pole_feeding_to:isBend?'Next Pole / Cable Point':feedName,type_of_cable_point:sourceType,
     connection_role:point.role||'',route_action:point.routeAction||'',ab_status:point.abStatus||'',branch_id:pathId
   };
   return {
     area_code:'',circle:meta.linesCircle||meta.operationCircle||'',division:meta.linesDivision||meta.operationDivision||'',sub_division:meta.linesSubDivision||meta.operationSubDivision||'',section:meta.linesSection||meta.operationSection||'',
-    eht_code:meta.sourceCode,eht_name:meta.sourceName,eht_lat:meta.sourceLat,eht_lng:meta.sourceLng,
+    eht_code:meta.sourceCode,eht_name:meta.sourceName,eht_lat:meta.sourceLat,eht_lng:meta.sourceLng,source_kind:meta.sourceKind||'eht',
     feeder_type:ftype,feeder_asset_type:meta.feederAssetType,construction_type:point.segType||meta.constructionType,
     feeder_name:meta.feederName,feeder_code:meta.feederCode||meta.feederName,pole_number:pole,source_type:sourceType,
     feeding_code:feedCode,feeding_to:feedName,feeding_name:feedName,feeding_lat:+point.lat,feeding_lng:+point.lng,
@@ -6553,7 +6583,13 @@ function sgNFRowForPoint(point,meta,pole,pathId){
 }
 function sgNFBuildRows(){
   const f=sgNF.feeder,src=sgNF.source;if(!f||!src)return [];
-  const meta={...f,sourceName:src.name||'',sourceCode:src.code||'',sourceLat:+src.lat,sourceLng:+src.lng};const out=[];
+  // The source is NOT always an EHT SS — it can be a Switching Station, a
+  // 33/11 kV SS, or a tap point on an existing feeder. That kind must be
+  // persisted with the rows, otherwise buildTopology() re-resolves the start
+  // point against the EHT master on every reload and snaps the drawing back
+  // to the nearest name-matching EHT substation.
+  const srcKind=src.kind||(sgNF.drawType==='LINK'?'ss33':'eht');
+  const meta={...f,sourceName:src.name||'',sourceCode:src.code||'',sourceLat:+src.lat,sourceLng:+src.lng,sourceKind:srcKind};const out=[];
   const main=sgNF.paths.MAIN;for(let i=1;i<main.points.length;i++)out.push(sgNFRowForPoint(main.points[i],meta,i,'MAIN'));
   Object.values(sgNF.paths).filter(p=>p.branch).forEach(p=>{for(let j=1;j<p.points.length;j++)out.push(sgNFRowForPoint(p.points[j],meta,`${p.basePole}/${p.id}/${j}`,p.id));});
   return out;
@@ -6850,7 +6886,7 @@ sgNFRowForPoint=function(point,meta,pole,pathId){
   const feedName=isBend?'BEND POINT':point.name||sourceType;const feedCode=isBend?`NEWF-${Date.now().toString(36)}-${String(pole).replace(/\W/g,'')}-${Math.random().toString(36).slice(2,5)}`:(point.code||'');
   const arrangement=point.connectionArrangement||((point.routeAction==='end')?'end':(point.kind==='ss33'?'through':''));const sw=sgNFNormSwitchPosition(point.switchPosition);const abs=sw==='NONE'?'Closed':(point.abStatus||'Closed');
   const raw={feeder_name:meta.feederName,feeder_code:meta.feederCode,Feeder_Type:meta.feederAssetType,Type_of_feeder:point.segType||meta.constructionType,name_of_the_EHT_SS:meta.sourceName,eht_code:meta.sourceCode,pole_number:pole,latitude:point.lat,longitude:point.lng,feeder_feeding_to:isBend?'':feedName,feeder_feeding_to_code:isBend?'':feedCode,pole_feeding_to:isBend?'Next Pole / Cable Point':feedName,type_of_cable_point:sourceType,connection_role:point.role||'',connection_arrangement:arrangement,route_action:point.routeAction||'',switch_position:sw,ab_status:abs,branch_id:pathId,destination_type:point.kind||'',electrical_model:'SECTIONALISED_FEEDER_V2'};
-  return {area_code:'',circle:meta.linesCircle||meta.operationCircle||'',division:meta.linesDivision||meta.operationDivision||'',sub_division:meta.linesSubDivision||meta.operationSubDivision||'',section:meta.linesSection||meta.operationSection||'',eht_code:meta.sourceCode,eht_name:meta.sourceName,eht_lat:meta.sourceLat,eht_lng:meta.sourceLng,feeder_type:ftype,feeder_asset_type:meta.feederAssetType,construction_type:point.segType||meta.constructionType,feeder_name:meta.feederName,feeder_code:meta.feederCode||meta.feederName,pole_number:pole,source_type:sourceType,feeding_code:feedCode,feeding_to:feedName,feeding_name:feedName,feeding_lat:+point.lat,feeding_lng:+point.lng,connection_role:point.role||'',relationship_role:point.role||'',connection_arrangement:arrangement,route_action:point.routeAction||'',switch_position:sw,ab_status:abs,destination_type:point.kind||'',branch_id:pathId,electrical_model:'SECTIONALISED_FEEDER_V2',master_source_matches:point.masterRelation||[],raw_index:-1,_raw:raw};
+  return {area_code:'',circle:meta.linesCircle||meta.operationCircle||'',division:meta.linesDivision||meta.operationDivision||'',sub_division:meta.linesSubDivision||meta.operationSubDivision||'',section:meta.linesSection||meta.operationSection||'',eht_code:meta.sourceCode,eht_name:meta.sourceName,eht_lat:meta.sourceLat,eht_lng:meta.sourceLng,source_kind:meta.sourceKind||'eht',feeder_type:ftype,feeder_asset_type:meta.feederAssetType,construction_type:point.segType||meta.constructionType,feeder_name:meta.feederName,feeder_code:meta.feederCode||meta.feederName,pole_number:pole,source_type:sourceType,feeding_code:feedCode,feeding_to:feedName,feeding_name:feedName,feeding_lat:+point.lat,feeding_lng:+point.lng,connection_role:point.role||'',relationship_role:point.role||'',connection_arrangement:arrangement,route_action:point.routeAction||'',switch_position:sw,ab_status:abs,destination_type:point.kind||'',branch_id:pathId,electrical_model:'SECTIONALISED_FEEDER_V2',master_source_matches:point.masterRelation||[],raw_index:-1,_raw:raw};
 };
 
 sgNFReviewHtml=function(){
@@ -7045,11 +7081,11 @@ sgNFRowForPoint=function(point,meta,pole,pathId){
   const feedName=isBend?'BEND POINT':point.name||sourceType;const feedCode=isBend?`NEWF-${Date.now().toString(36)}-${String(pole).replace(/\W/g,'')}-${Math.random().toString(36).slice(2,5)}`:(point.code||'');
   const ptrJson=ptrs.length?JSON.stringify(ptrs):'';const arrangement=point.connectionArrangement||((point.routeAction==='end')?'end':(point.kind==='ss33'?'through':''));
   const raw={feeder_name:meta.feederName,feeder_code:meta.feederCode,Feeder_Type:meta.feederAssetType,Type_of_feeder:point.segType||meta.constructionType,
-    name_of_the_EHT_SS:meta.sourceName,eht_code:meta.sourceCode,pole_number:pole,latitude:point.lat,longitude:point.lng,
+    name_of_the_EHT_SS:meta.sourceName,eht_code:meta.sourceCode,source_kind:meta.sourceKind||'eht',pole_number:pole,latitude:point.lat,longitude:point.lng,
     feeder_feeding_to:isBend?'':feedName,feeder_feeding_to_code:isBend?'':feedCode,pole_feeding_to:isBend?'Next Pole / Cable Point':feedName,type_of_cable_point:sourceType,
     connection_role:role,ptr_assignments:ptrJson,connection_arrangement:arrangement,route_action:point.routeAction||'',branch_id:pathId,destination_type:point.kind||'',electrical_model:'MANUAL_TOPOLOGY_V3'};
   return {area_code:'',circle:meta.linesCircle||meta.operationCircle||'',division:meta.linesDivision||meta.operationDivision||'',sub_division:meta.linesSubDivision||meta.operationSubDivision||'',section:meta.linesSection||meta.operationSection||'',
-    eht_code:meta.sourceCode,eht_name:meta.sourceName,eht_lat:meta.sourceLat,eht_lng:meta.sourceLng,feeder_type:ftype,feeder_asset_type:meta.feederAssetType,construction_type:point.segType||meta.constructionType,
+    eht_code:meta.sourceCode,eht_name:meta.sourceName,eht_lat:meta.sourceLat,eht_lng:meta.sourceLng,source_kind:meta.sourceKind||'eht',feeder_type:ftype,feeder_asset_type:meta.feederAssetType,construction_type:point.segType||meta.constructionType,
     feeder_name:meta.feederName,feeder_code:meta.feederCode||meta.feederName,pole_number:pole,source_type:sourceType,feeding_code:feedCode,feeding_to:feedName,feeding_name:feedName,feeding_lat:+point.lat,feeding_lng:+point.lng,
     connection_role:role,relationship_role:role,ptr_assignments:ptrJson,connection_arrangement:arrangement,route_action:point.routeAction||'',switch_position:'',ab_status:'',destination_type:point.kind||'',branch_id:pathId,electrical_model:'MANUAL_TOPOLOGY_V3',master_source_matches:point.masterRelation||[],raw_index:-1,_raw:raw};
 };
@@ -7995,7 +8031,7 @@ window.sgV9SaveBreakdown=async function(){const name=document.getElementById('sg
 /* ── CAD point numbering and any-point connection ── */
 function pointDesc(v,i){const base='P'+i;const n=String(v?.overrideName||v?.label||'').trim();return base+(n?' · '+n:'')}
 function selectedPointIndex(){const el=document.getElementById('sgV9PointSel');if(el&&el.value!=='')return Number(el.value);return Number.isInteger(geomEdit?.selected)?geomEdit.selected:-1}
-function renderPointPanel(){const bar=document.getElementById('sgeBar');if(!bar||!geomEdit?.feederKey)return;let host=document.getElementById('sgV9PointConnect');if(!host){host=document.createElement('div');host.id='sgV9PointConnect';const snap=[...bar.children].find(x=>(x.textContent||'').trim()==='OBJECT SNAP');bar.insertBefore(host,snap||bar.lastElementChild)}const sel=geomEdit.selected>=0?geomEdit.selected:0;host.innerHTML=`<div class="sg-v9-edit-label">POINT CONNECTION / PREVIOUS POLE</div><div class="sg-v9-point-row"><select id="sgV9PointSel" onchange="sgV9SelectPoint(this.value)">${geomEdit.verts.map((v,i)=>`<option value="${i}" ${i===sel?'selected':''}>${esc(pointDesc(v,i))}${i===0?' [EHT SOURCE]':''}</option>`).join('')}</select><button class="sg-cad-btn sg-v9-connect-btn" onclick="sgV9ConnectFromPoint()">⌁ Connect From</button></div><div class="sg-v8-edit-note">Select P0 to create another outgoing path directly from the fixed EHT source. Select any bend/SS point to continue or branch from that exact point.</div>`}
+function renderPointPanel(){const bar=document.getElementById('sgeBar');if(!bar||!geomEdit?.feederKey)return;let host=document.getElementById('sgV9PointConnect');if(!host){host=document.createElement('div');host.id='sgV9PointConnect';const snap=[...bar.children].find(x=>(x.textContent||'').trim()==='OBJECT SNAP');bar.insertBefore(host,snap||bar.lastElementChild)}const sel=geomEdit.selected>=0?geomEdit.selected:0;host.innerHTML=`<div class="sg-v9-edit-label">POINT CONNECTION / PREVIOUS POLE</div><div class="sg-v9-point-row"><select id="sgV9PointSel" onchange="sgV9SelectPoint(this.value)">${geomEdit.verts.map((v,i)=>`<option value="${i}" ${i===sel?'selected':''}>${esc(pointDesc(v,i))}${i===0?' ['+((geomEdit.verts[0]&&geomEdit.verts[0].sourceLabel)||'EHT SOURCE')+']':''}</option>`).join('')}</select><button class="sg-cad-btn sg-v9-connect-btn" onclick="sgV9ConnectFromPoint()">⌁ Connect From</button></div><div class="sg-v8-edit-note">Select P0 to create another outgoing path directly from the fixed source point. Select any bend/SS point to continue or branch from that exact point.</div>`}
 window.sgV9SelectPoint=function(v){const i=Number(v);if(!geomEdit?.verts||!geomEdit.verts[i])return;geomEdit.selected=i;_sgRenderEditHandles();try{map.panTo([geomEdit.verts[i].lat,geomEdit.verts[i].lng],{animate:true,duration:.25})}catch(e){}};
 window.sgV9ConnectFromPoint=function(){if(!geomEdit?.feederKey)return;const i=selectedPointIndex();if(i<0||i>=geomEdit.verts.length){toast('Select a point number first');return}const source=geomEdit.verts[i];if(i>0&&i<geomEdit.verts.length-1)source.moved=true;geomEdit.selected=i;geomEdit.spurDraft={sourceVertex:source,sourcePointIndex:i,points:[{lat:source.lat,lng:source.lng,junction:true}],completed:false,endTarget:null};sgDraft.mode='drawSpur';['sgeSourceBtn','sgeEndBtn','sgeExtendBtn'].forEach(id=>document.getElementById(id)?.classList.remove('active'));document.getElementById('sgeSpurBtn')?.classList.add('active');sgShowStationCenters(true);_sgRenderEditHandles();toast('CONNECT FROM P'+i+' active — click bend points, then click the destination SS/EHT centre')};
 const baseHandles=window._sgRenderEditHandles||_sgRenderEditHandles;
