@@ -286,7 +286,7 @@ table.data-table td.action-cell{background:#fff!important}
 .report-kpi:nth-child(8):before{background:#fdf3e2;border-color:#f2e0be}
 .stat .v,.report-kpi .kv{padding-right:34px}
 @media print{.stat:before,.report-kpi:before{display:none}}
-body.on-dashboard .wrap>.stats,body.on-dashboard .wrap>.note{display:none}
+body:not(.on-dashboard) .wrap>.stats{display:none}
 
 /* ============ DASHBOARD — clean editorial overview (register-style) ============ */
 .dash{background:var(--o-surface);border:1px solid var(--o-line);border-radius:var(--o-radius);box-shadow:var(--o-shadow);padding:26px 28px 22px;margin-bottom:18px}
