@@ -286,20 +286,60 @@ table.data-table td.action-cell{background:#fff!important}
 .report-kpi:nth-child(8):before{background:#fdf3e2;border-color:#f2e0be}
 .stat .v,.report-kpi .kv{padding-right:34px}
 @media print{.stat:before,.report-kpi:before{display:none}}
+body.on-dashboard .wrap>.stats,body.on-dashboard .wrap>.note{display:none}
+
+/* ============ DASHBOARD — clean editorial overview (register-style) ============ */
+.dash{background:var(--o-surface);border:1px solid var(--o-line);border-radius:var(--o-radius);box-shadow:var(--o-shadow);padding:26px 28px 22px;margin-bottom:18px}
+.dash-eyebrow{font:800 10.5px/1 ui-sans-serif,Arial,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:var(--o-red);margin-bottom:9px}
+.dash-title{font-size:25px;font-weight:800;letter-spacing:-.2px;color:var(--o-ink);margin-bottom:4px}
+.dash-sub{font-size:12.5px;color:var(--o-muted);margin-bottom:14px}
+.dash-rule{height:3px;background:var(--o-red);border-radius:2px;margin-bottom:20px;width:100%}
+.dash-search{position:relative;margin-bottom:4px}
+.dash-search input{width:100%;box-sizing:border-box;padding:12px 44px 12px 16px;border:1.5px solid var(--o-line);border-radius:10px;font-size:13px;color:var(--o-ink);background:#fafbfc;outline:none;transition:border-color .12s}
+.dash-search input:focus{border-color:var(--o-red);background:#fff}
+.dash-search .hint{font-size:10.5px;color:var(--o-muted);margin-top:6px}
+.dash-search-results{margin-top:8px;border:1px solid var(--o-line);border-radius:10px;overflow:hidden;display:none}
+.dash-search-results.show{display:block}
+.dash-search-results button{display:block;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid var(--o-line2);padding:10px 14px;cursor:pointer;font-size:12px;color:var(--o-ink)}
+.dash-search-results button:last-child{border-bottom:0}
+.dash-search-results button:hover{background:var(--o-purple-soft)}
+.dash-search-results button b{display:block;font-size:12.5px}
+.dash-search-results button span{display:block;font-size:10.5px;color:var(--o-muted);margin-top:2px}
+.dash-search-results .none{padding:14px;color:var(--o-muted);font-size:12px;font-style:italic}
+.dash-section-hd{font:800 10.5px ui-sans-serif,Arial,sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:var(--o-ink2);margin:22px 0 10px}
+.dash-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.dash-tile{border:1px solid var(--o-line);border-radius:10px;padding:14px 15px;background:#fff}
+.dash-tile .n{font-size:26px;font-weight:800;color:var(--o-ink);font-variant-numeric:tabular-nums;line-height:1}
+.dash-tile .l{font-size:10.5px;color:var(--o-muted);margin-top:6px;letter-spacing:.2px}
+.dash-alerts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.dash-alert{border:1px solid var(--o-line);border-left:4px solid var(--o-green);border-radius:8px;padding:12px 14px;background:#fff}
+.dash-alert.warn{border-left-color:var(--o-amber)}
+.dash-alert.bad{border-left-color:var(--o-red)}
+.dash-alert .n{font-size:19px;font-weight:800;color:var(--o-ink)}
+.dash-alert .l{font-size:10px;color:var(--o-muted);margin-top:3px}
+.dash-table-wrap{border:1px solid var(--o-line);border-radius:10px;overflow:auto;max-height:480px}
+.dash-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.dash-table th{position:sticky;top:0;background:#fafbfc;border-bottom:1px solid var(--o-line);color:var(--o-muted);font:800 9.5px ui-sans-serif,Arial,sans-serif;letter-spacing:.5px;text-transform:uppercase;padding:9px 12px;text-align:left;white-space:nowrap}
+.dash-table td{padding:8px 12px;border-bottom:1px solid var(--o-line2);color:var(--o-ink2)}
+.dash-table tr:hover td{background:#fafbfc}
+.dash-table td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:var(--o-ink)}
+.dash-table tr.clickable{cursor:pointer}
+.dash-foot{margin-top:14px;font-size:10.5px;color:var(--o-muted)}
 </style>
-</head><body>
+</head><body class="on-dashboard">
 <div class="topbar">
   <h1>⚙️ MASTER DATA MANAGER</h1>
   <div class="sub">33/11KV SS · EHT · FEEDER MASTER · HT SERVICES & SWITCHING STATIONS · SOURCE RELATIONS · LIVE FIREBASE</div>
   <div class="right"><span id="fbChip" class="chip">☁ INIT</span><span class="chip live">● FIREBASE</span><button class="btn btn-outline" onclick="window.close()" style="color:#fff;border-color:rgba(255,255,255,.3)">✕ CLOSE</button></div>
 </div>
 <div class="tabs">
-  <div class="tab active" data-pane="sssources" onclick="switchTab('sssources')"><span class="num">1</span>SS SOURCES EXACT FORMAT <span class="badge" id="badge-sssources">0</span></div>
-  <div class="tab" data-pane="sscoords" onclick="switchTab('sscoords')"><span class="num">2</span>SS MASTER + COORDINATES <span class="badge" id="badge-sscoords">0</span></div>
-  <div class="tab" data-pane="eht" onclick="switchTab('eht')"><span class="num">3</span>EHT MASTER <span class="badge" id="badge-eht">0</span></div>
-  <div class="tab" data-pane="feeders" onclick="switchTab('feeders')"><span class="num">4</span>FEEDER MASTER <span class="badge" id="badge-feeders">0</span></div>
-  <div class="tab" data-pane="htservices" onclick="switchTab('htservices')"><span class="num">5</span>HT SERVICES & SWITCHING STATIONS <span class="badge" id="badge-htservices">0</span></div>
-  <div class="tab" data-pane="reports" onclick="switchTab('reports')"><span class="num">6</span>DATA QUALITY & REPORTS <span class="badge" id="badge-reports">XLSX</span></div>
+  <div class="tab active" data-pane="dashboard" onclick="switchTab('dashboard')"><span class="num">1</span>DASHBOARD</div>
+  <div class="tab" data-pane="sssources" onclick="switchTab('sssources')"><span class="num">2</span>SS SOURCES EXACT FORMAT <span class="badge" id="badge-sssources">0</span></div>
+  <div class="tab" data-pane="sscoords" onclick="switchTab('sscoords')"><span class="num">3</span>SS MASTER + COORDINATES <span class="badge" id="badge-sscoords">0</span></div>
+  <div class="tab" data-pane="eht" onclick="switchTab('eht')"><span class="num">4</span>EHT MASTER <span class="badge" id="badge-eht">0</span></div>
+  <div class="tab" data-pane="feeders" onclick="switchTab('feeders')"><span class="num">5</span>FEEDER MASTER <span class="badge" id="badge-feeders">0</span></div>
+  <div class="tab" data-pane="htservices" onclick="switchTab('htservices')"><span class="num">6</span>HT SERVICES & SWITCHING STATIONS <span class="badge" id="badge-htservices">0</span></div>
+  <div class="tab" data-pane="reports" onclick="switchTab('reports')"><span class="num">7</span>DATA QUALITY & REPORTS <span class="badge" id="badge-reports">XLSX</span></div>
 </div>
 <div class="wrap">
   <div class="stats">
@@ -316,7 +356,8 @@ table.data-table td.action-cell{background:#fff!important}
   <div class="note" id="bundleNotice">
     <span class="warn">Loading attached master data status…</span>
   </div>
-  <div id="pane-sssources" class="pane active"></div>
+  <div id="pane-dashboard" class="pane active"></div>
+  <div id="pane-sssources" class="pane"></div>
   <div id="pane-sscoords" class="pane"></div>
   <div id="pane-eht" class="pane"></div>
   <div id="pane-feeders" class="pane"></div>
@@ -520,7 +561,9 @@ async function syncBundledData(){
 function switchTab(n){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.pane===n));
   document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+n));
+  document.body.classList.toggle('on-dashboard',n==='dashboard');
   if(n==='reports')setTimeout(renderAutoReports,60);
+  if(n==='dashboard')setTimeout(renderDashboard,30);
 }
 function buildPanes(){
   Object.keys(SCHEMA).forEach(type=>{
@@ -625,7 +668,68 @@ function refreshStats(){
   if($('stat-switching'))$('stat-switching').textContent=swCount;
   if($('badge-htservices'))$('badge-htservices').textContent=htAll.length;
 }
-function renderAll(){populateFilters();refreshStats();Object.keys(SCHEMA).forEach(renderType);renderAutoReports();updateBundledNotice()}
+function renderAll(){populateFilters();refreshStats();Object.keys(SCHEMA).forEach(renderType);renderAutoReports();updateBundledNotice();if(document.getElementById('pane-dashboard'))renderDashboard()}
+
+/* ============ DASHBOARD ============ */
+function dashSearchIndex(){
+  const out=[];
+  Object.entries(DB.sscoords||{}).forEach(([k,r])=>out.push({type:'sscoords',key:k,label:r.ssName||r.ssCode||'33/11 kV SS',sub:(r.ssCode?'SS Code '+r.ssCode:'')+(r.linesDivision?' · '+r.linesDivision:''),hay:hnorm([r.ssName,r.ssCode].join(' '))}));
+  Object.entries(DB.eht||{}).forEach(([k,r])=>out.push({type:'eht',key:k,label:r.ehtName||r.ehtCode||'EHT SS',sub:(r.ehtCode?'EHT Code '+r.ehtCode:'')+(r.operationDivision?' · '+r.operationDivision:''),hay:hnorm([r.ehtName,r.ehtCode].join(' '))}));
+  Object.entries(DB.feeders||{}).forEach(([k,r])=>out.push({type:'feeders',key:k,label:r.feederName||r.feederCode||'33 kV Feeder',sub:(r.feederCode?'Feeder Code '+r.feederCode:'')+(r.feederAssetType?' · '+r.feederAssetType:''),hay:hnorm([r.feederName,r.feederCode].join(' '))}));
+  Object.entries(DB.htservices||{}).forEach(([k,r])=>out.push({type:'htservices',key:k,label:r.consumerName||r.feederName||r.serviceNo||'HT Service',sub:(r.serviceNo?'Service No. '+r.serviceNo:'')+(r.nodeType?' · '+r.nodeType:''),hay:hnorm([r.consumerName,r.serviceNo,r.feederCode,r.feederName].join(' '))}));
+  return out;
+}
+function dashSearch(v){
+  const box=document.getElementById('dashSearchResults');if(!box)return;
+  const q=hnorm(v);
+  if(!q){box.classList.remove('show');box.innerHTML='';return;}
+  const hits=dashSearchIndex().filter(x=>x.hay.includes(q)).slice(0,25);
+  box.classList.add('show');
+  box.innerHTML=hits.length?hits.map(x=>`<button onclick="dashGoTo('${x.type}','${escapeAttr(x.key)}')"><b>${escapeHTML(x.label)}</b><span>${escapeHTML(x.sub)}</span></button>`).join(''):`<div class="none">No SS, EHT, feeder or HT service matches "${escapeHTML(v)}".</div>`;
+}
+function dashGoTo(type,key){
+  switchTab(type);
+  setTimeout(()=>{
+    const row=[...document.querySelectorAll(`#tb-${type} tr`)].find(tr=>tr.dataset.key===key);
+    if(row){row.classList.add('row-flash');row.scrollIntoView({block:'center',behavior:'smooth'})}
+  },150);
+}
+function renderDashboard(){
+  const pane=document.getElementById('pane-dashboard');if(!pane)return;
+  const s=computeMasterStats();
+  const feederCount=Object.keys(DB.feeders||{}).length;
+  const htAll=Object.values(DB.htservices||{}),htCount=htAll.filter(r=>r.nodeType!=='SWITCHING STATION').length,swCount=htAll.filter(r=>r.nodeType==='SWITCHING STATION').length;
+  const dq=dataQualityRows();
+  const tiles=[
+    ['SS Source Rows',s.src.ptrCount],['33/11KV SS Master',s.ssCount],['Total SS LVs',s.ssLVs],['11KV Feeders',s.ss11Feeders],
+    ['EHT Sources',s.ehtCount],['EHT PTR Capacity MVA',s.ehtMVA],['33KV / Link / HT / SWS Feeders',feederCount],
+    ['HT Services',htCount],['Switching Stations',swCount]
+  ];
+  const alerts=dq.filter(r=>r.gaps>0).sort((a,b)=>b.gaps-a.gaps).slice(0,8);
+  const abstract=Object.values(DB.sscoords||{}).map(r=>({...r,_lv:Number(r.noLVs)||0,_fd:Number(r.no11KVFeeders)||0}))
+    .sort((a,b)=>b._lv-a._lv).slice(0,40);
+  pane.innerHTML=`
+    <div class="dash">
+      <div class="dash-eyebrow">TGSPDCL · SCADA CIRCLE · MASTER DATA REGISTER</div>
+      <div class="dash-title">Master Data Register — Live Overview</div>
+      <div class="dash-sub">33 kV Grid → 33/11 kV SS → 11 kV Feeder → HT / LT Consumer &nbsp;·&nbsp; Live from Firebase</div>
+      <div class="dash-rule"></div>
+      <div class="dash-search">
+        <input id="dashSearchInput" placeholder="Trace a channel — search SS name/code, EHT name/code, feeder name/code, or HT consumer/service no…" oninput="dashSearch(this.value)" autocomplete="off">
+        <div id="dashSearchResults" class="dash-search-results"></div>
+        <div class="hint">Search lights up the matching row — click a result to jump straight to it in its table.</div>
+      </div>
+      <div class="dash-section-hd">Live Master Data</div>
+      <div class="dash-tiles">${tiles.map(([l,v])=>`<div class="dash-tile"><div class="n">${escapeHTML(String(v))}</div><div class="l">${escapeHTML(l)}</div></div>`).join('')}</div>
+      <div class="dash-section-hd">Data Quality Alerts <span style="text-transform:none;font-weight:600;color:var(--o-muted)">— rows with a real gap, worst first</span></div>
+      <div class="dash-alerts">${alerts.length?alerts.map(a=>`<div class="dash-alert ${a.gaps>a.total*0.25?'bad':'warn'}"><div class="n">${a.gaps}</div><div class="l">${escapeHTML(a.dataset)} · ${escapeHTML(a.check)}</div></div>`).join(''):'<div class="dash-alert"><div class="n">0</div><div class="l">No open data-quality gaps — everything checked is complete</div></div>'}</div>
+      <div class="dash-section-hd">Substation-wise Abstract <span style="text-transform:none;font-weight:600;color:var(--o-muted)">— by number of LVs, top ${abstract.length}</span></div>
+      <div class="dash-table-wrap"><table class="dash-table"><thead><tr><th>33/11 kV Substation</th><th>SS Code</th><th>Lines Division</th><th>No. of LVs</th><th>11 kV Feeders</th></tr></thead><tbody>
+        ${abstract.map(r=>`<tr class="clickable" onclick="dashGoTo('sscoords','${escapeAttr(safeKey(r.ssCode||r.ssName))}')"><td>${escapeHTML(r.ssName||'—')}</td><td class="code">${escapeHTML(r.ssCode||'—')}</td><td>${escapeHTML(r.linesDivision||'—')}</td><td class="num">${r._lv}</td><td class="num">${r._fd}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No 33/11 kV SS master rows yet.</td></tr>'}
+      </tbody></table></div>
+      <div class="dash-foot">All figures are computed live from the same Firebase master data used across every tab — nothing on this page is a separate or stale copy.</div>
+    </div>`;
+}
 function sortedEntries(type){
   if(type==='sssources')return getValidSourceEntries();
   return Object.entries(DB[type]||{}).sort((a,b)=>(Number(a[1].sno)||999999)-(Number(b[1].sno)||999999)||String(a[1].ssName||a[1].ehtName||'').localeCompare(String(b[1].ssName||b[1].ehtName||'')));
@@ -656,7 +760,7 @@ function renderType(type){
   tb.innerHTML=arr.map(([key,r])=>{
     const curSS=r.ssCode||r.ssName||r.ehtCode||r.ehtName||'',first=curSS!==lastSS;lastSS=curSS;
     const safe=escapeAttr(key),name=escapeAttr(recordDisplayName(type,r));
-    return `<tr class="ssrow ${first?'firstofss':''}" title="Double-click to edit ${name}" ondblclick="openEdit('${type}','${safe}')">
+    return `<tr class="ssrow ${first?'firstofss':''}" data-key="${safe}" title="Double-click to edit ${name}" ondblclick="openEdit('${type}','${safe}')">
       <td class="action-cell" onclick="event.stopPropagation()" ondblclick="event.stopPropagation()"><div class="row-actions"><button class="row-edit-btn" onclick="openEdit('${type}','${safe}')">✎ EDIT ROW</button><button class="row-delete-btn" title="Delete this row" onclick="deleteRow('${type}','${safe}')">🗑</button></div></td>
       ${s.cols.map(c=>`<td class="${/code/i.test(c)||c==='ssCode'||c==='ehtCode'?'code':''}" data-field="${escapeAttr(c)}">${showVal(r[c],c)}</td>`).join('')}
     </tr>`;
