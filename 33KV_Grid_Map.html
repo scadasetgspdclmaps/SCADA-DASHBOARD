@@ -6148,7 +6148,7 @@ function sgNFAssetClass(v){
   if(s.includes('SWS')||s.includes('SWITCH'))return 'SWS';
   return '33KV';
 }
-function sgNFAssetLabel(cls){return cls==='LINK'?'Link Line':cls==='HT'?'HT Service':cls==='SWS'?'Switching Station Feeder':'33 kV Feeder';}
+function sgNFAssetLabel(cls){return cls==='LINK'?'Link Line':cls==='HT'?'HT Service':cls==='SWS'?'Switching Station Feeder':cls==='SWSFEED'?'Switching Station Source':'33 kV Feeder';}
 function sgNFNormalizeConstruction(v){const s=String(v||'').toUpperCase().replace(/\s/g,'');if(s.includes('OH')&&s.includes('UG'))return 'OH+UG';if(s.includes('OH'))return 'OH';return 'UG';}
 function sgNFNormalizeFeederRec(r,i){
   const feederName=String(sgNFVal(r,['feederName','name_of_the _feeder','name_of_the_feeder','feeder_name','Feeder Name'])||'').trim();
@@ -6333,7 +6333,23 @@ window.nfCancel=function(){sgNFClose();};
 function sgNFClose(){
   map.off('click',sgNFMapClick);sgNF.open=false;sgNF.drawing=false;sgNF.pendingTapPick=false;if(window.gNewFeederLayer)gNewFeederLayer.clearLayers();const p=document.getElementById('nfWizardPanel');if(p)p.style.display='none';const b=document.getElementById('nfBar');if(b)b.style.display='none';
 }
-function sgNFChooseType(cls){sgNF.drawType=cls;sgNF.step='feeder';sgNF.search='';sgNF.feeder=null;sgNFRender();setTimeout(()=>document.getElementById('nfFeederSearch')?.focus(),40);}
+function sgNFChooseType(cls){
+  sgNF.drawType=cls;sgNF.search='';sgNF.feeder=null;sgNF.source=null;
+  // "From Switching Station" has no Feeder Master search step of its own —
+  // the switching station IS the fixed source (it already has its own 33 kV
+  // feeder from an EHT source, recorded in Feeder Master/HT Services), so
+  // pick it directly at the SOURCE step instead.
+  if(cls==='SWSFEED'){sgNF.step='source';sgNFRender();return;}
+  sgNF.step='feeder';sgNFRender();setTimeout(()=>document.getElementById('nfFeederSearch')?.focus(),40);
+}
+function sgNFPickSWSSource(n){
+  if(!n)return;sgNF.source=n;
+  const fm=(sgNF.liveFeeders||[]).find(x=>(n.code&&compact(x.feederCode)===compact(n.code))||(n.name&&compact(x.feederName)===compact(n.name)));
+  sgNF.feeder=fm||{feederName:n.name,feederCode:n.code,feederAssetType:'SWS Feeder',constructionType:'UG'};
+  sgNF.currentSeg=sgNF.feeder.constructionType==='OH'?'OH':'UG';
+  sgNFRender();
+}
+function sgNFSetSWSSource(value){sgNFPickSWSSource(sgNFOtherNodes('sws').find(x=>sgNFAssetKey(x)===value));}
 function sgNFBack(){
   if(sgNF.step==='feeder')sgNF.step='type';else if(sgNF.step==='source')sgNF.step='feeder';else if(sgNF.step==='draw'){if(confirm('Leave the current unsaved drawing and return to Source?')){map.off('click',sgNFMapClick);gNewFeederLayer.clearLayers();sgNF.step='source';sgNF.drawing=false;}}else if(sgNF.step==='review')sgNF.step='draw';sgNFRender();
 }
@@ -6387,9 +6403,9 @@ function sgNFSetEHT(code){const n=sgNFEHTNodes().find(x=>String(x.code||'')===St
 function sgNFSetLinkSource(value){const n=sgNFAllLinkAssets().find(x=>sgNFAssetKey(x)===value);if(n){sgNF.source=n;sgNFRender();}}
 function sgNFAssetKey(n){return `${n.kind||'ss33'}|${n.code||''}|${n.name||''}|${n.lat}|${n.lng}`;}
 function sgNFStartDrawing(){
-  if(!sgNF.feeder)return toast('Select a feeder first');if(!sgNF.source)return toast(sgNF.drawType==='LINK'?'Select the link-line starting asset':'EHT source could not be resolved — select it manually');
+  if(!sgNF.feeder)return toast('Select a feeder first');if(!sgNF.source)return toast(sgNF.drawType==='LINK'?'Select the link-line starting asset':sgNF.drawType==='SWSFEED'?'Select the switching station source':'EHT source could not be resolved — select it manually');
   sgNFInitPaths({kind:sgNF.source.kind||'eht',name:sgNF.source.name||'',code:sgNF.source.code||'',lat:+sgNF.source.lat,lng:+sgNF.source.lng});
-  sgNF.step='draw';sgNF.drawing=true;sgNF.destType=sgNF.drawType==='HT'?'ht':sgNF.drawType==='SWS'?'sws':'ss33';sgNF.routeAction=sgNF.drawType==='LINK'?'end':'tap';sgNF._fitOnce=false;
+  sgNF.step='draw';sgNF.drawing=true;sgNF.destType=sgNF.drawType==='HT'?'ht':sgNF.drawType==='SWS'?'sws':sgNF.drawType==='SWSFEED'?'ht':'ss33';sgNF.routeAction=sgNF.drawType==='LINK'?'end':'tap';sgNF._fitOnce=false;
   map.off('click',sgNFMapClick);map.on('click',sgNFMapClick);map.setView([sgNF.source.lat,sgNF.source.lng],14,{animate:true});sgNFRedraw();sgNFRender();toast('Source locked to master coordinate. Click map to add bends; use destination panel to connect assets.');
 }
 function sgNFSetSegment(v){sgNF.currentSeg=v;sgNFRender();}
@@ -6485,7 +6501,13 @@ function sgNFReviewHtml(){
 }
 function sgNFStatsHtml(f){if(!f)return '';const parts=[['Code',f.feederCode||'—'],['Type',sgNFAssetLabel(sgNFAssetClass(f.feederAssetType))],['Construction',f.constructionType||'—'],['Total km',f.totalKm==null?'—':f.totalKm],['OH km',f.ohKm==null?'—':f.ohKm],['UG km',f.ugKm==null?'—':f.ugKm]];return `<div class="nf-kpis">${parts.map(([k,v])=>`<div><span>${sgNFEsc(k)}</span><b>${sgNFEsc(v)}</b></div>`).join('')}</div>`;}
 function sgNFSourceHtml(){
-  const f=sgNF.feeder,cls=sgNF.drawType;if(!f)return '';
+  const f=sgNF.feeder,cls=sgNF.drawType;
+  if(cls==='SWSFEED'){
+    const opts=sgNFOtherNodes('sws').map(n=>`<option value="${sgNFEsc(sgNFAssetKey(n))}" ${sgNF.source&&sgNFAssetKey(sgNF.source)===sgNFAssetKey(n)?'selected':''}>${sgNFEsc(n.name||n.code)}${n.code?' · '+sgNFEsc(n.code):''}</option>`).join('');
+    const src=sgNF.source;
+    return `<div class="nf-card ${src?'ok':'warn'}"><div class="nf-card-title">▣ SWITCHING STATION SOURCE — FIXED</div><div class="nf-source-name">${src?sgNFEsc(src.name||src.code):'Pick a switching station below'}</div>${src?`<div class="nf-coord">${(+src.lat).toFixed(6)}, ${(+src.lng).toFixed(6)}${src.code?' · '+sgNFEsc(src.code):''}</div>`:''}<label style="margin-top:9px">Switching station (SS-I / SS-II / SS-III …)</label><select class="nf-input" onchange="sgNFSetSWSSource(this.value)"><option value="">Select switching station…</option>${opts}</select><p>This point is itself fed by its own 33 kV feeder from an EHT source — that link stays as recorded in Feeder Master / HT Services master. From here you are drawing onward to the HT Services it feeds.</p></div>`;
+  }
+  if(!f)return '';
   if(cls==='LINK'){
     const opts=sgNFAllLinkAssets().map(n=>`<option value="${sgNFEsc(sgNFAssetKey(n))}" ${sgNF.source&&sgNFAssetKey(sgNF.source)===sgNFAssetKey(n)?'selected':''}>${sgNFEsc(n.name||n.code)} — ${sgNFEsc(n.kind)}</option>`).join('');
     return `<div class="nf-card"><label>Link-line starting point</label><select class="nf-input" onchange="sgNFSetLinkSource(this.value)"><option value="">Select fixed SS / SWS / HT point…</option>${opts}</select><p>Start coordinate comes from the existing Smart Grid/master coordinate. It is locked.</p></div>`;
@@ -6516,7 +6538,7 @@ function sgNFRender(){
   const body=document.getElementById('nfWBody');
   if(sgNF.step==='type')body.innerHTML=`<p class="nf-lead">What are you drawing?</p><div class="nf-type-grid"><button onclick="sgNFChooseType('33KV')"><b>＋ 33 kV Feeder</b><span>Fixed EHT source → manual route → one or more 33/11 kV substations.</span></button><button onclick="sgNFChooseType('HT')"><b>◇ HT Service</b><span>EHT-fed HT service route with fixed/end-point option.</span></button><button onclick="sgNFChooseType('SWS')"><b>▣ Switching Station</b><span>33 kV route feeding a switching station.</span></button><button onclick="sgNFChooseType('LINK')"><b>⇄ Link Line</b><span>Interconnection between fixed SS / SWS / HT points.</span></button></div><div class="nf-master-status" id="nfMasterStatus">${sgNF.liveFeeders.length||321} feeders · ${sgNFEsc(sgNF.feederSource||'loading master…')}</div>`;
   else if(sgNF.step==='feeder')body.innerHTML=`<p class="nf-lead">Select ${sgNFAssetLabel(sgNF.drawType)} from Feeder Master. Code, construction and hierarchy are automatic.</p><div class="nf-field"><label>Feeder name / code</label><input id="nfFeederSearch" class="nf-input" placeholder="Search feeder master…" value="${sgNFEsc(sgNF.search)}" oninput="sgNFSetSearch(this.value)" autocomplete="off"><div id="nfFeederResults" class="nf-results"></div></div><div class="nf-master-status">${sgNF.liveFeeders.filter(x=>sgNFFeederClassesFor(sgNF.drawType).includes(sgNFAssetClass(x.feederAssetType))).length} records in this type</div>`;
-  else if(sgNF.step==='source')body.innerHTML=`<div class="nf-selected"><span>${sgNFEsc(sgNFAssetLabel(sgNF.drawType))}</span><b>${sgNFEsc(f?.feederName||'')}</b></div>${sgNFStatsHtml(f)}${sgNFSourceHtml()}<button class="nf-primary" ${sgNF.source?'':'disabled'} onclick="sgNFStartDrawing()">Open Drafting / Start From Fixed Source</button>`;
+  else if(sgNF.step==='source')body.innerHTML=`<div class="nf-selected"><span>${sgNFEsc(sgNFAssetLabel(sgNF.drawType))}</span><b>${sgNFEsc(sgNF.drawType==='SWSFEED'?(sgNF.source?.name||sgNF.source?.code||''):(f?.feederName||''))}</b></div>${sgNF.drawType==='SWSFEED'?'':sgNFStatsHtml(f)}${sgNFSourceHtml()}<button class="nf-primary" ${sgNF.source?'':'disabled'} onclick="sgNFStartDrawing()">Open Drafting / Start From Fixed Source</button>`;
   else if(sgNF.step==='draw'){
     const p=sgNFPath(),last=sgNFLastPoint();body.innerHTML=`<div class="nf-draw-head"><div><span>Active route</span><b>${p?.id==='MAIN'?'MAIN FEEDER':'BRANCH '+p?.id}</b></div><div><span>Points</span><b>${p?.points.length||0}</b></div><div><span>Last</span><b>${sgNFEsc(last?.name||last?.kind||'Source')}</b></div></div><div class="nf-hint">Click the map only for route/bend points. Use the destination controls below to snap exactly to a fixed SS/SWS/HT coordinate.</div><div class="nf-field"><label>Current segment construction</label><div class="nf-choice-row"><button class="${sgNF.currentSeg==='UG'?'on':''}" onclick="sgNFSetSegment('UG')">UG</button><button class="${sgNF.currentSeg==='OH'?'on':''}" onclick="sgNFSetSegment('OH')">OH</button></div><small>Feeder master: ${sgNFEsc(f?.constructionType||'—')}${f?.constructionType==='OH+UG'?' — change UG/OH as you draw each section.':''}</small></div><div class="nf-tools"><button onclick="sgNFUndo()">↶ Undo</button><button onclick="sgNFInsertPoint()">⊕ Insert Pt</button><button onclick="sgNFDeleteSelected()">✕ Delete Pt</button><button onclick="sgNFTrimAfter()">✂ Trim After</button><button onclick="sgNFStartBranch()">⑂ Branch</button>${sgNF.activePath!=='MAIN'?'<button onclick="sgNFReturnMain()">↩ Main Route</button>':''}</div><div class="nf-divider"></div>${sgNFDestinationHtml()}<div class="nf-divider"></div><button class="nf-primary secondary" onclick="sgNFFinishDrawing()">Finish Route → Review</button>`;
   } else if(sgNF.step==='review')body.innerHTML=`<div class="nf-selected"><span>READY TO SAVE</span><b>${sgNFEsc(f?.feederName||'')}</b></div>${sgNFStatsHtml(f)}<div class="nf-review">${sgNFReviewHtml()}</div><div class="nf-save-row"><button onclick="sgNFSave(false)">Save in Map Only</button><button class="publish" onclick="sgNFSave(true)">☁ Save & Update Firebase</button></div><p class="nf-footnote">Existing feeder geometry with the same feeder code/name will only be replaced after confirmation. EHT/SS master coordinates are never edited.</p>`;
@@ -7259,15 +7281,25 @@ function sgV5Num(v){const n=Number(String(v==null?'':v).replace(/,/g,'').replace
 function sgV5Flat(root){const out=[];function walk(v){if(!v||typeof v!=='object')return;if(Array.isArray(v)){v.forEach(walk);return;}out.push(v);Object.values(v).forEach(x=>{if(x&&typeof x==='object')walk(x);});}walk(root);return out;}
 function sgV5Pick(o,keys){try{return sgNFVal(o,keys);}catch(e){return '';}}
 function sgV5NormalizeHT(root){
+  // masterData/htServices holds BOTH HT Service and Switching Station
+  // records in one branch, distinguished only by each record's own nodeType
+  // field — and Switching Station rows have no serviceNo/consumerName at
+  // all (their identity is their own feederCode/feederName, the incoming
+  // line from the EHT source). The old picker here looked for generic
+  // htName/htCode-style fields that never matched either shape, silently
+  // dropping every record — this now mirrors the same classification used
+  // for map plotting in sgMasterBuildCoordCache().
   const out=[],seen=new Set();
   sgV5Flat(root).forEach(d=>{
-    const name=String(sgV5Pick(d,['htName','ht_name','HT Service Name','HT Service','service_name','consumer_name','name'])||'').trim();
-    const code=String(sgV5Pick(d,['htCode','ht_code','HT Code','service_code','consumer_code','code'])||'').trim();
+    const nt=String(sgV5Pick(d,['nodeType','node_type','type','Type'])||'').toUpperCase();
+    const kind=/SWITCH/.test(nt)?'sws':'ht';
+    const name=String((kind==='sws'?sgV5Pick(d,['feederName','feeder_name']):sgV5Pick(d,['consumerName','consumer_name']))||'').trim();
+    const code=String((kind==='sws'?sgV5Pick(d,['feederCode','feeder_code']):sgV5Pick(d,['serviceNo','service_no']))||sgV5Pick(d,['feederCode','feeder_code'])||'').trim();
     const lat=sgV5Num(sgV5Pick(d,['latitude','lat','ht_latitude','ht_lat','Latitude']));
     const lng=sgV5Num(sgV5Pick(d,['longitude','lng','lon','long','ht_longitude','ht_lng','Longitude']));
     if((!name&&!code)||lat==null||lng==null||lat<5||lat>40||lng<60||lng>100)return;
-    const k=compact(code||name)||lat.toFixed(6)+','+lng.toFixed(6);if(seen.has(k))return;seen.add(k);
-    out.push({kind:'ht',name:name||code,code,lat,lng,_master:d});
+    const k=kind+'|'+(compact(code||name)||lat.toFixed(6)+','+lng.toFixed(6));if(seen.has(k))return;seen.add(k);
+    out.push({kind,name:name||code,code,lat,lng,_master:d});
   });
   return out.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
 }
@@ -7280,11 +7312,16 @@ async function sgNFLoadHTMaster(){
 }
 window.sgNFLoadHTMaster=sgNFLoadHTMaster;
 
-/* Future HT master coordinates merge with any HT points already present in the topology. */
+/* Master HT Service / Switching Station coordinates merge with any matching
+   points already present in the manually-drawn topology. Both kinds need
+   this — a Switching Station that only exists in master data (never yet
+   drawn as part of a feeder route) must still be searchable/selectable as a
+   destination, exactly like an HT Service. */
 const sgV5OtherNodesBase=window.sgNFOtherNodes||sgNFOtherNodes;
 window.sgNFOtherNodes=sgNFOtherNodes=function(kind){
-  const base=sgV5OtherNodesBase(kind)||[];if(kind!=='ht')return base;
-  const all=[...base,...SG_V5_HT_MASTER],out=[],seen=new Set();
+  const base=sgV5OtherNodesBase(kind)||[];if(kind!=='ht'&&kind!=='sws')return base;
+  const master=SG_V5_HT_MASTER.filter(n=>n.kind===kind);
+  const all=[...base,...master],out=[],seen=new Set();
   all.forEach(n=>{const k=compact(n.code||n.name)||(+n.lat).toFixed(6)+','+(+n.lng).toFixed(6);if(!k||seen.has(k))return;seen.add(k);out.push(n);});
   return out.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
 };
@@ -7311,6 +7348,9 @@ function sgNFRefreshAssetActivation(){
       sgV5EligibleSS().forEach(n=>sgV5AddActive(n,false,()=>{},'Master destination · '+(n.name||n.code)));
     }else if(sgNF.drawType==='LINK'){
       sgNFSSNodes().forEach(n=>sgV5AddActive(n,!!sgNF.source&&sgNFAssetKey(n)===sgNFAssetKey(sgNF.source),x=>{sgNF.source=x;sgNFRender();},'Link source SS · '+(n.name||n.code)));
+    }else if(sgNF.drawType==='SWSFEED'){
+      const src=sgNF.source;
+      sgNFOtherNodes('sws').forEach(n=>sgV5AddActive(n,!!src&&sgNFAssetKey(n)===sgNFAssetKey(src),x=>sgNFPickSWSSource(x),'Switching Station source · '+(n.name||n.code)));
     }
     return;
   }
@@ -7333,7 +7373,7 @@ const sgV5RenderBase=window.sgNFRender||sgNFRender;
 window.sgNFRender=sgNFRender=function(){
   sgV5RenderBase();if(!sgNF.open)return;const body=document.getElementById('nfWBody');if(!body)return;
   if(sgNF.step==='type'){
-    body.innerHTML=`<p class="nf-lead">Choose the physical network object to create.</p><div class="nf-v5-type-grid"><button onclick="sgNFChooseType('33KV')"><b>＋ NEW 33 kV FEEDER</b><span>Select feeder from Master → EHT source is activated and locked → draw manually → connect one or more 33/11 kV SS → optionally continue to an HT Service later.</span></button><button onclick="sgNFChooseType('LINK')"><b>⇄ NEW LINK LINE</b><span>33/11 kV SS points are activated. Choose the first fixed SS, draw the link manually, and connect to the second fixed SS.</span></button></div><div class="nf-master-status" id="nfMasterStatus">${sgNF.liveFeeders.length||321} feeder records · ${sgNFEsc(sgNF.feederSource||'loading master…')}</div>`;
+    body.innerHTML=`<p class="nf-lead">Choose the physical network object to create.</p><div class="nf-v5-type-grid"><button onclick="sgNFChooseType('33KV')"><b>＋ NEW 33 kV FEEDER</b><span>Select feeder from Master → EHT source is activated and locked → draw manually → connect one or more 33/11 kV SS → optionally continue to an HT Service later.</span></button><button onclick="sgNFChooseType('SWSFEED')"><b>▣ FROM SWITCHING STATION</b><span>Pick an existing Switching Station (SS-I / SS-II / SS-III …) as the fixed source — it already has its own 33 kV feeder from an EHT SS — then draw manually to one or more HT Services it feeds.</span></button><button onclick="sgNFChooseType('LINK')"><b>⇄ NEW LINK LINE</b><span>33/11 kV SS points are activated. Choose the first fixed SS, draw the link manually, and connect to the second fixed SS.</span></button></div><div class="nf-master-status" id="nfMasterStatus">${sgNF.liveFeeders.length||321} feeder records · ${sgNFEsc(sgNF.feederSource||'loading master…')}</div>`;
   }
   if(sgNF.step==='source'){
     const note=document.createElement('div');note.className='nf-v5-activation-note';
@@ -7353,7 +7393,7 @@ window.sgNFRender=sgNFRender=function(){
 /* Link Line destination is SS-to-SS. 33KV feeder can later continue to HT master points. */
 window.sgNFDestinationHtml=sgNFDestinationHtml=function(){
   const type=sgNF.destType;
-  const tabs=sgNF.drawType==='LINK'?[['ss33','33/11 kV SS']]:[['ss33','33/11 kV SS'],['ht','HT Service'],['sws','Switching Station'],['tap','Existing Feeder Tap'],['dead','Dead End']];
+  const tabs=sgNF.drawType==='LINK'?[['ss33','33/11 kV SS']]:sgNF.drawType==='SWSFEED'?[['ht','HT Service'],['tap','Existing Feeder Tap'],['dead','Dead End']]:[['ss33','33/11 kV SS'],['ht','HT Service'],['sws','Switching Station'],['tap','Existing Feeder Tap'],['dead','Dead End']];
   let body='';
   if(['ss33','ht','sws'].includes(type)){
     const nm=type==='ss33'?'Feeding to 33/11 kV substation':type==='ht'?'Feeding to HT service':'Feeding to switching station';
